@@ -79,8 +79,12 @@ test("keeps the booking UI and starter cleanup in source", async () => {
   await assert.rejects(access(new URL("../app/_sites-preview/", import.meta.url)));
   await access(new URL("../public/psi-logo.png", import.meta.url));
   await access(new URL("../public/psi-hero.jpg", import.meta.url));
+  await access(new URL("../public/psi-gtsr-porsche.jpg", import.meta.url));
+  await access(new URL("../public/psi-gtsr-porsche-mobile.jpg", import.meta.url));
   await access(new URL("../public/psi-contact-qr.png", import.meta.url));
   await access(new URL("../mobile/assets/images/psi-contact-qr.png", import.meta.url));
+  await access(new URL("../mobile/assets/images/psi-gtsr-porsche.jpg", import.meta.url));
+  await access(new URL("../mobile/assets/images/psi-gtsr-porsche-mobile.jpg", import.meta.url));
   await access(new URL("../LICENSE", import.meta.url));
   await access(new URL("../TRADEMARKS.md", import.meta.url));
 });
@@ -99,21 +103,24 @@ test("sizes the mobile calendar from the usable layout container", async () => {
   assert.ok(narrowCalendarWidth(305) <= 305);
 });
 
-test("sizes the Why PSI headline from its real content column", async () => {
-  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+test("keeps the Why PSI two-car media and copy responsive", async () => {
+  const [styles, page, mobilePage] = await Promise.all([
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../mobile/src/app/index.tsx", import.meta.url), "utf8"),
+  ]);
 
+  assert.match(styles, /\.why-section\s*{[^}]*grid-template-columns:\s*1fr;[^}]*min-height:\s*0;/s);
+  assert.match(styles, /\.why-image\s*{[^}]*aspect-ratio:\s*1744 \/ 901;[^}]*overflow:\s*hidden;/s);
+  assert.match(styles, /\.why-image img\s*{[^}]*object-fit:\s*cover;/s);
   assert.match(styles, /\.why-copy\s*{[^}]*container-type:\s*inline-size;/s);
+  assert.match(styles, /\.why-copy\s*{[^}]*grid-template-columns:\s*minmax\(0, 0\.82fr\) minmax\(0, 1\.18fr\)/s);
   assert.match(styles, /\.why-copy h2\s*{[^}]*max-width:\s*100%;[^}]*overflow-wrap:\s*anywhere;[^}]*min\(5\.5vw, 12cqi\)/s);
-  assert.match(styles, /@media \(min-width: 1041px\) and \(max-width: 1700px\)[\s\S]*grid-template-columns:\s*minmax\(360px, 0\.9fr\) minmax\(0, 1\.1fr\)/);
-
-  for (const viewportWidth of [1041, 1100, 1280, 1366, 1440]) {
-    const copyTrack = viewportWidth * 0.55;
-    const inlinePadding = Math.max(30, Math.min(viewportWidth * 0.04, 110));
-    const contentColumn = copyTrack - inlinePadding * 2;
-    const fontSize = Math.max(36.8, Math.min(viewportWidth * 0.055, contentColumn * 0.12, 94.4));
-    const reproducedTextWidth = 581 * (fontSize / 79.2);
-    assert.ok(reproducedTextWidth < contentColumn, `${viewportWidth}px Why PSI headline must fit its column`);
-  }
+  assert.match(styles, /@media \(max-width: 1040px\)[\s\S]*\.why-copy\s*{[^}]*grid-template-columns:\s*1fr[\s\S]*\.testimonial-grid\s*{[^}]*repeat\(2,/s);
+  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.why-image\s*{[^}]*aspect-ratio:\s*1;[\s\S]*\.testimonial-grid\s*{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(page, /<picture className="why-image">[\s\S]*srcSet="\/psi-gtsr-porsche-mobile\.jpg"[\s\S]*src="\/psi-gtsr-porsche\.jpg"[\s\S]*loading="lazy"/s);
+  assert.match(mobilePage, /<Image\s+accessible\s+accessibilityLabel="Black VF GTSR[\s\S]*accessibilityRole="image"/s);
+  assert.match(mobilePage, /const tabletStories = width >= 720;[\s\S]*const wideStories = width >= 1024;/s);
 });
 
 test("lets the parts headline reflow on narrow layout viewports", async () => {

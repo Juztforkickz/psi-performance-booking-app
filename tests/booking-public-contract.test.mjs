@@ -741,29 +741,29 @@ test("keeps customer testimonials sourced and separates PSI's 10/10 promise from
     /<section className="testimonials-section"[\s\S]*?<\/section>/u,
   )?.[0];
   assert.ok(testimonialsSection, "the testimonials section must remain explicit");
-  assert.match(testimonialsSection, /Verified five-star customer stories/u);
+  assert.match(testimonialsSection, /Genuine five-star customer feedback/u);
   assert.match(testimonialsSection, /blockquote cite="https:\/\/psiperformance\.com\.au\/"/u);
   assert.match(testimonialsSection, /aria-label="5 out of 5 stars"/u);
   assert.doesNotMatch(testimonialsSection, /10\s*(?:\/\s*10|out of 10)/iu);
   assert.match(page, /10\/10 care/u);
   assert.match(page, /not a customer review aggregate/iu);
   for (const [customer, quote] of [
-    ["Cale Pearson", "The team truly cares about both the car and the customer."],
-    ["Sharad Oadd", "they provide everything with quality and reliability in one go"],
-    ["Cade", "These guys know their stuff and will look after you through the whole process."],
+    ["Cale Pearson", "The communication was excellent, they kept me updated throughout the entire process and were always clear about the next steps. I appreciated the regular progress updates and the transparency at every stage. The handover was smooth, with everything explained in detail. The team truly cares about both the car and the customer."],
+    ["Cade", "Could not be happier. These guys know their stuff and will look after you through the whole process. Answering all my questions and going above and beyond to deliver a really amazing result. Thanks Matt and Dale for your work 🙏🏻"],
+    ["Harry Beith", "Matt and the team rebuilt my LS1 and transmission back to factory fresh condition. I was kept up to date the whole way through the project with photos included. I can't praise enough the quality of work and professionalism of the whole team. They turned an old well used 400,000 km drive train into brand new."],
   ]) {
     assert.ok(
       page.includes(`quote: "${quote}",\n    customer: "${customer}",`),
       `${customer}'s approved web excerpt and attribution must remain paired`,
     );
     assert.ok(
-      mobilePage.includes(`customer: '${customer}',\n    quote: '${quote}',`),
+      mobilePage.includes(`customer: '${customer}',\n    quote: '${quote.replaceAll("'", "\\'")}',`),
       `${customer}'s approved mobile excerpt and attribution must remain paired`,
     );
   }
   assert.match(mobilePage, /PSI service commitment—not a customer review rating/u);
   assert.match(provenance, /Customer feedback provenance/u);
-  assert.match(provenance, /Cale Pearson, Sharad Oadd and Cade/u);
+  assert.match(provenance, /Cale Pearson, Cade and Harry Beith/u);
   assert.match(provenance, /No reliable[\s\S]*literally rating the business “10\/10”/u);
 });
 

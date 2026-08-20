@@ -12,7 +12,7 @@ This build uses publicly available PSI Performance Garage information and owner-
 
 ## Customer feedback provenance
 
-The five-star excerpts attributed to Cale Pearson, Sharad Oadd and Cade are shortened from the **Our Happy Clients** section on PSI Performance's official website. The live page labels the original testimonials with five stars but does not publish review dates. The excerpts preserve the original meaning and link back to that source.
+The five-star customer stories attributed to Cale Pearson, Cade and Harry Beith are verbatim excerpts from the **Our Happy Clients** section on PSI Performance's official website. The live page labels the original testimonials with five stars but does not publish review dates. Their included wording and attribution are preserved, excerpts are identified as such, and the interface links back to that source.
 
 No reliable PSI Pakenham customer review literally rating the business “10/10” was identified on 21 August 2026. The interface therefore uses **10/10 care** only as an explicitly labelled PSI service commitment, never as an invented customer score or aggregate rating.
 
@@ -30,6 +30,8 @@ Social audience counts were intentionally not embedded because they change frequ
 ## Supplied/public brand assets
 
 The PSI logo, workshop/vehicle photography, favicon and type asset under `public/` were copied from PSI's public website for this PSI-owned product. Confirm final usage and licensing with the business owner before distributing the app through third-party stores.
+
+The VF GTSR/Porsche media pair uses PSI-published source photography: the existing `public/psi-dyno.jpg` VF GTSR photograph and the Porsche 911 GT3 RS photograph published in PSI's live homepage hero. The Porsche source was retrieved on 21 August 2026 from `https://psiperformance.com.au/cdn/shop/files/hero-2_3fde8d49-ed74-4981-ad05-2f60d2f05c3f.jpg?v=1750591973&width=1780` with SHA-256 `3A9DDE503C78EAFDB062FE72B0BBB41465830CB8FC60228A8E29B92389961B0D`. The finished desktop and mobile composites are `public/psi-gtsr-porsche.jpg` and `public/psi-gtsr-porsche-mobile.jpg`, with matching native-app copies under `mobile/assets/images/`.
 
 The square PWA icons were composed locally from the PSI wordmark on a black background. `public/og.png` is the single generated campaign asset used for link previews.
 
@@ -77,3 +79,15 @@ Final prompt:
 > Constraints: render each text line exactly once; preserve the PSI logo wording and proportions; large legible typography; cohesive finished card; no prices, power figures, claims or extra copy; no unrelated logos; no watermark.
 >
 > Avoid: generic racing clichés, flames, speed streaks, fake sponsor decals, small unreadable text, distorted wheels, invented workshop details.
+
+## Two-car composite generation record
+
+Mode: built-in image editing/compositing, using the PSI-published VF GTSR and Porsche 911 GT3 RS photographs as references.
+
+Final desktop prompt:
+
+> Create one photorealistic 16:9 automotive photograph in which the exact black VF GTSR and exact grey Porsche 911 GT3 RS are parked side by side outside the PSI workshop. Preserve both vehicle identities, body shapes, colours and wheels. Match the ground plane, camera height, daylight, colour temperature, reflections and contact shadows so the photograph appears to have been taken together. Keep both complete cars inside the central responsive safe area. No people, extra cars, text, watermark, invented signage or visible number plates.
+
+Final mobile prompt:
+
+> Reframe the approved two-car composite into a mobile-friendly near-square photograph. Keep both complete cars side by side, move them slightly closer, and extend the workshop wall and concrete foreground rather than cropping either vehicle. Preserve the exact cars, lighting, perspective, shadows and photographic finish. No people, extra cars, text, watermark, invented signage or visible number plates.

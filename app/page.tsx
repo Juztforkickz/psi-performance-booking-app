@@ -18,19 +18,19 @@ const trustPoints = [
 
 const testimonials = [
   {
-    quote: "The team truly cares about both the car and the customer.",
+    quote: "The communication was excellent, they kept me updated throughout the entire process and were always clear about the next steps. I appreciated the regular progress updates and the transparency at every stage. The handover was smooth, with everything explained in detail. The team truly cares about both the car and the customer.",
     customer: "Cale Pearson",
-    theme: "Personal care",
+    theme: "2002 Monaro · Communication and personal care",
   },
   {
-    quote: "they provide everything with quality and reliability in one go",
-    customer: "Sharad Oadd",
-    theme: "One-stop capability",
-  },
-  {
-    quote: "These guys know their stuff and will look after you through the whole process.",
+    quote: "Could not be happier. These guys know their stuff and will look after you through the whole process. Answering all my questions and going above and beyond to deliver a really amazing result. Thanks Matt and Dale for your work 🙏🏻",
     customer: "Cade",
-    theme: "Project partnership",
+    theme: "Knowledge, support and gratitude",
+  },
+  {
+    quote: "Matt and the team rebuilt my LS1 and transmission back to factory fresh condition. I was kept up to date the whole way through the project with photos included. I can't praise enough the quality of work and professionalism of the whole team. They turned an old well used 400,000 km drive train into brand new.",
+    customer: "Harry Beith",
+    theme: "LS1 and transmission rebuild · Transformational result",
   },
 ] as const;
 
@@ -185,7 +185,17 @@ export default function Home() {
       <BookingFlow />
 
       <section className="why-section" id="why-psi">
-        <div className="why-image" role="img" aria-label="Performance vehicle outside the PSI workshop" />
+        <picture className="why-image">
+          <source media="(max-width: 760px)" srcSet="/psi-gtsr-porsche-mobile.jpg" />
+          <Image
+            src="/psi-gtsr-porsche.jpg"
+            alt="Black VF GTSR and grey Porsche 911 GT3 RS parked together outside the PSI workshop"
+            width={1744}
+            height={901}
+            sizes="100vw"
+            loading="lazy"
+          />
+        </picture>
         <div className="why-copy">
           <p className="eyebrow">Why PSI</p>
           <h2>Done properly.<br />Explained clearly.</h2>
@@ -203,9 +213,9 @@ export default function Home() {
 
       <section className="testimonials-section" id="reviews" aria-labelledby="reviews-heading">
         <div className="section-heading compact-heading">
-          <p className="eyebrow">Verified five-star customer stories</p>
-          <h2 id="reviews-heading">People remember<br />how you look after them.</h2>
-          <p>Short excerpts from five-star customer feedback published on PSI Performance&apos;s official website.</p>
+          <p className="eyebrow">Genuine five-star customer feedback</p>
+          <h2 id="reviews-heading">Real owners.<br />Real care. Real results.</h2>
+          <p>Verbatim excerpts from customer stories published on PSI Performance&apos;s official website.</p>
         </div>
         <div className="testimonial-grid">
           {testimonials.map((testimonial) => (
@@ -220,7 +230,7 @@ export default function Home() {
           ))}
         </div>
         <div className="testimonial-source-row">
-          <p>Real customer words. Shortened for clarity; meaning preserved.</p>
+          <p>Real customer words, attributed accurately and excerpted only for length.</p>
           <a href="https://psiperformance.com.au/" target="_blank" rel="noreferrer">Read PSI customer stories <span aria-hidden="true">↗</span></a>
         </div>
       </section>
