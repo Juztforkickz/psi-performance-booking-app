@@ -7,15 +7,17 @@
 }
 
 :root {
-  --ink: #080808;
-  --ink-soft: #141414;
-  --paper: #f2efe9;
-  --paper-deep: #e5e1da;
-  --muted: #a7a6a2;
+  --ink: #050505;
+  --ink-soft: #111111;
+  --paper: #f3f0e8;
+  --paper-deep: #ded8cc;
+  --muted: #a7a49d;
   --line: rgba(255, 255, 255, 0.18);
-  --dark-line: rgba(8, 8, 8, 0.14);
-  --signal: #f2b31d;
-  --signal-dark: #8a6000;
+  --dark-line: rgba(5, 5, 5, 0.14);
+  --signal: #d9b35b;
+  --signal-bright: #f3d37b;
+  --signal-dark: #8b641b;
+  --signal-metal: linear-gradient(135deg, #f3d37b 0%, #d9b35b 48%, #aa7d28 100%);
   --danger: #b42318;
   --radius: 6px;
 }
@@ -83,13 +85,27 @@ h3 {
 }
 
 .hero-shell {
+  position: relative;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
+  isolation: isolate;
+  overflow: hidden;
   padding: 28px clamp(22px, 4vw, 72px) 24px;
   background:
     linear-gradient(90deg, rgba(4, 4, 4, 0.96) 0%, rgba(4, 4, 4, 0.73) 44%, rgba(4, 4, 4, 0.08) 100%),
     url("/psi-hero.jpg") center / cover no-repeat;
+}
+
+.hero-shell::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 22%),
+    repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - 1px), rgba(255, 255, 255, 0.028) 25%);
+  content: "";
+  pointer-events: none;
 }
 
 .site-header,
@@ -112,8 +128,9 @@ h3 {
 }
 
 .brand-mark {
-  width: 142px;
+  width: 155px;
   height: auto;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.48));
 }
 
 .site-nav {
@@ -205,8 +222,8 @@ h3 {
 
 .booking-choice-accent {
   border-color: var(--signal);
-  background: var(--signal);
-  color: #080808;
+  background: var(--signal-metal);
+  color: var(--ink);
 }
 
 .choice-number,
@@ -268,7 +285,7 @@ h3 {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   border-bottom: 1px solid var(--dark-line);
-  background: var(--signal);
+  background: var(--signal-metal);
   color: var(--ink);
 }
 

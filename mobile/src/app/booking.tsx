@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
+  Image,
   Linking,
   Platform,
   Pressable,
@@ -161,8 +162,13 @@ export default function BookingScreen() {
           <Text style={styles.backArrow}>←</Text>
           <Text style={styles.backLabel}>Back</Text>
         </Pressable>
-        <View style={styles.topBarTitle}>
-          <Text style={styles.topBarEyebrow}>PSI Performance</Text>
+        <View style={styles.topBarBrand}>
+          <Image
+            accessibilityLabel="PSI Performance Garage"
+            resizeMode="contain"
+            source={require('../../assets/images/psi-logo.png')}
+            style={styles.topBarLogo}
+          />
           <Text style={styles.topBarCopy}>Booking request</Text>
         </View>
       </View>
@@ -616,21 +622,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textTransform: 'uppercase',
   },
-  topBarTitle: {
+  topBarBrand: {
     alignItems: 'flex-end',
-    gap: 2,
+    gap: 3,
   },
-  topBarEyebrow: {
-    color: colors.gold,
-    fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
+  topBarLogo: {
+    width: 92,
+    height: 35,
   },
   topBarCopy: {
-    color: colors.white,
-    fontSize: 14,
+    color: colors.gold,
+    fontSize: 9,
     fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   progress: {
     width: '100%',

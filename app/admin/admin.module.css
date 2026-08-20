@@ -1,7 +1,7 @@
 .shell {
   min-height: 100svh;
   background:
-    radial-gradient(circle at 88% 6%, rgba(242, 179, 29, 0.1), transparent 27rem),
+    radial-gradient(circle at 88% 6%, rgba(217, 179, 91, 0.12), transparent 27rem),
     #090909;
   color: #fff;
 }
@@ -113,7 +113,7 @@
   margin-top: 8px;
   border: 1px solid var(--signal);
   border-radius: var(--radius);
-  background: var(--signal);
+  background: var(--signal-metal);
   color: #080808;
   cursor: pointer;
   font-size: 0.7rem;

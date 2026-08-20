@@ -27,6 +27,19 @@ The PSI logo, workshop/vehicle photography, favicon and type asset under `public
 
 The square PWA icons were composed locally from the PSI wordmark on a black background. `public/og.png` is the single generated campaign asset used for link previews.
 
+## Product brand system
+
+The web booking experience, staff queue and native mobile app use one restrained, high-end performance system:
+
+- official white PSI Performance Garage wordmark on carbon black;
+- carbon black `#050505`, graphite `#111111` and warm ivory `#F3F0E8` surfaces;
+- champagne gold `#D9B35B` with a restrained metallic highlight for key actions;
+- PSI's Ethnocentric display face for major web headings, paired with a clean system sans serif for readable form content;
+- PSI workshop and vehicle photography with controlled dark overlays, fine rules and compact technical labels;
+- square PSI-branded PWA, iOS and Android icons.
+
+The direction intentionally avoids flames, chequered flags, speed streaks and generic racing graphics. The performance character comes from the real cars, PSI's wordmark, precise typography and measured use of metallic gold.
+
 ## Social-card generation record
 
 Mode: built-in image generation, using `public/psi-hero.jpg` and `public/psi-logo.png` as references.
