@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BrandRail } from '@/components/brand-rail';
 import { Eyebrow, PrimaryButton } from '@/components/ui';
 import { colors, contact, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -239,6 +240,8 @@ export default function HomeScreen() {
         </View>
 
         <PsiStandard />
+
+        <BrandRail />
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>© {new Date().getFullYear()} PSI Performance™ · All rights reserved</Text>

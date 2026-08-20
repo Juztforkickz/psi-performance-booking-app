@@ -1,4 +1,4 @@
-const STATIC_CACHE = "psi-static-v2";
+const STATIC_CACHE = "psi-static-v3";
 const SHELL_CACHE = "psi-shell-v1";
 const STATIC_ASSETS = [
   "/psi-logo.png",
@@ -12,6 +12,18 @@ const STATIC_ASSETS = [
   "/psi-favicon.png",
   "/psi-contact-qr.png",
   "/ethnocentric.woff2",
+  "/brands/audi.png",
+  "/brands/holden.png",
+  "/brands/ford.png",
+  "/brands/mercedes-benz.png",
+  "/brands/porsche.png",
+  "/brands/lamborghini.png",
+  "/brands/skoda.png",
+  "/brands/volkswagen.png",
+  "/brands/bmw.png",
+  "/brands/haltech.png",
+  "/brands/fueltech.png",
+  "/brands/hp-tuners.png",
 ];
 
 self.addEventListener("install", (event) => {

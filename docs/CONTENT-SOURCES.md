@@ -35,6 +35,27 @@ The VF GTSR/Porsche media pair uses PSI-published source photography: the existi
 
 The square PWA icons were composed locally from the PSI wordmark on a black background. `public/og.png` is the single generated campaign asset used for link previews.
 
+### Scrolling brand-rail assets
+
+The manufacturer and tuning-platform marks used by PSI's scrolling homepage banner were retrieved from PSI Performance's official Shopify CDN on **21 August 2026**. The app keeps the sharp 300 px transparent PNG renditions under `public/brands/`, with byte-identical native-app copies under `mobile/assets/images/brands/`. Every imported file is 300×300 px, 32-bit ARGB and contains transparent pixels.
+
+| Normalized file | Exact PSI-published 300 px source | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| `audi.png` | `https://psiperformance.com.au/cdn/shop/files/audi-logo.png?v=1750333597&width=300` | 67,413 | `815CACFE1C811A4E3DE2367C328EC71A129333CD436B5A197ED37889E274D467` |
+| `holden.png` | `https://psiperformance.com.au/cdn/shop/files/holden-logo.png?v=1750333620&width=300` | 65,170 | `71B290EA1C210AAAA5A76FF5599443BA0BCFEB37B085B6F7328424A26551CAA8` |
+| `ford.png` | `https://psiperformance.com.au/cdn/shop/files/ford-logo.png?v=1750333672&width=300` | 53,830 | `1BD741AECD2F9A7C47A99DF4A1214B90A913D2175ACE638B125EC6397F0EABA2` |
+| `mercedes-benz.png` | `https://psiperformance.com.au/cdn/shop/files/mercedes-logo.png?v=1750333685&width=300` | 27,662 | `92B0CC2A1CD2C15873C407ACD35D33F2907F28A47465AA33966C95536815C799` |
+| `porsche.png` | `https://psiperformance.com.au/cdn/shop/files/porche-logo.png?v=1750333703&width=300` | 87,390 | `51F19CCF4A56D972A93B398B1A2C95B51443FA21DAEA8B2B1865E187067710C5` |
+| `lamborghini.png` | `https://psiperformance.com.au/cdn/shop/files/lambo-logo.png?v=1750333716&width=300` | 100,369 | `8BCF9EC1AE3E2518F0CA900ADDD6619E25F797A1F4607931B5535F5762B5A943` |
+| `skoda.png` | `https://psiperformance.com.au/cdn/shop/files/skoda-logo.png?v=1750333730&width=300` | 72,472 | `FC02B467AA103C86ABDE9F866D76B2377B2A837EBB5E7DD8597635F4B37E37A4` |
+| `volkswagen.png` | `https://psiperformance.com.au/cdn/shop/files/volkswagen-logo.png?v=1750333743&width=300` | 105,605 | `FB1423499CBF9D697D3260B0CF7CE3853C432ED96306AA5D082F5426CA099ABE` |
+| `bmw.png` | `https://psiperformance.com.au/cdn/shop/files/bmw-logo.png?v=1750333755&width=300` | 66,706 | `BBA094AA657CD545C2602971214F709550B34747FCCC5CAC02937261BA11B69B` |
+| `haltech.png` | `https://psiperformance.com.au/cdn/shop/files/haltech-logo.png?v=1750333767&width=300` | 37,555 | `5D9DECE927DAC760D36D5BC1D61812795B5B62673DCD0260C504564E9D9436A8` |
+| `fueltech.png` | `https://psiperformance.com.au/cdn/shop/files/fueltech_a4ad7488-e9d4-461e-9605-bea9631a83c6.png?v=1750333779&width=300` | 22,822 | `E5652075AE69C2FCA680BD237029847E160BBCCE3B8BAE8CFAEF990788F49CFD` |
+| `hp-tuners.png` | `https://psiperformance.com.au/cdn/shop/files/hptuners.png?v=1750333796&width=300` | 10,273 | `DC3536D6B033C685C322E02E4A431594ADC7012D53E9599EE2E2B5B95C16708F` |
+
+These third-party marks are used nominatively to identify vehicle manufacturers PSI services and tuning platforms PSI works with. Their inclusion does not imply endorsement, sponsorship, partnership or affiliation by the respective trade mark owners, and the marks must not be presented as PSI-owned branding.
+
 ## Product brand system
 
 The web booking experience, staff queue and native mobile app use one restrained, high-end performance system:

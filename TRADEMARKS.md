@@ -14,6 +14,25 @@ identity, or confusingly similar branding outside authorised PSI Performance
 business activity. Third-party trade marks remain the property of their
 respective owners.
 
+## Third-party manufacturer and tuning-platform marks
+
+The Audi, Holden, Ford, Mercedes-Benz, Porsche, Lamborghini, Skoda,
+Volkswagen, BMW, Haltech, FuelTech and HP Tuners names and logos appearing in
+the scrolling brand rail are third-party trade marks. They are used
+nominatively only to identify vehicle manufacturers PSI services and tuning
+platforms PSI works with.
+
+Their display does not state or imply that the relevant trade mark owner
+endorses, sponsors, certifies, partners with, or is affiliated with PSI
+Performance. These marks must remain visually subordinate to PSI branding,
+must not be altered in a way that misrepresents their owners, and must not be
+described as PSI-owned marks.
+
+The app copies were retrieved on 21 August 2026 from the same PSI-published
+Shopify CDN assets used by the official PSI homepage. Exact rendition URLs,
+dimensions, byte sizes and SHA-256 checksums are recorded in
+`docs/CONTENT-SOURCES.md`.
+
 ## Formal Australian registration handoff
 
 Before an application can be filed safely, PSI must confirm:

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { BrandMarquee } from "./components/BrandMarquee";
 import { BookingFlow } from "./components/BookingFlow";
 import { OpeningBookingPanel } from "./components/OpeningBookingPanel";
 import { depositAmountForBookingType } from "./api/v1/booking-catalog/catalog";
@@ -264,6 +265,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <BrandMarquee />
 
       <footer className="site-footer">
         <Image src="/psi-logo.png" alt="PSI Performance Garage" width={236} height={92} />
