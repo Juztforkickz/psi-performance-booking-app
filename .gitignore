@@ -35,6 +35,22 @@ yarn-error.log*
 # vercel
 .vercel
 
+# hosting and database tooling
+.netlify/
+.supabase/
+supabase/.temp/
+
+# mobile signing and platform credentials
+*.key
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+
 /dist/
 *.tsbuildinfo
 /.wrangler/

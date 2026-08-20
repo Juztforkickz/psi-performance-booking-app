@@ -60,4 +60,4 @@ Shipping signed binaries requires PSI-owned Apple Developer, Google Play Console
 - Test real requests with workshop staff before promoting the link.
 - Complete TestFlight and Google Play internal testing before public store release.
 
-Source and brand provenance is recorded in [`docs/CONTENT-SOURCES.md`](docs/CONTENT-SOURCES.md).
+Source and brand provenance is recorded in [`docs/CONTENT-SOURCES.md`](docs/CONTENT-SOURCES.md). Brand-use status and the formal registration handoff are recorded in [`TRADEMARKS.md`](TRADEMARKS.md). This private repository is not an open-source distribution; see [`LICENSE`](LICENSE).

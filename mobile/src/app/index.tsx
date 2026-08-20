@@ -176,7 +176,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>© {new Date().getFullYear()} PSI Performance Garage</Text>
+          <Text style={styles.footerText}>© {new Date().getFullYear()} PSI Performance™ · All rights reserved</Text>
           <Pressable accessibilityRole="link" hitSlop={10} onPress={() => void Linking.openURL(contact.privacy)}>
             <Text style={styles.footerLink}>Privacy policy ↗</Text>
           </Pressable>

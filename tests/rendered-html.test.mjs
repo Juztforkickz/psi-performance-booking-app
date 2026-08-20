@@ -40,6 +40,7 @@ test("server-renders the PSI booking experience", async () => {
   assert.match(html, /21 Exchange Drive/);
   assert.match(html, /psiperformancegarage/);
   assert.match(html, /psi-contact-qr\.png/);
+  assert.match(html, /PSI Performance™ · All rights reserved/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
@@ -80,6 +81,8 @@ test("keeps the booking UI and starter cleanup in source", async () => {
   await access(new URL("../public/psi-hero.jpg", import.meta.url));
   await access(new URL("../public/psi-contact-qr.png", import.meta.url));
   await access(new URL("../mobile/assets/images/psi-contact-qr.png", import.meta.url));
+  await access(new URL("../LICENSE", import.meta.url));
+  await access(new URL("../TRADEMARKS.md", import.meta.url));
 });
 
 test("sizes the mobile calendar from the usable layout container", async () => {

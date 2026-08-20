@@ -212,7 +212,7 @@ export default function Home() {
         </div>
         <div className="footer-legal">
           <a href="https://psiperformance.com.au/policies/privacy-policy" target="_blank" rel="noreferrer">Privacy</a>
-          <span>© {new Date().getFullYear()} PSI Performance</span>
+          <span>© {new Date().getFullYear()} PSI Performance™ · All rights reserved</span>
         </div>
       </footer>
     </main>
