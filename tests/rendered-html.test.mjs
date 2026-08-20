@@ -33,9 +33,10 @@ test("server-renders the PSI booking experience", async () => {
   assert.match(html, /What are you booking in for\?/);
   assert.match(html, /Service &amp; Report/);
   assert.match(html, /Dyno tuning/);
-  assert.match(html, /\$100 AUD deposit/);
-  assert.match(html, /\$300 AUD deposit/);
-  assert.match(html, /\$695 \+ GST/);
+  assert.match(html, /\$100 AUD(?:<!-- -->)? for service/);
+  assert.match(html, /\$300 AUD(?:<!-- -->)? for dyno tuning/);
+  assert.match(html, /\$423\.50 AUD including GST/);
+  assert.match(html, /\$764\.50 AUD including GST/);
   assert.match(html, /Let’s get you sorted\./);
   assert.match(html, /0433 431 781/);
   assert.match(html, /info@psiperformance\.com\.au/);
@@ -59,11 +60,11 @@ test("keeps the booking UI and starter cleanup in source", async () => {
 
   assert.match(page, /<OpeningBookingPanel \/>/);
   assert.match(page, /<BookingFlow \/>/);
-  assert.match(flow, /fetch\("\/api\/v1\/booking-checkouts"/);
+  assert.match(flow, /fetch\("\/api\/v1\/booking-requests"/);
   assert.match(flow, /"Idempotency-Key"/);
-  assert.match(flow, /depositPolicyVersion: DEPOSIT_POLICY_VERSION/);
-  assert.match(flow, /payload\.deposit\?\.amountCents !== expectedDepositAmountCents/);
-  assert.match(flow, /PAYMENT_PROVIDER_NOT_CONFIGURED/);
+  assert.match(flow, /bookingPolicyVersion: BOOKING_POLICY_VERSION/);
+  assert.match(flow, /payload\.state !== "pending_staff_review"/);
+  assert.match(flow, /payload\.paymentRequiredNow !== false/);
   assert.match(flow, /source: "web"/);
   assert.match(flow, /form\.bookingType === "dyno"[\s\S]*tuningDetails:/);
   assert.match(flow, /function TuningSetupFields/);
@@ -74,7 +75,7 @@ test("keeps the booking UI and starter cleanup in source", async () => {
   assert.match(flow, /pending|not confirmed/i);
   assert.doesNotMatch(flow, /fetch\("\/api\/v1\/bookings"/);
   assert.match(openingPanel, /Buy some parts/);
-  assert.match(legacyRoute, /PAYMENT_REQUIRED/);
+  assert.match(legacyRoute, /APPROVAL_REQUIRED/);
   assert.match(layout, /PSI Performance Booking/);
   assert.match(serviceWorker, /psi-contact-qr\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
@@ -150,9 +151,10 @@ test("keeps installed web surfaces inside landscape safe areas", async () => {
   assert.match(adminStyles, /\.loginPanel\s*{[^}]*safe-area-inset-left[^}]*safe-area-inset-right/s);
 });
 
-test("keeps deposit values server-owned and blocks unpaid booking bypasses", async () => {
-  const [catalog, checkoutRoute, legacyRoute, webFlow, mobileGateway] = await Promise.all([
+test("keeps deposit values server-owned and blocks pay-first bypasses", async () => {
+  const [catalog, requestRoute, checkoutRoute, legacyRoute, webFlow, mobileGateway] = await Promise.all([
     readFile(new URL("../app/api/v1/booking-catalog/catalog.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/v1/booking-requests/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/v1/booking-checkouts/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/v1/bookings/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BookingFlow.tsx", import.meta.url), "utf8"),
@@ -161,27 +163,34 @@ test("keeps deposit values server-owned and blocks unpaid booking bypasses", asy
 
   assert.match(catalog, /service:\s*10_000/);
   assert.match(catalog, /dyno:\s*30_000/);
-  assert.match(catalog, /DEPOSIT_POLICY_VERSION = "psi-deposit-v2"/);
-  assert.match(catalog, /amountCents: 38_500/);
-  assert.match(catalog, /amountCents: 69_500/);
+  assert.match(catalog, /DEPOSIT_POLICY_VERSION = "psi-deposit-v3"/);
+  assert.match(catalog, /amountCents: 42_350/);
+  assert.match(catalog, /amountCents: 76_450/);
   assert.match(catalog, /variesByBookingType: true/);
-  assert.match(catalog, /gstExclusive: true/);
+  assert.match(catalog, /gstInclusive: true/);
+  assert.match(catalog, /requiredAtRequest: false/);
   assert.match(catalog, /id: "parts"[\s\S]*kind: "navigation"[\s\S]*href: "\/parts"/);
-  assert.match(checkoutRoute, /Object\.hasOwn\(body, "depositAmountCents"\)/);
-  assert.match(checkoutRoute, /PAYMENT_PROVIDER_NOT_CONFIGURED/);
-  assert.match(checkoutRoute, /state: "requires_payment"/);
-  assert.match(checkoutRoute, /"Idempotency-Replayed": "true"/);
-  assert.match(checkoutRoute, /depositAmountForBookingType\(validBookingType\)/);
-  assert.match(checkoutRoute, /record\.depositAmountCents !== depositAmountForBookingType\(record\.bookingType\)/);
+  assert.match(requestRoute, /Object\.hasOwn\(body, "depositAmountCents"\)/);
+  assert.match(requestRoute, /depositAmountForBookingType\(value\.bookingType\)/);
+  assert.match(requestRoute, /paymentRequiredNow:\s*false/);
+  assert.match(checkoutRoute, /status:\s*410/);
+  assert.match(checkoutRoute, /APPROVAL_REQUIRED/);
   assert.match(legacyRoute, /errorResponse\(\s*410,/);
-  assert.match(legacyRoute, /PAYMENT_REQUIRED/);
+  assert.match(legacyRoute, /APPROVAL_REQUIRED/);
   assert.doesNotMatch(webFlow, /\bBSB\b|Account number/);
   assert.match(webFlow, /response\.status === 200 && replayed/);
+  assert.match(webFlow, /errorsForStep\(1\)[\s\S]*errorsForStep\(2\)[\s\S]*errorsForStep\(3\)[\s\S]*errorsForStep\(4\)/);
+  assert.match(webFlow, /consent:\s*form\.consent/);
+  assert.match(webFlow, /bookingTermsAccepted:\s*form\.bookingTermsAccepted/);
+  assert.match(webFlow, /serviceReminderConsent:\s*false/);
+  assert.doesNotMatch(webFlow, /role="grid(?:cell)?"/);
+  assert.match(webFlow, /className="calendar-grid" role="group"/);
   assert.match(mobileGateway, /EXPO_PUBLIC_API_BASE_URL/);
   assert.match(mobileGateway, /secureProductionOrigin/);
   assert.match(mobileGateway, /origin\.username/);
-  assert.match(mobileGateway, /DEPOSIT_POLICY_VERSION = 'psi-deposit-v2'/);
+  assert.match(mobileGateway, /BOOKING_POLICY_VERSION = 'psi-booking-v1'/);
   assert.match(mobileGateway, /depositAmountForBookingType/);
+  assert.match(mobileGateway, /booking-requests/);
   assert.doesNotMatch(mobileGateway, /DEFAULT_API_BASE_URL/);
 
   const [mobileBooking, adminQueue] = await Promise.all([
@@ -189,5 +198,7 @@ test("keeps deposit values server-owned and blocks unpaid booking bypasses", asy
     readFile(new URL("../app/admin/AdminQueue.tsx", import.meta.url), "utf8"),
   ]);
   assert.doesNotMatch(mobileBooking, /PSI will email a receipt|emailed receipt/i);
-  assert.match(adminQueue, /if \(!tuningEnumFields\.has\(key\)\) return value/);
+  assert.match(adminQueue, /PREVIEW_BOOKINGS/);
+  assert.match(adminQueue, /Nothing here persists, sends email, creates a payment link or writes to Google Calendar/);
+  assert.doesNotMatch(adminQueue, /fetch\(/);
 });

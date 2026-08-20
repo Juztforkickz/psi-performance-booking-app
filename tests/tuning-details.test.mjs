@@ -180,16 +180,16 @@ test("pre-0003 schema upgrades additively and remains idempotent", async () => {
   database.close();
 });
 
-test("canonical checkout hashing includes dyno details and ignores them for service", async () => {
+test("canonical booking-request hashing handles known and inspection-mode dyno details", async () => {
   const route = await readFile(
-    new URL("../app/api/v1/booking-checkouts/route.ts", import.meta.url),
+    new URL("../app/api/v1/booking-requests/route.ts", import.meta.url),
     "utf8",
   );
 
   assert.match(
     route,
-    /let tuningDetails: TuningDetails \| null = null;[\s\S]*if \(bookingType === "dyno"\) \{[\s\S]*validateTuningDetails\(body\.tuningDetails\)/u,
+    /setupConfidence === "known"[\s\S]*validateTuningDetails\(body\.tuningDetails\)[\s\S]*validatePartialTuningDetails\(body\.tuningDetails\)/u,
   );
-  assert.match(route, /requestDetails,\s+tuningDetails,\s+source:/u);
-  assert.match(route, /sha256\(JSON\.stringify\(result\.checkout\)\)/u);
+  assert.match(route, /setupConfidence,\s+tuningDetails,/u);
+  assert.match(route, /sha256\(JSON\.stringify\(parsed\.value\)\)/u);
 });

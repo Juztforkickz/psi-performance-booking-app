@@ -18,7 +18,10 @@ import { colors, contact, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { BOOKING_PURPOSES, type BookingType } from '@/lib/booking';
 
-type GatewayChoice = BookingType | 'parts';
+type GatewayChoice = BookingType | 'parts' | 'gift_card';
+
+const PARTS_STORE_URL = 'https://psiperformance.com.au/collections/all';
+const GIFT_CARD_URL = 'https://psiperformance.com.au/products/psiperformance-gift-card';
 
 type VerifiedOwnerStory = {
   quote: string;
@@ -82,21 +85,27 @@ const PURPOSE_OPTIONS: {
     value: 'service',
     label: BOOKING_PURPOSES.service.label,
     detail: 'A thorough workshop service, inspection and report.',
-    priceGuide: 'Price guide from $385 + GST',
-    depositGuide: '$100 AUD booking deposit',
+    priceGuide: 'From $423.50 incl. GST',
+    depositGuide: '$100 deposit after date approval',
   },
   {
     value: 'dyno',
     label: BOOKING_PURPOSES.dyno.label,
     detail: 'Hub dyno calibration, testing and measured results.',
-    priceGuide: 'Price guide from $695 + GST',
-    depositGuide: '$300 AUD booking deposit',
+    priceGuide: 'From $764.50 incl. GST',
+    depositGuide: '$300 deposit after date approval',
   },
   {
     value: 'parts',
     label: 'Buy some parts',
-    detail: 'Explore a dedicated PSI performance parts page.',
-    priceGuide: 'Parts catalogue',
+    detail: 'Shop PSI performance parts on the official website.',
+    priceGuide: 'Open online parts store',
+  },
+  {
+    value: 'gift_card',
+    label: 'Buy a gift card',
+    detail: 'Choose a PSI Performance gift card and check out on the official website.',
+    priceGuide: 'Open secure gift-card checkout',
   },
 ];
 
@@ -110,7 +119,11 @@ export default function HomeScreen() {
 
   const continueFromGateway = () => {
     if (selected === 'parts') {
-      router.push('/parts');
+      void Linking.openURL(PARTS_STORE_URL);
+      return;
+    }
+    if (selected === 'gift_card') {
+      void Linking.openURL(GIFT_CARD_URL);
       return;
     }
     if (selected === 'service' || selected === 'dyno') {
@@ -209,14 +222,18 @@ export default function HomeScreen() {
             ) : (
               <View style={styles.emptySelection}>
                 <Text style={styles.emptySelectionText}>
-                  Select an option to begin. The service booking deposit is $100 AUD and the dyno tuning deposit is $300 AUD.
+                  Select an option to begin. Booking requests are reviewed before PSI confirms a date or sends a deposit link.
                 </Text>
               </View>
             )}
 
             <PrimaryButton
               disabled={!selected}
-              label={selected === 'parts' ? 'Open parts page →' : 'Continue to booking →'}
+              label={selected === 'parts'
+                ? 'Shop parts on PSI website ↗'
+                : selected === 'gift_card'
+                  ? 'Buy a PSI gift card ↗'
+                  : 'Continue to booking →'}
               onPress={continueFromGateway}
             />
 
@@ -233,7 +250,7 @@ export default function HomeScreen() {
             </Pressable>
 
             <Text style={styles.depositNote}>
-              Payment is handled by secure checkout. A preferred date is not confirmed until PSI accepts it.
+              Request first, pay after approval. PSI checks your preferred date before sending the applicable secure deposit link.
             </Text>
           </View>
           {!wide ? <WorkshopInfo /> : null}

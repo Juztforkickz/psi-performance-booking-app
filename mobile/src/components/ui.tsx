@@ -1,4 +1,4 @@
-import type { PropsWithChildren, ReactNode } from 'react';
+import { createContext, useContext, type PropsWithChildren, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 
 import { colors, spacing } from '@/constants/brand';
+
+const FieldLabelContext = createContext<string | undefined>(undefined);
 
 export function Eyebrow({ children, dark = false }: PropsWithChildren<{ dark?: boolean }>) {
   return <Text maxFontSizeMultiplier={2} style={[styles.eyebrow, dark && styles.eyebrowDark]}>{children}</Text>;
@@ -33,6 +35,7 @@ export function PrimaryButton({
 }) {
   return (
     <Pressable
+      accessibilityLabel={label}
       accessibilityRole="button"
       accessibilityState={{ disabled, busy: loading }}
       disabled={disabled || loading}
@@ -71,24 +74,28 @@ export function Field({
   children,
 }: PropsWithChildren<{ label: string; hint?: string; error?: string }>) {
   return (
-    <View style={styles.field}>
-      <View style={styles.fieldLabelRow}>
-        <Text maxFontSizeMultiplier={2} style={styles.fieldLabel}>{label}</Text>
-        {hint ? <Text maxFontSizeMultiplier={2} style={styles.fieldHint}>{hint}</Text> : null}
+    <FieldLabelContext.Provider value={label}>
+      <View style={styles.field}>
+        <View style={styles.fieldLabelRow}>
+          <Text maxFontSizeMultiplier={2} style={styles.fieldLabel}>{label}</Text>
+          {hint ? <Text maxFontSizeMultiplier={2} style={styles.fieldHint}>{hint}</Text> : null}
+        </View>
+        {children}
+        {error ? (
+          <Text accessibilityRole="alert" maxFontSizeMultiplier={2} style={styles.error}>
+            {error}
+          </Text>
+        ) : null}
       </View>
-      {children}
-      {error ? (
-        <Text accessibilityRole="alert" maxFontSizeMultiplier={2} style={styles.error}>
-          {error}
-        </Text>
-      ) : null}
-    </View>
+    </FieldLabelContext.Provider>
   );
 }
 
-export function FormInput({ error, style, ...props }: TextInputProps & { error?: string }) {
+export function FormInput({ error, style, accessibilityLabel, ...props }: TextInputProps & { error?: string }) {
+  const fieldLabel = useContext(FieldLabelContext);
   return (
     <TextInput
+      accessibilityLabel={accessibilityLabel ?? fieldLabel}
       autoCorrect={false}
       maxFontSizeMultiplier={2}
       placeholderTextColor={colors.mutedDark}

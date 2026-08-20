@@ -704,3 +704,343 @@
     transition: none;
   }
 }
+
+.headerActions a {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  border: 1px solid #4d4c47;
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.headerActions a:hover,
+.headerActions a:focus-visible {
+  border-color: var(--signal);
+}
+
+.previewBanner {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.65fr) minmax(0, 1.35fr);
+  gap: 28px;
+  margin-bottom: 26px;
+  padding: 20px 22px;
+  border: 1px solid rgba(138, 96, 0, 0.28);
+  border-left: 4px solid #8a6000;
+  border-radius: var(--radius);
+  background: #fff8e7;
+}
+
+.previewBanner strong,
+.previewBanner span {
+  display: block;
+}
+
+.previewBanner strong {
+  color: #6e4c00;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.previewBanner span,
+.previewBanner p {
+  color: #6a6253;
+  font-size: 0.74rem;
+  line-height: 1.55;
+}
+
+.previewBanner span {
+  margin-top: 5px;
+}
+
+.previewBanner p {
+  margin: 0;
+}
+
+.workflowStrip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 34px;
+  border-top: 1px solid rgba(8, 8, 8, 0.16);
+  border-left: 1px solid rgba(8, 8, 8, 0.16);
+}
+
+.workflowStrip > div {
+  min-height: 170px;
+  padding: 22px;
+  border-right: 1px solid rgba(8, 8, 8, 0.16);
+  border-bottom: 1px solid rgba(8, 8, 8, 0.16);
+  background: #fff;
+}
+
+.workflowStrip span,
+.earlierList span,
+.approvalHeading span,
+.approvalFields label > span {
+  display: block;
+  color: #8a6000;
+  font-size: 0.61rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.workflowStrip strong {
+  display: block;
+  margin: 26px 0 9px;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+}
+
+.workflowStrip p,
+.earlierPanel p,
+.earlierList p {
+  margin: 0;
+  color: #6c6962;
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.earlierPanel {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.75fr) minmax(0, 1.25fr);
+  gap: 36px;
+  margin-bottom: 44px;
+  padding: clamp(24px, 4vw, 40px);
+  border-radius: var(--radius);
+  background: #111;
+  color: #fff;
+}
+
+.earlierPanel h2 {
+  margin: 0 0 15px;
+  font-family: "Ethnocentric", Impact, sans-serif;
+  font-size: clamp(1.2rem, 2.2vw, 2rem);
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.earlierPanel > div:first-child > p:last-child,
+.earlierList p {
+  color: #9d9a92;
+}
+
+.earlierList {
+  display: grid;
+  gap: 10px;
+}
+
+.earlierList article {
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-left: 3px solid var(--signal);
+  border-radius: var(--radius);
+  background: #1a1a1a;
+}
+
+.earlierList strong {
+  display: block;
+  margin: 7px 0 4px;
+  font-size: 0.83rem;
+}
+
+.earlierList a {
+  display: inline-flex;
+  margin-top: 13px;
+  color: var(--signal);
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.status_pending_staff_review {
+  background: #fff0c7;
+  color: #674600;
+}
+
+.status_date_proposed {
+  background: #eee6ff;
+  color: #55407d;
+}
+
+.status_date_approved,
+.status_awaiting_deposit {
+  background: #dbeeff;
+  color: #165681;
+}
+
+.status_confirmed,
+.status_completed {
+  background: #dff4e5;
+  color: #216338;
+}
+
+.status_cancelled {
+  background: #eceae6;
+  color: #625f59;
+}
+
+.tuningGrid p {
+  margin: 0;
+  color: #e6e3dc;
+  font-size: 0.72rem;
+  line-height: 1.48;
+}
+
+.approvalPanel {
+  margin-top: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(8, 8, 8, 0.18);
+  border-top: 3px solid #8a6000;
+  border-radius: var(--radius);
+  background: #f8f5ee;
+}
+
+.approvalHeading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.7fr);
+  gap: 30px;
+  padding: 20px;
+  border-bottom: 1px solid rgba(8, 8, 8, 0.13);
+}
+
+.approvalHeading h4 {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+.approvalHeading p {
+  margin: 0;
+  color: #6b6861;
+  font-size: 0.7rem;
+  line-height: 1.55;
+}
+
+.approvalFields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 20px;
+}
+
+.approvalFields label {
+  display: grid;
+  gap: 7px;
+}
+
+.approvalFields input,
+.approvalFields select,
+.approvalFields textarea {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid rgba(8, 8, 8, 0.25);
+  border-radius: var(--radius);
+  background: #fff;
+  color: #080808;
+  font: inherit;
+  font-size: 0.76rem;
+}
+
+.approvalFields textarea {
+  resize: vertical;
+}
+
+.approvalNote {
+  grid-column: 1 / -1;
+}
+
+.inlineError {
+  margin: 0 20px 15px;
+  color: #8b1d13;
+  font-size: 0.73rem;
+  font-weight: 750;
+}
+
+.approvalActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 0 20px 18px;
+}
+
+.approvalActions button {
+  min-height: 45px;
+  padding: 0 15px;
+  border: 1px solid #8a6000;
+  border-radius: var(--radius);
+  background: #fff;
+  color: #4f3700;
+  cursor: pointer;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.approvalActions button[type="submit"] {
+  background: var(--signal-metal);
+  color: #080808;
+}
+
+.approvalActions button:disabled {
+  border-color: #bdb8ad;
+  background: #e8e4dc;
+  color: #837f77;
+  cursor: not-allowed;
+}
+
+.providerGate {
+  margin: 0;
+  padding: 15px 20px;
+  border-top: 1px solid rgba(8, 8, 8, 0.13);
+  color: #6b6861;
+  font-size: 0.69rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 980px) {
+  .workflowStrip,
+  .approvalFields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .earlierPanel,
+  .approvalHeading {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 680px) {
+  .headerActions a {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 0.57rem;
+  }
+
+  .previewBanner,
+  .workflowStrip,
+  .approvalFields {
+    grid-template-columns: 1fr;
+  }
+
+  .workflowStrip > div {
+    min-height: 145px;
+  }
+
+  .approvalActions {
+    flex-direction: column;
+  }
+
+  .approvalActions button {
+    width: 100%;
+  }
+}

@@ -1,8 +1,10 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { type ReactNode, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
+  AppState,
   Image,
   KeyboardAvoidingView,
   Linking,
@@ -20,31 +22,39 @@ import { ChoiceCard, Eyebrow, Field, FormInput, PrimaryButton } from '@/componen
 import { colors, contact, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import {
+  BOOKING_DRAFT_EXPIRY_DAYS,
+  clearBookingDraft,
+  loadBookingDraft,
+  saveBookingDraft,
+} from '@/lib/booking-draft';
+import {
   BOOKING_PURPOSES,
   BookingApiError,
-  createBookingCheckout,
+  createBookingRequest,
   dateFromIso,
   depositAmountForBookingType,
   displayDate,
   displayMoney,
   EMPTY_BOOKING,
+  isEligibleBookingDate,
   localIsoDate,
   maxBookingDate,
-  type ArrivalWindow,
-  type BookingCheckoutResult,
+  type ArrivalArrangement,
   type BookingErrors,
   type BookingFormState,
+  type BookingRequestResult,
   type BookingType,
   type TuningDetails,
   validateBookingStep,
 } from '@/lib/booking';
 
-const STEP_LABELS = ['Job', 'Vehicle', 'Details', 'Date', 'Deposit'];
-const COMPACT_STEP_LABELS = ['Job', 'Car', 'You', 'Date', 'Pay'];
-const ARRIVAL_OPTIONS: { value: ArrivalWindow; label: string; detail: string }[] = [
-  { value: 'any', label: 'No preference', detail: 'PSI can suggest the best arrival time.' },
-  { value: 'morning', label: 'Morning', detail: 'Preferred arrival before midday.' },
-  { value: 'afternoon', label: 'Afternoon', detail: 'Preferred arrival after midday.' },
+const STEP_LABELS = ['Job', 'Vehicle', 'Details', 'Date', 'Review'];
+const COMPACT_STEP_LABELS = ['Job', 'Car', 'You', 'Date', 'Review'];
+const ARRIVAL_OPTIONS: { value: ArrivalArrangement; label: string; detail: string }[] = [
+  { value: 'business_hours', label: 'During business hours', detail: 'Drop off Monday–Friday between 8:30am and 5pm.' },
+  { value: 'before_hours_drop_off', label: 'Before-hours drop-off', detail: 'Request an arrangement before the workshop opens.' },
+  { value: 'after_hours_drop_off', label: 'After-hours drop-off', detail: 'Request an arrangement after the workshop closes.' },
+  { value: 'flexible', label: 'I’m flexible', detail: 'PSI can suggest the best drop-off arrangement.' },
 ];
 
 type SelectOption<T extends string> = { value: T; label: string; detail?: string };
@@ -128,11 +138,19 @@ function bookingTypeFromParam(value?: string | string[]): BookingType | '' {
   return selected === 'service' || selected === 'dyno' ? selected : '';
 }
 
+function selectedOptionLabel(options: readonly SelectOption<string>[], value: string) {
+  return options.find((option) => option.value === value)?.label ?? 'Not selected';
+}
+
+function withDetails(value: string, details: string) {
+  return details.trim() ? `${value} · ${details.trim()}` : value;
+}
+
 function firstErrorStep(errors: BookingErrors) {
-  if (errors.bookingType || errors.requestDetails || Object.keys(errors).some((key) => key === 'tuningDetails' || key.startsWith('tuningDetails.'))) return 1;
+  if (errors.bookingType || errors.requestDetails || errors.setupConfidence || Object.keys(errors).some((key) => key === 'tuningDetails' || key.startsWith('tuningDetails.'))) return 1;
   if (errors.vehicleMake || errors.vehicleModel || errors.vehicleYear || errors.registration || errors.vin) return 2;
   if (errors.firstName || errors.lastName || errors.email || errors.mobile) return 3;
-  if (errors.preferredDate || errors.arrivalWindow) return 4;
+  if (errors.preferredDate || errors.appointmentPreferenceMode || errors.arrivalArrangement) return 4;
   return 5;
 }
 
@@ -146,6 +164,7 @@ export default function BookingScreen() {
   const params = useLocalSearchParams<{ type?: string | string[] }>();
   const initialType = bookingTypeFromParam(params.type);
   const scrollRef = useRef<ScrollView>(null);
+  const draftOperationRef = useRef<Promise<unknown>>(Promise.resolve());
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<BookingFormState>(() => ({
     ...EMPTY_BOOKING,
@@ -155,11 +174,88 @@ export default function BookingScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
-  const [errorTitle, setErrorTitle] = useState('Secure checkout not opened');
-  const [checkout, setCheckout] = useState<BookingCheckoutResult | null>(null);
+  const [errorTitle, setErrorTitle] = useState('Request not submitted');
+  const [requestResult, setRequestResult] = useState<BookingRequestResult | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState(() => randomUUID());
+  const [draftReadyFor, setDraftReadyFor] = useState<BookingType | ''>('');
+  const [draftDirty, setDraftDirty] = useState(false);
+  const [draftStatus, setDraftStatus] = useState('');
   const maxDate = useMemo(() => maxBookingDate(), []);
-  const depositAmountCents = depositAmountForBookingType(form.bookingType);
+  const draftReady = !initialType || draftReadyFor === initialType;
+
+  useEffect(() => {
+    let active = true;
+    if (!initialType) {
+      return () => { active = false; };
+    }
+    void loadBookingDraft(initialType)
+      .then((draft) => {
+        if (!active) return;
+        setDraftDirty(false);
+        if (draft) {
+          setForm(draft.form);
+          setDraftStatus(`Draft restored from this device · expires ${new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short' }).format(new Date(draft.expiresAt))}`);
+        } else {
+          setForm({ ...EMPTY_BOOKING, bookingType: initialType, tuningDetails: { ...EMPTY_BOOKING.tuningDetails } });
+        }
+      })
+      .catch(() => {
+        if (active) setDraftStatus('Draft storage is unavailable on this device. Your details have not been uploaded.');
+      })
+      .finally(() => {
+        if (active) setDraftReadyFor(initialType);
+      });
+    return () => { active = false; };
+  }, [initialType]);
+
+  useEffect(() => {
+    if (!initialType || !draftReady || !draftDirty) return;
+    const timeout = setTimeout(() => {
+      const operation = draftOperationRef.current
+        .catch(() => undefined)
+        .then(() => saveBookingDraft(initialType, form));
+      draftOperationRef.current = operation;
+      void operation
+        .then(() => {
+          setDraftStatus(`Draft saved only on this device · expires after ${BOOKING_DRAFT_EXPIRY_DAYS} days`);
+        })
+        .catch(() => setDraftStatus('Draft could not be saved on this device. Nothing was uploaded.'));
+    }, 450);
+    return () => clearTimeout(timeout);
+  }, [draftDirty, draftReady, form, initialType]);
+
+  useEffect(() => {
+    if (!initialType || !draftReady || !draftDirty) return;
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') return;
+      const operation = draftOperationRef.current
+        .catch(() => undefined)
+        .then(() => saveBookingDraft(initialType, form));
+      draftOperationRef.current = operation;
+      void operation.catch(() => undefined);
+    });
+    return () => subscription.remove();
+  }, [draftDirty, draftReady, form, initialType]);
+
+  const removeStoredDraft = async () => {
+    if (!initialType) return;
+    const operation = draftOperationRef.current
+      .catch(() => undefined)
+      .then(() => clearBookingDraft(initialType));
+    draftOperationRef.current = operation;
+    await operation;
+  };
+
+  const leaveBooking = async () => {
+    if (initialType && draftReady && draftDirty) {
+      const operation = draftOperationRef.current
+        .catch(() => undefined)
+        .then(() => saveBookingDraft(initialType, form));
+      draftOperationRef.current = operation;
+      try { await operation; } catch { /* Navigation remains available if device storage fails. */ }
+    }
+    router.back();
+  };
 
   const update: UpdateBooking = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -171,6 +267,7 @@ export default function BookingScreen() {
     });
     setFormError('');
     setIdempotencyKey(randomUUID());
+    setDraftDirty(true);
   };
 
   const updateTuning: UpdateTuning = (key, value) => {
@@ -188,10 +285,7 @@ export default function BookingScreen() {
     });
     setFormError('');
     setIdempotencyKey(randomUUID());
-  };
-
-  const selectBookingType = (type: BookingType) => {
-    update('bookingType', type);
+    setDraftDirty(true);
   };
 
   const scrollToTop = () => {
@@ -213,7 +307,7 @@ export default function BookingScreen() {
     scrollToTop();
   };
 
-  const prepareCheckout = async () => {
+  const submitRequest = async () => {
     const allErrors = {
       ...validateBookingStep(form, 1),
       ...validateBookingStep(form, 2),
@@ -232,42 +326,24 @@ export default function BookingScreen() {
     setSubmitting(true);
     setFormError('');
     try {
-      const prepared = await createBookingCheckout(form, idempotencyKey);
-      setCheckout(prepared);
-      const supported = await Linking.canOpenURL(prepared.payment.checkoutUrl);
-      if (supported) {
-        await Linking.openURL(prepared.payment.checkoutUrl);
-      } else {
-        setCheckout(null);
-        setErrorTitle('Checkout link unavailable');
-        setFormError('The secure checkout link could not be opened on this device. No payment has been taken.');
+      const result = await createBookingRequest(form, idempotencyKey);
+      setDraftDirty(false);
+      if (initialType) {
+        try { await removeStoredDraft(); } catch { /* The verified request remains valid even if local cleanup fails. */ }
       }
+      setDraftStatus('');
+      setIdempotencyKey(randomUUID());
+      setRequestResult(result);
     } catch (error) {
       if (error instanceof BookingApiError && Object.keys(error.fieldErrors).length > 0) {
         setErrors(error.fieldErrors);
         setStep(firstErrorStep(error.fieldErrors));
       }
-      if (
-        error instanceof BookingApiError &&
-        (error.code === 'CHECKOUT_EXPIRED' || error.code === 'CHECKOUT_CANCELLED')
-      ) {
-        setIdempotencyKey(randomUUID());
-      }
-      const unavailable = error instanceof BookingApiError && error.code === 'PAYMENT_PROVIDER_NOT_CONFIGURED';
-      const alreadyPaid = error instanceof BookingApiError && error.code === 'CHECKOUT_ALREADY_PAID_OR_PROCESSING';
-      setErrorTitle(
-        unavailable
-          ? 'Secure payments are not available yet'
-          : alreadyPaid
-            ? 'Deposit already paid or processing'
-            : 'Secure checkout not opened',
-      );
+      setErrorTitle('Request not submitted');
       setFormError(
-        alreadyPaid
-          ? 'Do not try another payment. Contact PSI Performance if you need help with this deposit.'
-          : error instanceof Error
-            ? error.message
-            : 'Checkout could not be prepared. No payment has been taken.',
+        error instanceof Error
+          ? error.message
+          : 'Your request could not be submitted. No payment, email or calendar confirmation has occurred.',
       );
       scrollToTop();
     } finally {
@@ -277,16 +353,42 @@ export default function BookingScreen() {
 
   const handleDateChange = (event: DateTimePickerEvent, selected?: Date) => {
     if (Platform.OS === 'android') setShowDatePicker(false);
-    if (event.type === 'set' && selected) update('preferredDate', localIsoDate(selected));
+    if (event.type === 'set' && selected) {
+      update('preferredDate', localIsoDate(selected));
+      update('appointmentPreferenceMode', 'specific');
+    }
   };
 
-  if (checkout) {
+  const clearDraft = async () => {
+    if (!initialType) return;
+    setDraftDirty(false);
+    try { await removeStoredDraft(); } catch { /* Reset the visible form even if storage is unavailable. */ }
+    setForm({ ...EMPTY_BOOKING, bookingType: initialType, tuningDetails: { ...EMPTY_BOOKING.tuningDetails } });
+    setErrors({});
+    setStep(1);
+    setDraftStatus('Saved draft cleared from this device.');
+    setIdempotencyKey(randomUUID());
+    scrollToTop();
+  };
+
+  if (requestResult) {
     return (
-      <CheckoutHandoff
-        checkout={checkout}
+      <RequestHandoff
         onHome={() => router.replace('/')}
-        onReopen={() => void Linking.openURL(checkout.payment.checkoutUrl)}
+        result={requestResult}
       />
+    );
+  }
+
+  if (initialType && !draftReady) {
+    return (
+      <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.screen}>
+        <View accessibilityLabel="Checking for a saved booking draft" accessibilityRole="progressbar" style={styles.draftLoading}>
+          <ActivityIndicator color={colors.gold} size="large" />
+          <Text style={styles.draftLoadingTitle}>Preparing your booking</Text>
+          <Text style={styles.draftLoadingCopy}>Checking this device for an unfinished PSI request…</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -297,7 +399,7 @@ export default function BookingScreen() {
           accessibilityLabel="Back to PSI home"
           accessibilityRole="button"
           hitSlop={12}
-          onPress={() => router.back()}
+          onPress={() => void leaveBooking()}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
         >
           <Text maxFontSizeMultiplier={1.3} style={styles.backArrow}>←</Text>
@@ -337,15 +439,27 @@ export default function BookingScreen() {
               <View accessibilityRole="alert" style={styles.alert}>
                 <Text style={styles.alertTitle}>{errorTitle}</Text>
                 <Text style={styles.alertCopy}>{formError}</Text>
-                <Text style={styles.alertAssurance}>No payment or booking has been recorded by this app.</Text>
+                <Text style={styles.alertAssurance}>This screen has not confirmed a payment, email, calendar event or booking date.</Text>
                 <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(contact.phoneUrl)}>
                   <Text style={styles.alertLink}>Call {contact.phoneDisplay}</Text>
                 </Pressable>
               </View>
             ) : null}
 
+            <View accessibilityLabel="Unfinished booking draft status" style={styles.draftCard}>
+              <View style={styles.draftCopyWrap}>
+                <Text style={styles.draftTitle}>Private device draft</Text>
+                <Text style={styles.draftCopy}>
+                  {draftStatus || `Unfinished details stay in this app’s local device storage for ${BOOKING_DRAFT_EXPIRY_DAYS} days and are never submitted automatically. Device backups may retain them; clear the draft on a shared device.`}
+                </Text>
+              </View>
+              <Pressable accessibilityRole="button" hitSlop={10} onPress={() => void clearDraft()} style={({ pressed }) => [styles.draftClear, pressed && styles.pressed]}>
+                <Text style={styles.draftClearText}>Clear saved draft</Text>
+              </Pressable>
+            </View>
+
             {step === 1 ? (
-              <JobStep errors={errors} form={form} selectType={selectBookingType} update={update} updateTuning={updateTuning} />
+              <JobStep errors={errors} form={form} onChooseBooking={() => router.replace('/')} update={update} updateTuning={updateTuning} />
             ) : null}
             {step === 2 ? <VehicleStep errors={errors} form={form} update={update} wide={wideFields} /> : null}
             {step === 3 ? (
@@ -368,7 +482,7 @@ export default function BookingScreen() {
                 update={update}
               />
             ) : null}
-            {step === 5 ? <DepositStep errors={errors} form={form} update={update} /> : null}
+            {step === 5 ? <ReviewStep errors={errors} form={form} update={update} /> : null}
 
             <View style={[styles.actions, wideFields && step > 1 && styles.actionsWide]}>
               {step > 1 ? (
@@ -387,19 +501,17 @@ export default function BookingScreen() {
                 />
               ) : (
                 <PrimaryButton
-                  label={depositAmountCents === null
-                    ? 'Continue to secure checkout'
-                    : `Continue to secure ${displayMoney(depositAmountCents)} checkout`}
+                  label="Submit request for PSI review"
                   loading={submitting}
-                  onPress={() => void prepareCheckout()}
+                  onPress={() => void submitRequest()}
                   style={wideFields && step > 1 ? styles.actionButtonWide : undefined}
                 />
               )}
             </View>
             <Text style={styles.requestNote}>
               {step === 5
-                ? 'PSI does not treat the booking as paid or confirmed until the payment provider verifies the deposit and PSI accepts the date.'
-                : 'Your selected date remains a preference until payment is completed and PSI confirms availability.'}
+                ? 'No payment is taken now. PSI reviews your request first and sends a deposit link only after approving a date.'
+                : 'Every requested date and before/after-hours arrangement remains pending until PSI checks workshop capacity.'}
             </Text>
           </View>
         </ScrollView>
@@ -463,20 +575,21 @@ function JobStep({
   errors,
   update,
   updateTuning,
-  selectType,
+  onChooseBooking,
 }: {
   form: BookingFormState;
   errors: BookingErrors;
   update: UpdateBooking;
   updateTuning: UpdateTuning;
-  selectType: (type: BookingType) => void;
+  onChooseBooking: () => void;
 }) {
+  const purpose = form.bookingType ? BOOKING_PURPOSES[form.bookingType] : null;
   return (
     <View style={styles.stepContent}>
       <StepHeading
-        copy="Choose where to begin, then tell PSI what matters to you and what you want from the vehicle. We will use it to shape the right next step together."
+        copy="Your booking type is carried through from the home screen, so you only choose it once. Tell PSI what matters to you and what you want from the vehicle."
         eyebrow="Step 01 · Job"
-        title="What are you booking in for?"
+        title={purpose?.label || 'Choose a booking type.'}
       />
       <View style={styles.personalPromise}>
         <Text style={styles.personalPromiseTitle}>Your vehicle. Your goals.</Text>
@@ -485,22 +598,22 @@ function JobStep({
           protects the car today and supports where you want to take it.
         </Text>
       </View>
-      <View accessibilityRole="radiogroup" style={styles.choiceList}>
-        <ChoiceCard
-          detail="Workshop service, inspection and a clear report. Price guide from $385 + GST. $100 AUD booking deposit."
-          index="01"
-          onPress={() => selectType('service')}
-          selected={form.bookingType === 'service'}
-          title="Service & Report"
-        />
-        <ChoiceCard
-          detail="Hub dyno calibration, testing and measured results. Price guide from $695 + GST. $300 AUD booking deposit."
-          index="02"
-          onPress={() => selectType('dyno')}
-          selected={form.bookingType === 'dyno'}
-          title="Dyno tuning"
-        />
-      </View>
+      {purpose ? (
+        <View accessibilityLabel={`${purpose.label}. ${purpose.priceGuide}. Available ${purpose.eligibleDays}.`} style={styles.jobSelectedCard}>
+          <Text style={styles.jobSelectedKicker}>Selected on PSI home</Text>
+          <Text style={styles.jobSelectedTitle}>{purpose.label}</Text>
+          <Text style={styles.jobSelectedCopy}>{purpose.priceGuide} · Requests available {purpose.eligibleDays}</Text>
+          <Text style={styles.jobSelectedDeposit}>
+            {displayMoney(purpose.depositAmountCents)} deposit only after PSI approves a date
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.missingTypeCard}>
+          <Text style={styles.missingTypeTitle}>Booking type needed</Text>
+          <Text style={styles.missingTypeCopy}>Return to the home screen and choose Service & Report or Dyno tuning once.</Text>
+          <PrimaryButton label="Choose on PSI home" onPress={onChooseBooking} variant="outline" />
+        </View>
+      )}
       {errors.bookingType ? <Text style={styles.error}>{errors.bookingType}</Text> : null}
 
       <Field error={errors.requestDetails} label="What exactly are you after?">
@@ -519,7 +632,38 @@ function JobStep({
       </Field>
 
       {form.bookingType === 'dyno' ? (
-        <TuningSetup details={form.tuningDetails} errors={errors} update={updateTuning} />
+        <View style={styles.setupConfidenceSection}>
+          <Field error={errors.setupConfidence} label="How well do you know the vehicle setup?">
+            <View accessibilityRole="radiogroup" style={styles.compactChoices}>
+              <ChoiceCard
+                detail="I can complete the technical setup questionnaire so PSI can prepare safely."
+                onPress={() => update('setupConfidence', 'known')}
+                selected={form.setupConfidence === 'known'}
+                title="I know my setup"
+              />
+              <ChoiceCard
+                detail="I’m not certain what is fitted. PSI can assess the setup before tuning; inspection time and any work are subject to confirmation."
+                onPress={() => {
+                  update('setupConfidence', 'psi_inspection');
+                  update('tuningDetails', { ...EMPTY_BOOKING.tuningDetails });
+                }}
+                selected={form.setupConfidence === 'psi_inspection'}
+                title="I’m not sure — can PSI inspect it?"
+              />
+            </View>
+          </Field>
+          {form.setupConfidence === 'known' ? (
+            <TuningSetup details={form.tuningDetails} errors={errors} update={updateTuning} />
+          ) : null}
+          {form.setupConfidence === 'psi_inspection' ? (
+            <View style={styles.inspectionCard}>
+              <Text style={styles.inspectionTitle}>PSI inspection requested</Text>
+              <Text style={styles.inspectionCopy}>
+                The full technical questionnaire is not required. Add anything you do know in “What exactly are you after?” and PSI will discuss the inspection before confirming work or cost.
+              </Text>
+            </View>
+          ) : null}
+        </View>
       ) : null}
     </View>
   );
@@ -1114,79 +1258,117 @@ function DateStep({
   const { compact, fontScale, shortLandscape, width } = useResponsiveLayout();
   const useInlineCalendar = width >= 390 && !shortLandscape && fontScale <= 1.3;
   const selectedDate = form.preferredDate ? dateFromIso(form.preferredDate) : new Date();
+  const scheduleCopy = form.bookingType === 'dyno'
+    ? 'Dyno requests: Monday, Wednesday and Thursday.'
+    : 'Service requests: Monday to Friday.';
+  const selectedDateEligible = form.preferredDate && isEligibleBookingDate(form.bookingType, form.preferredDate);
 
   return (
     <View style={styles.stepContent}>
       <StepHeading
-        copy="Choose the date you prefer. Other customer bookings remain private, and PSI will confirm availability after deposit payment."
+        copy="Request an eligible date or tell PSI you are flexible. Other bookings stay private and PSI personally checks workshop capacity before requesting payment."
         eyebrow="Step 04 · Date"
-        title="Select a preferred date."
+        title="Request a date."
       />
       <View style={styles.datePrivacyCard}>
-        <Text style={styles.datePrivacyTitle}>Private calendar request</Text>
+        <Text style={styles.datePrivacyTitle}>Preference—not a confirmed booking</Text>
         <Text style={styles.datePrivacyCopy}>
-          You can request an eligible date without seeing PSI’s calendar or other bookings. This is not a confirmed appointment yet.
+          {scheduleCopy} If your first choice is unavailable, PSI will contact you to arrange another suitable date. Workshop work can carry over or change unexpectedly.
         </Text>
       </View>
       <View style={styles.fields}>
-        <Field error={errors.preferredDate} label="Preferred booking date">
-          <Pressable
-            accessibilityLabel={`Preferred booking date, ${displayDate(form.preferredDate)}`}
-            accessibilityRole="button"
-            onPress={() => setShowDatePicker(true)}
-            style={({ pressed }) => [
-              styles.dateButton,
-              errors.preferredDate && styles.dateButtonError,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Text style={[styles.dateText, !form.preferredDate && styles.datePlaceholder]}>
-              {displayDate(form.preferredDate)}
-            </Text>
-            <Text style={styles.dateIcon}>▦</Text>
-          </Pressable>
-          {showDatePicker ? (
-            <View style={[styles.datePickerWrap, compact && styles.datePickerWrapCompact]}>
-              <DateTimePicker
-                accentColor={colors.gold}
-                display={Platform.OS === 'ios' ? (useInlineCalendar ? 'inline' : 'spinner') : 'calendar'}
-                maximumDate={maxDate}
-                minimumDate={new Date()}
-                mode="date"
-                onChange={onDateChange}
-                themeVariant="dark"
-                timeZoneName="Australia/Melbourne"
-                value={selectedDate}
-                style={styles.datePicker}
-              />
-              {Platform.OS === 'ios' ? (
-                <Pressable accessibilityRole="button" onPress={() => setShowDatePicker(false)} style={styles.dateDone}>
-                  <Text style={styles.dateDoneText}>Done</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          ) : null}
+        <Field label="Date preference">
+          <View accessibilityRole="radiogroup" style={styles.compactChoices}>
+            <ChoiceCard
+              detail="Choose your preferred eligible day below."
+              onPress={() => update('appointmentPreferenceMode', 'specific')}
+              selected={form.appointmentPreferenceMode === 'specific'}
+              title="I have a preferred date"
+            />
+            <ChoiceCard
+              detail="PSI can contact me with a suitable date."
+              onPress={() => {
+                update('appointmentPreferenceMode', 'flexible');
+                setShowDatePicker(false);
+              }}
+              selected={form.appointmentPreferenceMode === 'flexible'}
+              title="I’m flexible"
+            />
+          </View>
         </Field>
 
-        <Field label="Arrival preference">
+        {form.appointmentPreferenceMode === 'specific' ? (
+          <Field error={errors.preferredDate} label="Preferred booking date">
+            <Pressable
+              accessibilityLabel={`Preferred booking date, ${displayDate(form.preferredDate)}`}
+              accessibilityRole="button"
+              onPress={() => setShowDatePicker(true)}
+              style={({ pressed }) => [styles.dateButton, errors.preferredDate && styles.dateButtonError, pressed && styles.pressed]}
+            >
+              <Text style={[styles.dateText, !form.preferredDate && styles.datePlaceholder]}>{displayDate(form.preferredDate)}</Text>
+              <Text style={styles.dateIcon}>▦</Text>
+            </Pressable>
+            {form.preferredDate ? (
+              <Text style={[styles.dateEligibility, selectedDateEligible ? styles.dateEligibilityGood : styles.dateEligibilityBad]}>
+                {selectedDateEligible ? `Eligible request day · ${scheduleCopy}` : scheduleCopy}
+              </Text>
+            ) : null}
+            {showDatePicker ? (
+              <View style={[styles.datePickerWrap, compact && styles.datePickerWrapCompact]}>
+                <DateTimePicker
+                  accentColor={colors.gold}
+                  display={Platform.OS === 'ios' ? (useInlineCalendar ? 'inline' : 'spinner') : 'calendar'}
+                  maximumDate={maxDate}
+                  minimumDate={new Date()}
+                  mode="date"
+                  onChange={onDateChange}
+                  themeVariant="dark"
+                  timeZoneName="Australia/Melbourne"
+                  value={selectedDate}
+                  style={styles.datePicker}
+                />
+                {Platform.OS === 'ios' ? (
+                  <Pressable accessibilityRole="button" onPress={() => setShowDatePicker(false)} style={styles.dateDone}>
+                    <Text style={styles.dateDoneText}>Done</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+          </Field>
+        ) : null}
+
+        <Field label="Drop-off preference">
           <View accessibilityRole="radiogroup" style={styles.compactChoices}>
             {ARRIVAL_OPTIONS.map((option) => (
               <ChoiceCard
                 detail={option.detail}
                 key={option.value}
-                onPress={() => update('arrivalWindow', option.value)}
-                selected={form.arrivalWindow === option.value}
+                onPress={() => update('arrivalArrangement', option.value)}
+                selected={form.arrivalArrangement === option.value}
                 title={option.label}
               />
             ))}
           </View>
         </Field>
+
+        <ToggleRow
+          checked={form.afterHoursCollection}
+          copy="Please note that after-hours collection is possible. PSI will confirm the arrangement; it is not guaranteed automatically."
+          label="Request after-hours collection"
+          onPress={() => update('afterHoursCollection', !form.afterHoursCollection)}
+        />
+        <ToggleRow
+          checked={form.notifyEarlierAvailability}
+          copy="This alerts PSI staff only. The app will never automatically offer or move your booking. PSI will contact you if a suitable earlier time appears."
+          label="Tell me if an earlier time becomes available"
+          onPress={() => update('notifyEarlierAvailability', !form.notifyEarlierAvailability)}
+        />
       </View>
     </View>
   );
 }
 
-function DepositStep({
+function ReviewStep({
   form,
   errors,
   update,
@@ -1200,64 +1382,133 @@ function DepositStep({
   const purpose = form.bookingType ? BOOKING_PURPOSES[form.bookingType] : null;
   const depositAmountCents = depositAmountForBookingType(form.bookingType);
   const depositDisplay = depositAmountCents === null ? 'Not selected' : displayMoney(depositAmountCents);
-  const depositTermsCopy = `I understand the ${depositDisplay} AUD booking deposit for this selected work must be completed before my request is lodged, and my selected date remains pending until PSI confirms it.`;
+  const preferenceDisplay = form.appointmentPreferenceMode === 'flexible' ? 'I’m flexible' : displayDate(form.preferredDate);
+  const depositTermsCopy = `I understand PSI will review my request before confirming a date or sending the ${depositDisplay} deposit link. Once paid, the deposit is ordinarily non-refundable because PSI allocates technicians, hoist or dyno capacity and workshop planning to my vehicle.`;
+  const arrivalLabel = ARRIVAL_OPTIONS.find((option) => option.value === form.arrivalArrangement)?.label ?? 'Not selected';
+  const tuning = form.tuningDetails;
+  const transmissionSetups = tuning.transmissionType === 'manual' ? MANUAL_SETUP_OPTIONS : AUTOMATIC_SETUP_OPTIONS;
   return (
     <View style={styles.stepContent}>
       <StepHeading
-        copy="Review everything before PSI prepares a secure deposit checkout."
-        eyebrow="Step 05 · Deposit"
-        title="Review and pay securely."
+        copy="Review your request before sending it to PSI. No payment is taken at this stage."
+        eyebrow="Step 05 · Review"
+        title="Request first. Pay after approval."
       />
 
       <View style={[styles.summaryCard, stackSummary && styles.summaryCardCompact]}>
         <View style={[styles.summaryTop, stackSummary && styles.summaryTopStacked]}>
           <Text style={styles.summaryKicker}>Booking summary</Text>
-          <Text style={styles.summaryReference}>Pending payment</Text>
+          <Text style={styles.summaryReference}>Pending staff review</Text>
         </View>
         <SummaryRow label="Work" value={purpose?.label || 'Not selected'} secondary={purpose?.priceGuide} />
         <SummaryRow
           label="Vehicle"
           value={`${form.vehicleYear} ${form.vehicleMake} ${form.vehicleModel}`.trim()}
-          secondary={`Registration ${form.registration.toUpperCase()}`}
+          secondary={`Registration ${form.registration.toUpperCase()}${form.vin.trim() ? ` · VIN ${form.vin.trim().toUpperCase()}` : ''}`}
         />
-        <SummaryRow label="Preferred date" value={displayDate(form.preferredDate)} secondary={`${form.arrivalWindow} arrival preference`} />
-        <SummaryRow label="Customer" value={`${form.firstName} ${form.lastName}`} secondary={form.email} />
+        <SummaryRow label="Date preference" value={preferenceDisplay} secondary="PSI confirms availability personally" />
+        <SummaryRow label="Arrival & collection" value={arrivalLabel} secondary={form.afterHoursCollection ? 'After-hours collection requested' : 'Standard collection requested'} />
+        <SummaryRow label="Earlier opening" value={form.notifyEarlierAvailability ? 'Tell PSI staff if something earlier becomes available' : 'No earlier-opening request'} secondary="PSI never moves or contacts you automatically" />
+        <SummaryRow label="Customer" value={`${form.firstName} ${form.lastName}`} secondary={`${form.email} · ${form.mobile}`} />
+        {form.bookingType === 'service' ? (
+          <SummaryRow label="Future service reminders" value={form.serviceReminderConsent ? 'Opted in to 6- and 12-month messages' : 'Not opted in'} secondary="Can be unsubscribed without signing in" />
+        ) : null}
+        {form.bookingType === 'dyno' ? (
+          <>
+            <SummaryRow
+              label="Dyno setup path"
+              value={form.setupConfidence === 'known' ? 'I know my setup' : 'PSI inspection requested'}
+              secondary={form.setupConfidence === 'known' ? 'Technical specification below will be submitted' : 'No hidden tuning questionnaire will be submitted'}
+            />
+            {form.setupConfidence === 'known' ? (
+              <>
+                <SummaryRow label="Engine" value={withDetails(selectedOptionLabel(ENGINE_OPTIONS, tuning.engineState), tuning.engineModifications)} />
+                <SummaryRow
+                  label="Transmission"
+                  value={`${selectedOptionLabel(TRANSMISSION_TYPE_OPTIONS, tuning.transmissionType)} · ${selectedOptionLabel(transmissionSetups, tuning.transmissionSetup)}`}
+                  secondary={tuning.transmissionDetails || undefined}
+                />
+                <SummaryRow
+                  label="Differential"
+                  value={`${selectedOptionLabel(DIFFERENTIAL_OPTIONS, tuning.differentialType)} · ratio ${tuning.differentialGearRatio || 'not supplied'}`}
+                  secondary={tuning.differentialDetails || undefined}
+                />
+                <SummaryRow
+                  label="Fuel system"
+                  value={`Pump: ${withDetails(selectedOptionLabel(COMPONENT_OPTIONS, tuning.fuelPumpType), tuning.fuelPumpDetails)}`}
+                  secondary={`Injectors: ${withDetails(selectedOptionLabel(COMPONENT_OPTIONS, tuning.injectorType), tuning.injectorDetails)} · Fuel: ${withDetails(selectedOptionLabel(FUEL_OPTIONS, tuning.fuelType), tuning.fuelTypeDetails)}`}
+                />
+                <SummaryRow label="Intake" value={withDetails(selectedOptionLabel(INTAKE_OPTIONS, tuning.intakeType), tuning.intakeDetails)} />
+                <SummaryRow label="Previous tune" value={withDetails(selectedOptionLabel(HISTORY_OPTIONS, tuning.previouslyTuned), tuning.previousTuner)} />
+                <SummaryRow
+                  label="Exhaust"
+                  value={`${selectedOptionLabel(EXHAUST_OPTIONS, tuning.exhaustType)} · ${selectedOptionLabel(EXHAUST_SIZE_OPTIONS, tuning.exhaustSize)} · ${selectedOptionLabel(VAREX_OPTIONS, tuning.varexControlled)}`}
+                  secondary={tuning.exhaustDetails || undefined}
+                />
+                <SummaryRow label="Camshaft" value={withDetails(selectedOptionLabel(CAMSHAFT_OPTIONS, tuning.camshaftType), tuning.camshaftDetails)} />
+              </>
+            ) : null}
+          </>
+        ) : null}
         <View style={[styles.requestSummary, stackSummary && styles.summaryRowStacked]}>
           <Text style={[styles.summaryLabel, stackSummary && styles.summaryLabelStacked]}>Your request</Text>
           <Text style={styles.requestSummaryText}>{form.requestDetails}</Text>
         </View>
         <View style={[styles.depositTotal, stackSummary && styles.depositTotalStacked]}>
           <View>
-            <Text style={styles.depositLabel}>Required booking deposit</Text>
-            <Text style={styles.depositCurrency}>AUD · Applied to approved work</Text>
+            <Text style={styles.depositLabel}>Deposit after date approval</Text>
+            <Text style={styles.depositCurrency}>AUD · Nothing payable with this request</Text>
           </View>
           <Text style={styles.depositValue}>{depositDisplay}</Text>
         </View>
       </View>
 
       <View style={styles.paymentCard}>
-        <Text style={styles.paymentTitle}>Secure provider checkout</Text>
+        <Text style={styles.paymentTitle}>What happens next</Text>
         <Text style={styles.paymentCopy}>
-          The next step asks PSI’s server to create a secure payment link. This app never marks a deposit as paid itself and does not collect card details.
+          PSI checks the requested date and workshop capacity. If approved, PSI sends the secure deposit link. Only verified payment triggers the customer and PSI confirmation emails, internal Google Calendar booking and factual 7-day and 24-hour appointment reminders.
         </Text>
       </View>
+
+      <View accessibilityLabel="Owner-review booking and deposit policy" style={styles.policyCard}>
+        <Text style={styles.policyKicker}>Owner-review policy draft · not yet public</Text>
+        <Text style={styles.policyTitle}>Booking and deposit policy</Text>
+        <Text style={styles.policyCopy}>
+          Once PSI confirms your date, we send a secure link for the {depositDisplay} deposit. Once paid, the deposit ordinarily cannot be refunded because PSI reserves technician time, hoist or dyno capacity and workshop planning for your vehicle.
+        </Text>
+        <Text style={styles.policyCopy}>
+          If PSI needs to move your booking, we will work with you to reschedule and keep the deposit attached to the agreed replacement date, or provide a refund or another remedy where required. Nothing in this policy limits rights that cannot be excluded under the Australian Consumer Law.
+        </Text>
+        <Text style={styles.policyFine}>
+          Before launch, PSI will finalise cancellation notice, no-show, exceptional-circumstance, transfer and expiry terms.
+        </Text>
+      </View>
+
+      {form.bookingType === 'service' ? (
+        <ToggleRow
+          checked={form.serviceReminderConsent}
+          copy="After this service is completed, PSI may email “Ready for your next service?” at 6 and 12 months with rebook/contact links. Optional, separate from appointment logistics, and every message includes unsubscribe."
+          label="Send me 6- and 12-month service reminders"
+          onPress={() => update('serviceReminderConsent', !form.serviceReminderConsent)}
+        />
+      ) : null}
 
       <View>
         <Pressable
           accessibilityLabel={depositTermsCopy}
           accessibilityRole="checkbox"
-          accessibilityState={{ checked: form.depositTermsAccepted }}
-          onPress={() => update('depositTermsAccepted', !form.depositTermsAccepted)}
+          accessibilityState={{ checked: form.bookingTermsAccepted }}
+          onPress={() => update('bookingTermsAccepted', !form.bookingTermsAccepted)}
           style={({ pressed }) => [
             styles.consentRow,
-            errors.depositTermsAccepted && styles.consentError,
+            errors.bookingTermsAccepted && styles.consentError,
             pressed && styles.pressed,
           ]}
         >
-          <CheckBox checked={form.depositTermsAccepted} />
+          <CheckBox checked={form.bookingTermsAccepted} />
           <Text style={styles.consentCopy}>{depositTermsCopy}</Text>
         </Pressable>
-        {errors.depositTermsAccepted ? <Text style={styles.error}>{errors.depositTermsAccepted}</Text> : null}
+        {errors.bookingTermsAccepted ? <Text style={styles.error}>{errors.bookingTermsAccepted}</Text> : null}
       </View>
 
       <View>
@@ -1269,7 +1520,7 @@ function DepositStep({
         >
           <CheckBox checked={form.consent} />
           <Text style={styles.consentCopy}>
-            I agree that PSI Performance may contact me about this booking request and send payment or booking updates.
+            I agree that PSI Performance may contact me to review this request, propose or confirm a date, and send necessary payment and booking updates.
           </Text>
         </Pressable>
         {errors.consent ? <Text style={styles.error}>{errors.consent}</Text> : null}
@@ -1278,6 +1529,24 @@ function DepositStep({
         </Pressable>
       </View>
     </View>
+  );
+}
+
+function ToggleRow({ checked, label, copy, onPress }: { checked: boolean; label: string; copy: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityLabel={`${label}. ${copy}`}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      onPress={onPress}
+      style={({ pressed }) => [styles.toggleRow, pressed && styles.pressed]}
+    >
+      <CheckBox checked={checked} />
+      <View style={styles.toggleCopyWrap}>
+        <Text style={styles.toggleTitle}>{label}</Text>
+        <Text style={styles.toggleCopy}>{copy}</Text>
+      </View>
+    </Pressable>
   );
 }
 
@@ -1303,13 +1572,11 @@ function SummaryRow({ label, value, secondary }: { label: string; value: string;
   );
 }
 
-function CheckoutHandoff({
-  checkout,
-  onReopen,
+function RequestHandoff({
+  result,
   onHome,
 }: {
-  checkout: BookingCheckoutResult;
-  onReopen: () => void;
+  result: BookingRequestResult;
   onHome: () => void;
 }) {
   const { compact, horizontalPadding, short } = useResponsiveLayout();
@@ -1318,30 +1585,29 @@ function CheckoutHandoff({
     <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.successScreen}>
       <ScrollView contentContainerStyle={[styles.successScroll, short && styles.successScrollShort, { paddingHorizontal: horizontalPadding }]} showsVerticalScrollIndicator={false}>
         <View style={styles.checkoutMark}>
-          <Text maxFontSizeMultiplier={1.3} style={styles.checkoutMarkText}>→</Text>
+          <Text maxFontSizeMultiplier={1.3} style={styles.checkoutMarkText}>✓</Text>
         </View>
-        <Eyebrow>Secure checkout ready</Eyebrow>
-        <Text maxFontSizeMultiplier={2} style={[styles.successTitle, compact && styles.successTitleCompact]}>Complete payment securely.</Text>
+        <Eyebrow>Request received for review</Eyebrow>
+        <Text maxFontSizeMultiplier={2} style={[styles.successTitle, compact && styles.successTitleCompact]}>PSI will check the date first.</Text>
         <Text style={styles.successLead}>
-          PSI has prepared a {checkout.payment.provider} checkout. Complete payment there, then rely on the payment provider&apos;s confirmation and PSI&apos;s separate booking confirmation—not this screen—as proof of payment or a confirmed date.
+          {result.message} If your preferred date is not suitable, PSI will contact you to arrange another option. Your unfinished on-device draft has been cleared.
         </Text>
 
         <View style={styles.checkoutReferenceCard}>
-          <SummaryRow label="Request reference" value={checkout.reference} />
-          <SummaryRow label="Deposit due" value={displayMoney(checkout.deposit.amountCents, checkout.deposit.currency)} />
-          <SummaryRow label="Current state" value="Payment required" />
+          <SummaryRow label="Request reference" value={result.reference} />
+          <SummaryRow label="Current state" value="Pending PSI staff review" />
+          <SummaryRow label="Payment required now" value="No" />
         </View>
 
         <View style={styles.notPaidCard}>
-          <Text style={styles.notPaidTitle}>Payment is not confirmed here</Text>
+          <Text style={styles.notPaidTitle}>Nothing else is confirmed yet</Text>
           <Text style={styles.notPaidCopy}>
-            Closing or returning from checkout does not prove payment. Save any confirmation issued by the payment provider; PSI will confirm the booking separately after the server verifies payment.
+            This receipt confirms only that PSI received the request. It does not claim a payment, final booking date, confirmation email or Google Calendar event. PSI sends the deposit link after approving a date; verified payment then triggers the confirmations and calendar entry.
           </Text>
         </View>
 
         <View style={styles.successActions}>
-          <PrimaryButton label="Open secure checkout" onPress={onReopen} />
-          <PrimaryButton label="Return to PSI home" onPress={onHome} variant="outline" />
+          <PrimaryButton label="Return to PSI home" onPress={onHome} />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -1351,6 +1617,15 @@ function CheckoutHandoff({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: colors.ink },
+  draftLoading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+    padding: spacing.xl,
+  },
+  draftLoadingTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
+  draftLoadingCopy: { maxWidth: 340, color: colors.muted, fontSize: 13, lineHeight: 20, textAlign: 'center' },
   topBar: {
     width: '100%',
     maxWidth: 820,
@@ -1405,6 +1680,12 @@ const styles = StyleSheet.create({
   alertCopy: { color: '#FFD1CD', fontSize: 13, lineHeight: 19 },
   alertAssurance: { color: '#E8AAA4', fontSize: 11, fontWeight: '800' },
   alertLink: { color: colors.gold, fontSize: 13, fontWeight: '900', textDecorationLine: 'underline' },
+  draftCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.xl, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.inkSoft, padding: spacing.md },
+  draftCopyWrap: { flex: 1, minWidth: 0, gap: 4 },
+  draftTitle: { color: colors.white, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  draftCopy: { color: colors.muted, fontSize: 10, lineHeight: 15 },
+  draftClear: { minHeight: 44, maxWidth: 120, justifyContent: 'center', paddingHorizontal: spacing.sm },
+  draftClearText: { color: colors.gold, fontSize: 10, fontWeight: '900', textAlign: 'right', textDecorationLine: 'underline' },
   stepContent: { gap: spacing.xl },
   stepHeading: { gap: spacing.md },
   stepTitle: { color: colors.white, fontSize: 34, fontWeight: '900', letterSpacing: -1.5, lineHeight: 36, textTransform: 'uppercase' },
@@ -1413,6 +1694,18 @@ const styles = StyleSheet.create({
   personalPromise: { gap: spacing.sm, borderLeftWidth: 3, borderLeftColor: colors.gold, backgroundColor: colors.panel, padding: spacing.md },
   personalPromiseTitle: { color: colors.white, fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
   personalPromiseCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
+  jobSelectedCard: { gap: spacing.xs, borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.panel, padding: spacing.lg },
+  jobSelectedKicker: { color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase' },
+  jobSelectedTitle: { color: colors.white, fontSize: 20, fontWeight: '900', textTransform: 'uppercase' },
+  jobSelectedCopy: { color: colors.cream, fontSize: 12, lineHeight: 18 },
+  jobSelectedDeposit: { color: colors.muted, fontSize: 11, lineHeight: 17 },
+  missingTypeCard: { gap: spacing.md, borderLeftWidth: 3, borderLeftColor: colors.danger, backgroundColor: colors.panel, padding: spacing.md },
+  missingTypeTitle: { color: colors.white, fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
+  missingTypeCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
+  setupConfidenceSection: { gap: spacing.lg },
+  inspectionCard: { gap: spacing.sm, borderLeftWidth: 3, borderLeftColor: colors.gold, backgroundColor: colors.panel, padding: spacing.md },
+  inspectionTitle: { color: colors.white, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
+  inspectionCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
   choiceList: { gap: spacing.sm },
   error: { marginTop: spacing.sm, color: colors.danger, fontSize: 12, lineHeight: 17 },
   fields: { gap: spacing.lg },
@@ -1498,6 +1791,9 @@ const styles = StyleSheet.create({
   datePicker: { width: '100%', alignSelf: 'center' },
   dateDone: { alignSelf: 'flex-end', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   dateDoneText: { color: colors.gold, fontSize: 14, fontWeight: '900' },
+  dateEligibility: { marginTop: spacing.sm, fontSize: 11, fontWeight: '800', lineHeight: 17 },
+  dateEligibilityGood: { color: colors.success },
+  dateEligibilityBad: { color: colors.danger },
   compactChoices: { gap: spacing.sm },
   summaryCard: { borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.panel, padding: spacing.lg },
   summaryCardCompact: { padding: spacing.md },
@@ -1522,6 +1818,15 @@ const styles = StyleSheet.create({
   paymentCard: { gap: spacing.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.inkSoft, padding: spacing.md },
   paymentTitle: { color: colors.white, fontSize: 14, fontWeight: '900' },
   paymentCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
+  policyCard: { gap: spacing.sm, borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.panel, padding: spacing.lg },
+  policyKicker: { color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase' },
+  policyTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
+  policyCopy: { color: colors.cream, fontSize: 12, lineHeight: 19 },
+  policyFine: { color: colors.muted, fontSize: 10, lineHeight: 16 },
+  toggleRow: { minHeight: 76, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, padding: spacing.md },
+  toggleCopyWrap: { flex: 1, minWidth: 0, gap: 4 },
+  toggleTitle: { color: colors.white, fontSize: 13, fontWeight: '900' },
+  toggleCopy: { color: colors.muted, fontSize: 11, lineHeight: 17 },
   consentRow: { flexDirection: 'row', gap: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: 3, backgroundColor: colors.panel, padding: spacing.md },
   consentError: { borderColor: colors.danger },
   checkbox: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.muted, borderRadius: 2 },

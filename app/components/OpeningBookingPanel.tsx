@@ -16,12 +16,18 @@ function requireCatalogBookingChoice(id: "service" | "dyno"): CatalogBookingChoi
 }
 
 function formatAudAmount(amountCents: number) {
-  return `$${(amountCents / 100).toLocaleString("en-AU")} AUD`;
+  return `$${(amountCents / 100).toLocaleString("en-AU", {
+    minimumFractionDigits: amountCents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })} AUD`;
 }
 
 function formatPriceGuide(choice: CatalogBookingChoice) {
-  const amount = (choice.priceGuide.amountCents / 100).toLocaleString("en-AU");
-  return `Price guide ${choice.priceGuide.prefix} $${amount}${choice.priceGuide.gstExclusive ? " + GST" : ""}`;
+  const amount = (choice.priceGuide.amountCents / 100).toLocaleString("en-AU", {
+    minimumFractionDigits: choice.priceGuide.amountCents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+  return `Price guide ${choice.priceGuide.prefix} $${amount} AUD including GST`;
 }
 
 function formatOptionPriceGuide(choice: CatalogBookingChoice) {
@@ -35,7 +41,7 @@ const bookingChoices = {
   service: {
     title: serviceCatalogChoice.label,
     price: formatPriceGuide(serviceCatalogChoice),
-    optionLabel: `${serviceCatalogChoice.label} — ${formatOptionPriceGuide(serviceCatalogChoice)} — ${formatAudAmount(serviceCatalogChoice.deposit.amountCents)} deposit`,
+    optionLabel: `${serviceCatalogChoice.label} — ${formatOptionPriceGuide(serviceCatalogChoice)}`,
     deposit: formatAudAmount(serviceCatalogChoice.deposit.amountCents),
     detail: "Workshop inspection, servicing and a clear report on what your car needs.",
     href: "#service-booking",
@@ -44,7 +50,7 @@ const bookingChoices = {
   dyno: {
     title: dynoCatalogChoice.label,
     price: formatPriceGuide(dynoCatalogChoice),
-    optionLabel: `${dynoCatalogChoice.label} — ${formatOptionPriceGuide(dynoCatalogChoice)} — ${formatAudAmount(dynoCatalogChoice.deposit.amountCents)} deposit`,
+    optionLabel: `${dynoCatalogChoice.label} — ${formatOptionPriceGuide(dynoCatalogChoice)}`,
     deposit: formatAudAmount(dynoCatalogChoice.deposit.amountCents),
     detail: "Hub dyno calibration focused on safe power, drivability and vehicle health.",
     href: "#dyno-booking",
@@ -123,15 +129,15 @@ export function OpeningBookingPanel() {
           <p>{selected.detail}</p>
           {selected.deposit && (
             <p className="opening-selection-deposit">
-              <strong>{selected.deposit} booking deposit</strong>
-              <span>Required before PSI reviews the preferred date.</span>
+              <strong>{selected.deposit} deposit after approval</strong>
+              <span>Nothing is payable now. PSI reviews the request and confirms or proposes a date first.</span>
             </p>
           )}
           <button
             className="button button-primary"
             type="button"
             onClick={continueToBooking}
-            aria-label={selected.deposit ? `${selected.action}. ${selected.deposit} booking deposit.` : selected.action}
+            aria-label={selected.deposit ? `${selected.action}. No payment is required now.` : selected.action}
           >
             {selected.action}
           </button>
@@ -141,10 +147,10 @@ export function OpeningBookingPanel() {
       )}
 
       <div className="opening-account-row">
-        <span>Customer accounts are being prepared. Preview the planned sign-in and saved-vehicle experience.</span>
+        <span>Returning customers will be able to reuse saved details and see their PSI history.</span>
         <div>
-          <a href="/account#sign-in">Sign-in preview</a>
-          <a href="/account#create-account">Account preview →</a>
+          <a href="/account#profile">Customer account preview</a>
+          <a href="https://psiperformance.com.au/products/psiperformance-gift-card" target="_blank" rel="noreferrer">Gift cards ↗</a>
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { AccountPreview } from "./AccountPreview";
 
 export const metadata: Metadata = {
   title: "Customer account preview",
-  description: "Preview the planned PSI Performance customer account for saved vehicles, booking requests and verified deposit receipts.",
+  description: "Owner-review preview of the planned PSI Performance customer account, saved vehicles, workshop history, next booking and reminders.",
 };
 
 export default function AccountPage() {
@@ -23,12 +23,12 @@ export default function AccountPage() {
           <p className="eyebrow">Your PSI garage</p>
           <h1>One profile.<br />Every car.</h1>
           <p>
-            Customer accounts will make repeat bookings faster, keep vehicle details together and provide one place for booking references and deposit receipts.
+            Customer accounts will make repeat bookings faster and keep contact details, vehicles, workshop visits, the next confirmed booking and verified deposit receipts together.
           </p>
           <div className="account-benefits">
             <div><span>01</span><strong>Saved details</strong><p>Keep your contact and vehicle information ready for the next visit.</p></div>
-            <div><span>02</span><strong>Booking history</strong><p>See requests, preferred dates and confirmation status.</p></div>
-            <div><span>03</span><strong>Deposit receipts</strong><p>Retrieve verified payment records from a protected profile.</p></div>
+            <div><span>02</span><strong>Past and next visits</strong><p>See requests, completed work and the next staff-confirmed date.</p></div>
+            <div><span>03</span><strong>Receipts & reminders</strong><p>Keep verified deposit records and control optional service check-ins.</p></div>
           </div>
         </div>
         <AccountPreview />

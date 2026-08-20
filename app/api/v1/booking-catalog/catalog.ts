@@ -1,5 +1,6 @@
 export const DEPOSIT_CURRENCY = "AUD" as const;
-export const DEPOSIT_POLICY_VERSION = "psi-deposit-v2";
+export const BOOKING_POLICY_VERSION = "psi-booking-v1" as const;
+export const DEPOSIT_POLICY_VERSION = "psi-deposit-v3" as const;
 
 export const DEPOSIT_AMOUNTS_CENTS = {
   service: 10_000,
@@ -23,9 +24,9 @@ export const BOOKING_CATALOG = {
       kind: "booking",
       priceGuide: {
         prefix: "from",
-        amountCents: 38_500,
+        amountCents: 42_350,
         currency: DEPOSIT_CURRENCY,
-        gstExclusive: true,
+        gstInclusive: true,
       },
       deposit: {
         amountCents: DEPOSIT_AMOUNTS_CENTS.service,
@@ -38,9 +39,9 @@ export const BOOKING_CATALOG = {
       kind: "booking",
       priceGuide: {
         prefix: "from",
-        amountCents: 69_500,
+        amountCents: 76_450,
         currency: DEPOSIT_CURRENCY,
-        gstExclusive: true,
+        gstInclusive: true,
       },
       deposit: {
         amountCents: DEPOSIT_AMOUNTS_CENTS.dyno,
@@ -59,6 +60,20 @@ export const BOOKING_CATALOG = {
     minimumAmountCents: DEPOSIT_AMOUNTS_CENTS.service,
     variesByBookingType: true,
     policyVersion: DEPOSIT_POLICY_VERSION,
+    requiredAtRequest: false,
+    requestedOnlyAfterStaffDateApproval: true,
+    policy:
+      "Once PSI has reviewed and confirmed your booking date, we will send a secure link for the applicable deposit. Once paid, the deposit ordinarily cannot be refunded because PSI reserves technician time, hoist or dyno capacity and workshop planning for your vehicle. If PSI needs to move your booking, we will work with you to reschedule and keep the deposit attached to the agreed replacement date, or provide another remedy where required. Nothing in this policy limits rights that cannot be excluded under the Australian Consumer Law.",
+  },
+  bookingRequest: {
+    policyVersion: BOOKING_POLICY_VERSION,
+    paymentRequiredNow: false,
+    dateNotice:
+      "Your selected date is a request only. PSI will review workshop capacity and confirm the date, or contact you to arrange another suitable date.",
+    availability: {
+      service: ["monday", "tuesday", "wednesday", "thursday", "friday"],
+      dyno: ["monday", "wednesday", "thursday"],
+    },
   },
 } as const;
 

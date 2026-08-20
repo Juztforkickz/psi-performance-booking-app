@@ -6,7 +6,7 @@ import test from "node:test";
 
 import {
   BOOKING_CATALOG,
-  DEPOSIT_CURRENCY,
+  BOOKING_POLICY_VERSION,
   DEPOSIT_POLICY_VERSION,
   depositAmountForBookingType,
   serviceOptionForBookingType,
@@ -36,12 +36,19 @@ const cloudflareWorkersShim = `data:text/javascript,${encodeURIComponent(`
     }
   });
 `)}`;
+const contractCatalogUrl = new URL(
+  "../app/api/v1/booking-catalog/catalog.ts",
+  import.meta.url,
+).href;
 
 if (typeof nodeModule.registerHooks === "function") {
   nodeModule.registerHooks({
     resolve(specifier, context, nextResolve) {
       if (specifier === "cloudflare:workers") {
         return { url: cloudflareWorkersShim, shortCircuit: true };
+      }
+      if (specifier === "../booking-catalog/catalog") {
+        return { url: contractCatalogUrl, shortCircuit: true };
       }
       return nextResolve(specifier, context);
     },
@@ -51,6 +58,9 @@ if (typeof nodeModule.registerHooks === "function") {
     export async function resolve(specifier, context, nextResolve) {
       if (specifier === "cloudflare:workers") {
         return { url: ${JSON.stringify(cloudflareWorkersShim)}, shortCircuit: true };
+      }
+      if (specifier === "../booking-catalog/catalog") {
+        return { url: ${JSON.stringify(contractCatalogUrl)}, shortCircuit: true };
       }
       return nextResolve(specifier, context);
     }
@@ -111,9 +121,13 @@ function addMonths(isoDate, months) {
   return date.toISOString().slice(0, 10);
 }
 
-function nextOpenDate() {
+function nextOpenDate(bookingType = "service") {
   let candidate = addDays(melbourneDateParts(), 3);
-  while (new Date(`${candidate}T00:00:00Z`).getUTCDay() === 0) {
+  while (
+    bookingType === "dyno"
+      ? ![1, 3, 4].includes(new Date(`${candidate}T00:00:00Z`).getUTCDay())
+      : ![1, 2, 3, 4, 5].includes(new Date(`${candidate}T00:00:00Z`).getUTCDay())
+  ) {
     candidate = addDays(candidate, 1);
   }
   return candidate;
@@ -139,13 +153,16 @@ function validServicePayload(overrides = {}) {
     vehicleYear: 2020,
     registration: "TEST001",
     vin: "TESTV1N0000000000",
-    preferredDate: nextOpenDate(),
-    arrivalWindow: "morning",
+    appointmentPreference: { mode: "specific", preferredDate: nextOpenDate("service") },
+    arrivalArrangement: "business_hours",
+    afterHoursCollection: false,
+    notifyEarlierAvailability: false,
+    serviceReminderConsent: true,
     requestDetails: "Synthetic service and report request. Do not treat as a real booking.",
     source: "web",
     consent: true,
-    depositTermsAccepted: true,
-    depositPolicyVersion: DEPOSIT_POLICY_VERSION,
+    bookingTermsAccepted: true,
+    bookingPolicyVersion: BOOKING_POLICY_VERSION,
     company: "",
     ...overrides,
   };
@@ -188,6 +205,8 @@ function validDynoPayload(overrides = {}) {
     email: "psi.qa.dyno@example.com",
     registration: "TEST002",
     requestDetails: "Synthetic hub dyno calibration request. Do not treat as a real booking.",
+    appointmentPreference: { mode: "specific", preferredDate: nextOpenDate("dyno") },
+    setupConfidence: "known",
     tuningDetails: validTuningPayload(),
     ...overrides,
   });
@@ -202,6 +221,13 @@ function createD1Mock({ existingRecord = null, rateCount = 1 } = {}) {
     "tuning_details_json",
   ];
   const checkoutColumns = ["tuning_details_json"];
+  const outboxColumns = ["payload_json"];
+  const requestColumns = [
+    "confirmed_allocation_mode",
+    "confirmed_start_time",
+    "confirmed_end_time",
+  ];
+  const reminderColumns = ["recipient_email_hash"];
 
   const database = {
     operations,
@@ -224,10 +250,19 @@ function createD1Mock({ existingRecord = null, rateCount = 1 } = {}) {
           if (/PRAGMA table_info\(booking_checkouts\)/u.test(sql)) {
             return { results: checkoutColumns.map((name) => ({ name })) };
           }
+          if (/PRAGMA table_info\(integration_outbox\)/u.test(sql)) {
+            return { results: outboxColumns.map((name) => ({ name })) };
+          }
+          if (/PRAGMA table_info\(booking_requests\)/u.test(sql)) {
+            return { results: requestColumns.map((name) => ({ name })) };
+          }
+          if (/PRAGMA table_info\(service_reminder_jobs\)/u.test(sql)) {
+            return { results: reminderColumns.map((name) => ({ name })) };
+          }
           return { results: [] };
         },
         async first() {
-          if (/FROM booking_checkout_idempotency_keys/u.test(sql)) {
+          if (/FROM booking_request_idempotency_keys/u.test(sql)) {
             return existingRecord;
           }
           if (/RETURNING request_count AS requestCount/u.test(sql)) {
@@ -261,7 +296,7 @@ function checkoutRequest(payload, options = {}) {
 
 async function checkout(payload, database = createD1Mock(), options = {}) {
   return fetchWorker(
-    "/api/v1/booking-checkouts",
+    "/api/v1/booking-requests",
     checkoutRequest(payload, options),
     { DB: database },
   );
@@ -278,7 +313,6 @@ async function readError(response) {
 function canonicalCheckout(payload) {
   return {
     bookingType: payload.bookingType,
-    serviceOption: serviceOptionForBookingType(payload.bookingType),
     firstName: payload.firstName.trim(),
     lastName: payload.lastName.trim(),
     email: payload.email.trim().toLowerCase(),
@@ -288,16 +322,25 @@ function canonicalCheckout(payload) {
     vehicleYear: Number(payload.vehicleYear),
     registration: payload.registration.trim().toUpperCase(),
     vin: payload.vin.trim().toUpperCase(),
-    preferredDate: payload.preferredDate.trim(),
-    arrivalWindow: payload.arrivalWindow.trim(),
+    appointmentPreference:
+      payload.appointmentPreference.mode === "specific"
+        ? {
+            mode: "specific",
+            preferredDate: payload.appointmentPreference.preferredDate.trim(),
+          }
+        : { mode: "flexible", preferredDate: null },
+    arrivalArrangement: payload.arrivalArrangement,
+    afterHoursCollection: payload.afterHoursCollection,
+    notifyEarlierAvailability: payload.notifyEarlierAvailability,
+    serviceReminderConsent: payload.serviceReminderConsent,
     requestDetails: payload.requestDetails.trim(),
-    tuningDetails: payload.bookingType === "dyno" ? payload.tuningDetails : null,
     source: payload.source.trim(),
     consent: true,
-    depositTermsAccepted: true,
+    bookingTermsAccepted: true,
+    bookingPolicyVersion: BOOKING_POLICY_VERSION,
     depositPolicyVersion: DEPOSIT_POLICY_VERSION,
-    depositAmountCents: depositAmountForBookingType(payload.bookingType),
-    currency: DEPOSIT_CURRENCY,
+    setupConfidence: payload.bookingType === "dyno" ? payload.setupConfidence : null,
+    tuningDetails: payload.bookingType === "dyno" ? payload.tuningDetails : null,
   };
 }
 
@@ -360,7 +403,7 @@ test("keeps every internal link target, public asset and external contact link v
         assert.match(rootHtml, /id="booking-panel"/u);
       }
       if (["#sign-in", "#create-account", "#profile"].includes(url.hash)) {
-        assert.match(accountSource, new RegExp(`next === "${url.hash.slice(1)}"`, "u"));
+        assert.match(accountSource, new RegExp(`["']${url.hash.slice(1)}["']`, "u"));
       }
       continue;
     }
@@ -409,10 +452,10 @@ test("publishes exactly the three booking catalog choices and server-owned price
     BOOKING_CATALOG.choices.map((choice) => choice.kind),
     ["booking", "booking", "navigation"],
   );
-  assert.equal(BOOKING_CATALOG.choices[0].priceGuide.amountCents, 38_500);
-  assert.equal(BOOKING_CATALOG.choices[1].priceGuide.amountCents, 69_500);
-  assert.equal(BOOKING_CATALOG.choices[0].priceGuide.gstExclusive, true);
-  assert.equal(BOOKING_CATALOG.choices[1].priceGuide.gstExclusive, true);
+  assert.equal(BOOKING_CATALOG.choices[0].priceGuide.amountCents, 42_350);
+  assert.equal(BOOKING_CATALOG.choices[1].priceGuide.amountCents, 76_450);
+  assert.equal(BOOKING_CATALOG.choices[0].priceGuide.gstInclusive, true);
+  assert.equal(BOOKING_CATALOG.choices[1].priceGuide.gstInclusive, true);
   assert.deepEqual(BOOKING_CATALOG.choices[0].deposit, {
     amountCents: 10_000,
     currency: "AUD",
@@ -426,16 +469,24 @@ test("publishes exactly the three booking catalog choices and server-owned price
   assert.equal(depositAmountForBookingType("dyno"), 30_000);
   assert.equal(serviceOptionForBookingType("service"), "service_report");
   assert.equal(serviceOptionForBookingType("dyno"), "dyno_tuning");
-  assert.deepEqual(BOOKING_CATALOG.deposit, {
-    currency: "AUD",
-    minimumAmountCents: 10_000,
-    variesByBookingType: true,
-    policyVersion: "psi-deposit-v2",
-  });
+  assert.equal(BOOKING_CATALOG.deposit.policyVersion, "psi-deposit-v3");
+  assert.equal(BOOKING_CATALOG.deposit.requiredAtRequest, false);
+  assert.equal(BOOKING_CATALOG.bookingRequest.paymentRequiredNow, false);
 });
 
-test("returns stable protocol errors before accepting checkout data", async () => {
-  const missingKey = await fetchWorker("/api/v1/booking-checkouts", {
+test("calendar-month reminder dates clamp to the target month's last day", async () => {
+  const { addMonthsToIsoDate } = await import(
+    "../app/api/v1/booking-requests/contract.ts"
+  );
+  assert.equal(addMonthsToIsoDate("2025-01-31", 1), "2025-02-28");
+  assert.equal(addMonthsToIsoDate("2024-01-31", 1), "2024-02-29");
+  assert.equal(addMonthsToIsoDate("2024-08-31", 6), "2025-02-28");
+  assert.equal(addMonthsToIsoDate("2024-02-29", 12), "2025-02-28");
+  assert.equal(addMonthsToIsoDate("2025-08-31", 18), "2027-02-28");
+});
+
+test("returns stable protocol errors before accepting booking request data", async () => {
+  const missingKey = await fetchWorker("/api/v1/booking-requests", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(validServicePayload()),
@@ -451,7 +502,7 @@ test("returns stable protocol errors before accepting checkout data", async () =
     assert.equal((await readError(response)).code, "INVALID_IDEMPOTENCY_KEY");
   }
 
-  const mediaType = await fetchWorker("/api/v1/booking-checkouts", {
+  const mediaType = await fetchWorker("/api/v1/booking-requests", {
     method: "POST",
     headers: { "idempotency-key": "psi-qa-checkout-0002" },
     body: "not json",
@@ -478,6 +529,56 @@ test("returns stable protocol errors before accepting checkout data", async () =
   assert.equal((await readError(oversized)).code, "REQUEST_TOO_LARGE");
 });
 
+test("unsubscribe rejects oversized bodies before parsing or storage", async () => {
+  for (const init of [
+    {
+      headers: { "content-type": "application/json" },
+      body: `{"token":"${"a".repeat(64)}","padding":"${"x".repeat(2_048)}"}`,
+    },
+    {
+      headers: {
+        "content-type": "application/json",
+        "content-length": "2049",
+      },
+      body: "{",
+    },
+  ]) {
+    const database = createD1Mock();
+    const response = await fetchWorker(
+      "/api/v1/service-reminders/unsubscribe",
+      { method: "POST", ...init },
+      { DB: database },
+    );
+    assert.equal(response.status, 413);
+    assert.match(await response.text(), /request was too large/iu);
+    assert.equal(database.operations.length, 0, "oversized bodies must not reach storage");
+  }
+});
+
+test("unsubscribe rate limiting prunes stale rows in a bounded batch", async () => {
+  const database = createD1Mock();
+  const response = await fetchWorker(
+    "/api/v1/service-reminders/unsubscribe",
+    {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ token: "a".repeat(64) }).toString(),
+    },
+    { DB: database },
+  );
+  assert.equal(response.status, 200);
+
+  const prune = database.operations.find((operation) =>
+    /DELETE FROM booking_rate_limits[\s\S]*ORDER BY window_start ASC[\s\S]*LIMIT \?/u.test(
+      operation.sql,
+    ),
+  );
+  assert.ok(prune, "a bounded stale-row prune must run before incrementing the limiter");
+  assert.equal(prune.bindings.length, 2);
+  assert.ok(Number.isInteger(prune.bindings[0]));
+  assert.equal(prune.bindings[1], 200);
+});
+
 test("validates every required customer and vehicle field", async () => {
   const response = await checkout({ company: "" });
   assert.equal(response.status, 422);
@@ -493,13 +594,16 @@ test("validates every required customer and vehicle field", async () => {
     "vehicleModel",
     "vehicleYear",
     "registration",
-    "preferredDate",
-    "arrivalWindow",
+    "appointmentPreference",
+    "arrivalArrangement",
+    "afterHoursCollection",
+    "notifyEarlierAvailability",
+    "serviceReminderConsent",
     "requestDetails",
     "source",
     "consent",
-    "depositTermsAccepted",
-    "depositPolicyVersion",
+    "bookingTermsAccepted",
+    "bookingPolicyVersion",
   ]) {
     assert.equal(typeof error.fields?.[field], "string", `${field} must be rejected when absent`);
   }
@@ -526,15 +630,15 @@ test("rejects malformed contact, vehicle, date, consent and deposit values", asy
     ["vin", { vin: "VIN/NOT/VALID" }],
     ["vin", { vin: "A" }],
     ["vin", { vin: "TESTVIN0000000001" }],
-    ["preferredDate", { preferredDate: "2026-02-30" }],
-    ["preferredDate", { preferredDate: addDays(today, -1) }],
-    ["preferredDate", { preferredDate: nextSunday() }],
-    ["preferredDate", { preferredDate: addMonths(today, 19) }],
-    ["arrivalWindow", { arrivalWindow: "overnight" }],
+    ["appointmentPreference.preferredDate", { appointmentPreference: { mode: "specific", preferredDate: "2026-02-30" } }],
+    ["appointmentPreference.preferredDate", { appointmentPreference: { mode: "specific", preferredDate: addDays(today, -1) } }],
+    ["appointmentPreference.preferredDate", { appointmentPreference: { mode: "specific", preferredDate: nextSunday() } }],
+    ["appointmentPreference.preferredDate", { appointmentPreference: { mode: "specific", preferredDate: addMonths(today, 19) } }],
+    ["arrivalArrangement", { arrivalArrangement: "overnight" }],
     ["source", { source: "unknown-client" }],
     ["consent", { consent: false }],
-    ["depositTermsAccepted", { depositTermsAccepted: false }],
-    ["depositPolicyVersion", { depositPolicyVersion: "old-policy" }],
+    ["bookingTermsAccepted", { bookingTermsAccepted: false }],
+    ["bookingPolicyVersion", { bookingPolicyVersion: "old-policy" }],
     ["depositAmountCents", { depositAmountCents: 1 }],
     ["currency", { currency: "USD" }],
     ["requestDetails", { requestDetails: "unsafe\u0000detail" }],
@@ -560,11 +664,9 @@ test("enforces the server limits for every free-text checkout field", async () =
     vehicleModel: 80,
     registration: 20,
     vin: 32,
-    preferredDate: 10,
-    arrivalWindow: 16,
     requestDetails: 2_000,
     source: 16,
-    depositPolicyVersion: 64,
+    bookingPolicyVersion: 64,
   };
 
   for (const [field, limit] of Object.entries(limits)) {
@@ -639,121 +741,69 @@ test("rejects invalid choices for every dyno questionnaire selector", () => {
   }
 });
 
-test("accepts complete service and dyno data but stops safely before an unconfigured payment", async () => {
+test("persists complete service and dyno requests without creating a payment", async () => {
   for (const payload of [validServicePayload(), validDynoPayload()]) {
     const database = createD1Mock();
     const response = await checkout(payload, database);
-    assert.equal(response.status, 503);
-    const error = await readError(response);
-    assert.equal(error.code, "PAYMENT_PROVIDER_NOT_CONFIGURED");
-    assert.match(error.message, /No booking or payment was created/u);
+    assert.equal(response.status, 201);
+    const body = await response.json();
+    assert.equal(body.state, "pending_staff_review");
+    assert.equal(body.paymentRequiredNow, false);
     assert.equal(response.headers.get("idempotency-replayed"), "false");
     assert.equal(response.headers.get("ratelimit-limit"), "5");
 
-    const boundData = JSON.stringify(database.operations.flatMap((operation) => operation.bindings));
-    assert.doesNotMatch(boundData, new RegExp(payload.email, "iu"));
-    assert.doesNotMatch(boundData, new RegExp(payload.registration, "iu"));
+    assert.ok(
+      database.operations.some((operation) => /INSERT INTO booking_requests/iu.test(operation.sql)),
+      "the unpaid request must be persisted for staff review",
+    );
     assert.ok(
       database.operations.every(
-        (operation) => !/INSERT INTO (?:bookings|booking_checkouts|deposit_payments)/iu.test(operation.sql),
+        (operation) =>
+          !/INSERT INTO (?:customer_profiles|customer_vehicles|booking_request_checkouts|booking_request_payments|booking_request_calendar_events)/iu.test(
+            operation.sql,
+          ),
       ),
-      "no customer, booking or payment row may be written before a provider exists",
+      "guest submission must not claim an account or create payment/calendar records",
     );
   }
 });
 
-test("keeps idempotent replay, conflict, expiry and rate-limit contracts stable", async () => {
+test("keeps booking-request replay, conflict and rate-limit contracts stable", async () => {
   const payload = validServicePayload();
   const hash = requestHash(payload);
-  const payableRecord = {
+  const existingRecord = {
     requestHash: hash,
-    checkoutId: "checkout_qa_0001",
-    publicReference: "PSI-00000000000000000000000000000001",
-    state: "awaiting_payment",
-    paymentProvider: "test-provider",
-    providerCheckoutUrl: "https://payments.example.com/checkout_qa_0001",
-    bookingType: "service",
-    depositAmountCents: 10_000,
-    currency: "AUD",
-    expiresAt: new Date(Date.now() + 15 * 60 * 1_000).toISOString(),
+    reference: "PSI-00000000000000000000000000000001",
+    state: "pending_staff_review",
   };
 
-  const replay = await checkout(payload, createD1Mock({ existingRecord: payableRecord }));
+  const replay = await checkout(payload, createD1Mock({ existingRecord }));
   assert.equal(replay.status, 200);
   assert.equal(replay.headers.get("cache-control"), "no-store");
   assert.equal(replay.headers.get("idempotency-replayed"), "true");
   const replayBody = await replay.json();
-  assert.equal(replayBody.state, "requires_payment");
-  assert.deepEqual(replayBody.deposit, { amountCents: 10_000, currency: "AUD" });
-  assert.equal(replayBody.payment.checkoutUrl, payableRecord.providerCheckoutUrl);
+  assert.equal(replayBody.state, "pending_staff_review");
+  assert.equal(replayBody.paymentRequiredNow, false);
 
   const dynoPayload = validDynoPayload();
   const dynoReplay = await checkout(
     dynoPayload,
     createD1Mock({
       existingRecord: {
-        ...payableRecord,
+        ...existingRecord,
         requestHash: requestHash(dynoPayload),
-        bookingType: "dyno",
-        depositAmountCents: 30_000,
       },
     }),
   );
   assert.equal(dynoReplay.status, 200);
-  assert.deepEqual((await dynoReplay.json()).deposit, {
-    amountCents: 30_000,
-    currency: "AUD",
-  });
+  assert.equal((await dynoReplay.json()).paymentRequiredNow, false);
 
   const conflict = await checkout(
     payload,
-    createD1Mock({ existingRecord: { ...payableRecord, requestHash: "0".repeat(64) } }),
+    createD1Mock({ existingRecord: { ...existingRecord, requestHash: "0".repeat(64) } }),
   );
   assert.equal(conflict.status, 409);
   assert.equal((await readError(conflict)).code, "IDEMPOTENCY_KEY_REUSED");
-
-  const expired = await checkout(
-    payload,
-    createD1Mock({
-      existingRecord: { ...payableRecord, expiresAt: new Date(Date.now() - 1_000).toISOString() },
-    }),
-  );
-  assert.equal(expired.status, 409);
-  assert.equal((await readError(expired)).code, "CHECKOUT_EXPIRED");
-
-  const alreadyPaid = await checkout(
-    payload,
-    createD1Mock({ existingRecord: { ...payableRecord, state: "paid" } }),
-  );
-  assert.equal(alreadyPaid.status, 409);
-  assert.equal((await readError(alreadyPaid)).code, "CHECKOUT_ALREADY_PAID_OR_PROCESSING");
-
-  const cancelled = await checkout(
-    payload,
-    createD1Mock({ existingRecord: { ...payableRecord, state: "cancelled" } }),
-  );
-  assert.equal(cancelled.status, 409);
-  assert.equal((await readError(cancelled)).code, "CHECKOUT_CANCELLED");
-
-  const notPayable = await checkout(
-    payload,
-    createD1Mock({ existingRecord: { ...payableRecord, paymentProvider: null } }),
-  );
-  assert.equal(notPayable.status, 409);
-  assert.equal((await readError(notPayable)).code, "CHECKOUT_NOT_PAYABLE");
-
-  for (const corruptedRecord of [
-    { ...payableRecord, depositAmountCents: 30_000 },
-    { ...payableRecord, currency: "USD" },
-    { ...payableRecord, bookingType: "unsupported" },
-  ]) {
-    const corrupted = await checkout(
-      payload,
-      createD1Mock({ existingRecord: corruptedRecord }),
-    );
-    assert.equal(corrupted.status, 409);
-    assert.equal((await readError(corrupted)).code, "CHECKOUT_NOT_PAYABLE");
-  }
 
   const limited = await checkout(payload, createD1Mock({ rateCount: 6 }));
   assert.equal(limited.status, 429);
@@ -771,8 +821,8 @@ test("blocks the legacy unpaid booking endpoint regardless of request contents",
   });
   assert.equal(response.status, 410);
   const error = await readError(response);
-  assert.equal(error.code, "PAYMENT_REQUIRED");
-  assert.match(response.headers.get("link") ?? "", /\/api\/v1\/booking-checkouts/u);
+  assert.equal(error.code, "APPROVAL_REQUIRED");
+  assert.match(response.headers.get("link") ?? "", /\/api\/v1\/booking-requests/u);
 });
 
 test("keeps customer testimonials sourced and separates PSI's 10/10 promise from review scores", async () => {
@@ -811,33 +861,19 @@ test("keeps customer testimonials sourced and separates PSI's 10/10 promise from
   assert.match(provenance, /No reliable[\s\S]*literally rating the business “10\/10”/u);
 });
 
-test("keeps client retry and mobile radio states safe", async () => {
-  const [webBooking, mobileBooking, mobileHome, mobileUi] = await Promise.all([
+test("keeps approval-first clients and mobile radio states safe", async () => {
+  const [webBooking, mobileBooking, mobileGateway, mobileHome, mobileUi] = await Promise.all([
     readFile(new URL("../app/components/BookingFlow.tsx", import.meta.url), "utf8"),
     readFile(new URL("../mobile/src/app/booking.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../mobile/src/lib/booking.ts", import.meta.url), "utf8"),
     readFile(new URL("../mobile/src/app/index.tsx", import.meta.url), "utf8"),
     readFile(new URL("../mobile/src/components/ui.tsx", import.meta.url), "utf8"),
   ]);
 
-  assert.match(
-    webBooking,
-    /code === "CHECKOUT_EXPIRED" \|\| code === "CHECKOUT_CANCELLED"[\s\S]{0,100}idempotencyKey\.current = null/u,
-  );
-  assert.match(webBooking, /CHECKOUT_ALREADY_PAID_OR_PROCESSING[\s\S]{0,300}Do not try another payment/u);
-  assert.doesNotMatch(
-    webBooking,
-    /code === "CHECKOUT_NOT_PAYABLE"[\s\S]{0,120}idempotencyKey\.current = null/u,
-  );
-
-  assert.match(
-    mobileBooking,
-    /error\.code === 'CHECKOUT_EXPIRED' \|\| error\.code === 'CHECKOUT_CANCELLED'[\s\S]{0,100}setIdempotencyKey\(randomUUID\(\)\)/u,
-  );
-  assert.match(mobileBooking, /CHECKOUT_ALREADY_PAID_OR_PROCESSING[\s\S]{0,500}Do not try another payment/u);
-  assert.doesNotMatch(
-    mobileBooking,
-    /error\.code === 'CHECKOUT_NOT_PAYABLE'[\s\S]{0,120}setIdempotencyKey\(randomUUID\(\)\)/u,
-  );
+  assert.match(webBooking, /fetch\("\/api\/v1\/booking-requests"/u);
+  assert.match(webBooking, /paymentRequiredNow:\s*false/u);
+  assert.match(mobileGateway, /booking-requests/u);
+  assert.match(mobileGateway, /pending_staff_review/u);
 
   assert.match(mobileUi, /accessibilityRole="radio"[\s\S]{0,80}accessibilityState=\{\{ checked: selected \}\}/u);
   assert.match(mobileHome, /accessibilityRole="radio"[\s\S]{0,80}accessibilityState=\{\{ checked: active \}\}/u);

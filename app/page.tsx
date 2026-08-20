@@ -8,7 +8,7 @@ import { depositAmountForBookingType } from "./api/v1/booking-catalog/catalog";
 export const metadata: Metadata = {
   title: "Book your car",
   description:
-    "Request vehicle servicing or dyno tuning with PSI Performance Garage, choose a preferred date and continue to the secure booking deposit for your selected service.",
+    "Request vehicle servicing or dyno tuning with PSI Performance Garage. PSI reviews and confirms the workshop date before sending a secure deposit link.",
 };
 
 function formatDeposit(bookingType: "service" | "dyno") {
@@ -95,7 +95,7 @@ export default function Home() {
               <a href="https://www.facebook.com/psiperformancegarage/" target="_blank" rel="noreferrer">Facebook <span aria-hidden="true">↗</span></a>
             </div>
             <p className="opening-deposit-note">
-              Service requests require a {formatDeposit("service")} deposit. Dyno tuning requests require a {formatDeposit("dyno")} deposit. PSI confirms the requested date after payment.
+              Nothing is payable when you send a request. PSI confirms or proposes the workshop date first, then sends a secure deposit link: {formatDeposit("service")} for service or {formatDeposit("dyno")} for dyno tuning.
             </p>
           </div>
         </div>
@@ -277,6 +277,9 @@ export default function Home() {
         </div>
         <div className="footer-legal">
           <a href="https://psiperformance.com.au/policies/privacy-policy" target="_blank" rel="noreferrer">Privacy</a>
+          <a href="/booking-policy">Booking policy preview</a>
+          <a href="https://psiperformance.com.au/collections/all" target="_blank" rel="noreferrer">Shop parts</a>
+          <a href="https://psiperformance.com.au/products/psiperformance-gift-card" target="_blank" rel="noreferrer">Gift cards</a>
           <span>© {new Date().getFullYear()} PSI Performance™ · All rights reserved</span>
         </div>
       </footer>

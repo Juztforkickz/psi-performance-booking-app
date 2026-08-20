@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { drizzle } from "drizzle-orm/d1";
 import * as schema from "./schema";
+import { APPROVAL_FIRST_SCHEMA_SQL } from "./approval-schema";
 
 const CREATE_BOOKINGS_TABLE_SQL = `
   CREATE TABLE IF NOT EXISTS bookings (
@@ -265,6 +266,7 @@ const CREATE_INTEGRATION_OUTBOX_TABLE_SQL = `
     next_attempt_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     provider_result_id TEXT,
     last_error_code TEXT,
+    payload_json TEXT CHECK (payload_json IS NULL OR json_valid(payload_json)),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     sent_at TEXT
@@ -279,6 +281,45 @@ const CREATE_INTEGRATION_OUTBOX_DEDUPE_INDEX_SQL = `
 const CREATE_INTEGRATION_OUTBOX_STATE_INDEX_SQL = `
   CREATE INDEX IF NOT EXISTS idx_integration_outbox_state_next_attempt
   ON integration_outbox (state, next_attempt_at)
+`;
+
+const ADD_INTEGRATION_OUTBOX_PAYLOAD_JSON_SQL = `
+  ALTER TABLE integration_outbox
+  ADD COLUMN payload_json TEXT
+    CHECK (payload_json IS NULL OR json_valid(payload_json))
+`;
+
+const ADD_BOOKING_REQUESTS_ALLOCATION_MODE_SQL = `
+  ALTER TABLE booking_requests
+  ADD COLUMN confirmed_allocation_mode TEXT
+    CHECK (confirmed_allocation_mode IS NULL OR confirmed_allocation_mode IN ('all_day', 'timed'))
+`;
+
+const ADD_BOOKING_REQUESTS_START_TIME_SQL = `
+  ALTER TABLE booking_requests
+  ADD COLUMN confirmed_start_time TEXT
+`;
+
+const ADD_BOOKING_REQUESTS_END_TIME_SQL = `
+  ALTER TABLE booking_requests
+  ADD COLUMN confirmed_end_time TEXT
+`;
+
+const ADD_BOOKING_REQUESTS_STATE_VERSION_SQL = `
+  ALTER TABLE booking_requests
+  ADD COLUMN state_version INTEGER NOT NULL DEFAULT 0
+    CHECK (state_version >= 0)
+`;
+
+const ADD_SERVICE_REMINDERS_EMAIL_HASH_SQL = `
+  ALTER TABLE service_reminder_jobs
+  ADD COLUMN recipient_email_hash TEXT
+    CHECK (recipient_email_hash IS NULL OR length(recipient_email_hash) = 64)
+`;
+
+const ADD_BOOKING_REQUEST_CHECKOUT_CALENDAR_ID_SQL = `
+  ALTER TABLE booking_request_checkouts
+  ADD COLUMN calendar_id_snapshot TEXT
 `;
 
 const CREATE_BOOKING_CALENDAR_EVENTS_TABLE_SQL = `
@@ -422,6 +463,80 @@ async function initializeBookingSchema(database: ReturnType<typeof getD1>) {
     database.prepare(CREATE_BOOKING_CALENDAR_EVENTS_REFERENCE_INDEX_SQL),
     database.prepare(CREATE_BOOKING_CALENDAR_EVENTS_PROVIDER_INDEX_SQL),
   ]);
+
+  const outboxColumns = await database
+    .prepare("PRAGMA table_info(integration_outbox)")
+    .all<{ name: string }>();
+  await addBookingColumnIfMissing(
+    database,
+    new Set(outboxColumns.results.map((column: { name: string }) => column.name)),
+    "payload_json",
+    ADD_INTEGRATION_OUTBOX_PAYLOAD_JSON_SQL,
+  );
+
+  // Keep every D1 prepare call to exactly one statement.
+  await database.batch(
+    APPROVAL_FIRST_SCHEMA_SQL.map((statement) => database.prepare(statement)),
+  );
+
+  const requestColumns = await database
+    .prepare("PRAGMA table_info(booking_requests)")
+    .all<{ name: string }>();
+  const existingRequestColumns = new Set(
+    requestColumns.results.map((column: { name: string }) => column.name),
+  );
+  await addBookingColumnIfMissing(
+    database,
+    existingRequestColumns,
+    "confirmed_allocation_mode",
+    ADD_BOOKING_REQUESTS_ALLOCATION_MODE_SQL,
+  );
+  await addBookingColumnIfMissing(
+    database,
+    existingRequestColumns,
+    "confirmed_start_time",
+    ADD_BOOKING_REQUESTS_START_TIME_SQL,
+  );
+  await addBookingColumnIfMissing(
+    database,
+    existingRequestColumns,
+    "confirmed_end_time",
+    ADD_BOOKING_REQUESTS_END_TIME_SQL,
+  );
+  await addBookingColumnIfMissing(
+    database,
+    existingRequestColumns,
+    "state_version",
+    ADD_BOOKING_REQUESTS_STATE_VERSION_SQL,
+  );
+
+  const serviceReminderColumns = await database
+    .prepare("PRAGMA table_info(service_reminder_jobs)")
+    .all<{ name: string }>();
+  await addBookingColumnIfMissing(
+    database,
+    new Set(
+      serviceReminderColumns.results.map(
+        (column: { name: string }) => column.name,
+      ),
+    ),
+    "recipient_email_hash",
+    ADD_SERVICE_REMINDERS_EMAIL_HASH_SQL,
+  );
+
+  const approvalCheckoutColumns = await database
+    .prepare("PRAGMA table_info(booking_request_checkouts)")
+    .all<{ name: string }>();
+  await addBookingColumnIfMissing(
+    database,
+    new Set(
+      approvalCheckoutColumns.results.map(
+        (column: { name: string }) => column.name,
+      ),
+    ),
+    "calendar_id_snapshot",
+    ADD_BOOKING_REQUEST_CHECKOUT_CALENDAR_ID_SQL,
+  );
 
   // Keep SQLite's query-planner statistics current after the index exists.
   await database.prepare("PRAGMA optimize").run();

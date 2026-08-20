@@ -58,6 +58,8 @@ export interface TuningDetails {
   camshaftDetails: string;
 }
 
+export type PartialTuningDetails = Partial<TuningDetails>;
+
 const DETAIL_LIMITS = {
   engineModifications: 2_000,
   transmissionDetails: 1_000,
@@ -415,6 +417,95 @@ export function validateTuningDetails(value: unknown):
       camshaftType: camshaftType as TuningDetails["camshaftType"],
       camshaftDetails,
     },
+    errors: null,
+  };
+}
+
+/**
+ * PSI-inspection requests may contain only what the customer knows. Supplied
+ * values still use the same allow-lists, text limits and control-character
+ * protections as the complete questionnaire.
+ */
+export function validatePartialTuningDetails(value: unknown):
+  | { details: PartialTuningDetails | null; errors: null }
+  | { details: null; errors: TuningDetailsErrors } {
+  if (value === undefined || value === null) {
+    return { details: null, errors: null };
+  }
+  if (typeof value !== "object" || Array.isArray(value)) {
+    return {
+      details: null,
+      errors: { tuningDetails: "Enter the setup details you know, or leave them blank for PSI to inspect." },
+    };
+  }
+
+  const body = value as Record<string, unknown>;
+  const errors: TuningDetailsErrors = {};
+  const details: Record<string, unknown> = {};
+  const unsupportedFields = Object.keys(body).filter(
+    (key) => !TUNING_DETAIL_KEYS.has(key as TuningDetailsKey),
+  );
+  if (unsupportedFields.length > 0) {
+    errors.tuningDetails = "Contains unsupported questionnaire fields.";
+  }
+
+  const enumFields = {
+    engineState: ENGINE_STATES,
+    transmissionType: TRANSMISSION_TYPES,
+    transmissionSetup: TRANSMISSION_SETUPS,
+    differentialType: DIFFERENTIAL_TYPES,
+    fuelPumpType: COMPONENT_STATES,
+    injectorType: COMPONENT_STATES,
+    fuelType: FUEL_TYPES,
+    intakeType: INTAKE_TYPES,
+    previouslyTuned: PREVIOUS_TUNE_STATES,
+    exhaustType: EXHAUST_TYPES,
+    exhaustSize: EXHAUST_SIZES,
+    varexControlled: YES_NO_UNKNOWN,
+    camshaftType: COMPONENT_STATES,
+  } as const;
+  for (const [field, allowed] of Object.entries(enumFields)) {
+    if (!Object.hasOwn(body, field)) continue;
+    const raw = body[field];
+    if (
+      typeof raw !== "string" ||
+      raw.trim().length === 0 ||
+      raw.length > 40 ||
+      hasUnsupportedControlCharacters(raw, false) ||
+      !(allowed as readonly string[]).includes(raw.trim())
+    ) {
+      errors[fieldName(field as TuningDetailsKey)] = "Choose a valid option.";
+    } else {
+      details[field] = raw.trim();
+    }
+  }
+
+  for (const field of Object.keys(DETAIL_LIMITS) as (keyof typeof DETAIL_LIMITS)[]) {
+    if (!Object.hasOwn(body, field)) continue;
+    const parsed = readDetailText(body, field, errors, { allowNewlines: true });
+    if (!errors[fieldName(field)]) details[field] = parsed;
+  }
+
+  if (
+    details.transmissionType === "manual" &&
+    ["converter", "trans_cooler", "converter_and_cooler"].includes(
+      String(details.transmissionSetup ?? ""),
+    )
+  ) {
+    errors["tuningDetails.transmissionSetup"] =
+      "Converter and transmission-cooler options apply to automatic transmissions.";
+  }
+  if (
+    details.transmissionType === "automatic" &&
+    details.transmissionSetup === "upgraded_clutch"
+  ) {
+    errors["tuningDetails.transmissionSetup"] =
+      "An upgraded clutch applies to a manual transmission.";
+  }
+
+  if (Object.keys(errors).length > 0) return { details: null, errors };
+  return {
+    details: Object.keys(details).length > 0 ? (details as PartialTuningDetails) : null,
     errors: null,
   };
 }

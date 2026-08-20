@@ -6,6 +6,9 @@ import { Eyebrow, PrimaryButton } from '@/components/ui';
 import { colors, contact, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
+const PARTS_STORE_URL = 'https://psiperformance.com.au/collections/all';
+const GIFT_CARD_URL = 'https://psiperformance.com.au/products/psiperformance-gift-card';
+
 export default function PartsScreen() {
   const router = useRouter();
   const { compact, horizontalPadding, short } = useResponsiveLayout();
@@ -40,20 +43,21 @@ export default function PartsScreen() {
         <Eyebrow>PSI Performance parts</Eyebrow>
         <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>The right parts.{`\n`}Properly selected.</Text>
         <Text style={styles.lead}>
-          PSI’s dedicated parts catalogue is the next stage of this app. It will focus on workshop-selected performance hardware—not a generic parts feed.
+          Shop parts and PSI gift cards through the official PSI Performance website, with the workshop available to help you choose the right fitment.
         </Text>
 
         <View style={styles.statusCard}>
-          <Text style={styles.statusKicker}>Page reserved</Text>
-          <Text style={styles.statusTitle}>Parts store in development</Text>
+          <Text style={styles.statusKicker}>Official PSI online store</Text>
+          <Text style={styles.statusTitle}>Parts and gift cards</Text>
           <Text style={styles.statusCopy}>
-            No order or payment is taken on this preview page. Speak with the workshop now for fitment advice, availability and pricing.
+            These buttons open the official PSI website. Store checkout happens there; this preview screen never claims an order or payment has completed.
           </Text>
         </View>
 
         <View style={styles.actions}>
-          <PrimaryButton label={`Call ${contact.phoneDisplay}`} onPress={() => void Linking.openURL(contact.phoneUrl)} />
-          <PrimaryButton label="Email parts enquiry" onPress={() => void Linking.openURL(contact.emailUrl)} variant="outline" />
+          <PrimaryButton label="Shop performance parts ↗" onPress={() => void Linking.openURL(PARTS_STORE_URL)} />
+          <PrimaryButton label="Buy a PSI gift card ↗" onPress={() => void Linking.openURL(GIFT_CARD_URL)} variant="outline" />
+          <PrimaryButton label={`Ask PSI · ${contact.phoneDisplay}`} onPress={() => void Linking.openURL(contact.phoneUrl)} variant="outline" />
         </View>
 
         <View style={styles.capabilities}>

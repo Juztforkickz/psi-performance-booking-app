@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Performance parts",
-  description: "Discuss performance parts, upgrades and supporting hardware with PSI Performance Garage.",
+  description: "Shop PSI Performance parts and gift cards, or ask the workshop to help match the right upgrade.",
 };
 
 const categories = [
@@ -52,11 +52,13 @@ export default function PartsPage() {
         </div>
         <div className="parts-hero-copy">
           <p>
-            PSI’s online parts catalogue is the next stage of this app. For now, send the workshop your vehicle and goal so the team can recommend the correct package.
+            Shop the current PSI catalogue on the official website, or send the workshop your vehicle and goal so the team can help match the right hardware.
           </p>
-          <a className="button button-primary" href={"mailto:info@psiperformance.com.au?subject=" + subject + "&body=" + body}>
-            Start a parts enquiry
-          </a>
+          <div className="parts-actions">
+            <a className="button button-primary" href="https://psiperformance.com.au/collections/all" target="_blank" rel="noreferrer">Shop all parts <span aria-hidden="true">↗</span></a>
+            <a className="button button-ghost-dark" href="https://psiperformance.com.au/products/psiperformance-gift-card" target="_blank" rel="noreferrer">Buy a PSI gift card <span aria-hidden="true">↗</span></a>
+            <a className="parts-enquiry-link" href={"mailto:info@psiperformance.com.au?subject=" + subject + "&body=" + body}>Ask PSI to match a part</a>
+          </div>
         </div>
       </section>
 
@@ -76,6 +78,8 @@ export default function PartsPage() {
           <h2>Talk to the workshop.</h2>
         </div>
         <div>
+          <a href="https://psiperformance.com.au/collections/all" target="_blank" rel="noreferrer"><span>Official online shop</span><strong>Browse parts ↗</strong></a>
+          <a href="https://psiperformance.com.au/products/psiperformance-gift-card" target="_blank" rel="noreferrer"><span>Gift cards</span><strong>Choose a gift card ↗</strong></a>
           <a href="tel:+61433431781"><span>Call</span><strong>0433 431 781</strong></a>
           <a href="mailto:info@psiperformance.com.au"><span>Email</span><strong>info@psiperformance.com.au</strong></a>
         </div>

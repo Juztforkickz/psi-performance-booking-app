@@ -1,591 +1,322 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./admin.module.css";
 
-const SESSION_KEY = "psi_admin_key";
-
-const STATUS_OPTIONS = ["requested", "confirmed", "completed", "cancelled"] as const;
-
-type BookingStatus = (typeof STATUS_OPTIONS)[number];
+type BookingType = "service" | "dyno";
+type BookingStatus =
+  | "pending_staff_review"
+  | "date_proposed"
+  | "date_approved"
+  | "awaiting_deposit"
+  | "confirmed"
+  | "completed"
+  | "cancelled";
 type StatusFilter = "all" | BookingStatus;
+type AllocationMode = "all_day" | "timed";
 
-type TuningDetails = Partial<Record<
-  | "engineState"
-  | "engineModifications"
-  | "transmissionType"
-  | "transmissionSetup"
-  | "transmissionDetails"
-  | "differentialType"
-  | "differentialGearRatio"
-  | "differentialDetails"
-  | "fuelPumpType"
-  | "fuelPumpDetails"
-  | "injectorType"
-  | "injectorDetails"
-  | "fuelType"
-  | "fuelTypeDetails"
-  | "intakeType"
-  | "intakeDetails"
-  | "previouslyTuned"
-  | "previousTuner"
-  | "exhaustType"
-  | "exhaustSize"
-  | "varexControlled"
-  | "exhaustDetails"
-  | "camshaftType"
-  | "camshaftDetails",
-  string
->>;
-
-type Booking = {
+type PreviewBooking = {
   reference: string;
+  bookingType: BookingType;
   status: BookingStatus;
-  bookingType: string;
-  serviceOption: string;
-  customerName: string;
-  email: string;
-  phone: string;
-  vehicleMake: string;
-  vehicleModel: string;
-  vehicleYear: string | number;
-  registration?: string | null;
-  vin?: string | null;
-  preferredDate?: string | null;
-  arrivalWindow?: string | null;
-  notes?: string | null;
-  tuningDetails?: TuningDetails | null;
-  source?: string | null;
-  createdAt?: string | number | null;
+  receivedAt: string;
+  customer: { name: string; email: string; mobile: string };
+  vehicle: { year: number; make: string; model: string; registration: string; vin?: string };
+  appointment: {
+    mode: "specific" | "flexible";
+    preferredDate?: string;
+    arrivalArrangement: string;
+    afterHoursCollection: boolean;
+    notifyEarlierAvailability: boolean;
+  };
+  reminderConsent: boolean;
+  requestDetails: string;
+  setupConfidence?: "known" | "psi_inspection";
+  tuning?: Array<{ label: string; value: string }>;
 };
 
-type BookingsResponse = {
-  bookings?: Booking[];
-  error?: string | { message?: string };
-  message?: string;
+type PlanningState = {
+  date: string;
+  allocationMode: AllocationMode;
+  startTime: string;
+  endTime: string;
+  note: string;
 };
 
 const statusLabels: Record<BookingStatus, string> = {
-  requested: "Requested",
-  confirmed: "Confirmed",
+  pending_staff_review: "Pending staff review",
+  date_proposed: "Date proposed",
+  date_approved: "Date approved · Deposit link next",
+  awaiting_deposit: "Deposit link sent · Awaiting payment",
+  confirmed: "Deposit paid · Booking confirmed",
   completed: "Completed",
   cancelled: "Cancelled",
 };
 
-const tuningSections: Array<{
-  title: string;
-  fields: Array<{ key: keyof TuningDetails; label: string }>;
-}> = [
+const PREVIEW_BOOKINGS: PreviewBooking[] = [
   {
-    title: "Engine",
-    fields: [
-      { key: "engineState", label: "Setup" },
-      { key: "engineModifications", label: "Modifications" },
-    ],
+    reference: "PSI-PREVIEW-SERVICE-01",
+    bookingType: "service",
+    status: "pending_staff_review",
+    receivedAt: "21 Aug 2026 · 9:42am",
+    customer: { name: "Jordan Taylor", email: "jordan@example.com", mobile: "0400 000 000" },
+    vehicle: { year: 2017, make: "Holden", model: "Commodore VF SS", registration: "PSI001" },
+    appointment: {
+      mode: "flexible",
+      arrivalArrangement: "Before-hours drop-off requested",
+      afterHoursCollection: true,
+      notifyEarlierAvailability: true,
+    },
+    reminderConsent: true,
+    requestDetails: "Service and report before a highway trip. Please inspect a light oil smell and advise before any additional repair work.",
   },
   {
-    title: "Transmission",
-    fields: [
-      { key: "transmissionType", label: "Type" },
-      { key: "transmissionSetup", label: "Setup" },
-      { key: "transmissionDetails", label: "Details" },
-    ],
-  },
-  {
-    title: "Differential",
-    fields: [
-      { key: "differentialType", label: "Type" },
-      { key: "differentialGearRatio", label: "Gear ratio" },
-      { key: "differentialDetails", label: "Details" },
-    ],
-  },
-  {
-    title: "Fuel system",
-    fields: [
-      { key: "fuelPumpType", label: "Fuel pump" },
-      { key: "fuelPumpDetails", label: "Pump details" },
-      { key: "injectorType", label: "Injectors" },
-      { key: "injectorDetails", label: "Injector details" },
-      { key: "fuelType", label: "Fuel" },
-      { key: "fuelTypeDetails", label: "Fuel details" },
-    ],
-  },
-  {
-    title: "Intake & tune",
-    fields: [
-      { key: "intakeType", label: "Intake" },
-      { key: "intakeDetails", label: "Intake details" },
-      { key: "previouslyTuned", label: "Previously tuned" },
-      { key: "previousTuner", label: "Previous tuner" },
-    ],
-  },
-  {
-    title: "Exhaust",
-    fields: [
-      { key: "exhaustType", label: "Type" },
-      { key: "exhaustSize", label: "Size" },
-      { key: "varexControlled", label: "Varex controlled" },
-      { key: "exhaustDetails", label: "Modifications" },
-    ],
-  },
-  {
-    title: "Camshaft",
-    fields: [
-      { key: "camshaftType", label: "Setup" },
-      { key: "camshaftDetails", label: "Code / specifications" },
+    reference: "PSI-PREVIEW-DYNO-02",
+    bookingType: "dyno",
+    status: "pending_staff_review",
+    receivedAt: "21 Aug 2026 · 11:18am",
+    customer: { name: "Alex Morgan", email: "alex@example.com", mobile: "0400 000 001" },
+    vehicle: { year: 2015, make: "Ford", model: "Mustang GT", registration: "PSI002", vin: "1FA6P8CF0F5000000" },
+    appointment: {
+      mode: "specific",
+      preferredDate: "2026-09-16",
+      arrivalArrangement: "During workshop hours",
+      afterHoursCollection: false,
+      notifyEarlierAvailability: false,
+    },
+    reminderConsent: false,
+    setupConfidence: "known",
+    requestDetails: "Health check and custom 98 RON calibration. Street car; drivability and safe power are the priority.",
+    tuning: [
+      { label: "Engine", value: "Modified · supercharger, valve springs and upgraded cooling" },
+      { label: "Transmission", value: "Manual · upgraded clutch" },
+      { label: "Differential", value: "Stock · ratio unknown" },
+      { label: "Fuel", value: "Upgraded pump and injectors · 98 RON" },
+      { label: "Intake", value: "Upgraded cold-air intake" },
+      { label: "Previous tune", value: "Yes · previous workshop unknown" },
+      { label: "Exhaust", value: "Full 3-inch system · not Varex controlled" },
+      { label: "Camshaft", value: "Stock" },
     ],
   },
 ];
 
-const tuningOptionLabels: Record<string, string> = {
-  "98_ron": "98 RON",
-  e85: "E85",
-  flex_fuel: "Flex fuel",
-  race_fuel: "Race fuel",
-  truetrac: "Truetrac",
-  wavetrac: "Wavetrac",
-  cat_back: "Cat-back",
-  "2_5_inch": "2.5 inch",
-  "3_inch": "3 inch",
-  "3_5_inch": "3.5 inch",
-  "4_inch": "4 inch",
-};
+const initialPlanning: Record<string, PlanningState> = Object.fromEntries(
+  PREVIEW_BOOKINGS.map((booking) => [
+    booking.reference,
+    {
+      date: booking.appointment.preferredDate ?? "2026-09-08",
+      allocationMode: "all_day",
+      startTime: "08:30",
+      endTime: "17:00",
+      note: "",
+    },
+  ]),
+);
 
-const tuningEnumFields = new Set<keyof TuningDetails>([
-  "engineState",
-  "transmissionType",
-  "transmissionSetup",
-  "differentialType",
-  "fuelPumpType",
-  "injectorType",
-  "fuelType",
-  "intakeType",
-  "previouslyTuned",
-  "exhaustType",
-  "exhaustSize",
-  "varexControlled",
-  "camshaftType",
-]);
-
-const dateFormatter = new Intl.DateTimeFormat("en-AU", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: "Australia/Melbourne",
-});
-
-const timestampFormatter = new Intl.DateTimeFormat("en-AU", {
-  day: "numeric",
-  month: "short",
-  hour: "numeric",
-  minute: "2-digit",
-  timeZone: "Australia/Melbourne",
-});
-
-function humanise(value?: string | null) {
-  if (!value) return "Not provided";
-  return value
-    .replaceAll("_", " ")
-    .replaceAll("-", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+function workshopToday() {
+  const parts = new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Melbourne",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const value = (type: "year" | "month" | "day") => parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
 }
 
-function displayTuningValue(key: keyof TuningDetails, value: string) {
-  if (!tuningEnumFields.has(key)) return value;
-  return tuningOptionLabels[value] || humanise(value);
+function isEligibleDate(value: string, type: BookingType, minDate: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(value)) return false;
+  if (value < minDate) return false;
+  const day = new Date(`${value}T12:00:00`).getDay();
+  return type === "dyno" ? [1, 3, 4].includes(day) : day >= 1 && day <= 5;
 }
 
-function formatPreferredDate(value?: string | null) {
-  if (!value) return "No preference supplied";
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return value;
-
-  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12));
-  return Number.isNaN(date.getTime()) ? value : dateFormatter.format(date);
-}
-
-function formatTimestamp(value?: string | number | null) {
-  if (value === undefined || value === null || value === "") return "Received recently";
-  const normalised =
-    typeof value === "number" && value < 10_000_000_000
-      ? value * 1000
-      : typeof value === "string" && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/u.test(value)
-        ? `${value.replace(" ", "T")}Z`
-        : value;
-  const date = new Date(normalised);
-  return Number.isNaN(date.getTime()) ? "Received recently" : `Received ${timestampFormatter.format(date)}`;
-}
-
-function responseMessage(payload: BookingsResponse | null, fallback: string) {
-  if (!payload) return fallback;
-  if (typeof payload.error === "string") return payload.error;
-  if (payload.error?.message) return payload.error.message;
-  return payload.message || fallback;
-}
-
-function serviceTitle(booking: Booking) {
-  return booking.bookingType.toLowerCase().includes("dyno") ? "Dyno tune" : "Vehicle service";
+function formatDate(value?: string) {
+  if (!value) return "Flexible — PSI to suggest";
+  return new Intl.DateTimeFormat("en-AU", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(`${value}T12:00:00`));
 }
 
 export function AdminQueue() {
-  const [isReady, setIsReady] = useState(false);
-  const [adminKey, setAdminKey] = useState("");
-  const [keyDraft, setKeyDraft] = useState("");
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState(PREVIEW_BOOKINGS);
   const [filter, setFilter] = useState<StatusFilter>("all");
-  const [loading, setLoading] = useState(false);
-  const [updatingReference, setUpdatingReference] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  const clearAccess = useCallback((message?: string) => {
-    window.sessionStorage.removeItem(SESSION_KEY);
-    setAdminKey("");
-    setBookings([]);
-    setNotice(null);
-    setError(message || null);
-  }, []);
-
-  const loadBookings = useCallback(
-    async (key: string, showLoading = true) => {
-      if (showLoading) setLoading(true);
-      setError(null);
-
-      try {
-        const response = await fetch("/api/v1/admin/bookings", {
-          headers: { Authorization: `Bearer ${key}` },
-          cache: "no-store",
-        });
-        const payload = (await response.json().catch(() => null)) as BookingsResponse | null;
-
-        if (response.status === 401 || response.status === 403) {
-          clearAccess("That staff access key was not accepted. Please try again.");
-          return;
-        }
-        if (!response.ok) {
-          throw new Error(responseMessage(payload, "The booking queue could not be loaded."));
-        }
-        if (!payload || !Array.isArray(payload.bookings)) {
-          throw new Error("The booking queue returned an unexpected response.");
-        }
-
-        setBookings(payload.bookings);
-      } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "The booking queue could not be loaded.");
-      } finally {
-        if (showLoading) setLoading(false);
-      }
-    },
-    [clearAccess],
-  );
-
-  useEffect(() => {
-    const savedKey = window.sessionStorage.getItem(SESSION_KEY);
-    const restoreSession = window.setTimeout(() => {
-      setIsReady(true);
-      if (savedKey) {
-        setAdminKey(savedKey);
-        void loadBookings(savedKey);
-      }
-    }, 0);
-
-    return () => window.clearTimeout(restoreSession);
-  }, [loadBookings]);
+  const [planning, setPlanning] = useState(initialPlanning);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [notice, setNotice] = useState("");
+  const today = useMemo(() => workshopToday(), []);
 
   const visibleBookings = useMemo(
-    () => (filter === "all" ? bookings : bookings.filter((booking) => booking.status === filter)),
+    () => filter === "all" ? bookings : bookings.filter((booking) => booking.status === filter),
     [bookings, filter],
   );
+  const earlierCandidates = bookings.filter((booking) => booking.appointment.notifyEarlierAvailability);
 
-  const counts = useMemo(
-    () =>
-      STATUS_OPTIONS.reduce<Record<BookingStatus, number>>(
-        (summary, status) => ({
-          ...summary,
-          [status]: bookings.filter((booking) => booking.status === status).length,
-        }),
-        { requested: 0, confirmed: 0, completed: 0, cancelled: 0 },
-      ),
-    [bookings],
-  );
+  const updatePlanning = <K extends keyof PlanningState>(reference: string, key: K, value: PlanningState[K]) => {
+    setPlanning((current) => ({
+      ...current,
+      [reference]: { ...current[reference], [key]: value },
+    }));
+    setErrors((current) => {
+      if (!current[reference]) return current;
+      const next = { ...current };
+      delete next[reference];
+      return next;
+    });
+  };
 
-  async function submitAccess(event: FormEvent<HTMLFormElement>) {
+  const applyDateAction = (event: { preventDefault(): void }, booking: PreviewBooking, action: "propose" | "confirm") => {
     event.preventDefault();
-    const key = keyDraft.trim();
-    if (!key) {
-      setError("Enter the staff access key.");
+    const plan = planning[booking.reference];
+    if (!plan.date || !isEligibleDate(plan.date, booking.bookingType, today)) {
+      setErrors((current) => ({
+        ...current,
+        [booking.reference]: booking.bookingType === "dyno"
+          ? "Choose a Monday, Wednesday or Thursday for this dyno request."
+          : "Choose a Monday to Friday for this service request.",
+      }));
       return;
     }
-
-    window.sessionStorage.setItem(SESSION_KEY, key);
-    setAdminKey(key);
-    setNotice(null);
-    await loadBookings(key);
-  }
-
-  async function updateStatus(booking: Booking, nextStatus: BookingStatus) {
-    if (booking.status === nextStatus || updatingReference) return;
-
-    const approved = window.confirm(
-      `Change ${booking.reference} from ${statusLabels[booking.status]} to ${statusLabels[nextStatus]}?`,
-    );
-    if (!approved) return;
-
-    setUpdatingReference(booking.reference);
-    setError(null);
-    setNotice(null);
-
-    try {
-      const response = await fetch("/api/v1/admin/bookings", {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${adminKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ reference: booking.reference, status: nextStatus }),
-      });
-      const payload = (await response.json().catch(() => null)) as BookingsResponse | null;
-
-      if (response.status === 401 || response.status === 403) {
-        clearAccess("Your staff session is no longer authorised. Enter the access key again.");
-        return;
-      }
-      if (!response.ok) {
-        throw new Error(responseMessage(payload, `Could not update ${booking.reference}.`));
-      }
-
-      setBookings((current) =>
-        current.map((item) => (item.reference === booking.reference ? { ...item, status: nextStatus } : item)),
-      );
-      setNotice(`${booking.reference} is now ${statusLabels[nextStatus].toLowerCase()}.`);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : `Could not update ${booking.reference}.`);
-    } finally {
-      setUpdatingReference(null);
+    if (plan.allocationMode === "timed" && (!plan.startTime || !plan.endTime || plan.startTime >= plan.endTime)) {
+      setErrors((current) => ({ ...current, [booking.reference]: "Enter a valid start and end time, or choose all-day allocation." }));
+      return;
     }
-  }
-
-  if (!isReady) {
-    return (
-      <main className={styles.shell} aria-busy="true">
-        <div className={styles.loadingPanel}>Opening the workshop queue…</div>
-      </main>
+    const nextStatus: BookingStatus = action === "confirm" ? "date_approved" : "date_proposed";
+    setBookings((current) => current.map((item) => item.reference === booking.reference ? { ...item, status: nextStatus } : item));
+    setNotice(
+      `${action === "confirm" ? "Date confirmation" : "Date proposal"} previewed for ${booking.reference}. This changed only local demo state—no customer, calendar or payment provider was contacted.`,
     );
-  }
-
-  if (!adminKey) {
-    return (
-      <main className={styles.shell}>
-        <header className={styles.loginHeader}>
-          <Link href="/" aria-label="Return to the PSI Performance booking site">
-            <Image src="/psi-logo.png" alt="PSI Performance Garage" width={155} height={60} priority />
-          </Link>
-          <span>Workshop staff</span>
-        </header>
-
-        <section className={styles.loginPanel} aria-labelledby="staff-access-heading">
-          <p className={styles.eyebrow}>Private booking queue</p>
-          <h1 id="staff-access-heading">Staff access</h1>
-          <p className={styles.loginCopy}>
-            Enter the workshop access key to review and update customer booking requests.
-          </p>
-
-          {error ? <div className={styles.errorBanner} role="alert">{error}</div> : null}
-
-          <form className={styles.loginForm} onSubmit={submitAccess}>
-            <label htmlFor="admin-access-key">Staff access key</label>
-            <input
-              id="admin-access-key"
-              type="password"
-              value={keyDraft}
-              onChange={(event) => setKeyDraft(event.target.value)}
-              autoComplete="current-password"
-              spellCheck={false}
-              disabled={loading}
-            />
-            <button type="submit" disabled={loading}>
-              {loading ? "Checking…" : "Open booking queue"}
-            </button>
-          </form>
-
-          <p className={styles.sessionNote}>The key is kept only for this browser session and is cleared when you sign out.</p>
-        </section>
-      </main>
-    );
-  }
+  };
 
   return (
     <main className={styles.shell}>
       <header className={styles.queueHeader}>
         <div className={styles.queueBrand}>
-          <Link href="/" aria-label="Return to the PSI Performance booking site">
-            <Image src="/psi-logo.png" alt="PSI Performance Garage" width={155} height={60} priority />
-          </Link>
-          <span>Workshop queue</span>
+          <Image src="/psi-logo.png" alt="PSI Performance Garage" width={300} height={100} priority />
+          <span>Single-owner booking desk</span>
         </div>
         <div className={styles.headerActions}>
-          <button type="button" onClick={() => void loadBookings(adminKey)} disabled={loading}>
-            {loading ? "Refreshing…" : "Refresh"}
-          </button>
-          <button type="button" className={styles.signOutButton} onClick={() => clearAccess()}>
-            Sign out
-          </button>
+          <Link href="/">Customer view</Link>
+          <Link href="/booking-policy">Policy draft</Link>
         </div>
       </header>
 
       <section className={styles.queueIntro}>
         <div>
-          <p className={styles.eyebrow}>PSI Performance Garage</p>
-          <h1>Booking requests</h1>
-          <p>Requests stay pending until the workshop confirms a time with the customer.</p>
+          <p className={styles.eyebrow}>Owner-review workspace</p>
+          <h1>Control the<br />workshop plan.</h1>
+          <p>One PSI staff owner reviews every request, confirms or proposes the exact date, then initiates the deposit step. The customer never sees other bookings or the Google Calendar.</p>
         </div>
         <div className={styles.summaryCard}>
-          <strong>{counts.requested}</strong>
-          <span>Awaiting review</span>
+          <strong>{bookings.filter((booking) => booking.status === "pending_staff_review").length}</strong>
+          <span>Requests to review</span>
         </div>
       </section>
 
-      <section className={styles.queueContent} aria-labelledby="queue-heading">
-        <div className={styles.toolbar}>
+      <section className={styles.queueContent}>
+        <div className={styles.previewBanner} role="status">
+          <div><strong>Preview example mode</strong><span>All names, vehicles, references and actions below are synthetic.</span></div>
+          <p>Nothing here persists, sends email, creates a payment link or writes to Google Calendar. Public staff sign-in is not enabled.</p>
+        </div>
+
+        {notice && <div className={styles.successBanner} role="status">{notice}</div>}
+
+        <section className={styles.workflowStrip} aria-label="Approval workflow">
+          <div><span>01</span><strong>Review request</strong><p>Check customer, vehicle, scope and date preference.</p></div>
+          <div><span>02</span><strong>Agree on date</strong><p>Confirm the exact allocation or propose another date.</p></div>
+          <div><span>03</span><strong>Send deposit link</strong><p>$100 service or $300 dyno—only after date approval.</p></div>
+          <div><span>04</span><strong>Paid confirmation</strong><p>Verified payment queues receipt, email, Calendar and reminders.</p></div>
+        </section>
+
+        <section className={styles.earlierPanel} aria-labelledby="earlier-heading">
           <div>
-            <h2 id="queue-heading">Recent requests</h2>
-            <p>{bookings.length} total · {visibleBookings.length} shown</p>
+            <p className={styles.eyebrow}>Staff-only signal</p>
+            <h2 id="earlier-heading">Earlier-time candidates</h2>
+            <p>No automatic offer or reschedule. You decide who to contact after checking work in progress, parts and workshop capacity.</p>
           </div>
+          <div className={styles.earlierList}>
+            {earlierCandidates.map((booking) => (
+              <article key={booking.reference}>
+                <span>Wants something sooner</span>
+                <strong>{booking.customer.name}</strong>
+                <p>{booking.vehicle.year} {booking.vehicle.make} {booking.vehicle.model}</p>
+                <a href={`tel:${booking.customer.mobile.replace(/\s/gu, "")}`}>Contact manually</a>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <div className={styles.toolbar}>
+          <div><h2>Booking requests</h2><p>Review customer, vehicle and tuning information before changing the date state.</p></div>
           <div className={styles.filterField}>
-            <label htmlFor="status-filter">Filter by status</label>
-            <select
-              id="status-filter"
-              value={filter}
-              onChange={(event) => setFilter(event.target.value as StatusFilter)}
-            >
-              <option value="all">All ({bookings.length})</option>
-              {STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>{statusLabels[status]} ({counts[status]})</option>
-              ))}
+            <label htmlFor="status-filter">Status</label>
+            <select id="status-filter" value={filter} onChange={(event) => setFilter(event.target.value as StatusFilter)}>
+              <option value="all">All requests</option>
+              {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </div>
         </div>
 
-        <div className={styles.messages} aria-live="polite">
-          {error ? <div className={styles.errorBanner} role="alert">{error}</div> : null}
-          {notice ? <div className={styles.successBanner} role="status">{notice}</div> : null}
+        <div className={styles.bookingList}>
+          {visibleBookings.map((booking) => {
+            const plan = planning[booking.reference];
+            return (
+              <article className={styles.bookingCard} key={booking.reference}>
+                <div className={styles.cardHeading}>
+                  <div>
+                    <span className={styles.reference}>{booking.reference} · Preview data</span>
+                    <h3>{booking.bookingType === "dyno" ? "Dyno tuning" : "Service & Report"}</h3>
+                    <p>{booking.receivedAt}</p>
+                  </div>
+                  <span className={`${styles.statusBadge} ${styles[`status_${booking.status}`]}`}>{statusLabels[booking.status]}</span>
+                </div>
+
+                <div className={styles.detailGrid}>
+                  <section><h4>Customer</h4><strong>{booking.customer.name}</strong><a href={`mailto:${booking.customer.email}`}>{booking.customer.email}</a><a href={`tel:${booking.customer.mobile.replace(/\s/gu, "")}`}>{booking.customer.mobile}</a></section>
+                  <section><h4>Vehicle</h4><strong>{booking.vehicle.year} {booking.vehicle.make} {booking.vehicle.model}</strong><span>{booking.vehicle.registration}</span>{booking.vehicle.vin && <span>VIN {booking.vehicle.vin}</span>}</section>
+                  <section><h4>Date request</h4><strong>{formatDate(booking.appointment.preferredDate)}</strong><span>{booking.appointment.arrivalArrangement}</span><span>{booking.appointment.afterHoursCollection ? "After-hours collection requested" : "Standard collection"}</span></section>
+                  <section><h4>Preferences</h4><strong>{booking.appointment.notifyEarlierAvailability ? "Earlier opening requested" : "No earlier-time flag"}</strong><span>{booking.reminderConsent ? "6/12-month service reminders: opted in" : "Service reminders: not opted in"}</span></section>
+                </div>
+
+                <section className={styles.notes}><h4>What they need</h4><p>{booking.requestDetails}</p></section>
+
+                {booking.bookingType === "dyno" && (
+                  <section className={styles.tuningPanel}>
+                    <div className={styles.tuningPanelHeading}><div><span>Dyno setup</span><h4>Customer specification</h4></div><strong>{booking.setupConfidence === "known" ? "I know my setup" : "PSI inspection requested"}</strong></div>
+                    <div className={styles.tuningGrid}>
+                      {booking.tuning?.map((item) => <section key={item.label}><h5>{item.label}</h5><p>{item.value}</p></section>)}
+                    </div>
+                  </section>
+                )}
+
+                <form className={styles.approvalPanel} onSubmit={(event) => applyDateAction(event, booking, "confirm")}>
+                  <div className={styles.approvalHeading}>
+                    <div><span>Owner action</span><h4>Confirm or propose the workshop allocation</h4></div>
+                    <p>Use the exact date you intend to put in Google Calendar after verified payment. Do not assume a duration.</p>
+                  </div>
+                  <div className={styles.approvalFields}>
+                    <label><span>Workshop date</span><input type="date" min={today} value={plan.date} onChange={(event) => updatePlanning(booking.reference, "date", event.target.value)} /></label>
+                    <label><span>Allocation</span><select value={plan.allocationMode} onChange={(event) => updatePlanning(booking.reference, "allocationMode", event.target.value as AllocationMode)}><option value="all_day">All-day workshop allocation</option><option value="timed">Specific start and end</option></select></label>
+                    {plan.allocationMode === "timed" && <><label><span>Start</span><input type="time" value={plan.startTime} onChange={(event) => updatePlanning(booking.reference, "startTime", event.target.value)} /></label><label><span>End</span><input type="time" value={plan.endTime} onChange={(event) => updatePlanning(booking.reference, "endTime", event.target.value)} /></label></>}
+                    <label className={styles.approvalNote}><span>Internal planning note</span><textarea rows={2} value={plan.note} onChange={(event) => updatePlanning(booking.reference, "note", event.target.value)} placeholder="Optional owner-only note" /></label>
+                  </div>
+                  {errors[booking.reference] && <p className={styles.inlineError} role="alert">{errors[booking.reference]}</p>}
+                  <div className={styles.approvalActions}>
+                    <button type="button" onClick={(event) => applyDateAction(event, booking, "propose")}>Preview proposed date</button>
+                    <button type="submit">Preview confirm date</button>
+                    <button type="button" disabled title="Payment provider is not connected">Create & send {booking.bookingType === "dyno" ? "$300" : "$100"} deposit link</button>
+                  </div>
+                  <p className={styles.providerGate}>Deposit link disabled in preview. When enabled, only date-approved requests can create one. Paid verification—not this button—will queue the PSI/customer email, receipt, internal Calendar event and factual 7-day / 24-hour reminders.</p>
+                </form>
+              </article>
+            );
+          })}
         </div>
-
-        {loading && bookings.length === 0 ? (
-          <div className={styles.emptyState} aria-busy="true">Loading booking requests…</div>
-        ) : visibleBookings.length === 0 ? (
-          <div className={styles.emptyState}>
-            <strong>No requests here</strong>
-            <span>{filter === "all" ? "New customer requests will appear here." : `There are no ${statusLabels[filter].toLowerCase()} requests.`}</span>
-          </div>
-        ) : (
-          <div className={styles.bookingList}>
-            {visibleBookings.map((booking) => {
-              const isUpdating = updatingReference === booking.reference;
-              return (
-                <article className={styles.bookingCard} key={booking.reference}>
-                  <div className={styles.cardHeading}>
-                    <div>
-                      <span className={styles.reference}>{booking.reference}</span>
-                      <h3>{serviceTitle(booking)}</h3>
-                      <p>{humanise(booking.serviceOption)} · {formatTimestamp(booking.createdAt)}</p>
-                    </div>
-                    <span className={`${styles.statusBadge} ${styles[`status_${booking.status}`]}`}>
-                      {statusLabels[booking.status]}
-                    </span>
-                  </div>
-
-                  <div className={styles.detailGrid}>
-                    <section>
-                      <h4>Customer</h4>
-                      <strong>{booking.customerName}</strong>
-                      <a href={`tel:${booking.phone.replace(/[^+\d]/g, "")}`}>{booking.phone}</a>
-                      <a href={`mailto:${booking.email}`}>{booking.email}</a>
-                    </section>
-                    <section>
-                      <h4>Vehicle</h4>
-                      <strong>{booking.vehicleYear} {booking.vehicleMake} {booking.vehicleModel}</strong>
-                      <span>Registration: {booking.registration || "Not supplied"}</span>
-                      {booking.vin ? <span>VIN: {booking.vin}</span> : null}
-                    </section>
-                    <section>
-                      <h4>Preferred arrival</h4>
-                      <strong>{formatPreferredDate(booking.preferredDate)}</strong>
-                      <span>{humanise(booking.arrivalWindow)}</span>
-                    </section>
-                    <section>
-                      <h4>Submitted via</h4>
-                      <strong>{humanise(booking.source || "web")}</strong>
-                      <span>Customer booking request</span>
-                    </section>
-                  </div>
-
-                  {booking.notes ? (
-                    <div className={styles.notes}>
-                      <h4>Customer notes</h4>
-                      <p>{booking.notes}</p>
-                    </div>
-                  ) : null}
-
-                  {booking.tuningDetails ? (
-                    <section className={styles.tuningPanel} aria-label={`Tuning setup for ${booking.reference}`}>
-                      <div className={styles.tuningPanelHeading}>
-                        <div>
-                          <span>Dyno preparation</span>
-                          <h4>Tuning setup</h4>
-                        </div>
-                        <strong>Customer supplied</strong>
-                      </div>
-                      <div className={styles.tuningGrid}>
-                        {tuningSections.map((section) => {
-                          const populatedFields = section.fields.filter(({ key }) => {
-                            const value = booking.tuningDetails?.[key];
-                            return typeof value === "string" && value.trim().length > 0;
-                          });
-                          if (populatedFields.length === 0) return null;
-                          return (
-                            <section key={section.title}>
-                              <h5>{section.title}</h5>
-                              <dl>
-                                {populatedFields.map(({ key, label }) => {
-                                  const value = booking.tuningDetails?.[key] || "";
-                                  return (
-                                    <div key={key}>
-                                      <dt>{label}</dt>
-                                      <dd>{displayTuningValue(key, value)}</dd>
-                                    </div>
-                                  );
-                                })}
-                              </dl>
-                            </section>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  ) : null}
-
-                  <div className={styles.statusControl}>
-                    <label htmlFor={`status-${booking.reference}`}>Update status</label>
-                    <select
-                      id={`status-${booking.reference}`}
-                      value={booking.status}
-                      disabled={isUpdating || Boolean(updatingReference)}
-                      onChange={(event) => void updateStatus(booking, event.target.value as BookingStatus)}
-                    >
-                      {STATUS_OPTIONS.map((status) => (
-                        <option key={status} value={status}>{statusLabels[status]}</option>
-                      ))}
-                    </select>
-                    <span>{isUpdating ? "Saving change…" : "You will be asked to confirm before saving."}</span>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
       </section>
     </main>
   );

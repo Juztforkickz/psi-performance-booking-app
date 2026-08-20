@@ -11,9 +11,8 @@ const RATE_LIMIT_WINDOW_SECONDS = 15 * 60;
 const RATE_LIMIT_MAX_REQUESTS = 5;
 
 function requiresPaidCheckout() {
-  // Keep this as an explicit policy gate rather than deleting the validated
-  // legacy implementation. It prevents every public caller from persisting an
-  // unpaid booking while retaining the old code for a deliberate migration.
+  // Explicitly gate the legacy endpoint. New requests must enter the staff
+  // approval workflow; no direct caller can create a confirmed booking.
   return true;
 }
 
@@ -533,10 +532,10 @@ export async function POST(request: Request) {
   if (requiresPaidCheckout()) {
     return errorResponse(
       410,
-      "PAYMENT_REQUIRED",
-      "Unpaid booking requests are no longer accepted. Start a secure deposit checkout before a booking can be created.",
+      "APPROVAL_REQUIRED",
+      "Use the approval-first booking request endpoint. PSI must approve a date before a deposit checkout can be created.",
       undefined,
-      { Link: '</api/v1/booking-checkouts>; rel="successor-version"' },
+      { Link: '</api/v1/booking-requests>; rel="successor-version"' },
     );
   }
 

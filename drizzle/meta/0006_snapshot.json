@@ -1,0 +1,2980 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "f4211b54-8798-4e7d-8e20-9170705ff897",
+  "prevId": "f43856aa-39a0-4cb6-93f2-1bb6b182b8aa",
+  "tables": {
+    "admin_action_idempotency_keys": {
+      "name": "admin_action_idempotency_keys",
+      "columns": {
+        "key_hash": {
+          "name": "key_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_hash": {
+          "name": "request_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booking_request_id": {
+          "name": "booking_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "response_json": {
+          "name": "response_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_admin_action_idempotency_request": {
+          "name": "idx_admin_action_idempotency_request",
+          "columns": [
+            "booking_request_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "admin_action_idempotency_key_hash_check": {
+          "name": "admin_action_idempotency_key_hash_check",
+          "value": "length(\"admin_action_idempotency_keys\".\"key_hash\") = 64"
+        },
+        "admin_action_idempotency_request_hash_check": {
+          "name": "admin_action_idempotency_request_hash_check",
+          "value": "length(\"admin_action_idempotency_keys\".\"request_hash\") = 64"
+        },
+        "admin_action_idempotency_response_json_check": {
+          "name": "admin_action_idempotency_response_json_check",
+          "value": "json_valid(\"admin_action_idempotency_keys\".\"response_json\")"
+        }
+      }
+    },
+    "appointment_reminder_jobs": {
+      "name": "appointment_reminder_jobs",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booking_request_id": {
+          "name": "booking_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reminder_kind": {
+          "name": "reminder_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "due_at": {
+          "name": "due_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'scheduled'"
+        },
+        "schedule_version": {
+          "name": "schedule_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "dispatched_at": {
+          "name": "dispatched_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cancelled_at": {
+          "name": "cancelled_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_appointment_reminders_request_kind_version": {
+          "name": "idx_appointment_reminders_request_kind_version",
+          "columns": [
+            "booking_request_id",
+            "reminder_kind",
+            "schedule_version"
+          ],
+          "isUnique": true
+        },
+        "idx_appointment_reminders_state_due": {
+          "name": "idx_appointment_reminders_state_due",
+          "columns": [
+            "state",
+            "due_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "appointment_reminders_kind_check": {
+          "name": "appointment_reminders_kind_check",
+          "value": "\"appointment_reminder_jobs\".\"reminder_kind\" in ('seven_days', 'twenty_four_hours')"
+        },
+        "appointment_reminders_state_check": {
+          "name": "appointment_reminders_state_check",
+          "value": "\"appointment_reminder_jobs\".\"state\" in ('scheduled', 'processing', 'sent', 'cancelled', 'failed')"
+        },
+        "appointment_reminders_schedule_version_check": {
+          "name": "appointment_reminders_schedule_version_check",
+          "value": "\"appointment_reminder_jobs\".\"schedule_version\" >= 1"
+        }
+      }
+    },
+    "booking_calendar_events": {
+      "name": "booking_calendar_events",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "checkout_id": {
+          "name": "checkout_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booking_reference": {
+          "name": "booking_reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider_event_id": {
+          "name": "provider_event_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "etag": {
+          "name": "etag",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_error_code": {
+          "name": "last_error_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_synced_at": {
+          "name": "last_synced_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_booking_calendar_events_checkout_id": {
+          "name": "idx_booking_calendar_events_checkout_id",
+          "columns": [
+            "checkout_id"
+          ],
+          "isUnique": true
+        },
+        "idx_booking_calendar_events_booking_reference": {
+          "name": "idx_booking_calendar_events_booking_reference",
+          "columns": [
+            "booking_reference"
+          ],
+          "isUnique": true
+        },
+        "idx_booking_calendar_events_provider_event_id": {
+          "name": "idx_booking_calendar_events_provider_event_id",
+          "columns": [
+            "provider_event_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "booking_calendar_events_state_check": {
+          "name": "booking_calendar_events_state_check",
+          "value": "\"booking_calendar_events\".\"state\" in ('pending', 'confirmed', 'cancelled', 'sync_failed')"
+        }
+      }
+    },
+    "booking_checkout_idempotency_keys": {
+      "name": "booking_checkout_idempotency_keys",
+      "columns": {
+        "key_hash": {
+          "name": "key_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_hash": {
+          "name": "request_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "checkout_id": {
+          "name": "checkout_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_booking_checkout_idempotency_checkout_id": {
+          "name": "idx_booking_checkout_idempotency_checkout_id",
+          "columns": [
+            "checkout_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "booking_checkout_idempotency_key_hash_check": {
+          "name": "booking_checkout_idempotency_key_hash_check",
+          "value": "length(\"booking_checkout_idempotency_keys\".\"key_hash\") = 64"
+        },
+        "booking_checkout_idempotency_request_hash_check": {
+          "name": "booking_checkout_idempotency_request_hash_check",
+          "value": "length(\"booking_checkout_idempotency_keys\".\"request_hash\") = 64"
+        }
+      }
+    },
+    "booking_checkouts": {
+      "name": "booking_checkouts",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "public_reference": {
+          "name": "public_reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "booking_type": {
+          "name": "booking_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "service_option": {
+          "name": "service_option",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "mobile": {
+          "name": "mobile",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vehicle_make": {
+          "name": "vehicle_make",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vehicle_model": {
+          "name": "vehicle_model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vehicle_year": {
+          "name": "vehicle_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "registration": {
+          "name": "registration",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vin": {
+          "name": "vin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "preferred_date": {
+          "name": "preferred_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "arrival_window": {
+          "name": "arrival_window",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'any'"
+        },
+        "request_details": {
+          "name": "request_details",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tuning_details_json": {
+          "name": "tuning_details_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'web'"
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'awaiting_payment'"
+        },
+        "deposit_amount_cents": {
+          "name": "deposit_amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 10000
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'AUD'"
+        },
+        "payment_provider": {
+          "name": "payment_provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "provider_checkout_url": {
+          "name": "provider_checkout_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "contact_consent": {
+          "name": "contact_consent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "1"
+        },
+        "consent_policy_version": {
+          "name": "consent_policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'psi-booking-contact-v1'"
+        },
+        "deposit_terms_accepted": {
+          "name": "deposit_terms_accepted",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "1"
+        },
+        "deposit_policy_version": {
+          "name": "deposit_policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'psi-deposit-v2'"
+        },
+        "deposit_terms_accepted_at": {
+          "name": "deposit_terms_accepted_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_booking_checkouts_public_reference": {
+          "name": "idx_booking_checkouts_public_reference",
+          "columns": [
+            "public_reference"
+          ],
+          "isUnique": true
+        },
+        "idx_booking_checkouts_account_created": {
+          "name": "idx_booking_checkouts_account_created",
+          "columns": [
+            "account_id",
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "idx_booking_checkouts_state_expires": {
+          "name": "idx_booking_checkouts_state_expires",
+          "columns": [
+            "state",
+            "expires_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "booking_checkouts_booking_type_check": {
+          "name": "booking_checkouts_booking_type_check",
+          "value": "\"booking_checkouts\".\"booking_type\" in ('service', 'dyno')"
+        },
+        "booking_checkouts_arrival_window_check": {
+          "name": "booking_checkouts_arrival_window_check",
+          "value": "\"booking_checkouts\".\"arrival_window\" in ('morning', 'afternoon', 'any')"
+        },
+        "booking_checkouts_source_check": {
+          "name": "booking_checkouts_source_check",
+          "value": "\"booking_checkouts\".\"source\" in ('web', 'mobile')"
+        },
+        "booking_checkouts_state_check": {
+          "name": "booking_checkouts_state_check",
+          "value": "\"booking_checkouts\".\"state\" in ('awaiting_payment', 'processing', 'paid', 'expired', 'cancelled')"
+        },
+        "booking_checkouts_tuning_details_json_check": {
+          "name": "booking_checkouts_tuning_details_json_check",
+          "value": "\"booking_checkouts\".\"tuning_details_json\" is null or json_valid(\"booking_checkouts\".\"tuning_details_json\")"
+        },
+        "booking_checkouts_deposit_amount_check": {
+          "name": "booking_checkouts_deposit_amount_check",
+          "value": "\"booking_checkouts\".\"deposit_amount_cents\" >= 10000"
+        },
+        "booking_checkouts_currency_check": {
+          "name": "booking_checkouts_currency_check",
+          "value": "\"booking_checkouts\".\"currency\" = 'AUD'"
+        },
+        "booking_checkouts_provider_url_check": {
+          "name": "booking_checkouts_provider_url_check",
+          "value": "\"booking_checkouts\".\"provider_checkout_url\" is null or \"booking_checkouts\".\"provider_checkout_url\" like 'https://%'"
+        },
+        "booking_checkouts_contact_consent_check": {
+          "name": "booking_checkouts_contact_consent_check",
+          "value": "\"booking_checkouts\".\"contact_consent\" = 1"
+        },
+        "booking_checkouts_deposit_terms_check": {
+          "name": "booking_checkouts_deposit_terms_check",
+          "value": "\"booking_checkouts\".\"deposit_terms_accepted\" = 1"
+        }
+      }
+    },
+    "booking_idempotency_keys": {
+      "name": "booking_idempotency_keys",
+      "columns": {
+        "key_hash": {
+          "name": "key_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_hash": {
+          "name": "request_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "public_reference": {
+          "name": "public_reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_booking_idempotency_public_reference": {
+          "name": "idx_booking_idempotency_public_reference",
+          "columns": [
+            "public_reference"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "booking_idempotency_key_hash_check": {
+          "name": "booking_idempotency_key_hash_check",
+          "value": "length(\"booking_idempotency_keys\".\"key_hash\") = 64"
+        },
+        "booking_idempotency_request_hash_check": {
+          "name": "booking_idempotency_request_hash_check",
+          "value": "length(\"booking_idempotency_keys\".\"request_hash\") = 64"
+        }
+      }
+    },
+    "booking_rate_limits": {
+      "name": "booking_rate_limits",
+      "columns": {
+        "ip_hash": {
+          "name": "ip_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "window_start": {
+          "name": "window_start",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_count": {
+          "name": "request_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        }
+      },
+      "indexes": {
+        "idx_booking_rate_limits_window_start": {
+          "name": "idx_booking_rate_limits_window_start",
+          "columns": [
+            "window_start"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "booking_rate_limits_ip_window_pk": {
+          "columns": [
+            "ip_hash",
+            "window_start"
+          ],
+          "name": "booking_rate_limits_ip_window_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "booking_rate_limits_ip_hash_check": {
+          "name": "booking_rate_limits_ip_hash_check",
+          "value": "length(\"booking_rate_limits\".\"ip_hash\") = 64"
+        },
+        "booking_rate_limits_request_count_check": {
+          "name": "booking_rate_limits_request_count_check",
+          "value": "\"booking_rate_limits\".\"request_count\" >= 1"
+        }
+      }
+    },
+    "booking_request_action_claims": {
+      "name": "booking_request_action_claims",
+      "columns": {
+        "booking_request_id": {
+          "name": "booking_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expected_version": {
+          "name": "expected_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "action_key_hash": {
+          "name": "action_key_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_booking_request_action_claims_key": {
+          "name": "idx_booking_request_action_claims_key",
+          "columns": [
+            "action_key_hash"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "booking_request_action_claims_booking_request_id_expected_version_pk": {
+          "columns": [
+            "booking_request_id",
+            "expected_version"
+          ],
+          "name": "booking_request_action_claims_booking_request_id_expected_version_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "booking_request_action_claims_version_check": {
+          "name": "booking_request_action_claims_version_check",
+          "value": "\"booking_request_action_claims\".\"expected_version\" >= 0"
+        },
+        "booking_request_action_claims_key_hash_check": {
+          "name": "booking_request_action_claims_key_hash_check",
+          "value": "length(\"booking_request_action_claims\".\"action_key_hash\") = 64"
+        }
+      }
+    },
+    "booking_request_calendar_events": {
+      "name": "booking_request_calendar_events",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booking_request_id": {
+          "name": "booking_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'queued'"
+        },
+        "calendar_id": {
+          "name": "calendar_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider_event_id": {
+          "name": "provider_event_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_error_code": {
+          "name": "last_error_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_booking_request_calendar_request_id": {
+          "name": "idx_booking_request_calendar_request_id",
+          "columns": [
+            "booking_request_id"
+          ],
+          "isUnique": true
+        },
+        "idx_booking_request_calendar_provider_event": {
+          "name": "idx_booking_request_calendar_provider_event",
+          "columns": [
+            "calendar_id",
+            "provider_event_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "booking_request_calendar_state_check": {
+          "name": "booking_request_calendar_state_check",
+          "value": "\"booking_request_calendar_events\".\"state\" in ('queued', 'created', 'cancelled', 'failed')"
+        }
+      }
+    },
+    "booking_request_checkouts": {
+      "name": "booking_request_checkouts",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booking_request_id": {
+          "name": "booking_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'provider_pending'"
+        },
+        "deposit_amount_cents": {
+          "name": "deposit_amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'AUD'"
+        },
+        "payment_provider": {
+          "name": "payment_provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "provider_checkout_id": {
+          "name": "provider_checkout_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "provider_checkout_url": {
+          "name": "provider_checkout_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "calendar_id_snapshot": {
+          "name": "calendar_id_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_booking_request_checkouts_request_id": {
+          "name": "idx_booking_request_checkouts_request_id",
+          "columns": [
+            "booking_request_id"
+          ],
+          "isUnique": false
+        },
+        "idx_booking_request_checkouts_provider_checkout": {
+          "name": "idx_booking_request_checkouts_provider_checkout",
+          "columns": [
+            "payment_provider",
+            "provider_checkout_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "booking_request_checkouts_state_check": {
+          "name": "booking_request_checkouts_state_check",
+          "value": "\"booking_request_checkouts\".\"state\" in ('provider_pending', 'awaiting_payment', 'processing', 'cancellation_pending', 'paid', 'expired', 'cancelled')"
+        },
+        "booking_request_checkouts_amount_check": {
+          "name": "booking_request_checkouts_amount_check",
+          "value": "\"booking_request_checkouts\".\"deposit_amount_cents\" in (10000, 30000)"
+        },
+        "booking_request_checkouts_currency_check": {
+          "name": "booking_request_checkouts_currency_check",
+          "value": "\"booking_request_checkouts\".\"currency\" = 'AUD'"
+        },
+        "booking_request_checkouts_url_check": {
+          "name": "booking_request_checkouts_url_check",
+          "value": "\"booking_request_checkouts\".\"provider_checkout_url\" is null or \"booking_request_checkouts\".\"provider_checkout_url\" like 'https://%'"
+        }
+      }
+    },
+    "booking_request_idempotency_keys": {
+      "name": "booking_request_idempotency_keys",
+      "columns": {
+        "key_hash": {
+          "name": "key_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "request_hash": {
+          "name": "request_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booking_request_id": {
+          "name": "booking_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_booking_request_idempotency_request_id": {
+          "name": "idx_booking_request_idempotency_request_id",
+          "columns": [
+            "booking_request_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "booking_request_idempotency_key_hash_check": {
+          "name": "booking_request_idempotency_key_hash_check",
+          "value": "length(\"booking_request_idempotency_keys\".\"key_hash\") = 64"
+        },
+        "booking_request_idempotency_request_hash_check": {
+          "name": "booking_request_idempotency_request_hash_check",
+          "value": "length(\"booking_request_idempotency_keys\".\"request_hash\") = 64"
+        }
+      }
+    },
+    "booking_request_payments": {
+      "name": "booking_request_payments",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booking_request_id": {
+          "name": "booking_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "checkout_id": {
+          "name": "checkout_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider_payment_id": {
+          "name": "provider_payment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'AUD'"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'verified'"
+        },
+        "provider_receipt_url": {
+          "name": "provider_receipt_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "verified_at": {
+          "name": "verified_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "paid_at": {
+          "name": "paid_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_booking_request_payments_request_id": {
+          "name": "idx_booking_request_payments_request_id",
+          "columns": [
+            "booking_request_id"
+          ],
+          "isUnique": true
+        },
+        "idx_booking_request_payments_checkout_id": {
+          "name": "idx_booking_request_payments_checkout_id",
+          "columns": [
+            "checkout_id"
+          ],
+          "isUnique": true
+        },
+        "idx_booking_request_payments_provider_payment": {
+          "name": "idx_booking_request_payments_provider_payment",
+          "columns": [
+            "provider",
+            "provider_payment_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "booking_request_payments_amount_check": {
+          "name": "booking_request_payments_amount_check",
+          "value": "\"booking_request_payments\".\"amount_cents\" in (10000, 30000)"
+        },
+        "booking_request_payments_currency_check": {
+          "name": "booking_request_payments_currency_check",
+          "value": "\"booking_request_payments\".\"currency\" = 'AUD'"
+        },
+        "booking_request_payments_status_check": {
+          "name": "booking_request_payments_status_check",
+          "value": "\"booking_request_payments\".\"status\" = 'verified'"
+        }
+      }
+    },
+    "booking_request_transitions": {
+      "name": "booking_request_transitions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booking_request_id": {
+          "name": "booking_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "from_state": {
+          "name": "from_state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "to_state": {
+          "name": "to_state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "actor": {
+          "name": "actor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "note": {
+          "name": "note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_booking_request_transitions_request_created": {
+          "name": "idx_booking_request_transitions_request_created",
+          "columns": [
+            "booking_request_id",
+            "created_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "booking_request_transitions_actor_check": {
+          "name": "booking_request_transitions_actor_check",
+          "value": "\"booking_request_transitions\".\"actor\" in ('customer', 'staff', 'payment_webhook', 'system')"
+        }
+      }
+    },
+    "booking_requests": {
+      "name": "booking_requests",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "public_reference": {
+          "name": "public_reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "customer_profile_id": {
+          "name": "customer_profile_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "first_name_snapshot": {
+          "name": "first_name_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "last_name_snapshot": {
+          "name": "last_name_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email_snapshot": {
+          "name": "email_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "mobile_snapshot": {
+          "name": "mobile_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vehicle_make_snapshot": {
+          "name": "vehicle_make_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vehicle_model_snapshot": {
+          "name": "vehicle_model_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vehicle_year_snapshot": {
+          "name": "vehicle_year_snapshot",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "registration_snapshot": {
+          "name": "registration_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vin_snapshot": {
+          "name": "vin_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "booking_type": {
+          "name": "booking_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "service_option": {
+          "name": "service_option",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "appointment_preference_mode": {
+          "name": "appointment_preference_mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "preferred_date": {
+          "name": "preferred_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "arrival_arrangement": {
+          "name": "arrival_arrangement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "after_hours_collection": {
+          "name": "after_hours_collection",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "0"
+        },
+        "notify_earlier_availability": {
+          "name": "notify_earlier_availability",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "0"
+        },
+        "service_reminder_consent": {
+          "name": "service_reminder_consent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "0"
+        },
+        "request_details": {
+          "name": "request_details",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "setup_confidence": {
+          "name": "setup_confidence",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "tuning_details_json": {
+          "name": "tuning_details_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "contact_consent": {
+          "name": "contact_consent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booking_terms_accepted": {
+          "name": "booking_terms_accepted",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booking_policy_version": {
+          "name": "booking_policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "deposit_policy_version": {
+          "name": "deposit_policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "deposit_amount_cents": {
+          "name": "deposit_amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'AUD'"
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending_staff_review'"
+        },
+        "state_version": {
+          "name": "state_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "proposed_date": {
+          "name": "proposed_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "confirmed_date": {
+          "name": "confirmed_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "confirmed_arrival_arrangement": {
+          "name": "confirmed_arrival_arrangement",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "confirmed_allocation_mode": {
+          "name": "confirmed_allocation_mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "confirmed_start_time": {
+          "name": "confirmed_start_time",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "confirmed_end_time": {
+          "name": "confirmed_end_time",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "staff_notes": {
+          "name": "staff_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "checkout_id": {
+          "name": "checkout_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deposit_payment_id": {
+          "name": "deposit_payment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cancelled_at": {
+          "name": "cancelled_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_booking_requests_public_reference": {
+          "name": "idx_booking_requests_public_reference",
+          "columns": [
+            "public_reference"
+          ],
+          "isUnique": true
+        },
+        "idx_booking_requests_checkout_id": {
+          "name": "idx_booking_requests_checkout_id",
+          "columns": [
+            "checkout_id"
+          ],
+          "isUnique": true
+        },
+        "idx_booking_requests_deposit_payment_id": {
+          "name": "idx_booking_requests_deposit_payment_id",
+          "columns": [
+            "deposit_payment_id"
+          ],
+          "isUnique": true
+        },
+        "idx_booking_requests_state_created": {
+          "name": "idx_booking_requests_state_created",
+          "columns": [
+            "state",
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "idx_booking_requests_customer_created": {
+          "name": "idx_booking_requests_customer_created",
+          "columns": [
+            "customer_profile_id",
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "idx_booking_requests_vehicle_created": {
+          "name": "idx_booking_requests_vehicle_created",
+          "columns": [
+            "vehicle_id",
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "idx_booking_requests_confirmed_date": {
+          "name": "idx_booking_requests_confirmed_date",
+          "columns": [
+            "confirmed_date"
+          ],
+          "isUnique": false
+        },
+        "idx_booking_requests_earlier_candidate": {
+          "name": "idx_booking_requests_earlier_candidate",
+          "columns": [
+            "notify_earlier_availability",
+            "state",
+            "preferred_date"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "booking_requests_booking_type_check": {
+          "name": "booking_requests_booking_type_check",
+          "value": "\"booking_requests\".\"booking_type\" in ('service', 'dyno')"
+        },
+        "booking_requests_service_option_check": {
+          "name": "booking_requests_service_option_check",
+          "value": "(\"booking_requests\".\"booking_type\" = 'service' and \"booking_requests\".\"service_option\" = 'service_report') or (\"booking_requests\".\"booking_type\" = 'dyno' and \"booking_requests\".\"service_option\" = 'dyno_tuning')"
+        },
+        "booking_requests_preference_check": {
+          "name": "booking_requests_preference_check",
+          "value": "(\"booking_requests\".\"appointment_preference_mode\" = 'specific' and \"booking_requests\".\"preferred_date\" is not null) or (\"booking_requests\".\"appointment_preference_mode\" = 'flexible' and \"booking_requests\".\"preferred_date\" is null)"
+        },
+        "booking_requests_arrival_arrangement_check": {
+          "name": "booking_requests_arrival_arrangement_check",
+          "value": "\"booking_requests\".\"arrival_arrangement\" in ('business_hours', 'before_hours_drop_off', 'after_hours_drop_off', 'flexible')"
+        },
+        "booking_requests_confirmed_arrangement_check": {
+          "name": "booking_requests_confirmed_arrangement_check",
+          "value": "\"booking_requests\".\"confirmed_arrival_arrangement\" is null or \"booking_requests\".\"confirmed_arrival_arrangement\" in ('business_hours', 'before_hours_drop_off', 'after_hours_drop_off', 'flexible')"
+        },
+        "booking_requests_confirmed_allocation_check": {
+          "name": "booking_requests_confirmed_allocation_check",
+          "value": "(\"booking_requests\".\"confirmed_allocation_mode\" is null and \"booking_requests\".\"confirmed_start_time\" is null and \"booking_requests\".\"confirmed_end_time\" is null) or (\"booking_requests\".\"confirmed_allocation_mode\" = 'all_day' and \"booking_requests\".\"confirmed_start_time\" is null and \"booking_requests\".\"confirmed_end_time\" is null) or (\"booking_requests\".\"confirmed_allocation_mode\" = 'timed' and \"booking_requests\".\"confirmed_start_time\" glob '[0-2][0-9]:[0-5][0-9]' and substr(\"booking_requests\".\"confirmed_start_time\", 1, 2) between '00' and '23' and \"booking_requests\".\"confirmed_end_time\" glob '[0-2][0-9]:[0-5][0-9]' and substr(\"booking_requests\".\"confirmed_end_time\", 1, 2) between '00' and '23' and \"booking_requests\".\"confirmed_start_time\" < \"booking_requests\".\"confirmed_end_time\")"
+        },
+        "booking_requests_setup_confidence_check": {
+          "name": "booking_requests_setup_confidence_check",
+          "value": "(\"booking_requests\".\"booking_type\" = 'service' and \"booking_requests\".\"setup_confidence\" is null and \"booking_requests\".\"tuning_details_json\" is null) or (\"booking_requests\".\"booking_type\" = 'dyno' and \"booking_requests\".\"setup_confidence\" in ('known', 'psi_inspection'))"
+        },
+        "booking_requests_tuning_details_json_check": {
+          "name": "booking_requests_tuning_details_json_check",
+          "value": "\"booking_requests\".\"tuning_details_json\" is null or json_valid(\"booking_requests\".\"tuning_details_json\")"
+        },
+        "booking_requests_source_check": {
+          "name": "booking_requests_source_check",
+          "value": "\"booking_requests\".\"source\" in ('web', 'mobile')"
+        },
+        "booking_requests_boolean_flags_check": {
+          "name": "booking_requests_boolean_flags_check",
+          "value": "\"booking_requests\".\"after_hours_collection\" in (0, 1) and \"booking_requests\".\"notify_earlier_availability\" in (0, 1) and \"booking_requests\".\"service_reminder_consent\" in (0, 1)"
+        },
+        "booking_requests_contact_consent_check": {
+          "name": "booking_requests_contact_consent_check",
+          "value": "\"booking_requests\".\"contact_consent\" = 1"
+        },
+        "booking_requests_booking_terms_check": {
+          "name": "booking_requests_booking_terms_check",
+          "value": "\"booking_requests\".\"booking_terms_accepted\" = 1"
+        },
+        "booking_requests_deposit_amount_check": {
+          "name": "booking_requests_deposit_amount_check",
+          "value": "(\"booking_requests\".\"booking_type\" = 'service' and \"booking_requests\".\"deposit_amount_cents\" = 10000) or (\"booking_requests\".\"booking_type\" = 'dyno' and \"booking_requests\".\"deposit_amount_cents\" = 30000)"
+        },
+        "booking_requests_currency_check": {
+          "name": "booking_requests_currency_check",
+          "value": "\"booking_requests\".\"currency\" = 'AUD'"
+        },
+        "booking_requests_state_check": {
+          "name": "booking_requests_state_check",
+          "value": "\"booking_requests\".\"state\" in ('pending_staff_review', 'date_proposed', 'date_approved', 'awaiting_deposit', 'confirmed', 'completed', 'cancelled')"
+        },
+        "booking_requests_state_version_check": {
+          "name": "booking_requests_state_version_check",
+          "value": "\"booking_requests\".\"state_version\" >= 0"
+        }
+      }
+    },
+    "bookings": {
+      "name": "bookings",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "public_reference": {
+          "name": "public_reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booking_type": {
+          "name": "booking_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "service_option": {
+          "name": "service_option",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "customer_name": {
+          "name": "customer_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vehicle_make": {
+          "name": "vehicle_make",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vehicle_model": {
+          "name": "vehicle_model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vehicle_year": {
+          "name": "vehicle_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "registration": {
+          "name": "registration",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "vin": {
+          "name": "vin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "preferred_date": {
+          "name": "preferred_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "arrival_window": {
+          "name": "arrival_window",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "tuning_details_json": {
+          "name": "tuning_details_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'web'"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'requested'"
+        },
+        "consent": {
+          "name": "consent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "1"
+        },
+        "consented_at": {
+          "name": "consented_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "consent_policy_version": {
+          "name": "consent_policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'psi-booking-contact-v1'"
+        },
+        "checkout_id": {
+          "name": "checkout_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "deposit_payment_id": {
+          "name": "deposit_payment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_bookings_public_reference": {
+          "name": "idx_bookings_public_reference",
+          "columns": [
+            "public_reference"
+          ],
+          "isUnique": true
+        },
+        "idx_bookings_checkout_id": {
+          "name": "idx_bookings_checkout_id",
+          "columns": [
+            "checkout_id"
+          ],
+          "isUnique": true
+        },
+        "idx_bookings_deposit_payment_id": {
+          "name": "idx_bookings_deposit_payment_id",
+          "columns": [
+            "deposit_payment_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "bookings_booking_type_check": {
+          "name": "bookings_booking_type_check",
+          "value": "\"bookings\".\"booking_type\" in ('service', 'dyno')"
+        },
+        "bookings_arrival_window_check": {
+          "name": "bookings_arrival_window_check",
+          "value": "\"bookings\".\"arrival_window\" in ('morning', 'afternoon', 'any')"
+        },
+        "bookings_source_check": {
+          "name": "bookings_source_check",
+          "value": "\"bookings\".\"source\" in ('web', 'mobile')"
+        },
+        "bookings_status_check": {
+          "name": "bookings_status_check",
+          "value": "\"bookings\".\"status\" in ('requested', 'confirmed', 'completed', 'cancelled')"
+        },
+        "bookings_tuning_details_json_check": {
+          "name": "bookings_tuning_details_json_check",
+          "value": "\"bookings\".\"tuning_details_json\" is null or json_valid(\"bookings\".\"tuning_details_json\")"
+        },
+        "bookings_consent_check": {
+          "name": "bookings_consent_check",
+          "value": "\"bookings\".\"consent\" = 1"
+        }
+      }
+    },
+    "customer_profiles": {
+      "name": "customer_profiles",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_user_id": {
+          "name": "account_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "account_state": {
+          "name": "account_state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'unclaimed'"
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "mobile": {
+          "name": "mobile",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "contact_consent": {
+          "name": "contact_consent",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "1"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_customer_profiles_email": {
+          "name": "idx_customer_profiles_email",
+          "columns": [
+            "email"
+          ],
+          "isUnique": true
+        },
+        "idx_customer_profiles_account_user_id": {
+          "name": "idx_customer_profiles_account_user_id",
+          "columns": [
+            "account_user_id"
+          ],
+          "isUnique": true
+        },
+        "idx_customer_profiles_mobile": {
+          "name": "idx_customer_profiles_mobile",
+          "columns": [
+            "mobile"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "customer_profiles_account_state_check": {
+          "name": "customer_profiles_account_state_check",
+          "value": "\"customer_profiles\".\"account_state\" in ('unclaimed', 'active', 'disabled')"
+        },
+        "customer_profiles_contact_consent_check": {
+          "name": "customer_profiles_contact_consent_check",
+          "value": "\"customer_profiles\".\"contact_consent\" in (0, 1)"
+        }
+      }
+    },
+    "customer_vehicles": {
+      "name": "customer_vehicles",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "customer_profile_id": {
+          "name": "customer_profile_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "make": {
+          "name": "make",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "model": {
+          "name": "model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "year": {
+          "name": "year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "registration": {
+          "name": "registration",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "vin": {
+          "name": "vin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_customer_vehicles_profile_registration": {
+          "name": "idx_customer_vehicles_profile_registration",
+          "columns": [
+            "customer_profile_id",
+            "registration"
+          ],
+          "isUnique": true
+        },
+        "idx_customer_vehicles_profile_updated": {
+          "name": "idx_customer_vehicles_profile_updated",
+          "columns": [
+            "customer_profile_id",
+            "updated_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "customer_vehicles_year_check": {
+          "name": "customer_vehicles_year_check",
+          "value": "\"customer_vehicles\".\"year\" between 1900 and 2200"
+        }
+      }
+    },
+    "deposit_payments": {
+      "name": "deposit_payments",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "checkout_id": {
+          "name": "checkout_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider_payment_id": {
+          "name": "provider_payment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expected_amount_cents": {
+          "name": "expected_amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "received_amount_cents": {
+          "name": "received_amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "refunded_amount_cents": {
+          "name": "refunded_amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'AUD'"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'requires_payment_method'"
+        },
+        "provider_receipt_url": {
+          "name": "provider_receipt_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "paid_at": {
+          "name": "paid_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_deposit_payments_provider_payment": {
+          "name": "idx_deposit_payments_provider_payment",
+          "columns": [
+            "provider",
+            "provider_payment_id"
+          ],
+          "isUnique": true
+        },
+        "idx_deposit_payments_checkout_status": {
+          "name": "idx_deposit_payments_checkout_status",
+          "columns": [
+            "checkout_id",
+            "status"
+          ],
+          "isUnique": false
+        },
+        "idx_deposit_payments_one_successful_checkout": {
+          "name": "idx_deposit_payments_one_successful_checkout",
+          "columns": [
+            "checkout_id"
+          ],
+          "isUnique": true,
+          "where": "\"deposit_payments\".\"status\" in ('succeeded', 'partially_refunded', 'refunded')"
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "deposit_payments_expected_amount_check": {
+          "name": "deposit_payments_expected_amount_check",
+          "value": "\"deposit_payments\".\"expected_amount_cents\" >= 10000"
+        },
+        "deposit_payments_received_amount_check": {
+          "name": "deposit_payments_received_amount_check",
+          "value": "\"deposit_payments\".\"received_amount_cents\" >= 0"
+        },
+        "deposit_payments_refunded_amount_check": {
+          "name": "deposit_payments_refunded_amount_check",
+          "value": "\"deposit_payments\".\"refunded_amount_cents\" >= 0 and \"deposit_payments\".\"refunded_amount_cents\" <= \"deposit_payments\".\"received_amount_cents\""
+        },
+        "deposit_payments_currency_check": {
+          "name": "deposit_payments_currency_check",
+          "value": "\"deposit_payments\".\"currency\" = 'AUD'"
+        },
+        "deposit_payments_status_check": {
+          "name": "deposit_payments_status_check",
+          "value": "\"deposit_payments\".\"status\" in ('requires_payment_method', 'processing', 'succeeded', 'failed', 'cancelled', 'partially_refunded', 'refunded')"
+        }
+      }
+    },
+    "deposit_receipts": {
+      "name": "deposit_receipts",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "receipt_number": {
+          "name": "receipt_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payment_id": {
+          "name": "payment_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "document_type": {
+          "name": "document_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'payment_receipt'"
+        },
+        "supplier_name": {
+          "name": "supplier_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "supplier_abn": {
+          "name": "supplier_abn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "customer_name": {
+          "name": "customer_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "customer_email": {
+          "name": "customer_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "gst_amount_cents": {
+          "name": "gst_amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'AUD'"
+        },
+        "provider_receipt_url": {
+          "name": "provider_receipt_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "issued_at": {
+          "name": "issued_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_deposit_receipts_receipt_number": {
+          "name": "idx_deposit_receipts_receipt_number",
+          "columns": [
+            "receipt_number"
+          ],
+          "isUnique": true
+        },
+        "idx_deposit_receipts_payment_id": {
+          "name": "idx_deposit_receipts_payment_id",
+          "columns": [
+            "payment_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "deposit_receipts_document_type_check": {
+          "name": "deposit_receipts_document_type_check",
+          "value": "\"deposit_receipts\".\"document_type\" in ('payment_receipt', 'tax_invoice')"
+        },
+        "deposit_receipts_amount_check": {
+          "name": "deposit_receipts_amount_check",
+          "value": "\"deposit_receipts\".\"amount_cents\" >= 10000"
+        },
+        "deposit_receipts_gst_amount_check": {
+          "name": "deposit_receipts_gst_amount_check",
+          "value": "\"deposit_receipts\".\"gst_amount_cents\" is null or (\"deposit_receipts\".\"gst_amount_cents\" >= 0 and \"deposit_receipts\".\"gst_amount_cents\" <= \"deposit_receipts\".\"amount_cents\")"
+        },
+        "deposit_receipts_tax_invoice_identity_check": {
+          "name": "deposit_receipts_tax_invoice_identity_check",
+          "value": "\"deposit_receipts\".\"document_type\" = 'payment_receipt' or (\"deposit_receipts\".\"supplier_abn\" is not null and length(trim(\"deposit_receipts\".\"supplier_abn\")) > 0 and \"deposit_receipts\".\"gst_amount_cents\" is not null)"
+        },
+        "deposit_receipts_currency_check": {
+          "name": "deposit_receipts_currency_check",
+          "value": "\"deposit_receipts\".\"currency\" = 'AUD'"
+        }
+      }
+    },
+    "integration_outbox": {
+      "name": "integration_outbox",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "aggregate_type": {
+          "name": "aggregate_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "aggregate_id": {
+          "name": "aggregate_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dedupe_key": {
+          "name": "dedupe_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "attempt_count": {
+          "name": "attempt_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "next_attempt_at": {
+          "name": "next_attempt_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "provider_result_id": {
+          "name": "provider_result_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "last_error_code": {
+          "name": "last_error_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "payload_json": {
+          "name": "payload_json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "sent_at": {
+          "name": "sent_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_integration_outbox_dedupe_key": {
+          "name": "idx_integration_outbox_dedupe_key",
+          "columns": [
+            "dedupe_key"
+          ],
+          "isUnique": true
+        },
+        "idx_integration_outbox_state_next_attempt": {
+          "name": "idx_integration_outbox_state_next_attempt",
+          "columns": [
+            "state",
+            "next_attempt_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "integration_outbox_state_check": {
+          "name": "integration_outbox_state_check",
+          "value": "\"integration_outbox\".\"state\" in ('pending', 'processing', 'sent', 'failed', 'dead_letter')"
+        },
+        "integration_outbox_attempt_count_check": {
+          "name": "integration_outbox_attempt_count_check",
+          "value": "\"integration_outbox\".\"attempt_count\" >= 0"
+        },
+        "integration_outbox_payload_json_check": {
+          "name": "integration_outbox_payload_json_check",
+          "value": "\"integration_outbox\".\"payload_json\" is null or json_valid(\"integration_outbox\".\"payload_json\")"
+        }
+      }
+    },
+    "payment_webhook_events": {
+      "name": "payment_webhook_events",
+      "columns": {
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "payload_hash": {
+          "name": "payload_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'received'"
+        },
+        "last_error_code": {
+          "name": "last_error_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "received_at": {
+          "name": "received_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "processed_at": {
+          "name": "processed_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "idx_payment_webhook_events_state_received": {
+          "name": "idx_payment_webhook_events_state_received",
+          "columns": [
+            "state",
+            "received_at"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "payment_webhook_events_provider_event_pk": {
+          "columns": [
+            "provider",
+            "event_id"
+          ],
+          "name": "payment_webhook_events_provider_event_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "payment_webhook_events_payload_hash_check": {
+          "name": "payment_webhook_events_payload_hash_check",
+          "value": "length(\"payment_webhook_events\".\"payload_hash\") = 64"
+        },
+        "payment_webhook_events_state_check": {
+          "name": "payment_webhook_events_state_check",
+          "value": "\"payment_webhook_events\".\"state\" in ('received', 'processed', 'failed')"
+        }
+      }
+    },
+    "service_reminder_jobs": {
+      "name": "service_reminder_jobs",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "booking_request_id": {
+          "name": "booking_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "customer_profile_id": {
+          "name": "customer_profile_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "interval_months": {
+          "name": "interval_months",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "due_at": {
+          "name": "due_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'scheduled'"
+        },
+        "unsubscribe_token_hash": {
+          "name": "unsubscribe_token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "recipient_email_hash": {
+          "name": "recipient_email_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dispatched_at": {
+          "name": "dispatched_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "unsubscribed_at": {
+          "name": "unsubscribed_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_service_reminder_jobs_request_interval": {
+          "name": "idx_service_reminder_jobs_request_interval",
+          "columns": [
+            "booking_request_id",
+            "interval_months"
+          ],
+          "isUnique": true
+        },
+        "idx_service_reminder_jobs_unsubscribe_hash": {
+          "name": "idx_service_reminder_jobs_unsubscribe_hash",
+          "columns": [
+            "unsubscribe_token_hash"
+          ],
+          "isUnique": true
+        },
+        "idx_service_reminder_jobs_state_due": {
+          "name": "idx_service_reminder_jobs_state_due",
+          "columns": [
+            "state",
+            "due_at"
+          ],
+          "isUnique": false
+        },
+        "idx_service_reminder_jobs_customer_state": {
+          "name": "idx_service_reminder_jobs_customer_state",
+          "columns": [
+            "customer_profile_id",
+            "state"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "service_reminder_jobs_interval_check": {
+          "name": "service_reminder_jobs_interval_check",
+          "value": "\"service_reminder_jobs\".\"interval_months\" in (6, 12)"
+        },
+        "service_reminder_jobs_state_check": {
+          "name": "service_reminder_jobs_state_check",
+          "value": "\"service_reminder_jobs\".\"state\" in ('scheduled', 'processing', 'sent', 'cancelled', 'unsubscribed', 'failed')"
+        },
+        "service_reminder_jobs_unsubscribe_hash_check": {
+          "name": "service_reminder_jobs_unsubscribe_hash_check",
+          "value": "length(\"service_reminder_jobs\".\"unsubscribe_token_hash\") = 64"
+        },
+        "service_reminder_jobs_recipient_email_hash_check": {
+          "name": "service_reminder_jobs_recipient_email_hash_check",
+          "value": "length(\"service_reminder_jobs\".\"recipient_email_hash\") = 64"
+        }
+      }
+    },
+    "service_reminder_suppressions": {
+      "name": "service_reminder_suppressions",
+      "columns": {
+        "recipient_email_hash": {
+          "name": "recipient_email_hash",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'customer_unsubscribe'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "service_reminder_suppressions_email_hash_check": {
+          "name": "service_reminder_suppressions_email_hash_check",
+          "value": "length(\"service_reminder_suppressions\".\"recipient_email_hash\") = 64"
+        },
+        "service_reminder_suppressions_reason_check": {
+          "name": "service_reminder_suppressions_reason_check",
+          "value": "\"service_reminder_suppressions\".\"reason\" in ('customer_unsubscribe', 'staff_suppression')"
+        }
+      }
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}
