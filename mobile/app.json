@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "PSI Performance",
+    "slug": "psi-performance-booking",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/psi-app-icon-1024.png",
+    "scheme": "psiperformance",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.psiperformance.booking",
+      "buildNumber": "1",
+      "icon": "./assets/images/psi-app-icon-1024.png"
+    },
+    "android": {
+      "package": "com.psiperformance.booking",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#050505",
+        "foregroundImage": "./assets/images/psi-adaptive-foreground.png"
+      },
+      "predictiveBackGestureEnabled": true
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/psi-app-icon-1024.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#050505",
+          "image": "./assets/images/psi-logo.png",
+          "imageWidth": 280,
+          "resizeMode": "contain"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

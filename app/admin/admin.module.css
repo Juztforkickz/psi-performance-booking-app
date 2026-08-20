@@ -1,0 +1,570 @@
+.shell {
+  min-height: 100svh;
+  background:
+    radial-gradient(circle at 88% 6%, rgba(242, 179, 29, 0.1), transparent 27rem),
+    #090909;
+  color: #fff;
+}
+
+.loginHeader,
+.queueHeader {
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px clamp(20px, 5vw, 72px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(6, 6, 6, 0.88);
+}
+
+.loginHeader img,
+.queueHeader img {
+  width: 132px;
+}
+
+.loginHeader > span,
+.queueBrand > span {
+  color: #8c8b87;
+  font-size: 0.67rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.loginPanel {
+  width: min(560px, calc(100% - 40px));
+  margin: clamp(54px, 11vh, 120px) auto;
+  padding: clamp(28px, 5vw, 52px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-top: 3px solid var(--signal);
+  border-radius: var(--radius);
+  background: #141414;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.34);
+}
+
+.eyebrow {
+  margin: 0 0 14px;
+  color: var(--signal);
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.loginPanel h1,
+.queueIntro h1 {
+  margin-bottom: 18px;
+  font-family: "Ethnocentric", Impact, sans-serif;
+  font-size: clamp(2rem, 5vw, 4.8rem);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.loginCopy,
+.queueIntro > div > p:last-child {
+  max-width: 650px;
+  color: #aaa9a5;
+  line-height: 1.65;
+}
+
+.loginForm {
+  display: grid;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.loginForm label,
+.filterField label,
+.statusControl label {
+  color: #cbc9c4;
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.loginForm input,
+.filterField select,
+.statusControl select {
+  min-height: 50px;
+  border: 1px solid #464540;
+  border-radius: var(--radius);
+  outline: 0;
+  background: #090909;
+  color: #fff;
+}
+
+.loginForm input {
+  padding: 12px 14px;
+}
+
+.loginForm input:focus,
+.filterField select:focus,
+.statusControl select:focus {
+  border-color: var(--signal);
+  box-shadow: 0 0 0 3px rgba(242, 179, 29, 0.14);
+}
+
+.loginForm button {
+  min-height: 52px;
+  margin-top: 8px;
+  border: 1px solid var(--signal);
+  border-radius: var(--radius);
+  background: var(--signal);
+  color: #080808;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.loginForm button:disabled,
+.headerActions button:disabled,
+.statusControl select:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+.sessionNote {
+  margin: 22px 0 0;
+  color: #767570;
+  font-size: 0.73rem;
+  line-height: 1.55;
+}
+
+.loadingPanel,
+.emptyState {
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 30px;
+  color: #8f8e89;
+  text-align: center;
+}
+
+.loadingPanel {
+  min-height: 100svh;
+}
+
+.queueBrand {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+}
+
+.headerActions button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #4d4c47;
+  border-radius: var(--radius);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.headerActions button:hover,
+.headerActions button:focus-visible {
+  border-color: var(--signal);
+}
+
+.headerActions .signOutButton {
+  color: #a5a49f;
+}
+
+.queueIntro {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 40px;
+  padding: clamp(56px, 8vw, 110px) clamp(20px, 6vw, 92px);
+}
+
+.summaryCard {
+  min-width: 190px;
+  padding: 24px;
+  border-left: 3px solid var(--signal);
+  background: #151515;
+}
+
+.summaryCard strong,
+.summaryCard span {
+  display: block;
+}
+
+.summaryCard strong {
+  margin-bottom: 7px;
+  color: var(--signal);
+  font-family: "Ethnocentric", Impact, sans-serif;
+  font-size: 2.4rem;
+  font-weight: 400;
+}
+
+.summaryCard span {
+  color: #aaa9a5;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.queueContent {
+  min-height: 56vh;
+  padding: clamp(26px, 4.5vw, 64px) clamp(20px, 6vw, 92px) clamp(70px, 9vw, 130px);
+  border-top: 1px solid rgba(8, 8, 8, 0.16);
+  background: #f0ede7;
+  color: #080808;
+}
+
+.toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 30px;
+  margin-bottom: 28px;
+}
+
+.toolbar h2 {
+  margin: 0 0 7px;
+  font-family: "Ethnocentric", Impact, sans-serif;
+  font-size: clamp(1.25rem, 2.2vw, 2rem);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+}
+
+.toolbar p {
+  margin: 0;
+  color: #66645f;
+  font-size: 0.78rem;
+}
+
+.filterField {
+  display: grid;
+  gap: 8px;
+}
+
+.filterField label {
+  color: #55534f;
+}
+
+.filterField select {
+  min-width: 190px;
+  padding: 0 38px 0 13px;
+  border-color: rgba(8, 8, 8, 0.25);
+  background: #fff;
+  color: #080808;
+}
+
+.messages:empty {
+  display: none;
+}
+
+.errorBanner,
+.successBanner {
+  margin: 0 0 20px;
+  padding: 13px 15px;
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.errorBanner {
+  border: 1px solid rgba(255, 152, 138, 0.45);
+  background: rgba(139, 29, 19, 0.18);
+  color: #ffd7d1;
+}
+
+.queueContent .errorBanner {
+  border-color: rgba(180, 35, 24, 0.3);
+  background: #fff0ee;
+  color: #7d1b12;
+}
+
+.successBanner {
+  border: 1px solid rgba(42, 122, 67, 0.3);
+  background: #e9f7ed;
+  color: #155f2c;
+}
+
+.bookingList {
+  display: grid;
+  gap: 14px;
+}
+
+.bookingCard {
+  padding: clamp(20px, 3vw, 34px);
+  border: 1px solid rgba(8, 8, 8, 0.14);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: 0 8px 28px rgba(35, 30, 20, 0.05);
+}
+
+.cardHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid rgba(8, 8, 8, 0.13);
+}
+
+.reference {
+  display: block;
+  margin-bottom: 10px;
+  color: #8a6000;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cardHeading h3 {
+  margin: 0 0 7px;
+  font-family: "Ethnocentric", Impact, sans-serif;
+  font-size: clamp(1rem, 1.8vw, 1.45rem);
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.cardHeading p {
+  margin: 0;
+  color: #6c6a65;
+  font-size: 0.77rem;
+  line-height: 1.5;
+}
+
+.statusBadge {
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border-radius: 999px;
+  font-size: 0.61rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.status_requested {
+  background: #fff0c7;
+  color: #674600;
+}
+
+.status_confirmed {
+  background: #dbeeff;
+  color: #165681;
+}
+
+.status_completed {
+  background: #dff4e5;
+  color: #216338;
+}
+
+.status_cancelled {
+  background: #eceae6;
+  color: #625f59;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-left: 1px solid rgba(8, 8, 8, 0.12);
+  margin-top: 22px;
+}
+
+.detailGrid section {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border-top: 1px solid rgba(8, 8, 8, 0.12);
+  border-right: 1px solid rgba(8, 8, 8, 0.12);
+  border-bottom: 1px solid rgba(8, 8, 8, 0.12);
+}
+
+.detailGrid h4,
+.notes h4 {
+  margin: 0 0 7px;
+  color: #7c7973;
+  font-size: 0.61rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.detailGrid strong {
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.detailGrid span,
+.detailGrid a {
+  overflow-wrap: anywhere;
+  color: #5f5d58;
+  font-size: 0.73rem;
+  line-height: 1.45;
+}
+
+.detailGrid a:hover,
+.detailGrid a:focus-visible {
+  color: #8a6000;
+}
+
+.notes {
+  margin-top: 18px;
+  padding: 17px 18px;
+  border-left: 3px solid var(--signal);
+  background: #f4f1eb;
+}
+
+.notes p {
+  margin: 0;
+  color: #3d3b37;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.statusControl {
+  display: grid;
+  grid-template-columns: auto minmax(160px, 220px) 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.statusControl label {
+  color: #45433f;
+}
+
+.statusControl select {
+  min-height: 44px;
+  padding: 0 36px 0 12px;
+  border-color: rgba(8, 8, 8, 0.25);
+  background: #fff;
+  color: #080808;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.statusControl > span {
+  color: #77746e;
+  font-size: 0.69rem;
+  line-height: 1.45;
+}
+
+.emptyState {
+  border: 1px dashed rgba(8, 8, 8, 0.25);
+  border-radius: var(--radius);
+}
+
+.emptyState strong {
+  color: #262522;
+}
+
+.emptyState span {
+  font-size: 0.8rem;
+}
+
+@media (max-width: 980px) {
+  .detailGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detailGrid section:nth-child(2) {
+    border-right: 1px solid rgba(8, 8, 8, 0.12);
+  }
+}
+
+@media (max-width: 680px) {
+  .loginHeader,
+  .queueHeader {
+    min-height: 76px;
+    padding: 17px 18px;
+  }
+
+  .loginHeader img,
+  .queueHeader img {
+    width: 105px;
+  }
+
+  .loginHeader > span,
+  .queueBrand > span {
+    display: none;
+  }
+
+  .queueIntro {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 50px 18px;
+  }
+
+  .summaryCard {
+    min-width: 0;
+  }
+
+  .queueContent {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .toolbar,
+  .cardHeading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filterField select {
+    width: 100%;
+  }
+
+  .statusBadge {
+    align-self: flex-start;
+  }
+
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statusControl {
+    grid-template-columns: 1fr;
+  }
+
+  .statusControl select {
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .headerActions button {
+    min-height: 39px;
+    padding: 0 11px;
+    font-size: 0.59rem;
+  }
+
+  .bookingCard {
+    padding: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loginForm button,
+  .headerActions button {
+    transition: none;
+  }
+}
