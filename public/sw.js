@@ -1,4 +1,4 @@
-const STATIC_CACHE = "psi-static-v1";
+const STATIC_CACHE = "psi-static-v2";
 const SHELL_CACHE = "psi-shell-v1";
 const STATIC_ASSETS = [
   "/psi-logo.png",
@@ -10,6 +10,7 @@ const STATIC_ASSETS = [
   "/psi-icon-192.png",
   "/psi-icon-512.png",
   "/psi-favicon.png",
+  "/psi-contact-qr.png",
   "/ethnocentric.woff2",
 ];
 

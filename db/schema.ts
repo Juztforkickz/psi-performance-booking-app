@@ -27,6 +27,7 @@ export const bookings = sqliteTable(
     preferredDate: text("preferred_date").notNull(),
     arrivalWindow: text("arrival_window").notNull(),
     notes: text("notes").notNull().default(""),
+    tuningDetailsJson: text("tuning_details_json"),
     source: text("source").notNull().default("web"),
     status: text("status").notNull().default("requested"),
     consent: integer("consent", { mode: "boolean" })
@@ -62,6 +63,10 @@ export const bookings = sqliteTable(
       "bookings_status_check",
       sql`${table.status} in ('requested', 'confirmed', 'completed', 'cancelled')`,
     ),
+    check(
+      "bookings_tuning_details_json_check",
+      sql`${table.tuningDetailsJson} is null or json_valid(${table.tuningDetailsJson})`,
+    ),
     check("bookings_consent_check", sql`${table.consent} = 1`),
   ],
 );
@@ -86,6 +91,7 @@ export const bookingCheckouts = sqliteTable(
     preferredDate: text("preferred_date").notNull(),
     arrivalWindow: text("arrival_window").notNull().default("any"),
     requestDetails: text("request_details").notNull(),
+    tuningDetailsJson: text("tuning_details_json"),
     source: text("source").notNull().default("web"),
     state: text("state").notNull().default("awaiting_payment"),
     depositAmountCents: integer("deposit_amount_cents").notNull().default(20_000),
@@ -130,6 +136,10 @@ export const bookingCheckouts = sqliteTable(
     check(
       "booking_checkouts_state_check",
       sql`${table.state} in ('awaiting_payment', 'processing', 'paid', 'expired', 'cancelled')`,
+    ),
+    check(
+      "booking_checkouts_tuning_details_json_check",
+      sql`${table.tuningDetailsJson} is null or json_valid(${table.tuningDetailsJson})`,
     ),
     check(
       "booking_checkouts_deposit_amount_check",

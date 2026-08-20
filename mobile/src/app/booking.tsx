@@ -1,11 +1,12 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
+import { type ReactNode, useMemo, useRef, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
   Linking,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -34,6 +35,7 @@ import {
   type BookingErrors,
   type BookingFormState,
   type BookingType,
+  type TuningDetails,
   validateBookingStep,
 } from '@/lib/booking';
 
@@ -44,13 +46,89 @@ const ARRIVAL_OPTIONS: { value: ArrivalWindow; label: string; detail: string }[]
   { value: 'afternoon', label: 'Afternoon', detail: 'Preferred arrival after midday.' },
 ];
 
+type SelectOption<T extends string> = { value: T; label: string; detail?: string };
+
+const ENGINE_OPTIONS: SelectOption<Exclude<TuningDetails['engineState'], ''>>[] = [
+  { value: 'stock', label: 'Stock engine' },
+  { value: 'modified', label: 'Modified engine' },
+];
+const TRANSMISSION_TYPE_OPTIONS: SelectOption<Exclude<TuningDetails['transmissionType'], ''>>[] = [
+  { value: 'automatic', label: 'Automatic' },
+  { value: 'manual', label: 'Manual' },
+];
+const AUTOMATIC_SETUP_OPTIONS: SelectOption<Exclude<TuningDetails['transmissionSetup'], ''>>[] = [
+  { value: 'stock', label: 'Stock' },
+  { value: 'converter', label: 'Upgraded converter' },
+  { value: 'trans_cooler', label: 'Transmission cooler' },
+  { value: 'converter_and_cooler', label: 'Converter + transmission cooler' },
+  { value: 'built_transmission', label: 'Built transmission' },
+  { value: 'other', label: 'Other setup' },
+];
+const MANUAL_SETUP_OPTIONS: SelectOption<Exclude<TuningDetails['transmissionSetup'], ''>>[] = [
+  { value: 'stock', label: 'Stock' },
+  { value: 'upgraded_clutch', label: 'Upgraded clutch' },
+  { value: 'built_transmission', label: 'Built transmission' },
+  { value: 'other', label: 'Other setup' },
+];
+const DIFFERENTIAL_OPTIONS: SelectOption<Exclude<TuningDetails['differentialType'], ''>>[] = [
+  { value: 'stock', label: 'Stock differential' },
+  { value: 'truetrac', label: 'Truetrac' },
+  { value: 'wavetrac', label: 'Wavetrac' },
+  { value: 'other', label: 'Other differential' },
+];
+const COMPONENT_OPTIONS: SelectOption<'stock' | 'upgraded' | 'unknown'>[] = [
+  { value: 'stock', label: 'Stock' },
+  { value: 'upgraded', label: 'Upgraded' },
+  { value: 'unknown', label: 'Not sure' },
+];
+const FUEL_OPTIONS: SelectOption<Exclude<TuningDetails['fuelType'], ''>>[] = [
+  { value: '98_ron', label: '98 RON' },
+  { value: 'e85', label: 'E85' },
+  { value: 'flex_fuel', label: 'Flex fuel' },
+  { value: 'race_fuel', label: 'Race fuel' },
+  { value: 'other', label: 'Other fuel' },
+];
+const INTAKE_OPTIONS: SelectOption<Exclude<TuningDetails['intakeType'], ''>>[] = [
+  { value: 'stock', label: 'Stock intake' },
+  { value: 'upgraded', label: 'Upgraded intake' },
+];
+const HISTORY_OPTIONS: SelectOption<Exclude<TuningDetails['previouslyTuned'], ''>>[] = [
+  { value: 'no', label: 'No' },
+  { value: 'yes', label: 'Yes' },
+  { value: 'unknown', label: 'Not sure' },
+];
+const EXHAUST_OPTIONS: SelectOption<Exclude<TuningDetails['exhaustType'], ''>>[] = [
+  { value: 'stock', label: 'Stock exhaust' },
+  { value: 'cat_back', label: 'Cat-back system' },
+  { value: 'full_system', label: 'Full system' },
+  { value: 'custom', label: 'Custom setup' },
+];
+const EXHAUST_SIZE_OPTIONS: SelectOption<Exclude<TuningDetails['exhaustSize'], ''>>[] = [
+  { value: 'stock', label: 'Stock size' },
+  { value: '2_5_inch', label: '2.5 inch' },
+  { value: '3_inch', label: '3 inch' },
+  { value: '3_5_inch', label: '3.5 inch' },
+  { value: '4_inch', label: '4 inch' },
+  { value: 'other', label: 'Other size' },
+];
+const VAREX_OPTIONS: SelectOption<Exclude<TuningDetails['varexControlled'], ''>>[] = [
+  { value: 'no', label: 'No Varex control' },
+  { value: 'yes', label: 'Varex controlled' },
+  { value: 'unknown', label: 'Not sure' },
+];
+const CAMSHAFT_OPTIONS: SelectOption<Exclude<TuningDetails['camshaftType'], ''>>[] = [
+  { value: 'stock', label: 'Stock camshaft(s)' },
+  { value: 'upgraded', label: 'Upgraded camshaft(s)' },
+  { value: 'unknown', label: 'Not sure' },
+];
+
 function bookingTypeFromParam(value?: string | string[]): BookingType | '' {
   const selected = Array.isArray(value) ? value[0] : value;
   return selected === 'service' || selected === 'dyno' ? selected : '';
 }
 
 function firstErrorStep(errors: BookingErrors) {
-  if (errors.bookingType || errors.requestDetails) return 1;
+  if (errors.bookingType || errors.requestDetails || Object.keys(errors).some((key) => key === 'tuningDetails' || key.startsWith('tuningDetails.'))) return 1;
   if (errors.vehicleMake || errors.vehicleModel || errors.vehicleYear || errors.registration || errors.vin) return 2;
   if (errors.firstName || errors.lastName || errors.email || errors.mobile) return 3;
   if (errors.preferredDate || errors.arrivalWindow) return 4;
@@ -58,6 +136,7 @@ function firstErrorStep(errors: BookingErrors) {
 }
 
 type UpdateBooking = <K extends keyof BookingFormState>(key: K, value: BookingFormState[K]) => void;
+type UpdateTuning = <K extends keyof TuningDetails>(key: K, value: TuningDetails[K]) => void;
 
 export default function BookingScreen() {
   const router = useRouter();
@@ -86,6 +165,23 @@ export default function BookingScreen() {
       if (!current[key]) return current;
       const next = { ...current };
       delete next[key];
+      return next;
+    });
+    setFormError('');
+    setIdempotencyKey(randomUUID());
+  };
+
+  const updateTuning: UpdateTuning = (key, value) => {
+    setForm((current) => ({
+      ...current,
+      tuningDetails: { ...current.tuningDetails, [key]: value },
+    }));
+    setErrors((current) => {
+      const errorKey = `tuningDetails.${key}` as keyof BookingErrors;
+      if (!current[errorKey] && !current.tuningDetails) return current;
+      const next = { ...current };
+      delete next[errorKey];
+      delete next.tuningDetails;
       return next;
     });
     setFormError('');
@@ -224,7 +320,7 @@ export default function BookingScreen() {
             ) : null}
 
             {step === 1 ? (
-              <JobStep errors={errors} form={form} selectType={selectBookingType} update={update} />
+              <JobStep errors={errors} form={form} selectType={selectBookingType} update={update} updateTuning={updateTuning} />
             ) : null}
             {step === 2 ? <VehicleStep errors={errors} form={form} update={update} wide={wideFields} /> : null}
             {step === 3 ? (
@@ -317,11 +413,13 @@ function JobStep({
   form,
   errors,
   update,
+  updateTuning,
   selectType,
 }: {
   form: BookingFormState;
   errors: BookingErrors;
   update: UpdateBooking;
+  updateTuning: UpdateTuning;
   selectType: (type: BookingType) => void;
 }) {
   return (
@@ -363,7 +461,389 @@ function JobStep({
         />
         <Text style={styles.characterCount}>{form.requestDetails.length}/1200</Text>
       </Field>
+
+      {form.bookingType === 'dyno' ? (
+        <TuningSetup details={form.tuningDetails} errors={errors} update={updateTuning} />
+      ) : null}
     </View>
+  );
+}
+
+function TuningSetup({
+  details,
+  errors,
+  update,
+}: {
+  details: TuningDetails;
+  errors: BookingErrors;
+  update: UpdateTuning;
+}) {
+  const transmissionOptions = details.transmissionType === 'manual'
+    ? MANUAL_SETUP_OPTIONS
+    : AUTOMATIC_SETUP_OPTIONS;
+
+  const updateTransmissionType = (value: Exclude<TuningDetails['transmissionType'], ''>) => {
+    const validSetups = value === 'manual' ? MANUAL_SETUP_OPTIONS : AUTOMATIC_SETUP_OPTIONS;
+    update('transmissionType', value);
+    if (details.transmissionSetup && !validSetups.some((option) => option.value === details.transmissionSetup)) {
+      update('transmissionSetup', '');
+      update('transmissionDetails', '');
+    }
+  };
+
+  return (
+    <View style={styles.tuningSetup}>
+      <View style={styles.tuningIntro}>
+        <Text style={styles.tuningKicker}>Dyno preparation</Text>
+        <Text style={styles.tuningTitle}>Tell us how the car is set up.</Text>
+        <Text style={styles.tuningCopy}>
+          These details help PSI plan the calibration safely. Choose what you know and use “Not sure” where available.
+        </Text>
+      </View>
+
+      <TuningSection index="01" title="Engine">
+        <SelectField
+          error={errors['tuningDetails.engineState']}
+          label="Engine condition"
+          onChange={(value) => update('engineState', value)}
+          options={ENGINE_OPTIONS}
+          placeholder="Stock or modified?"
+          value={details.engineState}
+        />
+        {details.engineState === 'modified' ? (
+          <Field error={errors['tuningDetails.engineModifications']} label="Engine modifications">
+            <FormInput
+              error={errors['tuningDetails.engineModifications']}
+              maxLength={1000}
+              multiline
+              onChangeText={(value) => update('engineModifications', value)}
+              placeholder="List internal engine work, forced induction, boost, heads, manifold and supporting modifications."
+              style={styles.tuningNotesInput}
+              textAlignVertical="top"
+              value={details.engineModifications}
+            />
+          </Field>
+        ) : null}
+      </TuningSection>
+
+      <TuningSection index="02" title="Transmission & differential">
+        <SelectField
+          error={errors['tuningDetails.transmissionType']}
+          label="Transmission type"
+          onChange={updateTransmissionType}
+          options={TRANSMISSION_TYPE_OPTIONS}
+          placeholder="Automatic or manual?"
+          value={details.transmissionType}
+        />
+        {details.transmissionType ? (
+          <SelectField
+            error={errors['tuningDetails.transmissionSetup']}
+            label="Transmission setup"
+            onChange={(value) => update('transmissionSetup', value)}
+            options={transmissionOptions}
+            placeholder="Select fitted equipment"
+            value={details.transmissionSetup}
+          />
+        ) : null}
+        {details.transmissionSetup && details.transmissionSetup !== 'stock' ? (
+          <Field error={errors['tuningDetails.transmissionDetails']} label="Transmission details">
+            <FormInput
+              error={errors['tuningDetails.transmissionDetails']}
+              maxLength={600}
+              multiline
+              onChangeText={(value) => update('transmissionDetails', value)}
+              placeholder="Brand, model, converter or stall speed, cooler, clutch, build details and anything else fitted."
+              style={styles.tuningNotesInput}
+              textAlignVertical="top"
+              value={details.transmissionDetails}
+            />
+          </Field>
+        ) : null}
+        <SelectField
+          error={errors['tuningDetails.differentialType']}
+          label="Differential"
+          onChange={(value) => update('differentialType', value)}
+          options={DIFFERENTIAL_OPTIONS}
+          placeholder="Stock, Truetrac, Wavetrac or other?"
+          value={details.differentialType}
+        />
+        <Field error={errors['tuningDetails.differentialGearRatio']} label="Differential gear ratio">
+          <FormInput
+            autoCapitalize="none"
+            error={errors['tuningDetails.differentialGearRatio']}
+            maxLength={30}
+            onChangeText={(value) => update('differentialGearRatio', value)}
+            placeholder="e.g. 3.45:1 or unknown"
+            value={details.differentialGearRatio}
+          />
+        </Field>
+        {details.differentialType === 'other' ? (
+          <Field error={errors['tuningDetails.differentialDetails']} label="Differential details">
+            <FormInput
+              error={errors['tuningDetails.differentialDetails']}
+              maxLength={500}
+              multiline
+              onChangeText={(value) => update('differentialDetails', value)}
+              placeholder="Tell PSI what centre or differential is fitted."
+              style={styles.tuningNotesInput}
+              textAlignVertical="top"
+              value={details.differentialDetails}
+            />
+          </Field>
+        ) : null}
+      </TuningSection>
+
+      <TuningSection index="03" title="Fuel & intake">
+        <SelectField
+          error={errors['tuningDetails.fuelPumpType']}
+          label="Fuel pump"
+          onChange={(value) => update('fuelPumpType', value)}
+          options={COMPONENT_OPTIONS}
+          placeholder="Select fuel pump setup"
+          value={details.fuelPumpType}
+        />
+        {details.fuelPumpType === 'upgraded' ? (
+          <Field error={errors['tuningDetails.fuelPumpDetails']} label="Fuel pump details">
+            <FormInput
+              error={errors['tuningDetails.fuelPumpDetails']}
+              maxLength={400}
+              onChangeText={(value) => update('fuelPumpDetails', value)}
+              placeholder="Brand, model, quantity and controller if fitted"
+              value={details.fuelPumpDetails}
+            />
+          </Field>
+        ) : null}
+        <SelectField
+          error={errors['tuningDetails.injectorType']}
+          label="Injectors"
+          onChange={(value) => update('injectorType', value)}
+          options={COMPONENT_OPTIONS}
+          placeholder="Select injector setup"
+          value={details.injectorType}
+        />
+        {details.injectorType === 'upgraded' ? (
+          <Field error={errors['tuningDetails.injectorDetails']} label="Injector details">
+            <FormInput
+              error={errors['tuningDetails.injectorDetails']}
+              maxLength={400}
+              onChangeText={(value) => update('injectorDetails', value)}
+              placeholder="Exact brand, model and flow rate"
+              value={details.injectorDetails}
+            />
+          </Field>
+        ) : null}
+        <SelectField
+          error={errors['tuningDetails.fuelType']}
+          label="Fuel to tune"
+          onChange={(value) => update('fuelType', value)}
+          options={FUEL_OPTIONS}
+          placeholder="Select fuel"
+          value={details.fuelType}
+        />
+        {details.fuelType === 'other' ? (
+          <Field error={errors['tuningDetails.fuelTypeDetails']} label="Fuel details">
+            <FormInput
+              error={errors['tuningDetails.fuelTypeDetails']}
+              maxLength={300}
+              onChangeText={(value) => update('fuelTypeDetails', value)}
+              placeholder="Enter the exact fuel or blend"
+              value={details.fuelTypeDetails}
+            />
+          </Field>
+        ) : null}
+        <SelectField
+          error={errors['tuningDetails.intakeType']}
+          label="Intake"
+          onChange={(value) => update('intakeType', value)}
+          options={INTAKE_OPTIONS}
+          placeholder="Stock or upgraded?"
+          value={details.intakeType}
+        />
+        {details.intakeType === 'upgraded' ? (
+          <Field error={errors['tuningDetails.intakeDetails']} label="Intake details">
+            <FormInput
+              error={errors['tuningDetails.intakeDetails']}
+              maxLength={500}
+              onChangeText={(value) => update('intakeDetails', value)}
+              placeholder="Brand, size and exact intake modifications"
+              value={details.intakeDetails}
+            />
+          </Field>
+        ) : null}
+      </TuningSection>
+
+      <TuningSection index="04" title="Tune history & exhaust">
+        <SelectField
+          error={errors['tuningDetails.previouslyTuned']}
+          label="Previously tuned?"
+          onChange={(value) => update('previouslyTuned', value)}
+          options={HISTORY_OPTIONS}
+          placeholder="Select tune history"
+          value={details.previouslyTuned}
+        />
+        {details.previouslyTuned === 'yes' ? (
+          <Field error={errors['tuningDetails.previousTuner']} label="Who tuned it?">
+            <FormInput
+              autoCapitalize="words"
+              error={errors['tuningDetails.previousTuner']}
+              maxLength={200}
+              onChangeText={(value) => update('previousTuner', value)}
+              placeholder="Tuner or workshop name"
+              value={details.previousTuner}
+            />
+          </Field>
+        ) : null}
+        <SelectField
+          error={errors['tuningDetails.exhaustType']}
+          label="Exhaust type"
+          onChange={(value) => update('exhaustType', value)}
+          options={EXHAUST_OPTIONS}
+          placeholder="Select exhaust setup"
+          value={details.exhaustType}
+        />
+        <SelectField
+          error={errors['tuningDetails.exhaustSize']}
+          label="Exhaust size"
+          onChange={(value) => update('exhaustSize', value)}
+          options={EXHAUST_SIZE_OPTIONS}
+          placeholder="Select exhaust size"
+          value={details.exhaustSize}
+        />
+        <SelectField
+          error={errors['tuningDetails.varexControlled']}
+          label="Varex control"
+          onChange={(value) => update('varexControlled', value)}
+          options={VAREX_OPTIONS}
+          placeholder="Is Varex control fitted?"
+          value={details.varexControlled}
+        />
+        {details.exhaustType && details.exhaustType !== 'stock' ? (
+          <Field error={errors['tuningDetails.exhaustDetails']} label="Exhaust modifications">
+            <FormInput
+              error={errors['tuningDetails.exhaustDetails']}
+              maxLength={800}
+              multiline
+              onChangeText={(value) => update('exhaustDetails', value)}
+              placeholder="Headers, cats, brand, pipe size, mufflers, valves and any other exhaust work."
+              style={styles.tuningNotesInput}
+              textAlignVertical="top"
+              value={details.exhaustDetails}
+            />
+          </Field>
+        ) : null}
+      </TuningSection>
+
+      <TuningSection index="05" title="Camshaft">
+        <SelectField
+          error={errors['tuningDetails.camshaftType']}
+          label="Camshaft setup"
+          onChange={(value) => update('camshaftType', value)}
+          options={CAMSHAFT_OPTIONS}
+          placeholder="Stock, upgraded or unknown?"
+          value={details.camshaftType}
+        />
+        {details.camshaftType === 'upgraded' ? (
+          <Field error={errors['tuningDetails.camshaftDetails']} label="Camshaft code or specifications">
+            <FormInput
+              autoCapitalize="characters"
+              error={errors['tuningDetails.camshaftDetails']}
+              maxLength={600}
+              multiline
+              onChangeText={(value) => update('camshaftDetails', value)}
+              placeholder="Part number, grind/code, duration, lift, LSA or all specifications available."
+              style={styles.tuningNotesInput}
+              textAlignVertical="top"
+              value={details.camshaftDetails}
+            />
+          </Field>
+        ) : null}
+      </TuningSection>
+    </View>
+  );
+}
+
+function TuningSection({ index, title, children }: { index: string; title: string; children: ReactNode }) {
+  return (
+    <View style={styles.tuningSection}>
+      <View style={styles.tuningSectionHeading}>
+        <View style={styles.tuningSectionIndex}><Text style={styles.tuningSectionIndexText}>{index}</Text></View>
+        <Text style={styles.tuningSectionTitle}>{title}</Text>
+      </View>
+      <View style={styles.tuningFields}>{children}</View>
+    </View>
+  );
+}
+
+function SelectField<T extends string>({
+  label,
+  value,
+  options,
+  placeholder,
+  error,
+  onChange,
+}: {
+  label: string;
+  value: T | '';
+  options: SelectOption<T>[];
+  placeholder: string;
+  error?: string;
+  onChange: (value: T) => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  const selected = options.find((option) => option.value === value);
+
+  return (
+    <Field error={error} label={label}>
+      <Pressable
+        accessibilityHint={`Opens ${label.toLowerCase()} options`}
+        accessibilityLabel={`${label}, ${selected?.label || 'not selected'}`}
+        accessibilityRole="button"
+        onPress={() => setVisible(true)}
+        style={({ pressed }) => [styles.tuningSelect, error && styles.tuningSelectError, pressed && styles.pressed]}
+      >
+        <Text style={[styles.tuningSelectText, !selected && styles.tuningSelectPlaceholder]}>{selected?.label || placeholder}</Text>
+        <Text style={styles.tuningSelectChevron}>⌄</Text>
+      </Pressable>
+
+      <Modal animationType="fade" onRequestClose={() => setVisible(false)} transparent visible={visible}>
+        <View style={styles.tuningModalRoot}>
+          <Pressable accessibilityLabel={`Close ${label} options`} accessibilityRole="button" onPress={() => setVisible(false)} style={styles.tuningModalBackdrop} />
+          <View accessibilityViewIsModal style={styles.tuningModalSheet}>
+            <View style={styles.tuningModalHeading}>
+              <View style={styles.tuningModalHeadingCopy}>
+                <Text style={styles.tuningModalKicker}>Dyno setup</Text>
+                <Text style={styles.tuningModalTitle}>{label}</Text>
+              </View>
+              <Pressable accessibilityLabel="Close" accessibilityRole="button" hitSlop={12} onPress={() => setVisible(false)}>
+                <Text style={styles.tuningModalClose}>×</Text>
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.tuningOptionList} showsVerticalScrollIndicator={false}>
+              {options.map((option) => {
+                const active = option.value === value;
+                return (
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    key={option.value}
+                    onPress={() => {
+                      onChange(option.value);
+                      setVisible(false);
+                    }}
+                    style={({ pressed }) => [styles.tuningOption, active && styles.tuningOptionActive, pressed && styles.pressed]}
+                  >
+                    <Text style={[styles.tuningOptionText, active && styles.tuningOptionTextActive]}>{option.label}</Text>
+                    <View style={[styles.tuningOptionRadio, active && styles.tuningOptionRadioActive]}>
+                      {active ? <View style={styles.tuningOptionDot} /> : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </Field>
   );
 }
 
@@ -469,7 +949,7 @@ function DetailsStep({
   return (
     <View style={styles.stepContent}>
       <StepHeading
-        copy="Your receipt and every booking update will use these contact details."
+        copy="PSI will use these contact details for booking communication once the request is securely submitted."
         eyebrow="Step 03 · Details"
         title="Who is the booking for?"
       />
@@ -759,7 +1239,7 @@ function CheckoutHandoff({
         <Eyebrow>Secure checkout ready</Eyebrow>
         <Text style={styles.successTitle}>Complete payment securely.</Text>
         <Text style={styles.successLead}>
-          PSI has prepared a {checkout.payment.provider} checkout. Complete payment there, then rely on the emailed receipt and PSI confirmation—not this screen—as proof of payment or a confirmed date.
+          PSI has prepared a {checkout.payment.provider} checkout. Complete payment there, then rely on the payment provider&apos;s confirmation and PSI&apos;s separate booking confirmation—not this screen—as proof of payment or a confirmed date.
         </Text>
 
         <View style={styles.checkoutReferenceCard}>
@@ -771,7 +1251,7 @@ function CheckoutHandoff({
         <View style={styles.notPaidCard}>
           <Text style={styles.notPaidTitle}>Payment is not confirmed here</Text>
           <Text style={styles.notPaidCopy}>
-            Closing or returning from checkout does not prove payment. PSI will email a receipt after the server receives verified payment confirmation.
+            Closing or returning from checkout does not prove payment. Save any confirmation issued by the payment provider; PSI will confirm the booking separately after the server verifies payment.
           </Text>
         </View>
 
@@ -849,6 +1329,39 @@ const styles = StyleSheet.create({
   fieldCell: { flex: 1 },
   notesInput: { minHeight: 150 },
   characterCount: { alignSelf: 'flex-end', color: colors.mutedDark, fontSize: 11 },
+  tuningSetup: { gap: spacing.lg, borderTopWidth: 1, borderTopColor: colors.gold, paddingTop: spacing.xl },
+  tuningIntro: { gap: spacing.sm },
+  tuningKicker: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.7, textTransform: 'uppercase' },
+  tuningTitle: { color: colors.white, fontSize: 27, fontWeight: '900', letterSpacing: -0.8, lineHeight: 31, textTransform: 'uppercase' },
+  tuningCopy: { color: colors.muted, fontSize: 13, lineHeight: 20 },
+  tuningSection: { gap: spacing.lg, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, padding: spacing.md },
+  tuningSectionHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line, paddingBottom: spacing.md },
+  tuningSectionIndex: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: colors.gold },
+  tuningSectionIndexText: { color: colors.ink, fontSize: 9, fontWeight: '900' },
+  tuningSectionTitle: { flex: 1, color: colors.white, fontSize: 16, fontWeight: '900', textTransform: 'uppercase' },
+  tuningFields: { gap: spacing.lg },
+  tuningNotesInput: { minHeight: 104 },
+  tuningSelect: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: 3, backgroundColor: colors.inkSoft, paddingHorizontal: spacing.md },
+  tuningSelectError: { borderColor: colors.danger },
+  tuningSelectText: { flex: 1, color: colors.white, fontSize: 15, fontWeight: '700' },
+  tuningSelectPlaceholder: { color: colors.mutedDark, fontWeight: '500' },
+  tuningSelectChevron: { color: colors.gold, fontSize: 24, lineHeight: 28 },
+  tuningModalRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  tuningModalBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.86)' },
+  tuningModalSheet: { width: '100%', maxWidth: 560, maxHeight: '82%', gap: spacing.lg, borderWidth: 1, borderColor: colors.gold, borderRadius: 5, backgroundColor: colors.panel, padding: spacing.lg },
+  tuningModalHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
+  tuningModalHeadingCopy: { flex: 1, gap: spacing.xs },
+  tuningModalKicker: { color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1.5, textTransform: 'uppercase' },
+  tuningModalTitle: { color: colors.white, fontSize: 23, fontWeight: '900', lineHeight: 27, textTransform: 'uppercase' },
+  tuningModalClose: { color: colors.muted, fontSize: 32, lineHeight: 34 },
+  tuningOptionList: { gap: spacing.sm },
+  tuningOption: { minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: 3, backgroundColor: colors.ink, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  tuningOptionActive: { borderColor: colors.gold, backgroundColor: colors.gold },
+  tuningOptionText: { flex: 1, color: colors.white, fontSize: 15, fontWeight: '800' },
+  tuningOptionTextActive: { color: colors.ink },
+  tuningOptionRadio: { width: 21, height: 21, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.muted, borderRadius: 11 },
+  tuningOptionRadioActive: { borderColor: colors.ink },
+  tuningOptionDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.ink },
   accountNotice: {
     minHeight: 76,
     flexDirection: 'row',

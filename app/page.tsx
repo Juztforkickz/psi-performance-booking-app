@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { BookingFlow } from "./components/BookingFlow";
 import { OpeningBookingPanel } from "./components/OpeningBookingPanel";
 
@@ -21,7 +22,7 @@ export default function Home() {
       <section className="hero-shell">
         <header className="site-header">
           <a href="#top" className="brand-link" aria-label="PSI Performance home">
-            <img className="brand-mark" src="/psi-logo.png" alt="PSI Performance Garage" />
+            <Image className="brand-mark" src="/psi-logo.png" alt="PSI Performance Garage" width={310} height={120} priority />
           </a>
           <nav className="site-nav" aria-label="Primary navigation">
             <a href="#services">Services</a>
@@ -52,11 +53,20 @@ export default function Home() {
                 <a href="tel:+61433431781">0433 431 781</a>
               </div>
               <div>
+                <span>Email</span>
+                <a href="mailto:info@psiperformance.com.au">info@psiperformance.com.au</a>
+              </div>
+              <div>
                 <span>Address</span>
                 <a href="https://maps.google.com/?q=21+Exchange+Drive+Pakenham+VIC+3810" target="_blank" rel="noreferrer">
                   21 Exchange Drive, Pakenham VIC 3810
                 </a>
               </div>
+            </div>
+            <div className="opening-social-links" aria-label="PSI Performance social media">
+              <span>Follow the workshop</span>
+              <a href="https://www.instagram.com/psiperformancegarage/" target="_blank" rel="noreferrer">Instagram <span aria-hidden="true">↗</span></a>
+              <a href="https://www.facebook.com/psiperformancegarage/" target="_blank" rel="noreferrer">Facebook <span aria-hidden="true">↗</span></a>
             </div>
             <p className="opening-deposit-note">
               Booking requests are secured with a fixed $200 AUD deposit. PSI confirms the requested date after payment.
@@ -173,16 +183,28 @@ export default function Home() {
           <p className="eyebrow">PSI Performance Garage</p>
           <h2>Ready when<br />you are.</h2>
         </div>
-        <div className="contact-grid">
-          <a href="tel:+61433431781"><span>Call</span><strong>0433 431 781</strong></a>
-          <a href="mailto:info@psiperformance.com.au"><span>Email</span><strong>info@psiperformance.com.au</strong></a>
-          <a href="https://maps.google.com/?q=21+Exchange+Drive+Pakenham+VIC+3810" target="_blank" rel="noreferrer"><span>Workshop</span><strong>21 Exchange Drive<br />Pakenham VIC 3810</strong></a>
-          <div><span>Hours</span><strong>Mon–Fri · 8:30am–5pm<br />Saturday · By appointment</strong></div>
+        <div className="contact-panel">
+          <div className="contact-grid">
+            <a href="tel:+61433431781"><span>Call</span><strong>0433 431 781</strong></a>
+            <a href="mailto:info@psiperformance.com.au"><span>Email</span><strong>info@psiperformance.com.au</strong></a>
+            <a href="https://maps.google.com/?q=21+Exchange+Drive+Pakenham+VIC+3810" target="_blank" rel="noreferrer"><span>Workshop</span><strong>21 Exchange Drive<br />Pakenham VIC 3810</strong></a>
+            <div><span>Hours</span><strong>Mon–Fri · 8:30am–5pm<br />Saturday · By appointment</strong></div>
+            <a href="https://www.instagram.com/psiperformancegarage/" target="_blank" rel="noreferrer"><span>Instagram</span><strong>@psiperformancegarage ↗</strong></a>
+            <a href="https://www.facebook.com/psiperformancegarage/" target="_blank" rel="noreferrer"><span>Facebook</span><strong>PSI Performance Garage ↗</strong></a>
+          </div>
+          <div className="contact-qr-card">
+            <div>
+              <span>PSI in your phone</span>
+              <strong>Scan to save PSI contact</strong>
+              <p>Phone, email, workshop address and website—ready to save.</p>
+            </div>
+            <Image src="/psi-contact-qr.png" alt="QR code to save PSI Performance contact details" width={180} height={180} />
+          </div>
         </div>
       </section>
 
       <footer className="site-footer">
-        <img src="/psi-logo.png" alt="PSI Performance Garage" />
+        <Image src="/psi-logo.png" alt="PSI Performance Garage" width={236} height={92} />
         <div className="social-links">
           <a href="https://www.facebook.com/psiperformancegarage/" target="_blank" rel="noreferrer">Facebook</a>
           <a href="https://www.instagram.com/psiperformancegarage/" target="_blank" rel="noreferrer">Instagram</a>

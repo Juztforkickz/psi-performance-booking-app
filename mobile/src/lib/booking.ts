@@ -1,6 +1,33 @@
 export type BookingType = 'service' | 'dyno';
 export type ArrivalWindow = 'morning' | 'afternoon' | 'any';
 
+export type TuningDetails = {
+  engineState: '' | 'stock' | 'modified';
+  engineModifications: string;
+  transmissionType: '' | 'automatic' | 'manual';
+  transmissionSetup: '' | 'stock' | 'converter' | 'trans_cooler' | 'converter_and_cooler' | 'upgraded_clutch' | 'built_transmission' | 'other';
+  transmissionDetails: string;
+  differentialType: '' | 'stock' | 'truetrac' | 'wavetrac' | 'other';
+  differentialGearRatio: string;
+  differentialDetails: string;
+  fuelPumpType: '' | 'stock' | 'upgraded' | 'unknown';
+  fuelPumpDetails: string;
+  injectorType: '' | 'stock' | 'upgraded' | 'unknown';
+  injectorDetails: string;
+  fuelType: '' | '98_ron' | 'e85' | 'flex_fuel' | 'race_fuel' | 'other';
+  fuelTypeDetails: string;
+  intakeType: '' | 'stock' | 'upgraded';
+  intakeDetails: string;
+  previouslyTuned: '' | 'no' | 'yes' | 'unknown';
+  previousTuner: string;
+  exhaustType: '' | 'stock' | 'cat_back' | 'full_system' | 'custom';
+  exhaustSize: '' | 'stock' | '2_5_inch' | '3_inch' | '3_5_inch' | '4_inch' | 'other';
+  varexControlled: '' | 'no' | 'yes' | 'unknown';
+  exhaustDetails: string;
+  camshaftType: '' | 'stock' | 'upgraded' | 'unknown';
+  camshaftDetails: string;
+};
+
 export const MIN_DEPOSIT_CENTS = 20_000;
 export const DEPOSIT_CURRENCY = 'AUD';
 
@@ -31,6 +58,7 @@ export type BookingFormState = {
   arrivalWindow: ArrivalWindow;
   consent: boolean;
   depositTermsAccepted: boolean;
+  tuningDetails: TuningDetails;
 };
 
 export type BookingCheckoutResult = {
@@ -45,6 +73,33 @@ export type BookingCheckoutResult = {
     provider: string;
     checkoutUrl: string;
   };
+};
+
+export const EMPTY_TUNING_DETAILS: TuningDetails = {
+  engineState: '',
+  engineModifications: '',
+  transmissionType: '',
+  transmissionSetup: '',
+  transmissionDetails: '',
+  differentialType: '',
+  differentialGearRatio: '',
+  differentialDetails: '',
+  fuelPumpType: '',
+  fuelPumpDetails: '',
+  injectorType: '',
+  injectorDetails: '',
+  fuelType: '',
+  fuelTypeDetails: '',
+  intakeType: '',
+  intakeDetails: '',
+  previouslyTuned: '',
+  previousTuner: '',
+  exhaustType: '',
+  exhaustSize: '',
+  varexControlled: '',
+  exhaustDetails: '',
+  camshaftType: '',
+  camshaftDetails: '',
 };
 
 export const EMPTY_BOOKING: BookingFormState = {
@@ -63,9 +118,12 @@ export const EMPTY_BOOKING: BookingFormState = {
   arrivalWindow: 'any',
   consent: false,
   depositTermsAccepted: false,
+  tuningDetails: { ...EMPTY_TUNING_DETAILS },
 };
 
-export type BookingErrors = Partial<Record<keyof BookingFormState, string>>;
+export type TuningFieldKey = `tuningDetails.${keyof TuningDetails}`;
+export type BookingErrorKey = Exclude<keyof BookingFormState, 'tuningDetails'> | 'tuningDetails' | TuningFieldKey;
+export type BookingErrors = Partial<Record<BookingErrorKey, string>>;
 
 export class BookingApiError extends Error {
   code: string;
@@ -130,6 +188,54 @@ export function validateBookingStep(form: BookingFormState, step: number): Booki
     if (!form.bookingType) errors.bookingType = 'Choose Service & Report or Dyno tuning.';
     if (form.requestDetails.trim().length < 10) {
       errors.requestDetails = 'Tell PSI what you need in at least 10 characters.';
+    }
+
+    if (form.bookingType === 'dyno') {
+      const tuning = form.tuningDetails;
+      if (!tuning.engineState) errors['tuningDetails.engineState'] = 'Choose whether the engine is stock or modified.';
+      if (tuning.engineState === 'modified' && tuning.engineModifications.trim().length < 3) {
+        errors['tuningDetails.engineModifications'] = 'List the engine modifications.';
+      }
+      if (!tuning.transmissionType) errors['tuningDetails.transmissionType'] = 'Choose automatic or manual.';
+      if (!tuning.transmissionSetup) errors['tuningDetails.transmissionSetup'] = 'Choose the transmission setup.';
+      if (tuning.transmissionSetup && tuning.transmissionSetup !== 'stock' && tuning.transmissionDetails.trim().length < 3) {
+        errors['tuningDetails.transmissionDetails'] = 'Tell PSI exactly what transmission equipment is fitted.';
+      }
+      if (!tuning.differentialType) errors['tuningDetails.differentialType'] = 'Choose the differential type.';
+      if (!tuning.differentialGearRatio.trim()) errors['tuningDetails.differentialGearRatio'] = 'Enter the differential gear ratio.';
+      if (tuning.differentialType === 'other' && tuning.differentialDetails.trim().length < 3) {
+        errors['tuningDetails.differentialDetails'] = 'Describe the differential setup.';
+      }
+      if (!tuning.fuelPumpType) errors['tuningDetails.fuelPumpType'] = 'Choose the fuel pump setup.';
+      if (tuning.fuelPumpType === 'upgraded' && tuning.fuelPumpDetails.trim().length < 3) {
+        errors['tuningDetails.fuelPumpDetails'] = 'Enter the upgraded fuel pump details.';
+      }
+      if (!tuning.injectorType) errors['tuningDetails.injectorType'] = 'Choose the injector setup.';
+      if (tuning.injectorType === 'upgraded' && tuning.injectorDetails.trim().length < 3) {
+        errors['tuningDetails.injectorDetails'] = 'Enter the injector brand and size.';
+      }
+      if (!tuning.fuelType) errors['tuningDetails.fuelType'] = 'Choose the fuel PSI will tune for.';
+      if (tuning.fuelType === 'other' && tuning.fuelTypeDetails.trim().length < 3) {
+        errors['tuningDetails.fuelTypeDetails'] = 'Enter the fuel details.';
+      }
+      if (!tuning.intakeType) errors['tuningDetails.intakeType'] = 'Choose the intake setup.';
+      if (tuning.intakeType === 'upgraded' && tuning.intakeDetails.trim().length < 3) {
+        errors['tuningDetails.intakeDetails'] = 'Enter the upgraded intake details.';
+      }
+      if (!tuning.previouslyTuned) errors['tuningDetails.previouslyTuned'] = 'Tell PSI whether the vehicle has been tuned before.';
+      if (tuning.previouslyTuned === 'yes' && tuning.previousTuner.trim().length < 2) {
+        errors['tuningDetails.previousTuner'] = 'Enter who previously tuned the vehicle.';
+      }
+      if (!tuning.exhaustType) errors['tuningDetails.exhaustType'] = 'Choose the exhaust setup.';
+      if (!tuning.exhaustSize) errors['tuningDetails.exhaustSize'] = 'Choose the exhaust size.';
+      if (!tuning.varexControlled) errors['tuningDetails.varexControlled'] = 'Tell PSI whether Varex control is fitted.';
+      if (tuning.exhaustType && tuning.exhaustType !== 'stock' && tuning.exhaustDetails.trim().length < 3) {
+        errors['tuningDetails.exhaustDetails'] = 'Describe the exhaust modifications.';
+      }
+      if (!tuning.camshaftType) errors['tuningDetails.camshaftType'] = 'Choose the camshaft setup.';
+      if (tuning.camshaftType === 'upgraded' && tuning.camshaftDetails.trim().length < 3) {
+        errors['tuningDetails.camshaftDetails'] = 'Enter the camshaft code or specifications.';
+      }
     }
   }
 
@@ -211,13 +317,25 @@ function normaliseApiFieldErrors(fields: unknown): BookingErrors {
   if (!fields || typeof fields !== 'object' || Array.isArray(fields)) return {};
 
   const fieldErrors: BookingErrors = {};
-  for (const [key, value] of Object.entries(fields)) {
+  const allowedTuningKeys = new Set(Object.keys(EMPTY_TUNING_DETAILS));
+
+  const addError = (key: string, value: unknown) => {
     const formKey = key === 'depositPolicyVersion' ? 'depositTermsAccepted' : key;
-    if (!(formKey in EMPTY_BOOKING)) continue;
+    const allowedTopLevel = formKey in EMPTY_BOOKING && formKey !== 'tuningDetails';
+    const tuningKey = formKey.startsWith('tuningDetails.') ? formKey.slice('tuningDetails.'.length) : '';
+    if (!allowedTopLevel && !allowedTuningKeys.has(tuningKey) && formKey !== 'tuningDetails') return;
     const message = Array.isArray(value) ? value.filter((item) => typeof item === 'string').join(' ') : value;
     if (typeof message === 'string' && message.trim()) {
-      fieldErrors[formKey as keyof BookingFormState] = message.trim();
+      fieldErrors[formKey as BookingErrorKey] = message.trim();
     }
+  };
+
+  for (const [key, value] of Object.entries(fields)) {
+    if (key === 'tuningDetails' && value && typeof value === 'object' && !Array.isArray(value)) {
+      for (const [nestedKey, nestedValue] of Object.entries(value)) addError(`tuningDetails.${nestedKey}`, nestedValue);
+      continue;
+    }
+    addError(key, value);
   }
   return fieldErrors;
 }
@@ -272,6 +390,34 @@ export async function createBookingCheckout(
   const timeout = setTimeout(() => controller.abort(), 20_000);
 
   try {
+    const tuning = form.tuningDetails;
+    const tuningDetails = form.bookingType === 'dyno' ? {
+      engineState: tuning.engineState,
+      ...(tuning.engineState === 'modified' ? { engineModifications: tuning.engineModifications.trim() } : {}),
+      transmissionType: tuning.transmissionType,
+      transmissionSetup: tuning.transmissionSetup,
+      ...(tuning.transmissionSetup !== 'stock' ? { transmissionDetails: tuning.transmissionDetails.trim() } : {}),
+      differentialType: tuning.differentialType,
+      differentialGearRatio: tuning.differentialGearRatio.trim(),
+      ...(tuning.differentialType === 'other' ? { differentialDetails: tuning.differentialDetails.trim() } : {}),
+      fuelPumpType: tuning.fuelPumpType,
+      ...(tuning.fuelPumpType === 'upgraded' ? { fuelPumpDetails: tuning.fuelPumpDetails.trim() } : {}),
+      injectorType: tuning.injectorType,
+      ...(tuning.injectorType === 'upgraded' ? { injectorDetails: tuning.injectorDetails.trim() } : {}),
+      fuelType: tuning.fuelType,
+      ...(tuning.fuelType === 'other' ? { fuelTypeDetails: tuning.fuelTypeDetails.trim() } : {}),
+      intakeType: tuning.intakeType,
+      ...(tuning.intakeType === 'upgraded' ? { intakeDetails: tuning.intakeDetails.trim() } : {}),
+      previouslyTuned: tuning.previouslyTuned,
+      ...(tuning.previouslyTuned === 'yes' ? { previousTuner: tuning.previousTuner.trim() } : {}),
+      exhaustType: tuning.exhaustType,
+      exhaustSize: tuning.exhaustSize,
+      varexControlled: tuning.varexControlled,
+      ...(tuning.exhaustType !== 'stock' ? { exhaustDetails: tuning.exhaustDetails.trim() } : {}),
+      camshaftType: tuning.camshaftType,
+      ...(tuning.camshaftType === 'upgraded' ? { camshaftDetails: tuning.camshaftDetails.trim() } : {}),
+    } : undefined;
+
     const response = await fetch(bookingCheckoutApiUrl(), {
       method: 'POST',
       headers: {
@@ -298,6 +444,7 @@ export async function createBookingCheckout(
         consent: true,
         depositTermsAccepted: true,
         depositPolicyVersion: 'psi-deposit-v1',
+        ...(tuningDetails ? { tuningDetails } : {}),
         company: '',
       }),
     });

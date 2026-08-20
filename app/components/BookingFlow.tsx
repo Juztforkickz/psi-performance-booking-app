@@ -5,9 +5,45 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 type BookingType = "service" | "dyno";
 type ArrivalWindow = "morning" | "afternoon" | "any";
 
+type TuningDetails = {
+  engineState: "stock" | "modified" | "";
+  engineModifications: string;
+  transmissionType: "automatic" | "manual" | "";
+  transmissionSetup:
+    | "stock"
+    | "converter"
+    | "trans_cooler"
+    | "converter_and_cooler"
+    | "upgraded_clutch"
+    | "built_transmission"
+    | "other"
+    | "";
+  transmissionDetails: string;
+  differentialType: "stock" | "truetrac" | "wavetrac" | "other" | "";
+  differentialGearRatio: string;
+  differentialDetails: string;
+  fuelPumpType: "stock" | "upgraded" | "unknown" | "";
+  fuelPumpDetails: string;
+  injectorType: "stock" | "upgraded" | "unknown" | "";
+  injectorDetails: string;
+  fuelType: "98_ron" | "e85" | "flex_fuel" | "race_fuel" | "other" | "";
+  fuelTypeDetails: string;
+  intakeType: "stock" | "upgraded" | "";
+  intakeDetails: string;
+  previouslyTuned: "no" | "yes" | "unknown" | "";
+  previousTuner: string;
+  exhaustType: "stock" | "cat_back" | "full_system" | "custom" | "";
+  exhaustSize: "stock" | "2_5_inch" | "3_inch" | "3_5_inch" | "4_inch" | "other" | "";
+  varexControlled: "no" | "yes" | "unknown" | "";
+  exhaustDetails: string;
+  camshaftType: "stock" | "upgraded" | "unknown" | "";
+  camshaftDetails: string;
+};
+
 type BookingFormState = {
   bookingType: BookingType | "";
   requestDetails: string;
+  tuningDetails: TuningDetails;
   firstName: string;
   lastName: string;
   email: string;
@@ -62,15 +98,68 @@ const BOOKING_TYPES = {
 } as const;
 
 const BOOKING_STEPS = [
-  { number: 1, label: "Job" },
+  { number: 1, label: "Job & setup" },
   { number: 2, label: "You & car" },
   { number: 3, label: "Preferred date" },
   { number: 4, label: "Deposit" },
 ] as const;
 
+const TUNING_FIELD_NAMES = [
+  "engineState",
+  "engineModifications",
+  "transmissionType",
+  "transmissionSetup",
+  "transmissionDetails",
+  "differentialType",
+  "differentialGearRatio",
+  "differentialDetails",
+  "fuelPumpType",
+  "fuelPumpDetails",
+  "injectorType",
+  "injectorDetails",
+  "fuelType",
+  "fuelTypeDetails",
+  "intakeType",
+  "intakeDetails",
+  "previouslyTuned",
+  "previousTuner",
+  "exhaustType",
+  "exhaustSize",
+  "varexControlled",
+  "exhaustDetails",
+  "camshaftType",
+  "camshaftDetails",
+] as const;
+
 const INITIAL_FORM: BookingFormState = {
   bookingType: "",
   requestDetails: "",
+  tuningDetails: {
+    engineState: "",
+    engineModifications: "",
+    transmissionType: "",
+    transmissionSetup: "",
+    transmissionDetails: "",
+    differentialType: "",
+    differentialGearRatio: "",
+    differentialDetails: "",
+    fuelPumpType: "",
+    fuelPumpDetails: "",
+    injectorType: "",
+    injectorDetails: "",
+    fuelType: "",
+    fuelTypeDetails: "",
+    intakeType: "",
+    intakeDetails: "",
+    previouslyTuned: "",
+    previousTuner: "",
+    exhaustType: "",
+    exhaustSize: "",
+    varexControlled: "",
+    exhaustDetails: "",
+    camshaftType: "",
+    camshaftDetails: "",
+  },
   firstName: "",
   lastName: "",
   email: "",
@@ -132,8 +221,31 @@ function displayDate(value: string) {
   }).format(dateFromIso(value));
 }
 
+function tuningDetailsForCheckout(tuning: TuningDetails): TuningDetails {
+  return {
+    ...tuning,
+    engineModifications: tuning.engineState === "modified" ? tuning.engineModifications.trim() : "",
+    transmissionDetails: tuning.transmissionSetup !== "stock" ? tuning.transmissionDetails.trim() : "",
+    differentialGearRatio: tuning.differentialGearRatio.trim(),
+    differentialDetails: tuning.differentialType === "other" ? tuning.differentialDetails.trim() : "",
+    fuelPumpDetails: tuning.fuelPumpType === "upgraded" ? tuning.fuelPumpDetails.trim() : "",
+    injectorDetails: tuning.injectorType === "upgraded" ? tuning.injectorDetails.trim() : "",
+    fuelTypeDetails: tuning.fuelType === "other" ? tuning.fuelTypeDetails.trim() : "",
+    intakeDetails: tuning.intakeType === "upgraded" ? tuning.intakeDetails.trim() : "",
+    previousTuner: tuning.previouslyTuned === "yes" ? tuning.previousTuner.trim() : "",
+    exhaustDetails: tuning.exhaustType !== "stock" ? tuning.exhaustDetails.trim() : "",
+    camshaftDetails: tuning.camshaftType === "upgraded" ? tuning.camshaftDetails.trim() : "",
+  };
+}
+
 function bookingStepForField(field: string) {
-  if (["bookingType", "requestDetails"].includes(field)) return 1;
+  const normalisedField = field.replace(/^tuningDetails\./, "");
+  if (
+    ["bookingType", "requestDetails", "tuningDetails"].includes(normalisedField) ||
+    TUNING_FIELD_NAMES.includes(normalisedField as (typeof TUNING_FIELD_NAMES)[number])
+  ) {
+    return 1;
+  }
   if (
     [
       "firstName",
@@ -146,11 +258,11 @@ function bookingStepForField(field: string) {
       "registration",
       "vin",
       "consent",
-    ].includes(field)
+    ].includes(normalisedField)
   ) {
     return 2;
   }
-  if (["preferredDate", "arrivalWindow"].includes(field)) return 3;
+  if (["preferredDate", "arrivalWindow"].includes(normalisedField)) return 3;
   return 4;
 }
 
@@ -216,6 +328,23 @@ export function BookingFlow() {
     });
   };
 
+  const updateTuning = <K extends keyof TuningDetails>(key: K, value: TuningDetails[K]) => {
+    setForm((current) => ({
+      ...current,
+      tuningDetails: { ...current.tuningDetails, [key]: value },
+    }));
+    idempotencyKey.current = null;
+    setFormError("");
+    setErrorCode("");
+    setErrors((current) => {
+      if (!current[key] && !current[`tuningDetails.${key}`]) return current;
+      const next = { ...current };
+      delete next[key];
+      delete next[`tuningDetails.${key}`];
+      return next;
+    });
+  };
+
   const chooseBookingType = (value: string) => {
     if (value === "parts") {
       window.location.assign("/parts");
@@ -229,12 +358,15 @@ export function BookingFlow() {
   };
 
   const focusField = (field: string) => {
+    const normalisedField = field.replace(/^tuningDetails\./, "");
     const targetId =
-      field === "depositPolicyVersion" ||
-      field === "depositAmountCents" ||
-      field === "currency"
+      normalisedField === "depositPolicyVersion" ||
+      normalisedField === "depositAmountCents" ||
+      normalisedField === "currency"
         ? "depositTermsAccepted"
-        : field;
+        : normalisedField === "tuningDetails"
+          ? "tuning-setup-heading"
+        : normalisedField;
     window.requestAnimationFrame(() => document.getElementById(targetId)?.focus());
   };
 
@@ -252,6 +384,54 @@ export function BookingFlow() {
     if (targetStep === 1) {
       if (!form.bookingType) nextErrors.bookingType = "Choose Service & Report or Dyno tuning.";
       if (!form.requestDetails.trim()) nextErrors.requestDetails = "Tell PSI exactly what you are after.";
+
+      if (form.bookingType === "dyno") {
+        const tuning = form.tuningDetails;
+        if (!tuning.engineState) nextErrors.engineState = "Choose whether the engine is stock or modified.";
+        if (tuning.engineState === "modified" && !tuning.engineModifications.trim()) {
+          nextErrors.engineModifications = "List the engine modifications PSI needs to know about.";
+        }
+        if (!tuning.transmissionType) nextErrors.transmissionType = "Choose automatic or manual.";
+        if (!tuning.transmissionSetup) nextErrors.transmissionSetup = "Choose the current transmission setup.";
+        if (tuning.transmissionSetup && tuning.transmissionSetup !== "stock" && !tuning.transmissionDetails.trim()) {
+          nextErrors.transmissionDetails = "Tell PSI what converter, cooler, clutch or transmission work is fitted.";
+        }
+        if (!tuning.differentialType) nextErrors.differentialType = "Choose the differential type.";
+        if (!tuning.differentialGearRatio.trim()) nextErrors.differentialGearRatio = "Enter the differential gear ratio, or write Unknown.";
+        if (tuning.differentialType === "other" && !tuning.differentialDetails.trim()) {
+          nextErrors.differentialDetails = "Describe the differential setup.";
+        }
+        if (!tuning.fuelPumpType) nextErrors.fuelPumpType = "Choose the fuel pump setup.";
+        if (tuning.fuelPumpType === "upgraded" && !tuning.fuelPumpDetails.trim()) {
+          nextErrors.fuelPumpDetails = "Enter the upgraded fuel pump brand and model.";
+        }
+        if (!tuning.injectorType) nextErrors.injectorType = "Choose the injector setup.";
+        if (tuning.injectorType === "upgraded" && !tuning.injectorDetails.trim()) {
+          nextErrors.injectorDetails = "Enter the injector brand and size or part number.";
+        }
+        if (!tuning.fuelType) nextErrors.fuelType = "Choose the fuel the vehicle will be tuned on.";
+        if (tuning.fuelType === "other" && !tuning.fuelTypeDetails.trim()) {
+          nextErrors.fuelTypeDetails = "Tell PSI which fuel you use.";
+        }
+        if (!tuning.intakeType) nextErrors.intakeType = "Choose the intake setup.";
+        if (tuning.intakeType === "upgraded" && !tuning.intakeDetails.trim()) {
+          nextErrors.intakeDetails = "Describe the intake fitted to the vehicle.";
+        }
+        if (!tuning.previouslyTuned) nextErrors.previouslyTuned = "Tell PSI whether the vehicle has been tuned before.";
+        if (tuning.previouslyTuned === "yes" && !tuning.previousTuner.trim()) {
+          nextErrors.previousTuner = "Enter who previously tuned the vehicle.";
+        }
+        if (!tuning.exhaustType) nextErrors.exhaustType = "Choose the exhaust type.";
+        if (!tuning.exhaustSize) nextErrors.exhaustSize = "Choose the exhaust size.";
+        if (!tuning.varexControlled) nextErrors.varexControlled = "Tell PSI whether the exhaust is Varex controlled.";
+        if (tuning.exhaustType && tuning.exhaustType !== "stock" && !tuning.exhaustDetails.trim()) {
+          nextErrors.exhaustDetails = "Describe the exact exhaust modifications.";
+        }
+        if (!tuning.camshaftType) nextErrors.camshaftType = "Choose the camshaft setup.";
+        if (tuning.camshaftType === "upgraded" && !tuning.camshaftDetails.trim()) {
+          nextErrors.camshaftDetails = "Enter the camshaft code or specifications.";
+        }
+      }
     }
 
     if (targetStep === 2) {
@@ -338,6 +518,11 @@ export function BookingFlow() {
           preferredDate: form.preferredDate,
           arrivalWindow: form.arrivalWindow,
           requestDetails: form.requestDetails.trim(),
+          ...(form.bookingType === "dyno"
+            ? {
+                tuningDetails: tuningDetailsForCheckout(form.tuningDetails),
+              }
+            : {}),
           source: "web",
           consent: true,
           depositTermsAccepted: true,
@@ -358,7 +543,10 @@ export function BookingFlow() {
         const apiError = payload.error;
         const fields = typeof apiError === "object" ? apiError.fields : undefined;
         if (fields && Object.keys(fields).length > 0) {
-          setErrors(fields);
+          const normalisedFields = Object.fromEntries(
+            Object.entries(fields).map(([field, message]) => [field.replace(/^tuningDetails\./, ""), message]),
+          );
+          setErrors(normalisedFields);
           const firstField = Object.keys(fields)[0];
           setStep(bookingStepForField(firstField));
           window.setTimeout(() => focusField(firstField), 0);
@@ -506,6 +694,14 @@ export function BookingFlow() {
                 />
               </Field>
               <div className="character-count">{form.requestDetails.length}/2000</div>
+
+              {form.bookingType === "dyno" && (
+                <TuningSetupFields
+                  tuning={form.tuningDetails}
+                  errors={errors}
+                  onChange={updateTuning}
+                />
+              )}
             </fieldset>
           )}
 
@@ -660,6 +856,375 @@ export function BookingFlow() {
           </div>
           {step === 4 && <p className="secure-checkout-note">No payment is taken on this page. You will be redirected only when secure checkout is available.</p>}
         </form>
+      </div>
+    </section>
+  );
+}
+
+function TuningSetupFields({
+  tuning,
+  errors,
+  onChange,
+}: {
+  tuning: TuningDetails;
+  errors: Record<string, string>;
+  onChange: <K extends keyof TuningDetails>(key: K, value: TuningDetails[K]) => void;
+}) {
+  type TransmissionSetupValue = Exclude<TuningDetails["transmissionSetup"], "">;
+  const automaticSetups: ReadonlyArray<readonly [TransmissionSetupValue, string]> = [
+    ["stock", "Stock / none"],
+    ["converter", "Upgraded converter"],
+    ["trans_cooler", "Transmission cooler"],
+    ["converter_and_cooler", "Converter + transmission cooler"],
+    ["built_transmission", "Built transmission"],
+    ["other", "Other"],
+  ];
+  const manualSetups: ReadonlyArray<readonly [TransmissionSetupValue, string]> = [
+    ["stock", "Stock / none"],
+    ["upgraded_clutch", "Upgraded clutch"],
+    ["built_transmission", "Built transmission"],
+    ["other", "Other"],
+  ];
+  const transmissionSetups = tuning.transmissionType === "manual" ? manualSetups : automaticSetups;
+
+  const changeTransmissionType = (value: TuningDetails["transmissionType"]) => {
+    onChange("transmissionType", value);
+    if (
+      tuning.transmissionSetup &&
+      !(
+        value === "manual"
+          ? manualSetups.some(([option]) => option === tuning.transmissionSetup)
+          : automaticSetups.some(([option]) => option === tuning.transmissionSetup)
+      )
+    ) {
+      onChange("transmissionSetup", "");
+      onChange("transmissionDetails", "");
+    }
+  };
+
+  return (
+    <section className="tuning-setup" aria-labelledby="tuning-setup-heading">
+      <div className="tuning-heading">
+        <div>
+          <p className="tuning-kicker">Dyno tuning · vehicle specification</p>
+          <h3 id="tuning-setup-heading" tabIndex={-1}>Tell us how the car is set up.</h3>
+        </div>
+        <p>Choose the closest answer. Extra detail appears only where PSI needs it to prepare for your tune.</p>
+      </div>
+
+      <div className="tuning-grid">
+        <section className="tuning-card" aria-labelledby="tuning-engine-heading">
+          <div className="tuning-card-heading">
+            <span>01</span>
+            <h4 id="tuning-engine-heading">Engine</h4>
+          </div>
+          <Field label="Engine setup" id="engineState" error={errors.engineState} wide>
+            <select
+              id="engineState"
+              value={tuning.engineState}
+              onChange={(event) => onChange("engineState", event.target.value as TuningDetails["engineState"])}
+              required
+              aria-invalid={Boolean(errors.engineState)}
+              aria-describedby={errors.engineState ? "engineState-error" : undefined}
+            >
+              <option value="">Choose stock or modified</option>
+              <option value="stock">Stock</option>
+              <option value="modified">Modified</option>
+            </select>
+          </Field>
+          {tuning.engineState === "modified" && (
+            <Field label="Engine modifications" hint="Required" id="engineModifications" error={errors.engineModifications} wide>
+              <textarea
+                id="engineModifications"
+                value={tuning.engineModifications}
+                onChange={(event) => onChange("engineModifications", event.target.value)}
+                rows={4}
+                maxLength={2000}
+                placeholder="List engine, induction, boost and internal modifications."
+                required
+                aria-invalid={Boolean(errors.engineModifications)}
+                aria-describedby={errors.engineModifications ? "engineModifications-error" : undefined}
+              />
+            </Field>
+          )}
+        </section>
+
+        <section className="tuning-card" aria-labelledby="tuning-transmission-heading">
+          <div className="tuning-card-heading">
+            <span>02</span>
+            <h4 id="tuning-transmission-heading">Transmission</h4>
+          </div>
+          <div className="tuning-card-fields">
+            <Field label="Transmission type" id="transmissionType" error={errors.transmissionType}>
+              <select
+                id="transmissionType"
+                value={tuning.transmissionType}
+                onChange={(event) => changeTransmissionType(event.target.value as TuningDetails["transmissionType"])}
+                required
+                aria-invalid={Boolean(errors.transmissionType)}
+                aria-describedby={errors.transmissionType ? "transmissionType-error" : undefined}
+              >
+                <option value="">Choose type</option>
+                <option value="automatic">Automatic</option>
+                <option value="manual">Manual</option>
+              </select>
+            </Field>
+            {tuning.transmissionType && (
+              <Field label="Current setup" id="transmissionSetup" error={errors.transmissionSetup}>
+                <select
+                  id="transmissionSetup"
+                  value={transmissionSetups.some(([option]) => option === tuning.transmissionSetup) ? tuning.transmissionSetup : ""}
+                  onChange={(event) => onChange("transmissionSetup", event.target.value as TuningDetails["transmissionSetup"])}
+                  required
+                  aria-invalid={Boolean(errors.transmissionSetup)}
+                  aria-describedby={errors.transmissionSetup ? "transmissionSetup-error" : undefined}
+                >
+                  <option value="">Choose setup</option>
+                  {transmissionSetups.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </Field>
+            )}
+          </div>
+          {tuning.transmissionSetup && tuning.transmissionSetup !== "stock" && (
+            <Field label="Transmission details" hint="Required" id="transmissionDetails" error={errors.transmissionDetails} wide>
+              <textarea
+                id="transmissionDetails"
+                value={tuning.transmissionDetails}
+                onChange={(event) => onChange("transmissionDetails", event.target.value)}
+                rows={3}
+                maxLength={1000}
+                placeholder="Brand, model, stall speed, cooler, clutch or build details."
+                required
+                aria-invalid={Boolean(errors.transmissionDetails)}
+                aria-describedby={errors.transmissionDetails ? "transmissionDetails-error" : undefined}
+              />
+            </Field>
+          )}
+        </section>
+
+        <section className="tuning-card" aria-labelledby="tuning-diff-heading">
+          <div className="tuning-card-heading">
+            <span>03</span>
+            <h4 id="tuning-diff-heading">Differential</h4>
+          </div>
+          <div className="tuning-card-fields">
+            <Field label="Differential type" id="differentialType" error={errors.differentialType}>
+              <select
+                id="differentialType"
+                value={tuning.differentialType}
+                onChange={(event) => onChange("differentialType", event.target.value as TuningDetails["differentialType"])}
+                required
+                aria-invalid={Boolean(errors.differentialType)}
+                aria-describedby={errors.differentialType ? "differentialType-error" : undefined}
+              >
+                <option value="">Choose type</option>
+                <option value="stock">Stock</option>
+                <option value="truetrac">Truetrac</option>
+                <option value="wavetrac">Wavetrac</option>
+                <option value="other">Other</option>
+              </select>
+            </Field>
+            <Field label="Gear ratio" id="differentialGearRatio" error={errors.differentialGearRatio}>
+              <input
+                id="differentialGearRatio"
+                value={tuning.differentialGearRatio}
+                onChange={(event) => onChange("differentialGearRatio", event.target.value)}
+                maxLength={40}
+                placeholder="e.g. 3.46 or Unknown"
+                required
+                aria-invalid={Boolean(errors.differentialGearRatio)}
+                aria-describedby={errors.differentialGearRatio ? "differentialGearRatio-error" : undefined}
+              />
+            </Field>
+          </div>
+          {tuning.differentialType === "other" && (
+            <Field label="Differential details" hint="Required" id="differentialDetails" error={errors.differentialDetails} wide>
+              <input
+                id="differentialDetails"
+                value={tuning.differentialDetails}
+                onChange={(event) => onChange("differentialDetails", event.target.value)}
+                maxLength={1000}
+                placeholder="Describe the differential or centre fitted."
+                required
+                aria-invalid={Boolean(errors.differentialDetails)}
+                aria-describedby={errors.differentialDetails ? "differentialDetails-error" : undefined}
+              />
+            </Field>
+          )}
+        </section>
+
+        <section className="tuning-card tuning-card-wide" aria-labelledby="tuning-fuel-heading">
+          <div className="tuning-card-heading">
+            <span>04</span>
+            <h4 id="tuning-fuel-heading">Fuel system</h4>
+          </div>
+          <div className="tuning-card-fields tuning-card-fields-three">
+            <Field label="Fuel pump" id="fuelPumpType" error={errors.fuelPumpType}>
+              <select
+                id="fuelPumpType"
+                value={tuning.fuelPumpType}
+                onChange={(event) => onChange("fuelPumpType", event.target.value as TuningDetails["fuelPumpType"])}
+                required
+                aria-invalid={Boolean(errors.fuelPumpType)}
+                aria-describedby={errors.fuelPumpType ? "fuelPumpType-error" : undefined}
+              >
+                <option value="">Choose pump setup</option>
+                <option value="stock">Stock</option>
+                <option value="upgraded">Upgraded</option>
+                <option value="unknown">Unknown</option>
+              </select>
+            </Field>
+            <Field label="Injectors" id="injectorType" error={errors.injectorType}>
+              <select
+                id="injectorType"
+                value={tuning.injectorType}
+                onChange={(event) => onChange("injectorType", event.target.value as TuningDetails["injectorType"])}
+                required
+                aria-invalid={Boolean(errors.injectorType)}
+                aria-describedby={errors.injectorType ? "injectorType-error" : undefined}
+              >
+                <option value="">Choose injector setup</option>
+                <option value="stock">Stock</option>
+                <option value="upgraded">Upgraded</option>
+                <option value="unknown">Unknown</option>
+              </select>
+            </Field>
+            <Field label="Fuel for tuning" id="fuelType" error={errors.fuelType}>
+              <select
+                id="fuelType"
+                value={tuning.fuelType}
+                onChange={(event) => onChange("fuelType", event.target.value as TuningDetails["fuelType"])}
+                required
+                aria-invalid={Boolean(errors.fuelType)}
+                aria-describedby={errors.fuelType ? "fuelType-error" : undefined}
+              >
+                <option value="">Choose fuel</option>
+                <option value="98_ron">98 RON</option>
+                <option value="e85">E85</option>
+                <option value="flex_fuel">Flex fuel</option>
+                <option value="race_fuel">Race fuel</option>
+                <option value="other">Other</option>
+              </select>
+            </Field>
+          </div>
+          <div className="tuning-conditional-grid">
+            {tuning.fuelPumpType === "upgraded" && (
+              <Field label="Fuel pump details" hint="Required" id="fuelPumpDetails" error={errors.fuelPumpDetails}>
+                <input id="fuelPumpDetails" value={tuning.fuelPumpDetails} onChange={(event) => onChange("fuelPumpDetails", event.target.value)} maxLength={500} placeholder="Brand and model" required aria-invalid={Boolean(errors.fuelPumpDetails)} aria-describedby={errors.fuelPumpDetails ? "fuelPumpDetails-error" : undefined} />
+              </Field>
+            )}
+            {tuning.injectorType === "upgraded" && (
+              <Field label="Injector details" hint="Required" id="injectorDetails" error={errors.injectorDetails}>
+                <input id="injectorDetails" value={tuning.injectorDetails} onChange={(event) => onChange("injectorDetails", event.target.value)} maxLength={500} placeholder="Brand, size or part number" required aria-invalid={Boolean(errors.injectorDetails)} aria-describedby={errors.injectorDetails ? "injectorDetails-error" : undefined} />
+              </Field>
+            )}
+            {tuning.fuelType === "other" && (
+              <Field label="Other fuel" hint="Required" id="fuelTypeDetails" error={errors.fuelTypeDetails}>
+                <input id="fuelTypeDetails" value={tuning.fuelTypeDetails} onChange={(event) => onChange("fuelTypeDetails", event.target.value)} maxLength={300} placeholder="Tell us which fuel" required aria-invalid={Boolean(errors.fuelTypeDetails)} aria-describedby={errors.fuelTypeDetails ? "fuelTypeDetails-error" : undefined} />
+              </Field>
+            )}
+          </div>
+        </section>
+
+        <section className="tuning-card" aria-labelledby="tuning-intake-heading">
+          <div className="tuning-card-heading">
+            <span>05</span>
+            <h4 id="tuning-intake-heading">Intake & current tune</h4>
+          </div>
+          <div className="tuning-card-fields">
+            <Field label="Intake" id="intakeType" error={errors.intakeType}>
+              <select id="intakeType" value={tuning.intakeType} onChange={(event) => onChange("intakeType", event.target.value as TuningDetails["intakeType"])} required aria-invalid={Boolean(errors.intakeType)} aria-describedby={errors.intakeType ? "intakeType-error" : undefined}>
+                <option value="">Choose intake setup</option>
+                <option value="stock">Stock</option>
+                <option value="upgraded">Upgraded</option>
+              </select>
+            </Field>
+            <Field label="Previously tuned?" id="previouslyTuned" error={errors.previouslyTuned}>
+              <select id="previouslyTuned" value={tuning.previouslyTuned} onChange={(event) => onChange("previouslyTuned", event.target.value as TuningDetails["previouslyTuned"])} required aria-invalid={Boolean(errors.previouslyTuned)} aria-describedby={errors.previouslyTuned ? "previouslyTuned-error" : undefined}>
+                <option value="">Choose an answer</option>
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+                <option value="unknown">Unknown</option>
+              </select>
+            </Field>
+          </div>
+          <div className="tuning-conditional-grid">
+            {tuning.intakeType === "upgraded" && (
+              <Field label="Intake details" hint="Required" id="intakeDetails" error={errors.intakeDetails}>
+                <input id="intakeDetails" value={tuning.intakeDetails} onChange={(event) => onChange("intakeDetails", event.target.value)} maxLength={1000} placeholder="Brand, style and size" required aria-invalid={Boolean(errors.intakeDetails)} aria-describedby={errors.intakeDetails ? "intakeDetails-error" : undefined} />
+              </Field>
+            )}
+            {tuning.previouslyTuned === "yes" && (
+              <Field label="Who tuned it?" hint="Required" id="previousTuner" error={errors.previousTuner}>
+                <input id="previousTuner" value={tuning.previousTuner} onChange={(event) => onChange("previousTuner", event.target.value)} maxLength={200} placeholder="Tuner or workshop name" required aria-invalid={Boolean(errors.previousTuner)} aria-describedby={errors.previousTuner ? "previousTuner-error" : undefined} />
+              </Field>
+            )}
+          </div>
+        </section>
+
+        <section className="tuning-card tuning-card-wide" aria-labelledby="tuning-exhaust-heading">
+          <div className="tuning-card-heading">
+            <span>06</span>
+            <h4 id="tuning-exhaust-heading">Exhaust</h4>
+          </div>
+          <div className="tuning-card-fields tuning-card-fields-three">
+            <Field label="Exhaust type" id="exhaustType" error={errors.exhaustType}>
+              <select id="exhaustType" value={tuning.exhaustType} onChange={(event) => onChange("exhaustType", event.target.value as TuningDetails["exhaustType"])} required aria-invalid={Boolean(errors.exhaustType)} aria-describedby={errors.exhaustType ? "exhaustType-error" : undefined}>
+                <option value="">Choose type</option>
+                <option value="stock">Stock</option>
+                <option value="cat_back">Cat-back</option>
+                <option value="full_system">Full system</option>
+                <option value="custom">Custom</option>
+              </select>
+            </Field>
+            <Field label="Exhaust size" id="exhaustSize" error={errors.exhaustSize}>
+              <select id="exhaustSize" value={tuning.exhaustSize} onChange={(event) => onChange("exhaustSize", event.target.value as TuningDetails["exhaustSize"])} required aria-invalid={Boolean(errors.exhaustSize)} aria-describedby={errors.exhaustSize ? "exhaustSize-error" : undefined}>
+                <option value="">Choose size</option>
+                <option value="stock">Stock</option>
+                <option value="2_5_inch">2.5 inch</option>
+                <option value="3_inch">3 inch</option>
+                <option value="3_5_inch">3.5 inch</option>
+                <option value="4_inch">4 inch</option>
+                <option value="other">Other</option>
+              </select>
+            </Field>
+            <Field label="Varex controlled?" id="varexControlled" error={errors.varexControlled}>
+              <select id="varexControlled" value={tuning.varexControlled} onChange={(event) => onChange("varexControlled", event.target.value as TuningDetails["varexControlled"])} required aria-invalid={Boolean(errors.varexControlled)} aria-describedby={errors.varexControlled ? "varexControlled-error" : undefined}>
+                <option value="">Choose an answer</option>
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+                <option value="unknown">Unknown</option>
+              </select>
+            </Field>
+          </div>
+          {tuning.exhaustType && tuning.exhaustType !== "stock" && (
+            <Field label="Exact exhaust modifications" hint="Required" id="exhaustDetails" error={errors.exhaustDetails} wide>
+              <textarea id="exhaustDetails" value={tuning.exhaustDetails} onChange={(event) => onChange("exhaustDetails", event.target.value)} rows={3} maxLength={2000} placeholder="Headers, cats, brand, pipe size, mufflers and any valve control." required aria-invalid={Boolean(errors.exhaustDetails)} aria-describedby={errors.exhaustDetails ? "exhaustDetails-error" : undefined} />
+            </Field>
+          )}
+        </section>
+
+        <section className="tuning-card tuning-card-wide" aria-labelledby="tuning-cam-heading">
+          <div className="tuning-card-heading">
+            <span>07</span>
+            <h4 id="tuning-cam-heading">Camshaft</h4>
+          </div>
+          <div className="tuning-card-fields">
+            <Field label="Camshaft setup" id="camshaftType" error={errors.camshaftType}>
+              <select id="camshaftType" value={tuning.camshaftType} onChange={(event) => onChange("camshaftType", event.target.value as TuningDetails["camshaftType"])} required aria-invalid={Boolean(errors.camshaftType)} aria-describedby={errors.camshaftType ? "camshaftType-error" : undefined}>
+                <option value="">Choose camshaft setup</option>
+                <option value="stock">Stock</option>
+                <option value="upgraded">Upgraded</option>
+                <option value="unknown">Unknown</option>
+              </select>
+            </Field>
+            {tuning.camshaftType === "upgraded" && (
+              <Field label="Camshaft code or specifications" hint="Required" id="camshaftDetails" error={errors.camshaftDetails}>
+                <input id="camshaftDetails" value={tuning.camshaftDetails} onChange={(event) => onChange("camshaftDetails", event.target.value)} maxLength={2000} placeholder="Part number, duration, lift and LSA if known" required aria-invalid={Boolean(errors.camshaftDetails)} aria-describedby={errors.camshaftDetails ? "camshaftDetails-error" : undefined} />
+              </Field>
+            )}
+          </div>
+        </section>
       </div>
     </section>
   );

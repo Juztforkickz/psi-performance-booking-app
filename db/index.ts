@@ -19,6 +19,7 @@ const CREATE_BOOKINGS_TABLE_SQL = `
     preferred_date TEXT NOT NULL,
     arrival_window TEXT NOT NULL CHECK (arrival_window IN ('morning', 'afternoon', 'any')),
     notes TEXT NOT NULL DEFAULT '',
+    tuning_details_json TEXT CHECK (tuning_details_json IS NULL OR json_valid(tuning_details_json)),
     source TEXT NOT NULL DEFAULT 'web' CHECK (source IN ('web', 'mobile')),
     status TEXT NOT NULL DEFAULT 'requested' CHECK (status IN ('requested', 'confirmed', 'completed', 'cancelled')),
     consent INTEGER NOT NULL DEFAULT 1 CHECK (consent = 1),
@@ -48,6 +49,12 @@ const ADD_BOOKINGS_CHECKOUT_ID_SQL = `
 const ADD_BOOKINGS_DEPOSIT_PAYMENT_ID_SQL = `
   ALTER TABLE bookings
   ADD COLUMN deposit_payment_id TEXT
+`;
+
+const ADD_BOOKINGS_TUNING_DETAILS_JSON_SQL = `
+  ALTER TABLE bookings
+  ADD COLUMN tuning_details_json TEXT
+    CHECK (tuning_details_json IS NULL OR json_valid(tuning_details_json))
 `;
 
 const CREATE_BOOKINGS_CHECKOUT_INDEX_SQL = `
@@ -108,6 +115,7 @@ const CREATE_BOOKING_CHECKOUTS_TABLE_SQL = `
     preferred_date TEXT NOT NULL,
     arrival_window TEXT NOT NULL DEFAULT 'any' CHECK (arrival_window IN ('morning', 'afternoon', 'any')),
     request_details TEXT NOT NULL,
+    tuning_details_json TEXT CHECK (tuning_details_json IS NULL OR json_valid(tuning_details_json)),
     source TEXT NOT NULL DEFAULT 'web' CHECK (source IN ('web', 'mobile')),
     state TEXT NOT NULL DEFAULT 'awaiting_payment' CHECK (state IN ('awaiting_payment', 'processing', 'paid', 'expired', 'cancelled')),
     deposit_amount_cents INTEGER NOT NULL DEFAULT 20000 CHECK (deposit_amount_cents >= 20000),
@@ -138,6 +146,12 @@ const CREATE_BOOKING_CHECKOUTS_ACCOUNT_INDEX_SQL = `
 const CREATE_BOOKING_CHECKOUTS_STATE_INDEX_SQL = `
   CREATE INDEX IF NOT EXISTS idx_booking_checkouts_state_expires
   ON booking_checkouts (state, expires_at)
+`;
+
+const ADD_BOOKING_CHECKOUTS_TUNING_DETAILS_JSON_SQL = `
+  ALTER TABLE booking_checkouts
+  ADD COLUMN tuning_details_json TEXT
+    CHECK (tuning_details_json IS NULL OR json_valid(tuning_details_json))
 `;
 
 const CREATE_BOOKING_CHECKOUT_IDEMPOTENCY_TABLE_SQL = `
@@ -357,6 +371,26 @@ async function initializeBookingSchema(database: ReturnType<typeof getD1>) {
     "deposit_payment_id",
     ADD_BOOKINGS_DEPOSIT_PAYMENT_ID_SQL,
   );
+  await addBookingColumnIfMissing(
+    database,
+    existingColumns,
+    "tuning_details_json",
+    ADD_BOOKINGS_TUNING_DETAILS_JSON_SQL,
+  );
+
+  await database.prepare(CREATE_BOOKING_CHECKOUTS_TABLE_SQL).run();
+  const checkoutColumns = await database
+    .prepare("PRAGMA table_info(booking_checkouts)")
+    .all<{ name: string }>();
+  const existingCheckoutColumns = new Set<string>(
+    checkoutColumns.results.map((column: { name: string }) => column.name),
+  );
+  await addBookingColumnIfMissing(
+    database,
+    existingCheckoutColumns,
+    "tuning_details_json",
+    ADD_BOOKING_CHECKOUTS_TUNING_DETAILS_JSON_SQL,
+  );
 
   await database.batch([
     database.prepare(CREATE_BOOKINGS_REFERENCE_INDEX_SQL),
@@ -366,7 +400,6 @@ async function initializeBookingSchema(database: ReturnType<typeof getD1>) {
     database.prepare(CREATE_BOOKING_IDEMPOTENCY_REFERENCE_INDEX_SQL),
     database.prepare(CREATE_BOOKING_RATE_LIMITS_TABLE_SQL),
     database.prepare(CREATE_BOOKING_RATE_LIMITS_WINDOW_INDEX_SQL),
-    database.prepare(CREATE_BOOKING_CHECKOUTS_TABLE_SQL),
     database.prepare(CREATE_BOOKING_CHECKOUTS_REFERENCE_INDEX_SQL),
     database.prepare(CREATE_BOOKING_CHECKOUTS_ACCOUNT_INDEX_SQL),
     database.prepare(CREATE_BOOKING_CHECKOUTS_STATE_INDEX_SQL),

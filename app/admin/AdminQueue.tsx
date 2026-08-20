@@ -12,6 +12,34 @@ const STATUS_OPTIONS = ["requested", "confirmed", "completed", "cancelled"] as c
 type BookingStatus = (typeof STATUS_OPTIONS)[number];
 type StatusFilter = "all" | BookingStatus;
 
+type TuningDetails = Partial<Record<
+  | "engineState"
+  | "engineModifications"
+  | "transmissionType"
+  | "transmissionSetup"
+  | "transmissionDetails"
+  | "differentialType"
+  | "differentialGearRatio"
+  | "differentialDetails"
+  | "fuelPumpType"
+  | "fuelPumpDetails"
+  | "injectorType"
+  | "injectorDetails"
+  | "fuelType"
+  | "fuelTypeDetails"
+  | "intakeType"
+  | "intakeDetails"
+  | "previouslyTuned"
+  | "previousTuner"
+  | "exhaustType"
+  | "exhaustSize"
+  | "varexControlled"
+  | "exhaustDetails"
+  | "camshaftType"
+  | "camshaftDetails",
+  string
+>>;
+
 type Booking = {
   reference: string;
   status: BookingStatus;
@@ -28,6 +56,7 @@ type Booking = {
   preferredDate?: string | null;
   arrivalWindow?: string | null;
   notes?: string | null;
+  tuningDetails?: TuningDetails | null;
   source?: string | null;
   createdAt?: string | number | null;
 };
@@ -44,6 +73,101 @@ const statusLabels: Record<BookingStatus, string> = {
   completed: "Completed",
   cancelled: "Cancelled",
 };
+
+const tuningSections: Array<{
+  title: string;
+  fields: Array<{ key: keyof TuningDetails; label: string }>;
+}> = [
+  {
+    title: "Engine",
+    fields: [
+      { key: "engineState", label: "Setup" },
+      { key: "engineModifications", label: "Modifications" },
+    ],
+  },
+  {
+    title: "Transmission",
+    fields: [
+      { key: "transmissionType", label: "Type" },
+      { key: "transmissionSetup", label: "Setup" },
+      { key: "transmissionDetails", label: "Details" },
+    ],
+  },
+  {
+    title: "Differential",
+    fields: [
+      { key: "differentialType", label: "Type" },
+      { key: "differentialGearRatio", label: "Gear ratio" },
+      { key: "differentialDetails", label: "Details" },
+    ],
+  },
+  {
+    title: "Fuel system",
+    fields: [
+      { key: "fuelPumpType", label: "Fuel pump" },
+      { key: "fuelPumpDetails", label: "Pump details" },
+      { key: "injectorType", label: "Injectors" },
+      { key: "injectorDetails", label: "Injector details" },
+      { key: "fuelType", label: "Fuel" },
+      { key: "fuelTypeDetails", label: "Fuel details" },
+    ],
+  },
+  {
+    title: "Intake & tune",
+    fields: [
+      { key: "intakeType", label: "Intake" },
+      { key: "intakeDetails", label: "Intake details" },
+      { key: "previouslyTuned", label: "Previously tuned" },
+      { key: "previousTuner", label: "Previous tuner" },
+    ],
+  },
+  {
+    title: "Exhaust",
+    fields: [
+      { key: "exhaustType", label: "Type" },
+      { key: "exhaustSize", label: "Size" },
+      { key: "varexControlled", label: "Varex controlled" },
+      { key: "exhaustDetails", label: "Modifications" },
+    ],
+  },
+  {
+    title: "Camshaft",
+    fields: [
+      { key: "camshaftType", label: "Setup" },
+      { key: "camshaftDetails", label: "Code / specifications" },
+    ],
+  },
+];
+
+const tuningOptionLabels: Record<string, string> = {
+  "98_ron": "98 RON",
+  e85: "E85",
+  flex_fuel: "Flex fuel",
+  race_fuel: "Race fuel",
+  truetrac: "Truetrac",
+  wavetrac: "Wavetrac",
+  cat_back: "Cat-back",
+  "2_5_inch": "2.5 inch",
+  "3_inch": "3 inch",
+  "3_5_inch": "3.5 inch",
+  "4_inch": "4 inch",
+};
+
+const tuningEnumFields = new Set<keyof TuningDetails>([
+  "engineState",
+  "transmissionType",
+  "transmissionSetup",
+  "differentialType",
+  "fuelPumpType",
+  "injectorType",
+  "fuelType",
+  "intakeType",
+  "previouslyTuned",
+  "exhaustType",
+  "exhaustSize",
+  "varexControlled",
+  "camshaftType",
+]);
 
 const dateFormatter = new Intl.DateTimeFormat("en-AU", {
   weekday: "short",
@@ -67,6 +191,11 @@ function humanise(value?: string | null) {
     .replaceAll("_", " ")
     .replaceAll("-", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function displayTuningValue(key: keyof TuningDetails, value: string) {
+  if (!tuningEnumFields.has(key)) return value;
+  return tuningOptionLabels[value] || humanise(value);
 }
 
 function formatPreferredDate(value?: string | null) {
@@ -399,6 +528,43 @@ export function AdminQueue() {
                       <h4>Customer notes</h4>
                       <p>{booking.notes}</p>
                     </div>
+                  ) : null}
+
+                  {booking.tuningDetails ? (
+                    <section className={styles.tuningPanel} aria-label={`Tuning setup for ${booking.reference}`}>
+                      <div className={styles.tuningPanelHeading}>
+                        <div>
+                          <span>Dyno preparation</span>
+                          <h4>Tuning setup</h4>
+                        </div>
+                        <strong>Customer supplied</strong>
+                      </div>
+                      <div className={styles.tuningGrid}>
+                        {tuningSections.map((section) => {
+                          const populatedFields = section.fields.filter(({ key }) => {
+                            const value = booking.tuningDetails?.[key];
+                            return typeof value === "string" && value.trim().length > 0;
+                          });
+                          if (populatedFields.length === 0) return null;
+                          return (
+                            <section key={section.title}>
+                              <h5>{section.title}</h5>
+                              <dl>
+                                {populatedFields.map(({ key, label }) => {
+                                  const value = booking.tuningDetails?.[key] || "";
+                                  return (
+                                    <div key={key}>
+                                      <dt>{label}</dt>
+                                      <dd>{displayTuningValue(key, value)}</dd>
+                                    </div>
+                                  );
+                                })}
+                              </dl>
+                            </section>
+                          );
+                        })}
+                      </div>
+                    </section>
                   ) : null}
 
                   <div className={styles.statusControl}>

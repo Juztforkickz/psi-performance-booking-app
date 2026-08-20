@@ -14,7 +14,7 @@ const BOOKING_STATUSES = [
 type BookingStatus = (typeof BOOKING_STATUSES)[number];
 type RuntimeEnv = typeof env & { PSI_ADMIN_KEY?: string };
 
-interface AdminBooking {
+interface AdminBookingRow {
   reference: string;
   bookingType: string;
   serviceOption: string;
@@ -29,12 +29,17 @@ interface AdminBooking {
   preferredDate: string;
   arrivalWindow: string;
   notes: string;
+  tuningDetailsJson: string | null;
   source: string;
   status: BookingStatus;
   consentPolicyVersion: string;
   consentedAt: string;
   createdAt: string;
 }
+
+type AdminBooking = Omit<AdminBookingRow, "tuningDetailsJson"> & {
+  tuningDetails: Record<string, unknown> | null;
+};
 
 const ADMIN_BOOKING_COLUMNS = `
   public_reference AS reference,
@@ -51,6 +56,7 @@ const ADMIN_BOOKING_COLUMNS = `
   preferred_date AS preferredDate,
   arrival_window AS arrivalWindow,
   notes,
+  tuning_details_json AS tuningDetailsJson,
   source,
   status,
   consent_policy_version AS consentPolicyVersion,
@@ -74,6 +80,28 @@ function adminJson(body: unknown, status = 200) {
     status,
     headers: { "Cache-Control": "no-store" },
   });
+}
+
+function parseTuningDetails(value: string | null) {
+  if (!value || value.length > 24_000) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    // Historical or externally imported rows must not break the whole queue.
+    return null;
+  }
+}
+
+function toAdminBooking(row: AdminBookingRow): AdminBooking {
+  const { tuningDetailsJson, ...booking } = row;
+  return {
+    ...booking,
+    tuningDetails: parseTuningDetails(tuningDetailsJson),
+  };
 }
 
 async function sha256Bytes(value: string) {
@@ -194,8 +222,9 @@ export async function GET(request: Request) {
              LIMIT ?`,
           )
           .bind(limit);
-    const result = await statement.all<AdminBooking>();
-    return adminJson({ bookings: result.results, count: result.results.length });
+    const result = await statement.all<AdminBookingRow>();
+    const bookings = result.results.map(toAdminBooking);
+    return adminJson({ bookings, count: bookings.length });
   } catch {
     // Do not log query results or bound values: this route returns customer PII.
     console.error("Staff booking queue read failed.");
@@ -266,7 +295,7 @@ export async function PATCH(request: Request) {
          RETURNING ${ADMIN_BOOKING_COLUMNS}`,
       )
       .bind(payload.status, reference)
-      .first<AdminBooking>();
+      .first<AdminBookingRow>();
 
     if (!updated) {
       return adminError(404, "BOOKING_NOT_FOUND", "No booking matches that reference.");

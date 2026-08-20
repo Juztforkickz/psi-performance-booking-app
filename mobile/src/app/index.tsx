@@ -228,20 +228,57 @@ function InfoItem({
 
 function WorkshopInfo() {
   return (
-    <View style={styles.infoList}>
-      <InfoItem label="Shop hours" value={'Mon–Fri · 8:30am–5pm\nSaturday · By appointment'} />
-      <InfoItem
-        label="Contact number"
-        link
-        onPress={() => void Linking.openURL(contact.phoneUrl)}
-        value={contact.phoneDisplay}
-      />
-      <InfoItem
-        label="Workshop"
-        link
-        onPress={() => void Linking.openURL(contact.mapsUrl)}
-        value={contact.address}
-      />
+    <View style={styles.contactArea}>
+      <View style={styles.infoList}>
+        <InfoItem label="Shop hours" value={'Mon–Fri · 8:30am–5pm\nSaturday · By appointment'} />
+        <InfoItem
+          label="Phone"
+          link
+          onPress={() => void Linking.openURL(contact.phoneUrl)}
+          value={contact.phoneDisplay}
+        />
+        <InfoItem
+          label="Email"
+          link
+          onPress={() => void Linking.openURL(contact.emailUrl)}
+          value={contact.email}
+        />
+        <InfoItem
+          label="Workshop"
+          link
+          onPress={() => void Linking.openURL(contact.mapsUrl)}
+          value={contact.address}
+        />
+        <InfoItem
+          label="Instagram"
+          link
+          onPress={() => void Linking.openURL(contact.instagram)}
+          value="@psiperformancegarage"
+        />
+        <InfoItem
+          label="Facebook"
+          link
+          onPress={() => void Linking.openURL(contact.facebook)}
+          value="PSI Performance Garage"
+        />
+      </View>
+
+      <View accessibilityLabel="PSI Performance contact QR code" style={styles.qrCard}>
+        <View style={styles.qrImageFrame}>
+          <Image
+            accessibilityIgnoresInvertColors
+            accessibilityLabel="Scan to save PSI contact"
+            resizeMode="contain"
+            source={require('../../assets/images/psi-contact-qr.png')}
+            style={styles.qrImage}
+          />
+        </View>
+        <View style={styles.qrCopy}>
+          <Text style={styles.qrEyebrow}>Quick contact</Text>
+          <Text style={styles.qrTitle}>Scan to save PSI contact</Text>
+          <Text style={styles.qrDescription}>Phone, email, workshop address and website in one scan.</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -417,8 +454,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 24,
   },
-  infoList: {
+  contactArea: {
     marginTop: spacing.lg,
+    gap: spacing.lg,
+  },
+  infoList: {
     borderTopWidth: 1,
     borderTopColor: colors.line,
   },
@@ -445,6 +485,50 @@ const styles = StyleSheet.create({
   },
   infoValueLink: {
     textDecorationLine: 'underline',
+  },
+  qrCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.panel,
+    padding: spacing.md,
+  },
+  qrImageFrame: {
+    width: 112,
+    height: 112,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+    padding: 7,
+  },
+  qrImage: {
+    width: 98,
+    height: 98,
+  },
+  qrCopy: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  qrEyebrow: {
+    color: colors.gold,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 1.3,
+    textTransform: 'uppercase',
+  },
+  qrTitle: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: '900',
+    lineHeight: 19,
+    textTransform: 'uppercase',
+  },
+  qrDescription: {
+    color: colors.muted,
+    fontSize: 10,
+    lineHeight: 15,
   },
   bookingPanel: {
     gap: spacing.lg,

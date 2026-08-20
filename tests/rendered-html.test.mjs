@@ -36,17 +36,22 @@ test("server-renders the PSI booking experience", async () => {
   assert.match(html, /\$200 AUD deposit/);
   assert.match(html, /Let’s get you sorted\./);
   assert.match(html, /0433 431 781/);
+  assert.match(html, /info@psiperformance\.com\.au/);
+  assert.match(html, /21 Exchange Drive/);
+  assert.match(html, /psiperformancegarage/);
+  assert.match(html, /psi-contact-qr\.png/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
 test("keeps the booking UI and starter cleanup in source", async () => {
-  const [page, flow, openingPanel, legacyRoute, layout, packageJson] = await Promise.all([
+  const [page, flow, openingPanel, legacyRoute, layout, packageJson, serviceWorker] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BookingFlow.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/OpeningBookingPanel.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/v1/bookings/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../public/sw.js", import.meta.url), "utf8"),
   ]);
 
   assert.match(page, /<OpeningBookingPanel \/>/);
@@ -56,16 +61,25 @@ test("keeps the booking UI and starter cleanup in source", async () => {
   assert.match(flow, /depositPolicyVersion: "psi-deposit-v1"/);
   assert.match(flow, /PAYMENT_PROVIDER_NOT_CONFIGURED/);
   assert.match(flow, /source: "web"/);
+  assert.match(flow, /form\.bookingType === "dyno"[\s\S]*tuningDetails:/);
+  assert.match(flow, /function TuningSetupFields/);
+  assert.match(flow, /Engine modifications/);
+  assert.match(flow, /Differential gear ratio|Gear ratio/);
+  assert.match(flow, /Varex controlled/);
+  assert.match(flow, /Camshaft code or specifications/);
   assert.match(flow, /pending|not confirmed/i);
   assert.doesNotMatch(flow, /fetch\("\/api\/v1\/bookings"/);
   assert.match(openingPanel, /Buy some parts/);
   assert.match(legacyRoute, /PAYMENT_REQUIRED/);
   assert.match(layout, /PSI Performance Booking/);
+  assert.match(serviceWorker, /psi-contact-qr\.png/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 
   await assert.rejects(access(new URL("../app/_sites-preview/", import.meta.url)));
   await access(new URL("../public/psi-logo.png", import.meta.url));
   await access(new URL("../public/psi-hero.jpg", import.meta.url));
+  await access(new URL("../public/psi-contact-qr.png", import.meta.url));
+  await access(new URL("../mobile/assets/images/psi-contact-qr.png", import.meta.url));
 });
 
 test("keeps deposit values server-owned and blocks unpaid booking bypasses", async () => {
@@ -94,4 +108,11 @@ test("keeps deposit values server-owned and blocks unpaid booking bypasses", asy
   assert.match(mobileGateway, /secureProductionOrigin/);
   assert.match(mobileGateway, /origin\.username/);
   assert.doesNotMatch(mobileGateway, /DEFAULT_API_BASE_URL/);
+
+  const [mobileBooking, adminQueue] = await Promise.all([
+    readFile(new URL("../mobile/src/app/booking.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/admin/AdminQueue.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.doesNotMatch(mobileBooking, /PSI will email a receipt|emailed receipt/i);
+  assert.match(adminQueue, /if \(!tuningEnumFields\.has\(key\)\) return value/);
 });

@@ -440,6 +440,100 @@
   white-space: pre-wrap;
 }
 
+.tuningPanel {
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(8, 8, 8, 0.16);
+  border-top: 3px solid var(--signal);
+  border-radius: var(--radius);
+  background: #0d0d0d;
+  color: #fff;
+}
+
+.tuningPanelHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 19px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.tuningPanelHeading span,
+.tuningPanelHeading strong {
+  color: var(--signal);
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tuningPanelHeading h4 {
+  margin: 6px 0 0;
+  font-family: "Ethnocentric", Impact, sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.tuningPanelHeading strong {
+  color: #8f8d87;
+}
+
+.tuningGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tuningGrid > section {
+  min-width: 0;
+  padding: 18px 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.tuningGrid h5 {
+  margin: 0 0 13px;
+  color: var(--signal);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tuningGrid dl,
+.tuningGrid dd {
+  margin: 0;
+}
+
+.tuningGrid dl {
+  display: grid;
+  gap: 10px;
+}
+
+.tuningGrid dl > div {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.42fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.tuningGrid dt {
+  color: #817f79;
+  font-size: 0.61rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tuningGrid dd {
+  overflow-wrap: anywhere;
+  color: #e6e3dc;
+  font-size: 0.72rem;
+  line-height: 1.48;
+  white-space: pre-wrap;
+}
+
 .statusControl {
   display: grid;
   grid-template-columns: auto minmax(160px, 220px) 1fr;
@@ -488,6 +582,10 @@
 
   .detailGrid section:nth-child(2) {
     border-right: 1px solid rgba(8, 8, 8, 0.12);
+  }
+
+  .tuningGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -543,6 +641,15 @@
 
   .statusControl {
     grid-template-columns: 1fr;
+  }
+
+  .tuningGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .tuningPanelHeading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .statusControl select {

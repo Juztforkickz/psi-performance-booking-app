@@ -6,6 +6,11 @@ import {
   serviceOptionForBookingType,
   type CheckoutBookingType,
 } from "../booking-catalog/catalog";
+import {
+  validateTuningDetails,
+  type TuningDetails,
+  type TuningDetailsFieldName,
+} from "./tuning-details";
 
 const MAX_REQUEST_BYTES = 24_000;
 const IDEMPOTENCY_KEY_MIN_LENGTH = 16;
@@ -33,6 +38,7 @@ const FIELD_LIMITS = {
 type TextField = keyof typeof FIELD_LIMITS;
 type FieldName =
   | TextField
+  | TuningDetailsFieldName
   | "vehicleYear"
   | "consent"
   | "depositTermsAccepted"
@@ -57,6 +63,7 @@ interface ValidCheckout {
   preferredDate: string;
   arrivalWindow: "morning" | "afternoon" | "any";
   requestDetails: string;
+  tuningDetails: TuningDetails | null;
   source: "web" | "mobile";
   consent: true;
   depositTermsAccepted: true;
@@ -205,6 +212,15 @@ function validateCheckout(body: JsonObject):
   if (bookingType !== "service" && bookingType !== "dyno") {
     errors.bookingType = "Choose service or dyno tuning.";
   }
+  let tuningDetails: TuningDetails | null = null;
+  if (bookingType === "dyno") {
+    const tuningResult = validateTuningDetails(body.tuningDetails);
+    if (tuningResult.errors) {
+      Object.assign(errors, tuningResult.errors);
+    } else {
+      tuningDetails = tuningResult.details;
+    }
+  }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/u.test(email)) {
     errors.email = "Enter a valid email address.";
   }
@@ -294,6 +310,7 @@ function validateCheckout(body: JsonObject):
       preferredDate,
       arrivalWindow: arrivalWindow as ValidCheckout["arrivalWindow"],
       requestDetails,
+      tuningDetails,
       source: source as ValidCheckout["source"],
       consent: true,
       depositTermsAccepted: true,
