@@ -8,13 +8,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Eyebrow, PrimaryButton } from '@/components/ui';
 import { colors, contact, spacing } from '@/constants/brand';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { BOOKING_PURPOSES, type BookingType } from '@/lib/booking';
 
 type GatewayChoice = BookingType | 'parts';
@@ -47,9 +47,8 @@ const PURPOSE_OPTIONS: {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const wide = width >= 900;
-  const compact = width < 380;
+  const { compact, fontScale, horizontalPadding, shortLandscape, useHomeColumns: wide, width } = useResponsiveLayout();
+  const compactHeader = width < 350 || fontScale > 1.4;
   const [selected, setSelected] = useState<GatewayChoice | ''>('');
   const [selectorOpen, setSelectorOpen] = useState(false);
   const selectedOption = PURPOSE_OPTIONS.find((option) => option.value === selected);
@@ -65,36 +64,36 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
+    <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.screen}>
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingHorizontal: horizontalPadding }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
+        <View style={[styles.header, compact && styles.headerCompact]}>
           <Image
             accessibilityLabel="PSI Performance Garage"
             resizeMode="contain"
             source={require('../../assets/images/psi-logo.png')}
-            style={styles.logo}
+            style={[styles.logo, compactHeader && styles.logoCompact]}
           />
           <Pressable
             accessibilityHint="Opens PSI customer account access"
             accessibilityRole="button"
             onPress={() => router.push('/account')}
-            style={({ pressed }) => [styles.accountButton, pressed && styles.pressed]}
+            style={({ pressed }) => [styles.accountButton, compactHeader && styles.accountButtonCompact, pressed && styles.pressed]}
           >
-            <View style={styles.accountMark}>
-              <Text style={styles.accountInitial}>P</Text>
+            <View style={[styles.accountMark, compactHeader && styles.accountMarkCompact]}>
+              <Text maxFontSizeMultiplier={1.4} style={styles.accountInitial}>P</Text>
             </View>
-            <Text style={styles.accountLabel}>Account</Text>
+            <Text maxFontSizeMultiplier={2} style={styles.accountLabel}>Account</Text>
           </Pressable>
         </View>
 
-        <View style={[styles.gateway, wide && styles.gatewayWide]}>
+        <View style={[styles.gateway, shortLandscape && styles.gatewayShort, wide && styles.gatewayWide]}>
           <View style={[styles.introPanel, wide && styles.introPanelWide]}>
             <Eyebrow>PSI Performance · Pakenham</Eyebrow>
-            <Text style={[styles.title, compact && styles.titleCompact, wide && styles.titleWide]}>Book your car{`\n`}now.</Text>
+            <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact, shortLandscape && styles.titleShort, wide && styles.titleWide]}>Book your car{`\n`}now.</Text>
             <Text style={styles.introCopy}>
               Secure your preferred workshop date for servicing or dyno tuning. PSI confirms every request personally.
             </Text>
@@ -102,7 +101,7 @@ export default function HomeScreen() {
             {wide ? <WorkshopInfo /> : null}
           </View>
 
-          <View style={[styles.bookingPanel, wide && styles.bookingPanelWide]}>
+          <View style={[styles.bookingPanel, compact && styles.bookingPanelCompact, wide && styles.bookingPanelWide]}>
             <View style={styles.panelHeading}>
               <Text style={styles.panelKicker}>Online booking</Text>
               <Text style={styles.panelTitle}>What are you booking in for?</Text>
@@ -162,7 +161,7 @@ export default function HomeScreen() {
               onPress={() => router.push('/account')}
               style={({ pressed }) => [styles.accountPrompt, pressed && styles.pressed]}
             >
-              <View>
+              <View style={styles.accountPromptCopyWrap}>
                 <Text style={styles.accountPromptTitle}>Customer accounts</Text>
                 <Text style={styles.accountPromptCopy}>Review the secure, provider-ready account experience.</Text>
               </View>
@@ -178,7 +177,7 @@ export default function HomeScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>© {new Date().getFullYear()} PSI Performance Garage</Text>
-          <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(contact.privacy)}>
+          <Pressable accessibilityRole="link" hitSlop={10} onPress={() => void Linking.openURL(contact.privacy)}>
             <Text style={styles.footerLink}>Privacy policy ↗</Text>
           </Pressable>
         </View>
@@ -192,7 +191,6 @@ export default function HomeScreen() {
         }}
         selected={selected}
         visible={selectorOpen}
-        wide={width >= 680}
       />
     </SafeAreaView>
   );
@@ -227,6 +225,9 @@ function InfoItem({
 }
 
 function WorkshopInfo() {
+  const { fontScale, width } = useResponsiveLayout();
+  const stackQr = width < 440 || fontScale > 1.25;
+
   return (
     <View style={styles.contactArea}>
       <View style={styles.infoList}>
@@ -263,20 +264,20 @@ function WorkshopInfo() {
         />
       </View>
 
-      <View accessibilityLabel="PSI Performance contact QR code" style={styles.qrCard}>
-        <View style={styles.qrImageFrame}>
+      <View accessibilityLabel="PSI Performance contact QR code" style={[styles.qrCard, stackQr && styles.qrCardStacked]}>
+        <View style={[styles.qrImageFrame, stackQr && styles.qrImageFrameStacked]}>
           <Image
             accessibilityIgnoresInvertColors
             accessibilityLabel="Scan to save PSI contact"
             resizeMode="contain"
             source={require('../../assets/images/psi-contact-qr.png')}
-            style={styles.qrImage}
+            style={[styles.qrImage, stackQr && styles.qrImageStacked]}
           />
         </View>
-        <View style={styles.qrCopy}>
-          <Text style={styles.qrEyebrow}>Quick contact</Text>
-          <Text style={styles.qrTitle}>Scan to save PSI contact</Text>
-          <Text style={styles.qrDescription}>Phone, email, workshop address and website in one scan.</Text>
+        <View style={[styles.qrCopy, stackQr && styles.qrCopyStacked]}>
+          <Text style={[styles.qrEyebrow, stackQr && styles.qrTextStacked]}>Quick contact</Text>
+          <Text style={[styles.qrTitle, stackQr && styles.qrTextStacked]}>Scan to save PSI contact</Text>
+          <Text style={[styles.qrDescription, stackQr && styles.qrTextStacked]}>Phone, email, workshop address and website in one scan.</Text>
         </View>
       </View>
     </View>
@@ -286,68 +287,77 @@ function WorkshopInfo() {
 function PurposeSelector({
   visible,
   selected,
-  wide,
   onSelect,
   onClose,
 }: {
   visible: boolean;
   selected: GatewayChoice | '';
-  wide: boolean;
   onSelect: (value: GatewayChoice) => void;
   onClose: () => void;
 }) {
+  const { compact, fontScale, height, shortLandscape, width } = useResponsiveLayout();
+  const wide = width >= 680 && height >= 600 && fontScale <= 1.3;
+  const tight = compact || shortLandscape;
+
   return (
     <Modal animationType="fade" onRequestClose={onClose} transparent visible={visible}>
-      <View style={[styles.modalRoot, wide && styles.modalRootWide]}>
+      <View style={styles.modalRoot}>
         <Pressable accessibilityLabel="Close booking type selector" accessibilityRole="button" onPress={onClose} style={styles.modalBackdrop} />
-        <View accessibilityViewIsModal style={[styles.selectorSheet, wide && styles.selectorSheetWide]}>
-          <View style={styles.sheetHandle} />
-          <View style={styles.sheetHeading}>
-            <View>
-              <Text style={styles.sheetKicker}>Choose one</Text>
-              <Text style={styles.sheetTitle}>What are you booking in for?</Text>
+        <SafeAreaView
+          edges={['top', 'right', 'bottom', 'left']}
+          pointerEvents="box-none"
+          style={[styles.modalSafeArea, wide && styles.modalSafeAreaWide]}
+        >
+          <View accessibilityViewIsModal style={[styles.selectorSheet, tight && styles.selectorSheetTight, wide && styles.selectorSheetWide]}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.sheetHeading}>
+              <View style={styles.sheetHeadingCopy}>
+                <Text style={styles.sheetKicker}>Choose one</Text>
+                <Text maxFontSizeMultiplier={2} style={styles.sheetTitle}>What are you booking in for?</Text>
+              </View>
+              <Pressable accessibilityLabel="Close" accessibilityRole="button" hitSlop={12} onPress={onClose}>
+                <Text maxFontSizeMultiplier={1.3} style={styles.closeButton}>×</Text>
+              </Pressable>
             </View>
-            <Pressable accessibilityLabel="Close" accessibilityRole="button" hitSlop={12} onPress={onClose}>
-              <Text style={styles.closeButton}>×</Text>
-            </Pressable>
+            <ScrollView
+              accessibilityRole="radiogroup"
+              contentContainerStyle={styles.optionList}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              style={styles.optionScroll}
+            >
+              {PURPOSE_OPTIONS.map((option, index) => {
+                const active = selected === option.value;
+                return (
+                  <Pressable
+                    accessibilityLabel={`${option.label}. ${option.priceGuide}. ${option.detail}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: active }}
+                    key={option.value}
+                    onPress={() => onSelect(option.value)}
+                    style={({ pressed }) => [
+                      styles.optionRow,
+                      active && styles.optionRowActive,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text maxFontSizeMultiplier={1.5} style={[styles.optionIndex, active && styles.optionTextActive]}>
+                      {String(index + 1).padStart(2, '0')}
+                    </Text>
+                    <View style={styles.optionCopy}>
+                      <Text style={[styles.optionTitle, active && styles.optionTextActive]}>{option.label}</Text>
+                      <Text style={[styles.optionPrice, active && styles.optionPriceActive]}>{option.priceGuide}</Text>
+                      <Text style={[styles.optionDetail, active && styles.optionDetailActive]}>{option.detail}</Text>
+                    </View>
+                    <View style={[styles.optionRadio, active && styles.optionRadioActive]}>
+                      {active ? <View style={styles.optionRadioDot} /> : null}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           </View>
-          <ScrollView
-            accessibilityRole="radiogroup"
-            contentContainerStyle={styles.optionList}
-            showsVerticalScrollIndicator={false}
-            style={styles.optionScroll}
-          >
-            {PURPOSE_OPTIONS.map((option, index) => {
-              const active = selected === option.value;
-              return (
-                <Pressable
-                  accessibilityLabel={`${option.label}. ${option.priceGuide}. ${option.detail}`}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: active }}
-                  key={option.value}
-                  onPress={() => onSelect(option.value)}
-                  style={({ pressed }) => [
-                    styles.optionRow,
-                    active && styles.optionRowActive,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Text style={[styles.optionIndex, active && styles.optionTextActive]}>
-                    {String(index + 1).padStart(2, '0')}
-                  </Text>
-                  <View style={styles.optionCopy}>
-                    <Text style={[styles.optionTitle, active && styles.optionTextActive]}>{option.label}</Text>
-                    <Text style={[styles.optionPrice, active && styles.optionPriceActive]}>{option.priceGuide}</Text>
-                    <Text style={[styles.optionDetail, active && styles.optionDetailActive]}>{option.detail}</Text>
-                  </View>
-                  <View style={[styles.optionRadio, active && styles.optionRadioActive]}>
-                    {active ? <View style={styles.optionRadioDot} /> : null}
-                  </View>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
+        </SafeAreaView>
       </View>
     </Modal>
   );
@@ -373,9 +383,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
+  headerCompact: {
+    minHeight: 66,
+  },
   logo: {
     width: 142,
     height: 48,
+  },
+  logoCompact: {
+    width: 96,
+    height: 36,
   },
   accountButton: {
     minHeight: 48,
@@ -386,6 +403,12 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     borderRadius: 24,
     paddingHorizontal: spacing.md,
+    flexShrink: 1,
+  },
+  accountButtonCompact: {
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
   },
   accountMark: {
     width: 26,
@@ -395,12 +418,18 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     backgroundColor: colors.gold,
   },
+  accountMarkCompact: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+  },
   accountInitial: {
     color: colors.ink,
     fontSize: 11,
     fontWeight: '900',
   },
   accountLabel: {
+    flexShrink: 1,
     color: colors.white,
     fontSize: 12,
     fontWeight: '900',
@@ -413,6 +442,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     gap: spacing.xxl,
     paddingVertical: 54,
+  },
+  gatewayShort: {
+    gap: spacing.xl,
+    paddingVertical: spacing.xl,
   },
   gatewayWide: {
     minHeight: 670,
@@ -441,6 +474,10 @@ const styles = StyleSheet.create({
   titleWide: {
     fontSize: 62,
     lineHeight: 62,
+  },
+  titleShort: {
+    fontSize: 36,
+    lineHeight: 38,
   },
   titleCompact: {
     fontSize: 38,
@@ -495,6 +532,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.panel,
     padding: spacing.md,
   },
+  qrCardStacked: {
+    alignItems: 'center',
+    flexDirection: 'column',
+  },
   qrImageFrame: {
     width: 112,
     height: 112,
@@ -507,9 +548,26 @@ const styles = StyleSheet.create({
     width: 98,
     height: 98,
   },
+  qrImageFrameStacked: {
+    width: 148,
+    height: 148,
+  },
+  qrImageStacked: {
+    width: 132,
+    height: 132,
+  },
   qrCopy: {
     flex: 1,
+    minWidth: 0,
     gap: spacing.xs,
+  },
+  qrCopyStacked: {
+    flex: 0,
+    width: '100%',
+    alignItems: 'center',
+  },
+  qrTextStacked: {
+    textAlign: 'center',
   },
   qrEyebrow: {
     color: colors.gold,
@@ -537,6 +595,9 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: colors.panel,
     padding: spacing.lg,
+  },
+  bookingPanelCompact: {
+    padding: spacing.md,
   },
   bookingPanelWide: {
     flex: 1,
@@ -587,6 +648,7 @@ const styles = StyleSheet.create({
   },
   selectorCopy: {
     flex: 1,
+    minWidth: 0,
     gap: 3,
   },
   selectorValue: {
@@ -632,6 +694,7 @@ const styles = StyleSheet.create({
   },
   selectionCopy: {
     flex: 1,
+    minWidth: 0,
     gap: 5,
   },
   selectionTitle: {
@@ -678,6 +741,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
   },
+  accountPromptCopyWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
   accountPromptCopy: {
     marginTop: 4,
     color: colors.muted,
@@ -719,9 +786,12 @@ const styles = StyleSheet.create({
   },
   modalRoot: {
     flex: 1,
+  },
+  modalSafeArea: {
+    flex: 1,
     justifyContent: 'flex-end',
   },
-  modalRootWide: {
+  modalSafeAreaWide: {
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,
@@ -735,7 +805,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.82)',
   },
   selectorSheet: {
-    maxHeight: '88%',
+    minHeight: 0,
+    maxHeight: '92%',
     gap: spacing.lg,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
@@ -745,6 +816,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xl,
+  },
+  selectorSheetTight: {
+    gap: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
   },
   selectorSheetWide: {
     width: '100%',
@@ -764,6 +840,10 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: spacing.md,
+  },
+  sheetHeadingCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   sheetKicker: {
     color: colors.gold,
@@ -792,6 +872,7 @@ const styles = StyleSheet.create({
   },
   optionScroll: {
     flexShrink: 1,
+    minHeight: 0,
   },
   optionRow: {
     minHeight: 104,
@@ -810,12 +891,14 @@ const styles = StyleSheet.create({
   },
   optionIndex: {
     alignSelf: 'flex-start',
+    flexShrink: 0,
     color: colors.gold,
     fontSize: 10,
     fontWeight: '900',
   },
   optionCopy: {
     flex: 1,
+    minWidth: 0,
     gap: 4,
   },
   optionTitle: {
@@ -850,6 +933,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.muted,
     borderRadius: 11,
+    flexShrink: 0,
   },
   optionRadioActive: {
     borderColor: colors.ink,

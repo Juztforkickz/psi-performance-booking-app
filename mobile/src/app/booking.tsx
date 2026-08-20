@@ -12,13 +12,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChoiceCard, Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, contact, spacing } from '@/constants/brand';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import {
   BOOKING_PURPOSES,
   BookingApiError,
@@ -40,6 +40,7 @@ import {
 } from '@/lib/booking';
 
 const STEP_LABELS = ['Job', 'Vehicle', 'Details', 'Date', 'Deposit'];
+const COMPACT_STEP_LABELS = ['Job', 'Car', 'You', 'Date', 'Pay'];
 const ARRIVAL_OPTIONS: { value: ArrivalWindow; label: string; detail: string }[] = [
   { value: 'any', label: 'No preference', detail: 'PSI can suggest the best arrival time.' },
   { value: 'morning', label: 'Morning', detail: 'Preferred arrival before midday.' },
@@ -140,7 +141,8 @@ type UpdateTuning = <K extends keyof TuningDetails>(key: K, value: TuningDetails
 
 export default function BookingScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { compact, fontScale, horizontalPadding, short, useFieldColumns: wideFields, width } = useResponsiveLayout();
+  const compactHeader = width < 350 || fontScale > 1.4;
   const params = useLocalSearchParams<{ type?: string | string[] }>();
   const initialType = bookingTypeFromParam(params.type);
   const scrollRef = useRef<ScrollView>(null);
@@ -157,7 +159,6 @@ export default function BookingScreen() {
   const [checkout, setCheckout] = useState<BookingCheckoutResult | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState(() => randomUUID());
   const maxDate = useMemo(() => maxBookingDate(), []);
-  const wideFields = width >= 680;
 
   const update: UpdateBooking = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -270,8 +271,8 @@ export default function BookingScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
-      <View style={styles.topBar}>
+    <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.screen}>
+      <View style={[styles.topBar, compact && styles.topBarCompact, { paddingHorizontal: horizontalPadding }]}>
         <Pressable
           accessibilityLabel="Back to PSI home"
           accessibilityRole="button"
@@ -279,17 +280,17 @@ export default function BookingScreen() {
           onPress={() => router.back()}
           style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
         >
-          <Text style={styles.backArrow}>←</Text>
-          <Text style={styles.backLabel}>Back</Text>
+          <Text maxFontSizeMultiplier={1.3} style={styles.backArrow}>←</Text>
+          <Text maxFontSizeMultiplier={2} style={styles.backLabel}>Back</Text>
         </Pressable>
         <View style={styles.topBarBrand}>
           <Image
             accessibilityLabel="PSI Performance Garage"
             resizeMode="contain"
             source={require('../../assets/images/psi-logo.png')}
-            style={styles.topBarLogo}
+            style={[styles.topBarLogo, compactHeader && styles.topBarLogoCompact]}
           />
-          <Text style={styles.topBarCopy}>Secure booking</Text>
+          <Text maxFontSizeMultiplier={2} style={styles.topBarCopy}>Secure booking</Text>
         </View>
       </View>
 
@@ -302,8 +303,12 @@ export default function BookingScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={styles.formScroll}
-          keyboardDismissMode="interactive"
+          contentContainerStyle={[
+            styles.formScroll,
+            short && styles.formScrollShort,
+            { paddingHorizontal: horizontalPadding },
+          ]}
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -346,15 +351,26 @@ export default function BookingScreen() {
             {step === 5 ? <DepositStep errors={errors} form={form} update={update} /> : null}
 
             <View style={[styles.actions, wideFields && step > 1 && styles.actionsWide]}>
-              {step > 1 ? <PrimaryButton label="Back" onPress={goBack} style={styles.actionButton} variant="outline" /> : null}
+              {step > 1 ? (
+                <PrimaryButton
+                  label="Back"
+                  onPress={goBack}
+                  style={wideFields ? styles.actionButtonWide : undefined}
+                  variant="outline"
+                />
+              ) : null}
               {step < 5 ? (
-                <PrimaryButton label="Continue →" onPress={continueToNextStep} style={styles.actionButton} />
+                <PrimaryButton
+                  label="Continue →"
+                  onPress={continueToNextStep}
+                  style={wideFields && step > 1 ? styles.actionButtonWide : undefined}
+                />
               ) : (
                 <PrimaryButton
                   label={`Continue to secure ${displayMoney(MIN_DEPOSIT_CENTS)} checkout`}
                   loading={submitting}
                   onPress={() => void prepareCheckout()}
-                  style={styles.actionButton}
+                  style={wideFields && step > 1 ? styles.actionButtonWide : undefined}
                 />
               )}
             </View>
@@ -371,14 +387,17 @@ export default function BookingScreen() {
 }
 
 function Progress({ step, onSelect }: { step: number; onSelect: (step: number) => void }) {
+  const { compact, largeText } = useResponsiveLayout();
+
   return (
-    <View accessibilityLabel={`Booking step ${step} of 5`} accessibilityRole="progressbar" style={styles.progress}>
+    <View accessibilityLabel={`Booking step ${step} of 5`} accessibilityRole="progressbar" style={[styles.progress, compact && styles.progressCompact]}>
       {STEP_LABELS.map((label, index) => {
         const number = index + 1;
         const complete = number < step;
         const active = number === step;
         return (
           <Pressable
+            accessibilityLabel={`Step ${number} of 5, ${label}${active ? ', current step' : complete ? ', completed' : ''}`}
             accessibilityRole="button"
             accessibilityState={{ selected: active, disabled: number > step }}
             disabled={number > step}
@@ -387,11 +406,17 @@ function Progress({ step, onSelect }: { step: number; onSelect: (step: number) =
             style={styles.progressItem}
           >
             <View style={[styles.progressNumber, (complete || active) && styles.progressNumberActive]}>
-              <Text style={[styles.progressNumberText, (complete || active) && styles.progressNumberTextActive]}>
+              <Text maxFontSizeMultiplier={1.35} style={[styles.progressNumberText, (complete || active) && styles.progressNumberTextActive]}>
                 {complete ? '✓' : number}
               </Text>
             </View>
-            <Text numberOfLines={1} style={[styles.progressLabel, active && styles.progressLabelActive]}>{label}</Text>
+            <Text
+              maxFontSizeMultiplier={2}
+              numberOfLines={2}
+              style={[styles.progressLabel, active && styles.progressLabelActive]}
+            >
+              {compact || largeText ? COMPACT_STEP_LABELS[index] : label}
+            </Text>
           </Pressable>
         );
       })}
@@ -400,10 +425,12 @@ function Progress({ step, onSelect }: { step: number; onSelect: (step: number) =
 }
 
 function StepHeading({ eyebrow, title, copy }: { eyebrow: string; title: string; copy: string }) {
+  const { compact, shortLandscape } = useResponsiveLayout();
+
   return (
     <View style={styles.stepHeading}>
       <Eyebrow>{eyebrow}</Eyebrow>
-      <Text style={styles.stepTitle}>{title}</Text>
+      <Text maxFontSizeMultiplier={2} style={[styles.stepTitle, (compact || shortLandscape) && styles.stepTitleCompact]}>{title}</Text>
       <Text style={styles.stepIntro}>{copy}</Text>
     </View>
   );
@@ -763,10 +790,12 @@ function TuningSetup({
 }
 
 function TuningSection({ index, title, children }: { index: string; title: string; children: ReactNode }) {
+  const { compact } = useResponsiveLayout();
+
   return (
-    <View style={styles.tuningSection}>
+    <View style={[styles.tuningSection, compact && styles.tuningSectionCompact]}>
       <View style={styles.tuningSectionHeading}>
-        <View style={styles.tuningSectionIndex}><Text style={styles.tuningSectionIndexText}>{index}</Text></View>
+        <View style={styles.tuningSectionIndex}><Text maxFontSizeMultiplier={1.4} style={styles.tuningSectionIndexText}>{index}</Text></View>
         <Text style={styles.tuningSectionTitle}>{title}</Text>
       </View>
       <View style={styles.tuningFields}>{children}</View>
@@ -790,6 +819,9 @@ function SelectField<T extends string>({
   onChange: (value: T) => void;
 }) {
   const [visible, setVisible] = useState(false);
+  const { compact, fontScale, shortLandscape, width } = useResponsiveLayout();
+  const wideModal = width >= 600 && !shortLandscape && fontScale <= 1.3;
+  const tightModal = compact || shortLandscape;
   const selected = options.find((option) => option.value === value);
 
   return (
@@ -808,39 +840,51 @@ function SelectField<T extends string>({
       <Modal animationType="fade" onRequestClose={() => setVisible(false)} transparent visible={visible}>
         <View style={styles.tuningModalRoot}>
           <Pressable accessibilityLabel={`Close ${label} options`} accessibilityRole="button" onPress={() => setVisible(false)} style={styles.tuningModalBackdrop} />
-          <View accessibilityViewIsModal style={styles.tuningModalSheet}>
-            <View style={styles.tuningModalHeading}>
-              <View style={styles.tuningModalHeadingCopy}>
-                <Text style={styles.tuningModalKicker}>Dyno setup</Text>
-                <Text style={styles.tuningModalTitle}>{label}</Text>
+          <SafeAreaView
+            edges={['top', 'right', 'bottom', 'left']}
+            pointerEvents="box-none"
+            style={[styles.tuningModalSafeArea, tightModal && styles.tuningModalSafeAreaTight]}
+          >
+            <View accessibilityViewIsModal style={[styles.tuningModalSheet, tightModal && styles.tuningModalSheetTight, wideModal && styles.tuningModalSheetWide]}>
+              <View style={styles.tuningModalHeading}>
+                <View style={styles.tuningModalHeadingCopy}>
+                  <Text style={styles.tuningModalKicker}>Dyno setup</Text>
+                  <Text maxFontSizeMultiplier={2} style={styles.tuningModalTitle}>{label}</Text>
+                </View>
+                <Pressable accessibilityLabel="Close" accessibilityRole="button" hitSlop={12} onPress={() => setVisible(false)}>
+                  <Text maxFontSizeMultiplier={1.3} style={styles.tuningModalClose}>×</Text>
+                </Pressable>
               </View>
-              <Pressable accessibilityLabel="Close" accessibilityRole="button" hitSlop={12} onPress={() => setVisible(false)}>
-                <Text style={styles.tuningModalClose}>×</Text>
-              </Pressable>
+              <ScrollView
+                accessibilityRole="radiogroup"
+                contentContainerStyle={styles.tuningOptionList}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                style={styles.tuningOptionScroll}
+              >
+                {options.map((option) => {
+                  const active = option.value === value;
+                  return (
+                    <Pressable
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: active }}
+                      key={option.value}
+                      onPress={() => {
+                        onChange(option.value);
+                        setVisible(false);
+                      }}
+                      style={({ pressed }) => [styles.tuningOption, active && styles.tuningOptionActive, pressed && styles.pressed]}
+                    >
+                      <Text style={[styles.tuningOptionText, active && styles.tuningOptionTextActive]}>{option.label}</Text>
+                      <View style={[styles.tuningOptionRadio, active && styles.tuningOptionRadioActive]}>
+                        {active ? <View style={styles.tuningOptionDot} /> : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
             </View>
-            <ScrollView contentContainerStyle={styles.tuningOptionList} showsVerticalScrollIndicator={false}>
-              {options.map((option) => {
-                const active = option.value === value;
-                return (
-                  <Pressable
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: active }}
-                    key={option.value}
-                    onPress={() => {
-                      onChange(option.value);
-                      setVisible(false);
-                    }}
-                    style={({ pressed }) => [styles.tuningOption, active && styles.tuningOptionActive, pressed && styles.pressed]}
-                  >
-                    <Text style={[styles.tuningOptionText, active && styles.tuningOptionTextActive]}>{option.label}</Text>
-                    <View style={[styles.tuningOptionRadio, active && styles.tuningOptionRadioActive]}>
-                      {active ? <View style={styles.tuningOptionDot} /> : null}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
+          </SafeAreaView>
         </View>
       </Modal>
     </Field>
@@ -954,7 +998,7 @@ function DetailsStep({
         title="Who is the booking for?"
       />
       <Pressable accessibilityRole="button" onPress={onAccount} style={({ pressed }) => [styles.accountNotice, pressed && styles.pressed]}>
-        <View>
+        <View style={styles.accountNoticeCopyWrap}>
           <Text style={styles.accountNoticeTitle}>Have a PSI account?</Text>
           <Text style={styles.accountNoticeCopy}>Account sign-in is being prepared with a managed provider.</Text>
         </View>
@@ -1038,6 +1082,8 @@ function DateStep({
   maxDate: Date;
   onDateChange: (event: DateTimePickerEvent, selected?: Date) => void;
 }) {
+  const { compact, fontScale, shortLandscape, width } = useResponsiveLayout();
+  const useInlineCalendar = width >= 390 && !shortLandscape && fontScale <= 1.3;
   const selectedDate = form.preferredDate ? dateFromIso(form.preferredDate) : new Date();
 
   return (
@@ -1071,10 +1117,10 @@ function DateStep({
             <Text style={styles.dateIcon}>▦</Text>
           </Pressable>
           {showDatePicker ? (
-            <View style={styles.datePickerWrap}>
+            <View style={[styles.datePickerWrap, compact && styles.datePickerWrapCompact]}>
               <DateTimePicker
                 accentColor={colors.gold}
-                display={Platform.OS === 'ios' ? 'inline' : 'calendar'}
+                display={Platform.OS === 'ios' ? (useInlineCalendar ? 'inline' : 'spinner') : 'calendar'}
                 maximumDate={maxDate}
                 minimumDate={new Date()}
                 mode="date"
@@ -1082,6 +1128,7 @@ function DateStep({
                 themeVariant="dark"
                 timeZoneName="Australia/Melbourne"
                 value={selectedDate}
+                style={styles.datePicker}
               />
               {Platform.OS === 'ios' ? (
                 <Pressable accessibilityRole="button" onPress={() => setShowDatePicker(false)} style={styles.dateDone}>
@@ -1119,6 +1166,8 @@ function DepositStep({
   errors: BookingErrors;
   update: UpdateBooking;
 }) {
+  const { compact, largeText } = useResponsiveLayout();
+  const stackSummary = compact || largeText;
   const purpose = form.bookingType ? BOOKING_PURPOSES[form.bookingType] : null;
   return (
     <View style={styles.stepContent}>
@@ -1128,8 +1177,8 @@ function DepositStep({
         title="Review and pay securely."
       />
 
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryTop}>
+      <View style={[styles.summaryCard, stackSummary && styles.summaryCardCompact]}>
+        <View style={[styles.summaryTop, stackSummary && styles.summaryTopStacked]}>
           <Text style={styles.summaryKicker}>Booking summary</Text>
           <Text style={styles.summaryReference}>Pending payment</Text>
         </View>
@@ -1141,11 +1190,11 @@ function DepositStep({
         />
         <SummaryRow label="Preferred date" value={displayDate(form.preferredDate)} secondary={`${form.arrivalWindow} arrival preference`} />
         <SummaryRow label="Customer" value={`${form.firstName} ${form.lastName}`} secondary={form.email} />
-        <View style={styles.requestSummary}>
-          <Text style={styles.summaryLabel}>Your request</Text>
+        <View style={[styles.requestSummary, stackSummary && styles.summaryRowStacked]}>
+          <Text style={[styles.summaryLabel, stackSummary && styles.summaryLabelStacked]}>Your request</Text>
           <Text style={styles.requestSummaryText}>{form.requestDetails}</Text>
         </View>
-        <View style={styles.depositTotal}>
+        <View style={[styles.depositTotal, stackSummary && styles.depositTotalStacked]}>
           <View>
             <Text style={styles.depositLabel}>Required booking deposit</Text>
             <Text style={styles.depositCurrency}>AUD · Applied to approved work</Text>
@@ -1193,7 +1242,7 @@ function DepositStep({
           </Text>
         </Pressable>
         {errors.consent ? <Text style={styles.error}>{errors.consent}</Text> : null}
-        <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(contact.privacy)}>
+        <Pressable accessibilityRole="link" hitSlop={10} onPress={() => void Linking.openURL(contact.privacy)}>
           <Text style={styles.privacyLink}>Read the privacy policy ↗</Text>
         </Pressable>
       </View>
@@ -1204,15 +1253,17 @@ function DepositStep({
 function CheckBox({ checked }: { checked: boolean }) {
   return (
     <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-      {checked ? <Text style={styles.checkmark}>✓</Text> : null}
+      {checked ? <Text maxFontSizeMultiplier={1.3} style={styles.checkmark}>✓</Text> : null}
     </View>
   );
 }
 
 function SummaryRow({ label, value, secondary }: { label: string; value: string; secondary?: string }) {
+  const { compact, largeText } = useResponsiveLayout();
+
   return (
-    <View style={styles.summaryRow}>
-      <Text style={styles.summaryLabel}>{label}</Text>
+    <View style={[styles.summaryRow, (compact || largeText) && styles.summaryRowStacked]}>
+      <Text style={[styles.summaryLabel, (compact || largeText) && styles.summaryLabelStacked]}>{label}</Text>
       <View style={styles.summaryValueWrap}>
         <Text style={styles.summaryValue}>{value}</Text>
         {secondary ? <Text style={styles.summarySecondary}>{secondary}</Text> : null}
@@ -1230,14 +1281,16 @@ function CheckoutHandoff({
   onReopen: () => void;
   onHome: () => void;
 }) {
+  const { compact, horizontalPadding, short } = useResponsiveLayout();
+
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={styles.successScreen}>
-      <ScrollView contentContainerStyle={styles.successScroll}>
+    <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.successScreen}>
+      <ScrollView contentContainerStyle={[styles.successScroll, short && styles.successScrollShort, { paddingHorizontal: horizontalPadding }]} showsVerticalScrollIndicator={false}>
         <View style={styles.checkoutMark}>
-          <Text style={styles.checkoutMarkText}>→</Text>
+          <Text maxFontSizeMultiplier={1.3} style={styles.checkoutMarkText}>→</Text>
         </View>
         <Eyebrow>Secure checkout ready</Eyebrow>
-        <Text style={styles.successTitle}>Complete payment securely.</Text>
+        <Text maxFontSizeMultiplier={2} style={[styles.successTitle, compact && styles.successTitleCompact]}>Complete payment securely.</Text>
         <Text style={styles.successLead}>
           PSI has prepared a {checkout.payment.provider} checkout. Complete payment there, then rely on the payment provider&apos;s confirmation and PSI&apos;s separate booking confirmation—not this screen—as proof of payment or a confirmed date.
         </Text>
@@ -1279,11 +1332,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
+  topBarCompact: { minHeight: 62 },
   backButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   backArrow: { color: colors.gold, fontSize: 23 },
   backLabel: { color: colors.white, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   topBarBrand: { alignItems: 'flex-end', gap: 2 },
   topBarLogo: { width: 94, height: 35 },
+  topBarLogoCompact: { width: 82, height: 31 },
   topBarCopy: { color: colors.gold, fontSize: 8, fontWeight: '900', letterSpacing: 0.9, textTransform: 'uppercase' },
   progress: {
     width: '100%',
@@ -1295,7 +1350,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
-  progressItem: { flex: 1, alignItems: 'center', gap: 5 },
+  progressItem: { minHeight: 48, flex: 1, alignItems: 'center', justifyContent: 'center', gap: 5 },
+  progressCompact: { paddingHorizontal: spacing.sm, paddingVertical: spacing.sm },
   progressNumber: {
     width: 27,
     height: 27,
@@ -1308,9 +1364,10 @@ const styles = StyleSheet.create({
   progressNumberActive: { borderColor: colors.gold, backgroundColor: colors.gold },
   progressNumberText: { color: colors.muted, fontSize: 10, fontWeight: '900' },
   progressNumberTextActive: { color: colors.ink },
-  progressLabel: { color: colors.mutedDark, fontSize: 8, fontWeight: '900', letterSpacing: 0.3, textTransform: 'uppercase' },
+  progressLabel: { width: '100%', color: colors.mutedDark, fontSize: 8, fontWeight: '900', letterSpacing: 0.3, lineHeight: 10, textAlign: 'center', textTransform: 'uppercase' },
   progressLabelActive: { color: colors.white },
-  formScroll: { flexGrow: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: spacing.xxl },
+  formScroll: { flexGrow: 1, paddingTop: spacing.xl, paddingBottom: spacing.xxl },
+  formScrollShort: { paddingTop: spacing.lg, paddingBottom: spacing.xl },
   formInner: { width: '100%', maxWidth: 720, alignSelf: 'center' },
   alert: { gap: spacing.sm, marginBottom: spacing.lg, borderLeftWidth: 3, borderLeftColor: colors.danger, backgroundColor: '#291515', padding: spacing.md },
   alertTitle: { color: colors.white, fontSize: 15, fontWeight: '900' },
@@ -1320,6 +1377,7 @@ const styles = StyleSheet.create({
   stepContent: { gap: spacing.xl },
   stepHeading: { gap: spacing.md },
   stepTitle: { color: colors.white, fontSize: 34, fontWeight: '900', letterSpacing: -1.5, lineHeight: 36, textTransform: 'uppercase' },
+  stepTitleCompact: { fontSize: 29, letterSpacing: -1, lineHeight: 32 },
   stepIntro: { color: colors.muted, fontSize: 15, lineHeight: 23 },
   choiceList: { gap: spacing.sm },
   error: { marginTop: spacing.sm, color: colors.danger, fontSize: 12, lineHeight: 17 },
@@ -1335,6 +1393,7 @@ const styles = StyleSheet.create({
   tuningTitle: { color: colors.white, fontSize: 27, fontWeight: '900', letterSpacing: -0.8, lineHeight: 31, textTransform: 'uppercase' },
   tuningCopy: { color: colors.muted, fontSize: 13, lineHeight: 20 },
   tuningSection: { gap: spacing.lg, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, padding: spacing.md },
+  tuningSectionCompact: { gap: spacing.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.md },
   tuningSectionHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line, paddingBottom: spacing.md },
   tuningSectionIndex: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: colors.gold },
   tuningSectionIndexText: { color: colors.ink, fontSize: 9, fontWeight: '900' },
@@ -1343,21 +1402,26 @@ const styles = StyleSheet.create({
   tuningNotesInput: { minHeight: 104 },
   tuningSelect: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: 3, backgroundColor: colors.inkSoft, paddingHorizontal: spacing.md },
   tuningSelectError: { borderColor: colors.danger },
-  tuningSelectText: { flex: 1, color: colors.white, fontSize: 15, fontWeight: '700' },
+  tuningSelectText: { flex: 1, minWidth: 0, color: colors.white, fontSize: 15, fontWeight: '700' },
   tuningSelectPlaceholder: { color: colors.mutedDark, fontWeight: '500' },
   tuningSelectChevron: { color: colors.gold, fontSize: 24, lineHeight: 28 },
-  tuningModalRoot: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  tuningModalRoot: { flex: 1 },
   tuningModalBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.86)' },
-  tuningModalSheet: { width: '100%', maxWidth: 560, maxHeight: '82%', gap: spacing.lg, borderWidth: 1, borderColor: colors.gold, borderRadius: 5, backgroundColor: colors.panel, padding: spacing.lg },
+  tuningModalSafeArea: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  tuningModalSafeAreaTight: { padding: spacing.sm },
+  tuningModalSheet: { width: '100%', minHeight: 0, maxWidth: 560, maxHeight: '92%', gap: spacing.lg, borderWidth: 1, borderColor: colors.gold, borderRadius: 5, backgroundColor: colors.panel, padding: spacing.lg },
+  tuningModalSheetTight: { maxHeight: '100%', gap: spacing.md, padding: spacing.md },
+  tuningModalSheetWide: { maxHeight: '86%' },
   tuningModalHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
-  tuningModalHeadingCopy: { flex: 1, gap: spacing.xs },
+  tuningModalHeadingCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
   tuningModalKicker: { color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1.5, textTransform: 'uppercase' },
   tuningModalTitle: { color: colors.white, fontSize: 23, fontWeight: '900', lineHeight: 27, textTransform: 'uppercase' },
   tuningModalClose: { color: colors.muted, fontSize: 32, lineHeight: 34 },
+  tuningOptionScroll: { flexShrink: 1, minHeight: 0 },
   tuningOptionList: { gap: spacing.sm },
   tuningOption: { minHeight: 58, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderWidth: 1, borderColor: colors.line, borderRadius: 3, backgroundColor: colors.ink, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   tuningOptionActive: { borderColor: colors.gold, backgroundColor: colors.gold },
-  tuningOptionText: { flex: 1, color: colors.white, fontSize: 15, fontWeight: '800' },
+  tuningOptionText: { flex: 1, minWidth: 0, color: colors.white, fontSize: 15, fontWeight: '800' },
   tuningOptionTextActive: { color: colors.ink },
   tuningOptionRadio: { width: 21, height: 21, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.muted, borderRadius: 11 },
   tuningOptionRadioActive: { borderColor: colors.ink },
@@ -1373,6 +1437,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.panel,
     padding: spacing.md,
   },
+  accountNoticeCopyWrap: { flex: 1, minWidth: 0 },
   accountNoticeTitle: { color: colors.white, fontSize: 13, fontWeight: '900' },
   accountNoticeCopy: { marginTop: 4, color: colors.muted, fontSize: 11, lineHeight: 17 },
   accountNoticeArrow: { color: colors.gold, fontSize: 22 },
@@ -1395,21 +1460,28 @@ const styles = StyleSheet.create({
   datePlaceholder: { color: colors.mutedDark },
   dateIcon: { color: colors.gold, fontSize: 22 },
   datePickerWrap: { overflow: 'hidden', borderWidth: 1, borderColor: colors.line, borderRadius: 3, backgroundColor: colors.panel, padding: spacing.sm },
+  datePickerWrapCompact: { paddingHorizontal: 0 },
+  datePicker: { width: '100%', alignSelf: 'center' },
   dateDone: { alignSelf: 'flex-end', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   dateDoneText: { color: colors.gold, fontSize: 14, fontWeight: '900' },
   compactChoices: { gap: spacing.sm },
   summaryCard: { borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.panel, padding: spacing.lg },
+  summaryCardCompact: { padding: spacing.md },
   summaryTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingBottom: spacing.md },
+  summaryTopStacked: { alignItems: 'flex-start', flexDirection: 'column', gap: spacing.xs },
   summaryKicker: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.4, textTransform: 'uppercase' },
   summaryReference: { color: colors.muted, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   summaryRow: { minHeight: 69, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: spacing.md },
+  summaryRowStacked: { flexDirection: 'column', gap: spacing.sm },
   summaryLabel: { width: 94, color: colors.muted, fontSize: 10, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase' },
-  summaryValueWrap: { flex: 1, gap: 4 },
+  summaryLabelStacked: { width: 'auto' },
+  summaryValueWrap: { flex: 1, minWidth: 0, gap: 4 },
   summaryValue: { color: colors.white, fontSize: 14, fontWeight: '900', lineHeight: 20 },
   summarySecondary: { color: colors.muted, fontSize: 11, lineHeight: 17 },
   requestSummary: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: spacing.md },
-  requestSummaryText: { flex: 1, color: colors.cream, fontSize: 12, lineHeight: 19 },
+  requestSummaryText: { flex: 1, minWidth: 0, color: colors.cream, fontSize: 12, lineHeight: 19 },
   depositTotal: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.gold, paddingTop: spacing.lg },
+  depositTotalStacked: { flexDirection: 'column', alignItems: 'flex-start', gap: spacing.sm },
   depositLabel: { color: colors.white, fontSize: 13, fontWeight: '900' },
   depositCurrency: { marginTop: 4, color: colors.muted, fontSize: 10 },
   depositValue: { color: colors.gold, fontSize: 30, fontWeight: '900', letterSpacing: -1 },
@@ -1425,13 +1497,15 @@ const styles = StyleSheet.create({
   privacyLink: { marginTop: spacing.md, color: colors.gold, fontSize: 12, fontWeight: '800', textDecorationLine: 'underline' },
   actions: { gap: spacing.sm, marginTop: spacing.xl },
   actionsWide: { flexDirection: 'row' },
-  actionButton: { flex: 1 },
+  actionButtonWide: { flex: 1 },
   requestNote: { marginTop: spacing.md, color: colors.muted, fontSize: 12, lineHeight: 18, textAlign: 'center' },
   successScreen: { flex: 1, backgroundColor: colors.ink },
-  successScroll: { flexGrow: 1, width: '100%', maxWidth: 680, alignSelf: 'center', justifyContent: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.xxl },
+  successScroll: { flexGrow: 1, width: '100%', maxWidth: 680, alignSelf: 'center', justifyContent: 'center', paddingVertical: spacing.xxl },
+  successScrollShort: { justifyContent: 'flex-start', paddingVertical: spacing.lg },
   checkoutMark: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.xl, borderRadius: 36, backgroundColor: colors.gold },
   checkoutMarkText: { color: colors.ink, fontSize: 36, fontWeight: '900' },
   successTitle: { marginTop: spacing.md, color: colors.white, fontSize: 42, fontWeight: '900', letterSpacing: -2, lineHeight: 44, textTransform: 'uppercase' },
+  successTitleCompact: { fontSize: 34, letterSpacing: -1.3, lineHeight: 37 },
   successLead: { marginTop: spacing.lg, color: colors.muted, fontSize: 15, lineHeight: 24 },
   checkoutReferenceCard: { marginTop: spacing.xl, borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.panel, paddingHorizontal: spacing.lg },
   notPaidCard: { gap: spacing.sm, marginTop: spacing.lg, borderLeftWidth: 3, borderLeftColor: colors.gold, backgroundColor: colors.panel, padding: spacing.md },

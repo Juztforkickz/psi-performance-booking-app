@@ -13,7 +13,7 @@ import {
 import { colors, spacing } from '@/constants/brand';
 
 export function Eyebrow({ children, dark = false }: PropsWithChildren<{ dark?: boolean }>) {
-  return <Text style={[styles.eyebrow, dark && styles.eyebrowDark]}>{children}</Text>;
+  return <Text maxFontSizeMultiplier={2} style={[styles.eyebrow, dark && styles.eyebrowDark]}>{children}</Text>;
 }
 
 export function PrimaryButton({
@@ -50,6 +50,7 @@ export function PrimaryButton({
         <ActivityIndicator color={variant === 'gold' ? colors.ink : colors.white} />
       ) : (
         <Text
+          maxFontSizeMultiplier={2}
           style={[
             styles.buttonText,
             variant === 'light' && styles.buttonTextDark,
@@ -72,12 +73,12 @@ export function Field({
   return (
     <View style={styles.field}>
       <View style={styles.fieldLabelRow}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        {hint ? <Text style={styles.fieldHint}>{hint}</Text> : null}
+        <Text maxFontSizeMultiplier={2} style={styles.fieldLabel}>{label}</Text>
+        {hint ? <Text maxFontSizeMultiplier={2} style={styles.fieldHint}>{hint}</Text> : null}
       </View>
       {children}
       {error ? (
-        <Text accessibilityRole="alert" style={styles.error}>
+        <Text accessibilityRole="alert" maxFontSizeMultiplier={2} style={styles.error}>
           {error}
         </Text>
       ) : null}
@@ -89,6 +90,7 @@ export function FormInput({ error, style, ...props }: TextInputProps & { error?:
   return (
     <TextInput
       autoCorrect={false}
+      maxFontSizeMultiplier={2}
       placeholderTextColor={colors.mutedDark}
       selectionColor={colors.gold}
       style={[styles.input, error ? styles.inputError : null, style]}
@@ -122,10 +124,10 @@ export function ChoiceCard({
         pressed && styles.choicePressed,
       ]}
     >
-      {index ? <Text style={[styles.choiceIndex, selected && styles.choiceIndexSelected]}>{index}</Text> : null}
+      {index ? <Text maxFontSizeMultiplier={1.5} style={[styles.choiceIndex, selected && styles.choiceIndexSelected]}>{index}</Text> : null}
       <View style={styles.choiceCopy}>
-        <Text style={[styles.choiceTitle, selected && styles.choiceTitleSelected]}>{title}</Text>
-        <Text style={[styles.choiceDetail, selected && styles.choiceDetailSelected]}>{detail}</Text>
+        <Text maxFontSizeMultiplier={2} style={[styles.choiceTitle, selected && styles.choiceTitleSelected]}>{title}</Text>
+        <Text maxFontSizeMultiplier={2} style={[styles.choiceDetail, selected && styles.choiceDetailSelected]}>{detail}</Text>
         {children as ReactNode}
       </View>
       <View style={[styles.radio, selected && styles.radioSelected]}>
@@ -151,6 +153,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     borderRadius: 3,
     backgroundColor: colors.gold,
   },
@@ -174,6 +177,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     letterSpacing: 1.1,
+    lineHeight: 18,
+    textAlign: 'center',
     textTransform: 'uppercase',
   },
   buttonTextDark: {
@@ -187,10 +192,13 @@ const styles = StyleSheet.create({
   },
   fieldLabelRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'baseline',
+    gap: spacing.xs,
   },
   fieldLabel: {
+    flexShrink: 1,
     color: colors.cream,
     fontSize: 13,
     fontWeight: '800',
@@ -238,6 +246,7 @@ const styles = StyleSheet.create({
   },
   choiceIndex: {
     alignSelf: 'flex-start',
+    flexShrink: 0,
     color: colors.gold,
     fontSize: 11,
     fontWeight: '900',
@@ -273,6 +282,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     borderWidth: 1,
     borderColor: colors.muted,
+    flexShrink: 0,
   },
   radioSelected: {
     borderColor: colors.ink,

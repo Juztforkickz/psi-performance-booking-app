@@ -5,9 +5,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, spacing } from '@/constants/brand';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
 export default function AccountScreen() {
   const router = useRouter();
+  const { compact, horizontalPadding, short } = useResponsiveLayout();
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [notice, setNotice] = useState('');
@@ -23,8 +25,8 @@ export default function AccountScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
-      <View style={styles.header}>
+    <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.screen}>
+      <View style={[styles.header, compact && styles.headerCompact, { paddingHorizontal: horizontalPadding }]}>
         <Pressable
           accessibilityLabel="Back"
           accessibilityRole="button"
@@ -32,8 +34,8 @@ export default function AccountScreen() {
           onPress={() => router.back()}
           style={({ pressed }) => [styles.back, pressed && styles.pressed]}
         >
-          <Text style={styles.backArrow}>←</Text>
-          <Text style={styles.backText}>Back</Text>
+          <Text maxFontSizeMultiplier={1.3} style={styles.backArrow}>←</Text>
+          <Text maxFontSizeMultiplier={2} style={styles.backText}>Back</Text>
         </Pressable>
         <Image
           accessibilityLabel="PSI Performance Garage"
@@ -45,18 +47,18 @@ export default function AccountScreen() {
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardDismissMode="interactive"
+          contentContainerStyle={[styles.scroll, short && styles.scrollShort, { paddingHorizontal: horizontalPadding }]}
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
         <Eyebrow>PSI customer account</Eyebrow>
-        <Text style={styles.title}>Your cars.{`\n`}Your bookings.</Text>
+        <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>Your cars.{`\n`}Your bookings.</Text>
         <Text style={styles.lead}>
           Account access is designed for saved customer details, vehicles, receipts and booking history through a managed identity provider.
         </Text>
 
-        <View style={styles.providerNotice}>
+        <View style={[styles.providerNotice, compact && styles.cardCompact]}>
           <Text style={styles.providerKicker}>Provider-ready preview</Text>
           <Text style={styles.providerTitle}>Secure identity connection pending</Text>
           <Text style={styles.providerCopy}>
@@ -64,7 +66,7 @@ export default function AccountScreen() {
           </Text>
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, compact && styles.cardCompact]}>
           <Text style={styles.cardTitle}>Sign in with email</Text>
           <Text style={styles.cardCopy}>
             The production experience will send a secure one-time sign-in link—no reusable password required.
@@ -93,7 +95,7 @@ export default function AccountScreen() {
           <PrimaryButton label="Check sign-in readiness" onPress={previewSignIn} />
         </View>
 
-        <View style={styles.createCard}>
+        <View style={[styles.createCard, compact && styles.cardCompact]}>
           <View style={styles.createCopy}>
             <Text style={styles.createTitle}>New to PSI?</Text>
             <Text style={styles.createText}>Preview the account setup for your details and primary vehicle.</Text>
@@ -103,7 +105,7 @@ export default function AccountScreen() {
 
         <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={({ pressed }) => [styles.guestLink, pressed && styles.pressed]}>
           <Text style={styles.guestLinkText}>Continue without an account</Text>
-          <Text style={styles.guestArrow}>→</Text>
+          <Text maxFontSizeMultiplier={1.3} style={styles.guestArrow}>→</Text>
         </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -122,18 +124,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
+  headerCompact: { minHeight: 62 },
   back: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   backArrow: { color: colors.gold, fontSize: 22 },
   backText: { color: colors.white, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   logo: { width: 106, height: 38 },
-  scroll: { flexGrow: 1, width: '100%', maxWidth: 680, alignSelf: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: 64 },
+  scroll: { flexGrow: 1, width: '100%', maxWidth: 680, alignSelf: 'center', paddingTop: spacing.xl, paddingBottom: 64 },
+  scrollShort: { paddingTop: spacing.lg, paddingBottom: spacing.xl },
   title: { marginTop: spacing.md, color: colors.white, fontSize: 42, fontWeight: '900', letterSpacing: -2, lineHeight: 43, textTransform: 'uppercase' },
+  titleCompact: { fontSize: 34, letterSpacing: -1.3, lineHeight: 37 },
   lead: { marginTop: spacing.lg, color: colors.muted, fontSize: 15, lineHeight: 24 },
   providerNotice: { gap: spacing.sm, marginTop: spacing.xl, borderLeftWidth: 3, borderLeftColor: colors.gold, backgroundColor: colors.panel, padding: spacing.lg },
+  cardCompact: { padding: spacing.md },
   providerKicker: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase' },
   providerTitle: { color: colors.white, fontSize: 17, fontWeight: '900', textTransform: 'uppercase' },
   providerCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
@@ -146,8 +151,8 @@ const styles = StyleSheet.create({
   createCopy: { gap: spacing.xs },
   createTitle: { color: colors.white, fontSize: 16, fontWeight: '900' },
   createText: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  guestLink: { minHeight: 66, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.lg, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line },
-  guestLinkText: { color: colors.white, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  guestLink: { minHeight: 66, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.lg, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, paddingVertical: spacing.sm },
+  guestLinkText: { flex: 1, minWidth: 0, color: colors.white, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   guestArrow: { color: colors.gold, fontSize: 21 },
   pressed: { opacity: 0.72 },
 });

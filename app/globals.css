@@ -20,6 +20,7 @@
   --signal-metal: linear-gradient(135deg, #f3d37b 0%, #d9b35b 48%, #aa7d28 100%);
   --danger: #b42318;
   --radius: 6px;
+  --content-max: 1600px;
 }
 
 * {
@@ -27,11 +28,16 @@
 }
 
 html {
+  min-width: 0;
   scroll-behavior: smooth;
   background: var(--ink);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
+  min-width: 0;
+  min-height: 100%;
   margin: 0;
   background: var(--ink);
   color: #fff;
@@ -43,16 +49,25 @@ button,
 input,
 select,
 textarea {
+  max-width: 100%;
   font: inherit;
+}
+
+input,
+select,
+textarea {
+  font-size: max(1rem, 16px);
 }
 
 button,
 a {
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 a {
   color: inherit;
+  overflow-wrap: anywhere;
 }
 
 img {
@@ -72,7 +87,21 @@ h2,
 h3 {
   font-family: "Ethnocentric", Impact, sans-serif;
   font-weight: 400;
+  text-wrap: balance;
   text-transform: uppercase;
+}
+
+main,
+section,
+article,
+aside,
+header,
+footer,
+nav,
+form,
+fieldset,
+div {
+  min-width: 0;
 }
 
 .eyebrow {
@@ -91,7 +120,10 @@ h3 {
   flex-direction: column;
   isolation: isolate;
   overflow: hidden;
-  padding: 28px clamp(22px, 4vw, 72px) 24px;
+  padding-top: max(28px, env(safe-area-inset-top));
+  padding-right: max(clamp(22px, 4vw, 72px), env(safe-area-inset-right));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  padding-left: max(clamp(22px, 4vw, 72px), env(safe-area-inset-left));
   background:
     radial-gradient(circle at 78% 42%, rgba(217, 179, 91, 0.08), transparent 28rem),
     #050505;
@@ -110,21 +142,25 @@ h3 {
 
 .site-header,
 .hero-foot {
+  width: min(var(--content-max), 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-inline: auto;
 }
 
 .site-header {
   position: relative;
   z-index: 2;
-  gap: 36px;
+  gap: clamp(18px, 3vw, 36px);
   padding-bottom: 24px;
   border-bottom: 1px solid var(--line);
 }
 
 .brand-link {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
 }
 
 .brand-mark {
@@ -155,6 +191,7 @@ h3 {
 }
 
 .header-call {
+  min-height: 44px;
   display: grid;
   gap: 4px;
   text-align: right;
@@ -317,6 +354,7 @@ h3 {
   cursor: pointer;
   font-size: 1rem;
   font-weight: 750;
+  text-overflow: ellipsis;
 }
 
 .opening-select-wrap select:focus-visible {
@@ -360,6 +398,8 @@ h3 {
 }
 
 .opening-selection strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-family: "Ethnocentric", Impact, sans-serif;
   font-size: 1rem;
   font-weight: 400;
@@ -367,6 +407,8 @@ h3 {
 }
 
 .opening-selection span {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--signal);
   font-size: 0.82rem;
   font-weight: 850;
@@ -405,6 +447,7 @@ h3 {
 
 .opening-account-row > div {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 16px;
 }
@@ -436,6 +479,8 @@ h3 {
 .trust-strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
   border-bottom: 1px solid var(--dark-line);
   background: var(--signal-metal);
   color: var(--ink);
@@ -471,7 +516,20 @@ h3 {
 .services-section,
 .booking-section,
 .testimonials-section {
-  padding: clamp(76px, 10vw, 150px) clamp(22px, 7vw, 120px);
+  padding-top: clamp(76px, 10vw, 150px);
+  padding-right: max(clamp(22px, 7vw, 120px), env(safe-area-inset-right));
+  padding-bottom: clamp(76px, 10vw, 150px);
+  padding-left: max(clamp(22px, 7vw, 120px), env(safe-area-inset-left));
+}
+
+.services-section > .section-heading,
+.services-section > .service-showcase,
+.booking-section > .booking-intro,
+.booking-section > .booking-workspace,
+.testimonials-section > .section-heading,
+.testimonials-section > .testimonial-grid {
+  width: min(var(--content-max), 100%);
+  margin-inline: auto;
 }
 
 .services-section {
@@ -677,6 +735,7 @@ h3 {
 }
 
 .booking-steps > button {
+  min-width: 0;
   display: grid;
   grid-template-columns: 38px 1fr;
   align-items: center;
@@ -729,6 +788,7 @@ h3 {
 }
 
 .booking-form {
+  width: 100%;
   min-width: 0;
 }
 
@@ -916,6 +976,10 @@ h3 {
   transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
+.field select {
+  text-overflow: ellipsis;
+}
+
 .field textarea {
   min-height: 126px;
   resize: vertical;
@@ -966,6 +1030,8 @@ h3 {
 }
 
 .selected-job-card strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-family: "Ethnocentric", Impact, sans-serif;
   font-size: 0.84rem;
   font-weight: 400;
@@ -973,6 +1039,8 @@ h3 {
 }
 
 .selected-job-card span {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--signal);
   font-size: 0.78rem;
   font-weight: 850;
@@ -1123,7 +1191,7 @@ h3 {
 
 .calendar-header {
   display: grid;
-  grid-template-columns: 42px 1fr 42px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
   margin-bottom: 22px;
 }
@@ -1137,8 +1205,8 @@ h3 {
 }
 
 .calendar-header button {
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border: 1px solid #45433f;
   border-radius: 50%;
   background: #141414;
@@ -1184,6 +1252,7 @@ h3 {
 }
 
 .calendar-grid button {
+  min-height: 40px;
   border: 1px solid transparent;
   border-radius: 3px;
   background: #171717;
@@ -1237,6 +1306,7 @@ h3 {
 }
 
 .date-selection-footer > div:first-child strong {
+  overflow-wrap: anywhere;
   color: #fff;
   font-size: 0.9rem;
 }
@@ -1298,6 +1368,7 @@ h3 {
 .deposit-summary dd,
 .bank-panel dd {
   margin: 0;
+  overflow-wrap: anywhere;
   color: #fff;
   font-size: 0.75rem;
   font-weight: 800;
@@ -1535,6 +1606,8 @@ h3 {
 }
 
 .reference-card strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-family: "Ethnocentric", Impact, sans-serif;
   font-size: clamp(0.9rem, 2.4vw, 1.45rem);
   font-weight: 400;
@@ -1556,7 +1629,8 @@ h3 {
 
 .why-section {
   display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
+  grid-template-columns: minmax(420px, 760px) minmax(0, 940px);
+  justify-content: center;
   min-height: 800px;
   background: var(--paper);
   color: var(--ink);
@@ -1571,7 +1645,14 @@ h3 {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: clamp(70px, 9vw, 140px) clamp(30px, 7vw, 110px);
+  padding: clamp(70px, 9vw, 140px) clamp(30px, 4vw, 110px);
+  container-type: inline-size;
+}
+
+.why-copy h2 {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: clamp(2.3rem, min(5.5vw, 12cqi), 5.9rem);
 }
 
 .why-lead {
@@ -1670,10 +1751,14 @@ h3 {
 
 .contact-section {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 740px) minmax(0, 860px);
+  justify-content: center;
   gap: clamp(50px, 9vw, 150px);
   align-items: start;
-  padding: clamp(80px, 11vw, 170px) clamp(22px, 7vw, 120px);
+  padding-top: clamp(80px, 11vw, 170px);
+  padding-right: max(clamp(22px, 7vw, 120px), env(safe-area-inset-right));
+  padding-bottom: clamp(80px, 11vw, 170px);
+  padding-left: max(clamp(22px, 7vw, 120px), env(safe-area-inset-left));
   background: var(--signal);
   color: var(--ink);
 }
@@ -1718,6 +1803,7 @@ h3 {
 }
 
 .contact-grid strong {
+  overflow-wrap: anywhere;
   font-size: 0.83rem;
   line-height: 1.55;
 }
@@ -1775,7 +1861,10 @@ h3 {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 30px;
-  padding: 36px clamp(22px, 4vw, 72px);
+  padding-top: 36px;
+  padding-right: max(clamp(22px, 4vw, 72px), env(safe-area-inset-right));
+  padding-bottom: max(36px, env(safe-area-inset-bottom));
+  padding-left: max(clamp(22px, 4vw, 72px), env(safe-area-inset-left));
   border-top: 1px solid var(--line);
   background: #060606;
 }
@@ -1827,7 +1916,10 @@ h3 {
   align-items: center;
   justify-content: space-between;
   gap: 28px;
-  padding: 20px clamp(22px, 4vw, 72px);
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-right: max(clamp(22px, 4vw, 72px), env(safe-area-inset-right));
+  padding-bottom: 20px;
+  padding-left: max(clamp(22px, 4vw, 72px), env(safe-area-inset-left));
   border-bottom: 1px solid var(--line);
 }
 
@@ -1856,7 +1948,10 @@ h3 {
   align-items: start;
   gap: clamp(50px, 8vw, 130px);
   margin: 0 auto;
-  padding: clamp(70px, 9vw, 140px) clamp(22px, 6vw, 100px);
+  padding-top: clamp(70px, 9vw, 140px);
+  padding-right: max(clamp(22px, 6vw, 100px), env(safe-area-inset-right));
+  padding-bottom: clamp(70px, 9vw, 140px);
+  padding-left: max(clamp(22px, 6vw, 100px), env(safe-area-inset-left));
 }
 
 .account-intro h1,
@@ -1933,6 +2028,7 @@ h3 {
   font-weight: 850;
   letter-spacing: 0.07em;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
 .account-tabs button:last-child {
@@ -2047,6 +2143,7 @@ h3 {
 }
 
 .profile-preview strong {
+  overflow-wrap: anywhere;
   font-size: 0.85rem;
 }
 
@@ -2077,7 +2174,10 @@ h3 {
   align-items: end;
   gap: clamp(50px, 8vw, 130px);
   margin: 0 auto;
-  padding: clamp(70px, 9vw, 140px) clamp(22px, 6vw, 100px);
+  padding-top: clamp(70px, 9vw, 140px);
+  padding-right: max(clamp(22px, 6vw, 100px), env(safe-area-inset-right));
+  padding-bottom: clamp(70px, 9vw, 140px);
+  padding-left: max(clamp(22px, 6vw, 100px), env(safe-area-inset-left));
 }
 
 .parts-hero-copy .button {
@@ -2085,10 +2185,12 @@ h3 {
 }
 
 .parts-grid {
+  width: min(var(--content-max), 100%);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
+  margin-inline: auto;
 }
 
 .parts-grid article {
@@ -2124,9 +2226,13 @@ h3 {
 
 .parts-contact {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 800px) minmax(0, 800px);
+  justify-content: center;
   gap: clamp(50px, 8vw, 120px);
-  padding: clamp(70px, 9vw, 130px) clamp(22px, 6vw, 100px);
+  padding-top: clamp(70px, 9vw, 130px);
+  padding-right: max(clamp(22px, 6vw, 100px), env(safe-area-inset-right));
+  padding-bottom: clamp(70px, 9vw, 130px);
+  padding-left: max(clamp(22px, 6vw, 100px), env(safe-area-inset-left));
   background: var(--signal-metal);
   color: var(--ink);
 }
@@ -2158,7 +2264,24 @@ h3 {
 }
 
 .parts-contact a strong {
+  overflow-wrap: anywhere;
   font-size: 0.9rem;
+}
+
+@media (min-width: 1041px) and (max-width: 1700px) {
+  .why-section {
+    grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.1fr);
+  }
+}
+
+@media (max-width: 1100px) {
+  .tuning-card-fields-three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tuning-card-fields-three > .field:last-child {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 1040px) {
@@ -2247,15 +2370,54 @@ h3 {
   }
 
   .contact-section {
-    grid-template-columns: 0.8fr 1.2fr;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
     gap: 50px;
+  }
+}
+
+@media (max-width: 960px) {
+  .booking-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-bottom: 1px solid var(--line);
+  }
+
+  .booking-steps > button {
+    min-width: 0;
+    min-height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 8px 12px 0;
+    border-bottom: 0;
+    font-size: 0.62rem;
+    overflow-wrap: anywhere;
+  }
+
+  .request-note {
+    display: none;
+  }
+
+  .tuning-heading {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 12px;
   }
 }
 
 @media (max-width: 760px) {
   .hero-shell {
     min-height: 100svh;
-    padding: 20px 20px 24px;
+    padding-top: max(20px, env(safe-area-inset-top));
+    padding-right: max(20px, env(safe-area-inset-right));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    padding-left: max(20px, env(safe-area-inset-left));
     background:
       radial-gradient(circle at 85% 28%, rgba(217, 179, 91, 0.1), transparent 22rem),
       #050505;
@@ -2329,7 +2491,7 @@ h3 {
 
   .booking-steps {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     border-bottom: 1px solid var(--line);
   }
 
@@ -2338,7 +2500,9 @@ h3 {
     flex-direction: column;
     align-items: flex-start;
     gap: 6px;
-    padding: 0 8px 16px 0;
+    justify-content: center;
+    min-height: 52px;
+    padding: 8px 8px 12px 0;
     border-bottom: 0;
     font-size: 0.59rem;
   }
@@ -2378,8 +2542,8 @@ h3 {
   .account-shell,
   .parts-hero,
   .parts-contact {
-    padding-right: 20px;
-    padding-left: 20px;
+    padding-right: max(20px, env(safe-area-inset-right));
+    padding-left: max(20px, env(safe-area-inset-left));
   }
 
   .account-preview-grid {
@@ -2448,8 +2612,24 @@ h3 {
   .services-section,
   .booking-section,
   .testimonials-section {
-    padding-right: 18px;
-    padding-left: 18px;
+    padding-right: max(18px, env(safe-area-inset-right));
+    padding-left: max(18px, env(safe-area-inset-left));
+  }
+
+  .booking-section {
+    padding-right: calc(18px + env(safe-area-inset-right, 0px));
+    padding-left: calc(18px + env(safe-area-inset-left, 0px));
+  }
+
+  .contact-section {
+    padding-right: max(18px, env(safe-area-inset-right));
+    padding-left: max(18px, env(safe-area-inset-left));
+  }
+
+  .parts-hero h1 {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    font-size: clamp(2.2rem, 11.5vw, 4.6rem);
   }
 
   .trust-strip strong {
@@ -2479,15 +2659,23 @@ h3 {
   }
 
   .calendar-card {
-    padding: 14px 10px;
+    --calendar-mobile-width: min(
+      440px,
+      calc(100% + 74px)
+    );
+    width: var(--calendar-mobile-width);
+    margin-inline: calc((100% - var(--calendar-mobile-width)) / 2);
+    padding: 14px 4px;
   }
 
   .calendar-weekdays,
   .calendar-grid {
-    gap: 3px;
+    gap: 2px;
   }
 
   .calendar-grid button {
+    min-height: 40px;
+    aspect-ratio: auto;
     font-size: 0.7rem;
   }
 
@@ -2504,7 +2692,10 @@ h3 {
 
   .utility-header {
     min-height: 74px;
-    padding: 16px 18px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-right: max(18px, env(safe-area-inset-right));
+    padding-bottom: 16px;
+    padding-left: max(18px, env(safe-area-inset-left));
   }
 
   .utility-header img {
@@ -2521,8 +2712,7 @@ h3 {
     padding-bottom: 64px;
   }
 
-  .account-intro h1,
-  .parts-hero h1 {
+  .account-intro h1 {
     font-size: clamp(2.7rem, 13vw, 4.6rem);
   }
 
@@ -2580,6 +2770,102 @@ h3 {
   .contact-qr-card img {
     width: min(180px, 100%);
     height: auto;
+  }
+}
+
+@media (max-width: 360px) {
+  .hero-shell {
+    padding-right: max(14px, env(safe-area-inset-right));
+    padding-left: max(14px, env(safe-area-inset-left));
+  }
+
+  .brand-mark {
+    width: 100px;
+  }
+
+  .header-call {
+    font-size: 0.72rem;
+  }
+
+  .opening-layout {
+    gap: 34px;
+    padding-top: 38px;
+  }
+
+  .opening-panel {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .services-section,
+  .booking-section,
+  .testimonials-section {
+    padding-right: max(10px, env(safe-area-inset-right));
+    padding-left: max(10px, env(safe-area-inset-left));
+  }
+
+  .booking-section {
+    padding-right: calc(10px + env(safe-area-inset-right, 0px));
+    padding-left: calc(10px + env(safe-area-inset-left, 0px));
+  }
+
+  .booking-workspace {
+    padding: 16px 8px;
+  }
+
+  .booking-steps > button {
+    padding-right: 3px;
+    font-size: 0.55rem;
+    letter-spacing: 0.04em;
+  }
+
+  .calendar-card {
+    --calendar-mobile-width: calc(100% + 34px);
+    padding-right: 2px;
+    padding-left: 2px;
+  }
+
+  .calendar-weekdays,
+  .calendar-grid {
+    gap: 0;
+  }
+
+  .calendar-grid button {
+    min-height: 40px;
+  }
+
+  .tuning-card,
+  .deposit-summary,
+  .bank-panel {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .contact-section {
+    padding-right: max(14px, env(safe-area-inset-right));
+    padding-left: max(14px, env(safe-area-inset-left));
+  }
+}
+
+@media (min-width: 1800px) {
+  .site-footer,
+  .utility-header {
+    padding-right: max(calc((100vw - var(--content-max)) / 2), env(safe-area-inset-right));
+    padding-left: max(calc((100vw - var(--content-max)) / 2), env(safe-area-inset-left));
+  }
+}
+
+@media (pointer: coarse) {
+  .calendar-grid button {
+    min-height: 44px;
+  }
+
+  .opening-social-links a,
+  .social-links a,
+  .footer-legal a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
 }
 

@@ -16,6 +16,7 @@
     "android": {
       "package": "com.psiperformance.booking",
       "versionCode": 1,
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#050505",
         "foregroundImage": "./assets/images/psi-adaptive-foreground.png"

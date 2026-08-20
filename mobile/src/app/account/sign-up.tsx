@@ -8,13 +8,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, spacing } from '@/constants/brand';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
 type AccountDraft = {
   firstName: string;
@@ -42,8 +42,7 @@ type AccountErrors = Partial<Record<keyof AccountDraft, string>>;
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
-  const wide = width >= 680;
+  const { compact, horizontalPadding, short, useFieldColumns: wide } = useResponsiveLayout();
   const [form, setForm] = useState(EMPTY_ACCOUNT);
   const [errors, setErrors] = useState<AccountErrors>({});
   const [notice, setNotice] = useState('');
@@ -83,8 +82,8 @@ export default function SignUpScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
-      <View style={styles.header}>
+    <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.screen}>
+      <View style={[styles.header, compact && styles.headerCompact, { paddingHorizontal: horizontalPadding }]}>
         <Pressable
           accessibilityLabel="Back to account access"
           accessibilityRole="button"
@@ -92,8 +91,8 @@ export default function SignUpScreen() {
           onPress={() => router.back()}
           style={({ pressed }) => [styles.back, pressed && styles.pressed]}
         >
-          <Text style={styles.backArrow}>←</Text>
-          <Text style={styles.backText}>Account</Text>
+          <Text maxFontSizeMultiplier={1.3} style={styles.backArrow}>←</Text>
+          <Text maxFontSizeMultiplier={2} style={styles.backText}>Account</Text>
         </Pressable>
         <Image
           accessibilityLabel="PSI Performance Garage"
@@ -105,18 +104,18 @@ export default function SignUpScreen() {
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView
-          contentContainerStyle={styles.scroll}
-          keyboardDismissMode="interactive"
+          contentContainerStyle={[styles.scroll, short && styles.scrollShort, { paddingHorizontal: horizontalPadding }]}
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
           <Eyebrow>Account setup preview</Eyebrow>
-          <Text style={styles.title}>One profile.{`\n`}Every PSI visit.</Text>
+          <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>One profile.{`\n`}Every PSI visit.</Text>
           <Text style={styles.lead}>
             This is the provider-ready profile PSI can connect to secure email sign-in. Passwords are deliberately excluded.
           </Text>
 
-          <View style={styles.securityCard}>
+          <View style={[styles.securityCard, compact && styles.cardCompact]}>
             <Text style={styles.securityTitle}>No data leaves this screen</Text>
             <Text style={styles.securityCopy}>
               Until managed authentication is connected, this preview keeps values only in memory and discards them when the screen closes.
@@ -181,7 +180,7 @@ export default function SignUpScreen() {
 
           {notice ? (
             <View accessibilityRole="alert" style={styles.notice}>
-              <Text style={styles.noticeTitle}>Profile structure ready</Text>
+            <Text maxFontSizeMultiplier={2} style={styles.noticeTitle}>Profile structure ready</Text>
               <Text style={styles.noticeCopy}>{notice}</Text>
             </View>
           ) : null}
@@ -199,15 +198,19 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: colors.ink },
-  header: { width: '100%', maxWidth: 760, minHeight: 70, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.line },
+  header: { width: '100%', maxWidth: 760, minHeight: 70, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: colors.line },
+  headerCompact: { minHeight: 62 },
   back: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   backArrow: { color: colors.gold, fontSize: 22 },
   backText: { color: colors.white, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   logo: { width: 106, height: 38 },
-  scroll: { flexGrow: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: 64 },
+  scroll: { flexGrow: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingTop: spacing.xl, paddingBottom: 64 },
+  scrollShort: { paddingTop: spacing.lg, paddingBottom: spacing.xl },
   title: { marginTop: spacing.md, color: colors.white, fontSize: 40, fontWeight: '900', letterSpacing: -1.8, lineHeight: 42, textTransform: 'uppercase' },
+  titleCompact: { fontSize: 33, letterSpacing: -1.2, lineHeight: 36 },
   lead: { marginTop: spacing.lg, color: colors.muted, fontSize: 15, lineHeight: 23 },
   securityCard: { gap: spacing.sm, marginTop: spacing.xl, borderLeftWidth: 3, borderLeftColor: colors.gold, backgroundColor: colors.panel, padding: spacing.md },
+  cardCompact: { paddingHorizontal: spacing.sm },
   securityTitle: { color: colors.white, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
   securityCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
   section: { gap: spacing.lg, marginTop: spacing.xl, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
