@@ -5,10 +5,10 @@ Native iOS, Android and responsive React Native Web client for PSI Performance G
 The opening route is a black PSI booking gateway inspired by the workshop website. It supports:
 
 - Service & Report with a price guide from $385 + GST.
-- Dyno tuning with a price guide from $350 + GST.
+- Dyno tuning with a price guide from $695 + GST.
 - A reserved parts-store route.
 - A five-stage job, vehicle, customer, date and deposit flow.
-- A fixed $200 AUD server-authoritative deposit checkout.
+- Type-dependent server-authoritative deposits: $100 AUD for service bookings and $300 AUD for dyno tuning.
 - Provider-ready account screens that do not collect or store passwords.
 
 The preferred date is never presented as confirmed. Other customer bookings and PSI's Google Calendar remain private.
@@ -53,12 +53,12 @@ The app sends `POST {EXPO_PUBLIC_API_BASE_URL}/api/v1/booking-checkouts` with a 
   "source": "mobile",
   "consent": true,
   "depositTermsAccepted": true,
-  "depositPolicyVersion": "psi-deposit-v1",
+  "depositPolicyVersion": "psi-deposit-v2",
   "company": ""
 }
 ```
 
-The client never sends a deposit amount or currency; the server owns both. A configured checkout response must include a provider URL:
+The client never sends a deposit amount or currency; the server owns both. It accepts only the server response amount expected for the selected booking type ($100 AUD for service or $300 AUD for dyno), and fails closed if the amount or currency is unexpected. A configured service checkout response must include a provider URL:
 
 ```json
 {
@@ -66,7 +66,7 @@ The client never sends a deposit amount or currency; the server owns both. A con
   "reference": "PSI-ABC123",
   "state": "requires_payment",
   "deposit": {
-    "amountCents": 20000,
+    "amountCents": 10000,
     "currency": "AUD"
   },
   "payment": {

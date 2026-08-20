@@ -7,6 +7,10 @@ import {
   isValidVin,
   isValidVehicleRegistration,
 } from "../lib/booking-inputs";
+import {
+  BOOKING_CATALOG,
+  DEPOSIT_POLICY_VERSION,
+} from "../api/v1/booking-catalog/catalog";
 
 type BookingType = "service" | "dyno";
 type ArrivalWindow = "morning" | "afternoon" | "any";
@@ -90,15 +94,50 @@ type CheckoutApiResponse = Partial<CheckoutSuccess> & {
       };
 };
 
+type CatalogChoice = (typeof BOOKING_CATALOG.choices)[number];
+type CatalogBookingChoice = Extract<CatalogChoice, { kind: "booking" }>;
+
+function requireCatalogBookingChoice(bookingType: BookingType): CatalogBookingChoice {
+  const choice = BOOKING_CATALOG.choices.find(
+    (candidate): candidate is CatalogBookingChoice =>
+      candidate.kind === "booking" && candidate.id === bookingType,
+  );
+  if (!choice) throw new Error(`Missing booking catalog choice: ${bookingType}`);
+  return choice;
+}
+
+function formatAudAmount(amountCents: number, includeCents = false) {
+  const amount = (amountCents / 100).toLocaleString("en-AU", {
+    minimumFractionDigits: includeCents ? 2 : 0,
+    maximumFractionDigits: includeCents ? 2 : 0,
+  });
+  return `$${amount} AUD`;
+}
+
+function formatPriceGuide(choice: CatalogBookingChoice, sentenceCase = true) {
+  const prefix = sentenceCase
+    ? choice.priceGuide.prefix.charAt(0).toUpperCase() + choice.priceGuide.prefix.slice(1)
+    : choice.priceGuide.prefix;
+  const amount = (choice.priceGuide.amountCents / 100).toLocaleString("en-AU");
+  return `${prefix} $${amount}${choice.priceGuide.gstExclusive ? " + GST" : ""}`;
+}
+
+const serviceCatalogChoice = requireCatalogBookingChoice("service");
+const dynoCatalogChoice = requireCatalogBookingChoice("dyno");
+
 const BOOKING_TYPES = {
   service: {
-    label: "Service & Report",
-    price: "From $385 + GST",
+    label: serviceCatalogChoice.label,
+    price: formatPriceGuide(serviceCatalogChoice),
+    optionLabel: `${serviceCatalogChoice.label} — ${formatPriceGuide(serviceCatalogChoice, false)} — ${formatAudAmount(serviceCatalogChoice.deposit.amountCents)} deposit`,
+    depositAmountCents: serviceCatalogChoice.deposit.amountCents,
     detail: "Servicing, inspection and a clear report on what your car needs.",
   },
   dyno: {
-    label: "Dyno tuning",
-    price: "From $350 + GST",
+    label: dynoCatalogChoice.label,
+    price: formatPriceGuide(dynoCatalogChoice),
+    optionLabel: `${dynoCatalogChoice.label} — ${formatPriceGuide(dynoCatalogChoice, false)} — ${formatAudAmount(dynoCatalogChoice.deposit.amountCents)} deposit`,
+    depositAmountCents: dynoCatalogChoice.deposit.amountCents,
     detail: "Hub dyno calibration focused on safe power, drivability and vehicle health.",
   },
 } as const;
@@ -498,6 +537,7 @@ export function BookingFlow() {
     setFormError("");
     setErrorCode("");
     if (!validateStep(4) || !form.bookingType) return;
+    const expectedDepositAmountCents = BOOKING_TYPES[form.bookingType].depositAmountCents;
 
     setSubmitting(true);
     try {
@@ -538,7 +578,7 @@ export function BookingFlow() {
           source: "web",
           consent: true,
           depositTermsAccepted: true,
-          depositPolicyVersion: "psi-deposit-v1",
+          depositPolicyVersion: DEPOSIT_POLICY_VERSION,
           company: form.company,
         }),
       });
@@ -597,7 +637,7 @@ export function BookingFlow() {
       const checkoutUrl = payload.payment?.checkoutUrl;
       if (
         payload.state !== "requires_payment" ||
-        payload.deposit?.amountCents !== 20_000 ||
+        payload.deposit?.amountCents !== expectedDepositAmountCents ||
         payload.deposit.currency !== "AUD" ||
         !checkoutUrl
       ) {
@@ -626,6 +666,12 @@ export function BookingFlow() {
   };
 
   const selectedType = form.bookingType ? BOOKING_TYPES[form.bookingType] : null;
+  const selectedDeposit = selectedType
+    ? formatAudAmount(selectedType.depositAmountCents)
+    : null;
+  const selectedDepositWithCents = selectedType
+    ? formatAudAmount(selectedType.depositAmountCents, true)
+    : null;
 
   return (
     <section className="booking-section" id="booking-panel">
@@ -638,7 +684,7 @@ export function BookingFlow() {
           <h2>Let’s get you sorted.</h2>
         </div>
         <p>
-          Tell us what you need, choose a preferred date and secure the request with a $200 AUD deposit. PSI confirms the date after review.
+          Tell us what you need, choose a preferred date and secure the request with the deposit for your selected booking: {formatAudAmount(BOOKING_TYPES.service.depositAmountCents)} for service or {formatAudAmount(BOOKING_TYPES.dyno.depositAmountCents)} for tuning. PSI confirms the date after review.
         </p>
       </div>
 
@@ -663,13 +709,20 @@ export function BookingFlow() {
               {label}
             </button>
           ))}
-          <div className="request-note">
-            <strong>Deposit required</strong>
+          <div className="request-note" aria-live="polite" aria-atomic="true">
+            <strong>{selectedDeposit ? `${selectedDeposit} deposit` : "Deposit required"}</strong>
             <p>No request or booking is submitted until secure checkout confirms payment. Your date still remains pending PSI approval.</p>
           </div>
         </aside>
 
         <form className="booking-form" onSubmit={startCheckout} noValidate>
+          {selectedType && selectedDeposit && (
+            <div className="booking-rate-banner" role="status" aria-live="polite" aria-atomic="true">
+              <span>{selectedType.label}</span>
+              <strong>{selectedDeposit} booking deposit</strong>
+            </div>
+          )}
+
           {step === 1 && (
             <fieldset>
               <legend id="booking-step-1-heading" tabIndex={-1}>What are you booking in for?</legend>
@@ -685,8 +738,8 @@ export function BookingFlow() {
                   aria-describedby={errors.bookingType ? "bookingType-error" : undefined}
                 >
                   <option value="">Choose service, dyno or parts</option>
-                  <option value="service">Service & Report — from $385 + GST</option>
-                  <option value="dyno">Dyno tuning — from $350 + GST</option>
+                  <option value="service">{BOOKING_TYPES.service.optionLabel}</option>
+                  <option value="dyno">{BOOKING_TYPES.dyno.optionLabel}</option>
                   <option value="parts">Buy some parts</option>
                 </select>
               </Field>
@@ -824,7 +877,7 @@ export function BookingFlow() {
                     <div><dt>Customer</dt><dd>{form.firstName} {form.lastName}</dd></div>
                     <div><dt>Vehicle</dt><dd>{form.vehicleYear} {form.vehicleMake} {form.vehicleModel}<br />{form.registration}</dd></div>
                     <div><dt>Preferred date</dt><dd>{displayDate(form.preferredDate)}</dd></div>
-                    <div className="deposit-total"><dt>Deposit due today</dt><dd>$200.00 AUD</dd></div>
+                    <div className="deposit-total"><dt>Deposit due today</dt><dd>{selectedDepositWithCents}</dd></div>
                   </dl>
                   <p>The final workshop total is confirmed by PSI after the scope is reviewed. The deposit is recorded against the request only after the payment provider confirms it.</p>
                 </div>
@@ -846,7 +899,7 @@ export function BookingFlow() {
                   aria-invalid={Boolean(errors.depositTermsAccepted)}
                   aria-describedby={errors.depositTermsAccepted ? "depositTermsAccepted-error" : undefined}
                 />
-                <span>I understand the $200 AUD deposit is required before PSI reviews this request, and my preferred date is not confirmed until PSI contacts me.</span>
+                <span>I understand the {selectedDeposit} deposit for this {selectedType?.label.toLowerCase()} request is required before PSI reviews it, and my preferred date is not confirmed until PSI contacts me.</span>
               </label>
               {errors.depositTermsAccepted && <p className="field-error" id="depositTermsAccepted-error" role="alert">{errors.depositTermsAccepted}</p>}
 
@@ -870,8 +923,13 @@ export function BookingFlow() {
             {step < 4 ? (
               <button type="button" className="button button-primary" onClick={goNext}>Continue <span aria-hidden="true">→</span></button>
             ) : (
-              <button type="submit" className="button button-primary payment-button" disabled={submitting}>
-                {submitting ? "Opening secure checkout…" : "Pay $200 deposit & submit"}
+              <button
+                type="submit"
+                className="button button-primary payment-button"
+                disabled={submitting}
+                aria-label={selectedType && selectedDeposit ? `Pay ${selectedDeposit} deposit and submit ${selectedType.label} request` : undefined}
+              >
+                {submitting ? "Opening secure checkout…" : `Pay ${selectedDeposit ?? "booking"} deposit & submit`}
               </button>
             )}
           </div>

@@ -1,18 +1,51 @@
 "use client";
 
 import { useState } from "react";
+import { BOOKING_CATALOG } from "../api/v1/booking-catalog/catalog";
+
+type CatalogChoice = (typeof BOOKING_CATALOG.choices)[number];
+type CatalogBookingChoice = Extract<CatalogChoice, { kind: "booking" }>;
+
+function requireCatalogBookingChoice(id: "service" | "dyno"): CatalogBookingChoice {
+  const choice = BOOKING_CATALOG.choices.find(
+    (candidate): candidate is CatalogBookingChoice =>
+      candidate.kind === "booking" && candidate.id === id,
+  );
+  if (!choice) throw new Error(`Missing booking catalog choice: ${id}`);
+  return choice;
+}
+
+function formatAudAmount(amountCents: number) {
+  return `$${(amountCents / 100).toLocaleString("en-AU")} AUD`;
+}
+
+function formatPriceGuide(choice: CatalogBookingChoice) {
+  const amount = (choice.priceGuide.amountCents / 100).toLocaleString("en-AU");
+  return `Price guide ${choice.priceGuide.prefix} $${amount}${choice.priceGuide.gstExclusive ? " + GST" : ""}`;
+}
+
+function formatOptionPriceGuide(choice: CatalogBookingChoice) {
+  return formatPriceGuide(choice).replace(/^Price guide /u, "");
+}
+
+const serviceCatalogChoice = requireCatalogBookingChoice("service");
+const dynoCatalogChoice = requireCatalogBookingChoice("dyno");
 
 const bookingChoices = {
   service: {
-    title: "Service & Report",
-    price: "Price guide from $385 + GST",
+    title: serviceCatalogChoice.label,
+    price: formatPriceGuide(serviceCatalogChoice),
+    optionLabel: `${serviceCatalogChoice.label} — ${formatOptionPriceGuide(serviceCatalogChoice)} — ${formatAudAmount(serviceCatalogChoice.deposit.amountCents)} deposit`,
+    deposit: formatAudAmount(serviceCatalogChoice.deposit.amountCents),
     detail: "Workshop inspection, servicing and a clear report on what your car needs.",
     href: "#service-booking",
     action: "Start service request",
   },
   dyno: {
-    title: "Dyno tuning",
-    price: "Price guide from $350 + GST",
+    title: dynoCatalogChoice.label,
+    price: formatPriceGuide(dynoCatalogChoice),
+    optionLabel: `${dynoCatalogChoice.label} — ${formatOptionPriceGuide(dynoCatalogChoice)} — ${formatAudAmount(dynoCatalogChoice.deposit.amountCents)} deposit`,
+    deposit: formatAudAmount(dynoCatalogChoice.deposit.amountCents),
     detail: "Hub dyno calibration focused on safe power, drivability and vehicle health.",
     href: "#dyno-booking",
     action: "Start dyno request",
@@ -20,6 +53,8 @@ const bookingChoices = {
   parts: {
     title: "Buy some parts",
     price: "Performance parts & upgrades",
+    optionLabel: "Buy some parts",
+    deposit: null,
     detail: "Explore the dedicated PSI parts page and send the workshop a parts enquiry.",
     href: "/parts",
     action: "View parts",
@@ -72,9 +107,9 @@ export function OpeningBookingPanel() {
           onChange={(event) => selectChoice(event.target.value as BookingChoice | "")}
         >
           <option value="">Choose service, dyno or parts</option>
-          <option value="service">Service & Report — from $385 + GST</option>
-          <option value="dyno">Dyno tuning — from $350 + GST</option>
-          <option value="parts">Buy some parts</option>
+          <option value="service">{bookingChoices.service.optionLabel}</option>
+          <option value="dyno">{bookingChoices.dyno.optionLabel}</option>
+          <option value="parts">{bookingChoices.parts.optionLabel}</option>
         </select>
         <span aria-hidden="true">⌄</span>
       </div>
@@ -86,7 +121,18 @@ export function OpeningBookingPanel() {
             <span>{selected.price}</span>
           </div>
           <p>{selected.detail}</p>
-          <button className="button button-primary" type="button" onClick={continueToBooking}>
+          {selected.deposit && (
+            <p className="opening-selection-deposit">
+              <strong>{selected.deposit} booking deposit</strong>
+              <span>Required before PSI reviews the preferred date.</span>
+            </p>
+          )}
+          <button
+            className="button button-primary"
+            type="button"
+            onClick={continueToBooking}
+            aria-label={selected.deposit ? `${selected.action}. ${selected.deposit} booking deposit.` : selected.action}
+          >
             {selected.action}
           </button>
         </div>

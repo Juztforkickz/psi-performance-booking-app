@@ -16,11 +16,13 @@ Use these records only in local, preview, payment-provider test-mode and explici
 | Request | `Synthetic service and report request. Do not treat as a real booking.` |
 | Preferred date | The next open PSI date; never a Sunday or a date more than 18 months ahead |
 | Arrival | Morning |
-| Deposit | Exactly `$200 AUD`, set by the server rather than entered by the customer |
+| Deposit | Exactly `$100 AUD`, derived by the server from the `service` booking type rather than entered by the customer |
 
 ## Synthetic dyno record
 
 Use PSI / QA Dyno, `psi.qa.dyno@example.com`, registration `TEST002`, and the same synthetic contact/vehicle fields above. Use this complete setup to exercise every conditional input:
+
+The Dyno tuning price guide must show **from $695 + GST**, and its server-derived booking deposit must be exactly **$300 AUD**.
 
 - Engine: modified; `Stage 2 camshaft, valve springs and upgraded balancer`.
 - Transmission: automatic; converter and cooler; `3,200 rpm converter and external cooler`.
@@ -39,10 +41,11 @@ Also test each stock, modified, unknown, automatic/manual and dropdown choice. W
 2. Follow every header, footer, parts, account, phone, email, map, privacy, Facebook, Instagram and YouTube link. External links must use HTTPS; new-window links must protect the opener.
 3. Submit each booking step empty and confirm the relevant field is identified. Repeat with malformed email, fewer than eight and more than fifteen mobile digits, invalid/future vehicle years, unsafe registration/VIN characters, a past date, a Sunday, and a date beyond 18 months.
 4. Submit the two valid synthetic records. Until a payment adapter is configured, the correct result is `503 PAYMENT_PROVIDER_NOT_CONFIGURED`; no customer, checkout, booking, payment, receipt, calendar or email record should be created.
-5. In payment-provider test mode, confirm the hosted checkout requests exactly `$200 AUD`. Cancel once, fail once, then complete one test payment. A cancelled or failed payment must not create a booking, receipt, calendar event or confirmation email.
+5. In payment-provider test mode, confirm a Service checkout requests exactly `$100 AUD` and a Dyno checkout requests exactly `$300 AUD`. Cancel once, fail once, then complete one test payment for each booking type. A cancelled or failed payment must not create a booking, receipt, calendar event or confirmation email.
 6. Retry the same logical checkout with the same idempotency key. It must resume the same payable checkout. Reuse the key with changed details and confirm `409 IDEMPOTENCY_KEY_REUSED`.
 7. After a provider-signed successful test payment, confirm one paid booking, one payment record, one receipt, one pending private calendar event and one deduplicated email to each intended recipient. Refresh/replay the webhook and confirm none are duplicated.
 8. Confirm the customer-facing date remains “preferred” or “pending” until PSI staff approve it. Calendar contents and other customers' details must never be exposed.
+9. Confirm clients send deposit policy version `psi-deposit-v2`, never send an amount or currency, and fail closed if the provider response contains an amount that does not match the selected booking type.
 
 The app cannot honestly pass steps 5–7 until test-mode payment, transactional email and server-side Google Calendar credentials are connected. A manually created calendar invitation or manually sent email is useful only as a provider-delivery check; it is not proof that the app integration works.
 

@@ -94,7 +94,7 @@ export const bookingCheckouts = sqliteTable(
     tuningDetailsJson: text("tuning_details_json"),
     source: text("source").notNull().default("web"),
     state: text("state").notNull().default("awaiting_payment"),
-    depositAmountCents: integer("deposit_amount_cents").notNull().default(20_000),
+    depositAmountCents: integer("deposit_amount_cents").notNull().default(10_000),
     currency: text("currency").notNull().default("AUD"),
     paymentProvider: text("payment_provider"),
     providerCheckoutUrl: text("provider_checkout_url"),
@@ -109,7 +109,7 @@ export const bookingCheckouts = sqliteTable(
       .default(sql`1`),
     depositPolicyVersion: text("deposit_policy_version")
       .notNull()
-      .default("psi-deposit-v1"),
+      .default("psi-deposit-v2"),
     depositTermsAcceptedAt: text("deposit_terms_accepted_at")
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
@@ -143,7 +143,7 @@ export const bookingCheckouts = sqliteTable(
     ),
     check(
       "booking_checkouts_deposit_amount_check",
-      sql`${table.depositAmountCents} >= 20000`,
+      sql`${table.depositAmountCents} >= 10000`,
     ),
     check("booking_checkouts_currency_check", sql`${table.currency} = 'AUD'`),
     check(
@@ -209,7 +209,7 @@ export const depositPayments = sqliteTable(
       ),
     check(
       "deposit_payments_expected_amount_check",
-      sql`${table.expectedAmountCents} >= 20000`,
+      sql`${table.expectedAmountCents} >= 10000`,
     ),
     check(
       "deposit_payments_received_amount_check",
@@ -252,7 +252,7 @@ export const depositReceipts = sqliteTable(
       "deposit_receipts_document_type_check",
       sql`${table.documentType} in ('payment_receipt', 'tax_invoice')`,
     ),
-    check("deposit_receipts_amount_check", sql`${table.amountCents} >= 20000`),
+    check("deposit_receipts_amount_check", sql`${table.amountCents} >= 10000`),
     check(
       "deposit_receipts_gst_amount_check",
       sql`${table.gstAmountCents} is null or (${table.gstAmountCents} >= 0 and ${table.gstAmountCents} <= ${table.amountCents})`,

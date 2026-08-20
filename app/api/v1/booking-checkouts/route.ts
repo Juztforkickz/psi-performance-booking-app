@@ -6,11 +6,12 @@ import {
   isValidVehicleRegistration,
 } from "../../../lib/booking-inputs";
 import {
-  DEPOSIT_AMOUNT_CENTS,
   DEPOSIT_CURRENCY,
   DEPOSIT_POLICY_VERSION,
+  depositAmountForBookingType,
   serviceOptionForBookingType,
   type CheckoutBookingType,
+  type DepositAmountCents,
 } from "../booking-catalog/catalog";
 import {
   validateTuningDetails,
@@ -74,7 +75,7 @@ interface ValidCheckout {
   consent: true;
   depositTermsAccepted: true;
   depositPolicyVersion: typeof DEPOSIT_POLICY_VERSION;
-  depositAmountCents: typeof DEPOSIT_AMOUNT_CENTS;
+  depositAmountCents: DepositAmountCents;
   currency: typeof DEPOSIT_CURRENCY;
 }
 
@@ -82,9 +83,12 @@ interface CheckoutIdempotencyRecord {
   requestHash: string;
   checkoutId: string;
   publicReference: string;
+  bookingType: string;
   state: string;
   paymentProvider: string | null;
   providerCheckoutUrl: string | null;
+  depositAmountCents: number;
+  currency: string;
   expiresAt: string;
 }
 
@@ -316,7 +320,7 @@ function validateCheckout(body: JsonObject):
       consent: true,
       depositTermsAccepted: true,
       depositPolicyVersion: DEPOSIT_POLICY_VERSION,
-      depositAmountCents: DEPOSIT_AMOUNT_CENTS,
+      depositAmountCents: depositAmountForBookingType(validBookingType),
       currency: DEPOSIT_CURRENCY,
     },
     errors: null,
@@ -404,9 +408,12 @@ async function findIdempotencyRecord(
          i.request_hash AS requestHash,
          i.checkout_id AS checkoutId,
          c.public_reference AS publicReference,
+         c.booking_type AS bookingType,
          c.state,
          c.payment_provider AS paymentProvider,
          c.provider_checkout_url AS providerCheckoutUrl,
+         c.deposit_amount_cents AS depositAmountCents,
+         c.currency,
          c.expires_at AS expiresAt
        FROM booking_checkout_idempotency_keys i
        INNER JOIN booking_checkouts c ON c.id = i.checkout_id
@@ -442,6 +449,18 @@ function replayResponse(record: CheckoutIdempotencyRecord) {
   }
 
   if (
+    (record.bookingType !== "service" && record.bookingType !== "dyno") ||
+    record.currency !== DEPOSIT_CURRENCY ||
+    record.depositAmountCents !== depositAmountForBookingType(record.bookingType)
+  ) {
+    return errorResponse(
+      409,
+      "CHECKOUT_NOT_PAYABLE",
+      "This checkout cannot be resumed safely. No new payment has been requested. Contact PSI Performance for help.",
+    );
+  }
+
+  if (
     record.state !== "awaiting_payment" ||
     !record.paymentProvider ||
     !record.providerCheckoutUrl
@@ -468,8 +487,8 @@ function replayResponse(record: CheckoutIdempotencyRecord) {
       reference: record.publicReference,
       state: "requires_payment",
       deposit: {
-        amountCents: DEPOSIT_AMOUNT_CENTS,
-        currency: DEPOSIT_CURRENCY,
+        amountCents: record.depositAmountCents,
+        currency: record.currency,
       },
       payment: {
         provider: record.paymentProvider,

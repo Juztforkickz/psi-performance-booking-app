@@ -1,6 +1,18 @@
-export const DEPOSIT_AMOUNT_CENTS = 20_000;
 export const DEPOSIT_CURRENCY = "AUD" as const;
-export const DEPOSIT_POLICY_VERSION = "psi-deposit-v1";
+export const DEPOSIT_POLICY_VERSION = "psi-deposit-v2";
+
+export const DEPOSIT_AMOUNTS_CENTS = {
+  service: 10_000,
+  dyno: 30_000,
+} as const;
+
+export type CheckoutBookingType = keyof typeof DEPOSIT_AMOUNTS_CENTS;
+export type DepositAmountCents =
+  (typeof DEPOSIT_AMOUNTS_CENTS)[CheckoutBookingType];
+
+export function depositAmountForBookingType(type: CheckoutBookingType) {
+  return DEPOSIT_AMOUNTS_CENTS[type];
+}
 
 export const BOOKING_CATALOG = {
   heading: "What are you booking in for?",
@@ -15,6 +27,10 @@ export const BOOKING_CATALOG = {
         currency: DEPOSIT_CURRENCY,
         gstExclusive: true,
       },
+      deposit: {
+        amountCents: DEPOSIT_AMOUNTS_CENTS.service,
+        currency: DEPOSIT_CURRENCY,
+      },
     },
     {
       id: "dyno",
@@ -22,9 +38,13 @@ export const BOOKING_CATALOG = {
       kind: "booking",
       priceGuide: {
         prefix: "from",
-        amountCents: 35_000,
+        amountCents: 69_500,
         currency: DEPOSIT_CURRENCY,
         gstExclusive: true,
+      },
+      deposit: {
+        amountCents: DEPOSIT_AMOUNTS_CENTS.dyno,
+        currency: DEPOSIT_CURRENCY,
       },
     },
     {
@@ -35,14 +55,12 @@ export const BOOKING_CATALOG = {
     },
   ],
   deposit: {
-    amountCents: DEPOSIT_AMOUNT_CENTS,
-    minimumAmountCents: DEPOSIT_AMOUNT_CENTS,
     currency: DEPOSIT_CURRENCY,
-    fixedForCurrentRelease: true,
+    minimumAmountCents: DEPOSIT_AMOUNTS_CENTS.service,
+    variesByBookingType: true,
+    policyVersion: DEPOSIT_POLICY_VERSION,
   },
 } as const;
-
-export type CheckoutBookingType = "service" | "dyno";
 
 export function serviceOptionForBookingType(type: CheckoutBookingType) {
   return type === "service" ? "service_report" : "dyno_tuning";

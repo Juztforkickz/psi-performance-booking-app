@@ -430,6 +430,31 @@ div {
   line-height: 1.55;
 }
 
+.opening-selection .opening-selection-deposit {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(150px, 1fr);
+  gap: 16px;
+  align-items: baseline;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.opening-selection-deposit strong {
+  color: var(--signal-bright);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: none;
+}
+
+.opening-selection-deposit span {
+  color: #85847f;
+  font-size: 0.7rem;
+  font-weight: 650;
+  line-height: 1.5;
+  text-align: right;
+}
+
 .opening-selection .button {
   justify-self: start;
 }
@@ -937,6 +962,33 @@ div {
 .booking-form {
   width: 100%;
   min-width: 0;
+}
+
+.booking-rate-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 26px;
+  padding: 13px 16px;
+  border: 1px solid rgba(217, 179, 91, 0.38);
+  border-radius: var(--radius);
+  background: rgba(217, 179, 91, 0.07);
+}
+
+.booking-rate-banner span {
+  color: #aaa9a5;
+  font-size: 0.69rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.booking-rate-banner strong {
+  color: var(--signal-bright);
+  font-size: 0.76rem;
+  font-weight: 900;
+  text-align: right;
 }
 
 .booking-form fieldset {
@@ -2942,6 +2994,25 @@ div {
   .opening-account-row {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .opening-selection .opening-selection-deposit {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .opening-selection-deposit span {
+    text-align: left;
+  }
+
+  .booking-rate-banner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .booking-rate-banner strong {
+    text-align: left;
   }
 
   .opening-account-row > div {

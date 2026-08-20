@@ -91,7 +91,7 @@ export function AccountPreview() {
           <div className="profile-preview">
             <article><span>Saved vehicles</span><strong>Vehicle profiles</strong><p>Make, model, year, registration and optional VIN.</p></article>
             <article><span>Current requests</span><strong>Booking status</strong><p>Paid request, PSI confirmation and preferred date.</p></article>
-            <article><span>Payment records</span><strong>Deposit receipts</strong><p>Verified $200 AUD deposit receipts and booking references.</p></article>
+            <article><span>Payment records</span><strong>Deposit receipts</strong><p>Verified service and dyno deposit receipts with booking references.</p></article>
           </div>
         </section>
       )}

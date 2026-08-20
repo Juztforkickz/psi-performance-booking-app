@@ -9,7 +9,7 @@ The repository contains:
 - an installable web app (manifest, icons and offline static shell);
 - a native Expo app in `mobile/` for iOS and Android.
 
-The intended production journey is deliberately **payment first**. A customer chooses a preferred date without seeing PSI's calendar, completes a server-created $200 AUD deposit checkout, and only then can a booking be created as `requested`. The date remains unconfirmed until PSI reviews it.
+The intended production journey is deliberately **payment first**. A customer chooses a preferred date without seeing PSI's calendar, completes a server-created deposit checkout ($100 AUD for Service & Report or $300 AUD for Dyno tuning), and only then can a booking be created as `requested`. The date remains unconfirmed until PSI reviews it.
 
 The web and native home screens show PSI's verified phone, email, workshop address, Facebook and Instagram links. A branded vCard QR lets a customer save the core contact details directly to their phone.
 
@@ -30,7 +30,7 @@ npm test
 npm run lint
 ```
 
-The public flow reads `GET /api/v1/booking-catalog` and starts payment with `POST /api/v1/booking-checkouts`. The server owns the deposit amount and currency; clients must not send either. Validation errors use a stable JSON error object and field messages. Each logical attempt must send a stable `Idempotency-Key`, conflicting reuse is rejected, and per-IP request limits protect the endpoint.
+The public flow reads `GET /api/v1/booking-catalog` and starts payment with `POST /api/v1/booking-checkouts`. Each booking choice in the catalog includes its server-owned `deposit`; the policy metadata records the AUD currency, $100 minimum and that the amount varies by booking type. Checkout requests send `bookingType` but must not send an amount or currency: the server derives $100 for `service` and $300 for `dyno`. Validation errors use a stable JSON error object and field messages. Each logical attempt must send a stable `Idempotency-Key`, conflicting reuse is rejected, and per-IP request limits protect the endpoint.
 
 Service requests keep a short guided flow. Dyno requests expand the first stage into a structured vehicle specification covering engine, transmission, differential, fuel system, intake, previous tune, exhaust/Varex and camshaft details. Web and native use the same validated `tuningDetails` contract; D1 columns and the staff display are ready to carry those details once a verified payment adapter and webhook create paid bookings.
 
@@ -48,7 +48,7 @@ Shipping signed binaries requires PSI-owned Apple Developer, Google Play Console
 
 ## Operational launch checklist
 
-- Confirm the Service & Report guide of $385 + GST, Dyno tuning guide of $350 + GST, workshop hours and contact details with PSI.
+- Confirm the Service & Report guide of $385 + GST, Dyno tuning guide of $695 + GST, booking-type deposit amounts, workshop hours and contact details with PSI.
 - Select and configure the live deposit provider; register and verify its signed webhook before accepting customer traffic.
 - Confirm the legal entity name, ABN, GST registration, deposit GST treatment and cancellation/refund wording before issuing anything labelled a tax invoice.
 - Connect managed customer identity; do not enable the account forms until web and native sign-in, recovery and data access controls are tested.

@@ -6,9 +6,9 @@ import test from "node:test";
 
 import {
   BOOKING_CATALOG,
-  DEPOSIT_AMOUNT_CENTS,
   DEPOSIT_CURRENCY,
   DEPOSIT_POLICY_VERSION,
+  depositAmountForBookingType,
   serviceOptionForBookingType,
 } from "../app/api/v1/booking-catalog/catalog.ts";
 import {
@@ -296,7 +296,7 @@ function canonicalCheckout(payload) {
     consent: true,
     depositTermsAccepted: true,
     depositPolicyVersion: DEPOSIT_POLICY_VERSION,
-    depositAmountCents: DEPOSIT_AMOUNT_CENTS,
+    depositAmountCents: depositAmountForBookingType(payload.bookingType),
     currency: DEPOSIT_CURRENCY,
   };
 }
@@ -410,17 +410,27 @@ test("publishes exactly the three booking catalog choices and server-owned price
     ["booking", "booking", "navigation"],
   );
   assert.equal(BOOKING_CATALOG.choices[0].priceGuide.amountCents, 38_500);
-  assert.equal(BOOKING_CATALOG.choices[1].priceGuide.amountCents, 35_000);
+  assert.equal(BOOKING_CATALOG.choices[1].priceGuide.amountCents, 69_500);
   assert.equal(BOOKING_CATALOG.choices[0].priceGuide.gstExclusive, true);
   assert.equal(BOOKING_CATALOG.choices[1].priceGuide.gstExclusive, true);
+  assert.deepEqual(BOOKING_CATALOG.choices[0].deposit, {
+    amountCents: 10_000,
+    currency: "AUD",
+  });
+  assert.deepEqual(BOOKING_CATALOG.choices[1].deposit, {
+    amountCents: 30_000,
+    currency: "AUD",
+  });
   assert.equal(BOOKING_CATALOG.choices[2].href, "/parts");
+  assert.equal(depositAmountForBookingType("service"), 10_000);
+  assert.equal(depositAmountForBookingType("dyno"), 30_000);
   assert.equal(serviceOptionForBookingType("service"), "service_report");
   assert.equal(serviceOptionForBookingType("dyno"), "dyno_tuning");
   assert.deepEqual(BOOKING_CATALOG.deposit, {
-    amountCents: 20_000,
-    minimumAmountCents: 20_000,
     currency: "AUD",
-    fixedForCurrentRelease: true,
+    minimumAmountCents: 10_000,
+    variesByBookingType: true,
+    policyVersion: "psi-deposit-v2",
   });
 });
 
@@ -662,6 +672,9 @@ test("keeps idempotent replay, conflict, expiry and rate-limit contracts stable"
     state: "awaiting_payment",
     paymentProvider: "test-provider",
     providerCheckoutUrl: "https://payments.example.com/checkout_qa_0001",
+    bookingType: "service",
+    depositAmountCents: 10_000,
+    currency: "AUD",
     expiresAt: new Date(Date.now() + 15 * 60 * 1_000).toISOString(),
   };
 
@@ -671,8 +684,26 @@ test("keeps idempotent replay, conflict, expiry and rate-limit contracts stable"
   assert.equal(replay.headers.get("idempotency-replayed"), "true");
   const replayBody = await replay.json();
   assert.equal(replayBody.state, "requires_payment");
-  assert.deepEqual(replayBody.deposit, { amountCents: 20_000, currency: "AUD" });
+  assert.deepEqual(replayBody.deposit, { amountCents: 10_000, currency: "AUD" });
   assert.equal(replayBody.payment.checkoutUrl, payableRecord.providerCheckoutUrl);
+
+  const dynoPayload = validDynoPayload();
+  const dynoReplay = await checkout(
+    dynoPayload,
+    createD1Mock({
+      existingRecord: {
+        ...payableRecord,
+        requestHash: requestHash(dynoPayload),
+        bookingType: "dyno",
+        depositAmountCents: 30_000,
+      },
+    }),
+  );
+  assert.equal(dynoReplay.status, 200);
+  assert.deepEqual((await dynoReplay.json()).deposit, {
+    amountCents: 30_000,
+    currency: "AUD",
+  });
 
   const conflict = await checkout(
     payload,
@@ -710,6 +741,19 @@ test("keeps idempotent replay, conflict, expiry and rate-limit contracts stable"
   );
   assert.equal(notPayable.status, 409);
   assert.equal((await readError(notPayable)).code, "CHECKOUT_NOT_PAYABLE");
+
+  for (const corruptedRecord of [
+    { ...payableRecord, depositAmountCents: 30_000 },
+    { ...payableRecord, currency: "USD" },
+    { ...payableRecord, bookingType: "unsupported" },
+  ]) {
+    const corrupted = await checkout(
+      payload,
+      createD1Mock({ existingRecord: corruptedRecord }),
+    );
+    assert.equal(corrupted.status, 409);
+    assert.equal((await readError(corrupted)).code, "CHECKOUT_NOT_PAYABLE");
+  }
 
   const limited = await checkout(payload, createD1Mock({ rateCount: 6 }));
   assert.equal(limited.status, 429);

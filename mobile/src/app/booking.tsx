@@ -24,12 +24,12 @@ import {
   BookingApiError,
   createBookingCheckout,
   dateFromIso,
+  depositAmountForBookingType,
   displayDate,
   displayMoney,
   EMPTY_BOOKING,
   localIsoDate,
   maxBookingDate,
-  MIN_DEPOSIT_CENTS,
   type ArrivalWindow,
   type BookingCheckoutResult,
   type BookingErrors,
@@ -159,6 +159,7 @@ export default function BookingScreen() {
   const [checkout, setCheckout] = useState<BookingCheckoutResult | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState(() => randomUUID());
   const maxDate = useMemo(() => maxBookingDate(), []);
+  const depositAmountCents = depositAmountForBookingType(form.bookingType);
 
   const update: UpdateBooking = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -386,7 +387,9 @@ export default function BookingScreen() {
                 />
               ) : (
                 <PrimaryButton
-                  label={`Continue to secure ${displayMoney(MIN_DEPOSIT_CENTS)} checkout`}
+                  label={depositAmountCents === null
+                    ? 'Continue to secure checkout'
+                    : `Continue to secure ${displayMoney(depositAmountCents)} checkout`}
                   loading={submitting}
                   onPress={() => void prepareCheckout()}
                   style={wideFields && step > 1 ? styles.actionButtonWide : undefined}
@@ -484,14 +487,14 @@ function JobStep({
       </View>
       <View accessibilityRole="radiogroup" style={styles.choiceList}>
         <ChoiceCard
-          detail="Workshop service, inspection and a clear report. Price guide from $385 + GST."
+          detail="Workshop service, inspection and a clear report. Price guide from $385 + GST. $100 AUD booking deposit."
           index="01"
           onPress={() => selectType('service')}
           selected={form.bookingType === 'service'}
           title="Service & Report"
         />
         <ChoiceCard
-          detail="Hub dyno calibration, testing and measured results. Price guide from $350 + GST."
+          detail="Hub dyno calibration, testing and measured results. Price guide from $695 + GST. $300 AUD booking deposit."
           index="02"
           onPress={() => selectType('dyno')}
           selected={form.bookingType === 'dyno'}
@@ -1195,6 +1198,9 @@ function DepositStep({
   const { compact, largeText } = useResponsiveLayout();
   const stackSummary = compact || largeText;
   const purpose = form.bookingType ? BOOKING_PURPOSES[form.bookingType] : null;
+  const depositAmountCents = depositAmountForBookingType(form.bookingType);
+  const depositDisplay = depositAmountCents === null ? 'Not selected' : displayMoney(depositAmountCents);
+  const depositTermsCopy = `I understand the ${depositDisplay} AUD booking deposit for this selected work must be completed before my request is lodged, and my selected date remains pending until PSI confirms it.`;
   return (
     <View style={styles.stepContent}>
       <StepHeading
@@ -1225,7 +1231,7 @@ function DepositStep({
             <Text style={styles.depositLabel}>Required booking deposit</Text>
             <Text style={styles.depositCurrency}>AUD · Applied to approved work</Text>
           </View>
-          <Text style={styles.depositValue}>{displayMoney(MIN_DEPOSIT_CENTS)}</Text>
+          <Text style={styles.depositValue}>{depositDisplay}</Text>
         </View>
       </View>
 
@@ -1238,6 +1244,7 @@ function DepositStep({
 
       <View>
         <Pressable
+          accessibilityLabel={depositTermsCopy}
           accessibilityRole="checkbox"
           accessibilityState={{ checked: form.depositTermsAccepted }}
           onPress={() => update('depositTermsAccepted', !form.depositTermsAccepted)}
@@ -1248,9 +1255,7 @@ function DepositStep({
           ]}
         >
           <CheckBox checked={form.depositTermsAccepted} />
-          <Text style={styles.consentCopy}>
-            I understand the $200 AUD deposit must be completed before my request is lodged, and my selected date remains pending until PSI confirms it.
-          </Text>
+          <Text style={styles.consentCopy}>{depositTermsCopy}</Text>
         </Pressable>
         {errors.depositTermsAccepted ? <Text style={styles.error}>{errors.depositTermsAccepted}</Text> : null}
       </View>

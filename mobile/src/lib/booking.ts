@@ -28,19 +28,33 @@ export type TuningDetails = {
   camshaftDetails: string;
 };
 
-export const MIN_DEPOSIT_CENTS = 20_000;
 export const DEPOSIT_CURRENCY = 'AUD';
+export const DEPOSIT_POLICY_VERSION = 'psi-deposit-v2';
 
 export const BOOKING_PURPOSES = {
   service: {
     label: 'Service & Report',
     priceGuide: 'From $385 + GST',
+    priceGuideAmountCents: 38_500,
+    depositAmountCents: 10_000,
   },
   dyno: {
     label: 'Dyno tuning',
-    priceGuide: 'From $350 + GST',
+    priceGuide: 'From $695 + GST',
+    priceGuideAmountCents: 69_500,
+    depositAmountCents: 30_000,
   },
 } as const;
+
+export const MIN_DEPOSIT_CENTS = Math.min(
+  BOOKING_PURPOSES.service.depositAmountCents,
+  BOOKING_PURPOSES.dyno.depositAmountCents,
+);
+
+export function depositAmountForBookingType(type: BookingType | ''): number | null {
+  if (type === 'service' || type === 'dyno') return BOOKING_PURPOSES[type].depositAmountCents;
+  return null;
+}
 
 export type BookingFormState = {
   bookingType: BookingType | '';
@@ -404,14 +418,18 @@ function isSecureCheckoutUrl(value: unknown): value is string {
   }
 }
 
-function isCheckoutResult(value: unknown): value is BookingCheckoutResult {
+function isCheckoutResult(value: unknown, bookingType: BookingType | ''): value is BookingCheckoutResult {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const expectedDepositAmountCents = depositAmountForBookingType(bookingType);
+  if (expectedDepositAmountCents === null) return false;
   const result = value as Partial<BookingCheckoutResult>;
   return Boolean(
-    result.checkoutId &&
-    result.reference &&
+    typeof result.checkoutId === 'string' &&
+    result.checkoutId.trim().length > 0 &&
+    typeof result.reference === 'string' &&
+    result.reference.trim().length > 0 &&
     result.state === 'requires_payment' &&
-    result.deposit?.amountCents === MIN_DEPOSIT_CENTS &&
+    result.deposit?.amountCents === expectedDepositAmountCents &&
     result.deposit.currency === DEPOSIT_CURRENCY &&
     typeof result.payment?.provider === 'string' &&
     result.payment.provider.length > 0 &&
@@ -484,7 +502,7 @@ export async function createBookingCheckout(
         source: 'mobile',
         consent: true,
         depositTermsAccepted: true,
-        depositPolicyVersion: 'psi-deposit-v1',
+        depositPolicyVersion: DEPOSIT_POLICY_VERSION,
         ...(tuningDetails ? { tuningDetails } : {}),
         company: '',
       }),
@@ -508,7 +526,7 @@ export async function createBookingCheckout(
       throw new BookingApiError(message, fieldErrors, code, response.status);
     }
 
-    if (!isCheckoutResult(data)) {
+    if (!isCheckoutResult(data, form.bookingType)) {
       throw new Error('PSI received an unexpected checkout response. No payment has been taken.');
     }
 

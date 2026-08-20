@@ -2,12 +2,17 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { BookingFlow } from "./components/BookingFlow";
 import { OpeningBookingPanel } from "./components/OpeningBookingPanel";
+import { depositAmountForBookingType } from "./api/v1/booking-catalog/catalog";
 
 export const metadata: Metadata = {
   title: "Book your car",
   description:
-    "Request vehicle servicing or dyno tuning with PSI Performance Garage, choose a preferred date and continue to a secure $200 AUD deposit.",
+    "Request vehicle servicing or dyno tuning with PSI Performance Garage, choose a preferred date and continue to the secure booking deposit for your selected service.",
 };
+
+function formatDeposit(bookingType: "service" | "dyno") {
+  return `$${depositAmountForBookingType(bookingType) / 100} AUD`;
+}
 
 const trustPoints = [
   "Hub dyno tuning",
@@ -89,7 +94,7 @@ export default function Home() {
               <a href="https://www.facebook.com/psiperformancegarage/" target="_blank" rel="noreferrer">Facebook <span aria-hidden="true">↗</span></a>
             </div>
             <p className="opening-deposit-note">
-              Booking requests are secured with a fixed $200 AUD deposit. PSI confirms the requested date after payment.
+              Service requests require a {formatDeposit("service")} deposit. Dyno tuning requests require a {formatDeposit("dyno")} deposit. PSI confirms the requested date after payment.
             </p>
           </div>
         </div>

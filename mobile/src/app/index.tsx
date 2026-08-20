@@ -75,18 +75,21 @@ const PURPOSE_OPTIONS: {
   label: string;
   detail: string;
   priceGuide: string;
+  depositGuide?: string;
 }[] = [
   {
     value: 'service',
     label: BOOKING_PURPOSES.service.label,
     detail: 'A thorough workshop service, inspection and report.',
     priceGuide: 'Price guide from $385 + GST',
+    depositGuide: '$100 AUD booking deposit',
   },
   {
     value: 'dyno',
     label: BOOKING_PURPOSES.dyno.label,
     detail: 'Hub dyno calibration, testing and measured results.',
-    priceGuide: 'Price guide from $350 + GST',
+    priceGuide: 'Price guide from $695 + GST',
+    depositGuide: '$300 AUD booking deposit',
   },
   {
     value: 'parts',
@@ -167,7 +170,9 @@ export default function HomeScreen() {
               <Text style={styles.selectorLabel}>Booking type</Text>
               <Pressable
                 accessibilityHint="Opens booking type options"
-                accessibilityLabel={selectedOption ? `Booking type, ${selectedOption.label}` : 'Booking type, not selected'}
+                accessibilityLabel={selectedOption
+                  ? `Booking type, ${selectedOption.label}. ${selectedOption.priceGuide}. ${selectedOption.depositGuide || ''}`.trim()
+                  : 'Booking type, not selected'}
                 accessibilityRole="button"
                 onPress={() => setSelectorOpen(true)}
                 style={({ pressed }) => [styles.selectorButton, pressed && styles.pressed]}
@@ -176,7 +181,11 @@ export default function HomeScreen() {
                   <Text style={[styles.selectorValue, !selectedOption && styles.selectorPlaceholder]}>
                     {selectedOption?.label || 'Select an option'}
                   </Text>
-                  {selectedOption ? <Text style={styles.selectorGuide}>{selectedOption.priceGuide}</Text> : null}
+                  {selectedOption ? (
+                    <Text style={styles.selectorGuide}>
+                      {selectedOption.priceGuide}{selectedOption.depositGuide ? ` · ${selectedOption.depositGuide}` : ''}
+                    </Text>
+                  ) : null}
                 </View>
                 <Text style={styles.chevron}>⌄</Text>
               </Pressable>
@@ -193,12 +202,13 @@ export default function HomeScreen() {
                   <Text style={styles.selectionTitle}>{selectedOption.label}</Text>
                   <Text style={styles.selectionDetail}>{selectedOption.detail}</Text>
                   <Text style={styles.selectionPrice}>{selectedOption.priceGuide}</Text>
+                  {selectedOption.depositGuide ? <Text style={styles.selectionDeposit}>{selectedOption.depositGuide}</Text> : null}
                 </View>
               </View>
             ) : (
               <View style={styles.emptySelection}>
                 <Text style={styles.emptySelectionText}>
-                  Select an option to begin. Service and dyno bookings require a fixed $200 AUD deposit before submission.
+                  Select an option to begin. The service booking deposit is $100 AUD and the dyno tuning deposit is $300 AUD.
                 </Text>
               </View>
             )}
@@ -463,7 +473,7 @@ function PurposeSelector({
                 const active = selected === option.value;
                 return (
                   <Pressable
-                    accessibilityLabel={`${option.label}. ${option.priceGuide}. ${option.detail}`}
+                    accessibilityLabel={`${option.label}. ${option.priceGuide}. ${option.depositGuide ? `${option.depositGuide}. ` : ''}${option.detail}`}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: active }}
                     aria-checked={active}
@@ -481,6 +491,9 @@ function PurposeSelector({
                     <View style={styles.optionCopy}>
                       <Text style={[styles.optionTitle, active && styles.optionTextActive]}>{option.label}</Text>
                       <Text style={[styles.optionPrice, active && styles.optionPriceActive]}>{option.priceGuide}</Text>
+                      {option.depositGuide ? (
+                        <Text style={[styles.optionDeposit, active && styles.optionPriceActive]}>{option.depositGuide}</Text>
+                      ) : null}
                       <Text style={[styles.optionDetail, active && styles.optionDetailActive]}>{option.detail}</Text>
                     </View>
                     <View style={[styles.optionRadio, active && styles.optionRadioActive]}>
@@ -845,6 +858,11 @@ const styles = StyleSheet.create({
     color: colors.gold,
     fontSize: 12,
     fontWeight: '900',
+  },
+  selectionDeposit: {
+    color: colors.cream,
+    fontSize: 11,
+    fontWeight: '800',
   },
   emptySelection: {
     minHeight: 94,
@@ -1256,6 +1274,11 @@ const styles = StyleSheet.create({
     color: colors.gold,
     fontSize: 11,
     fontWeight: '900',
+  },
+  optionDeposit: {
+    color: colors.cream,
+    fontSize: 10,
+    fontWeight: '800',
   },
   optionDetail: {
     color: colors.muted,
