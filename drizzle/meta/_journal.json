@@ -15,6 +15,13 @@
       "when": 1787215657603,
       "tag": "0001_remarkable_young_avengers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787219803196,
+      "tag": "0002_polite_centennial",
+      "breakpoints": true
     }
   ]
 }

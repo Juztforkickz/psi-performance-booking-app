@@ -1,10 +1,25 @@
-# PSI Performance mobile booking app
+# PSI Performance mobile app
 
-Native iOS, Android and web client for PSI Performance Garage. The app uses Expo SDK 57, React Native 0.86 and Expo Router. Customers can request either a vehicle service or a dyno tune; PSI confirms the requested date separately.
+Native iOS, Android and responsive React Native Web client for PSI Performance Garage. The app uses Expo SDK 57, React Native 0.86 and Expo Router.
+
+The opening route is a black PSI booking gateway inspired by the workshop website. It supports:
+
+- Service & Report with a price guide from $385 + GST.
+- Dyno tuning with a price guide from $350 + GST.
+- A reserved parts-store route.
+- A five-stage job, vehicle, customer, date and deposit flow.
+- A fixed $200 AUD server-authoritative deposit checkout.
+- Provider-ready account screens that do not collect or store passwords.
+
+The preferred date is never presented as confirmed. Other customer bookings and PSI's Google Calendar remain private.
+
+Expo Router registers `/`, `/booking`, `/parts`, `/account` and `/account/sign-up`. Native deep links use the `psiperformance` scheme from `app.json`; universal HTTPS links should only be enabled after PSI controls the final production domain and publishes the required Apple/Android association files.
+
+Date selection and validation use the `Australia/Melbourne` workshop timezone, reject Sundays and past dates, and cap requests at 18 months.
 
 ## Run locally
 
-Requirements: Node.js 22.13 or newer and a current Expo Go client that supports SDK 57.
+Requirements: Node.js 22.13 or newer and a current Expo client that supports SDK 57.
 
 ```bash
 cd mobile
@@ -14,17 +29,19 @@ cp .env.example .env.local
 pnpm start
 ```
 
-Set `EXPO_PUBLIC_API_BASE_URL` to the public HTTPS origin that serves the booking API. Do not include `/api/v1/bookings`; the app adds that path. The intended production origin is `https://book.psiperformance.com.au`, which will not work until its DNS/custom-domain routing is connected to the deployed booking backend. `EXPO_PUBLIC_*` values are compiled into the client and must never contain secrets.
+Set `EXPO_PUBLIC_API_BASE_URL` to the public HTTPS origin that serves the checkout API. Do not include the API path. `EXPO_PUBLIC_*` values are compiled into the client and must never contain secrets.
 
-The app submits this JSON shape to `POST {EXPO_PUBLIC_API_BASE_URL}/api/v1/bookings`. It also sends a cryptographically random UUID in the required `Idempotency-Key` header and reuses that key for retries of the same logical booking:
+## Checkout contract
+
+The app sends `POST {EXPO_PUBLIC_API_BASE_URL}/api/v1/booking-checkouts` with a cryptographically random UUID in the required `Idempotency-Key` header. The same key is reused when retrying unchanged details.
 
 ```json
 {
   "bookingType": "service",
-  "serviceOption": "logbook_service",
-  "customerName": "Example Customer",
+  "firstName": "Example",
+  "lastName": "Customer",
   "email": "customer@example.com",
-  "phone": "0400 000 000",
+  "mobile": "0400 000 000",
   "vehicleMake": "Holden",
   "vehicleModel": "VF SS",
   "vehicleYear": 2017,
@@ -32,22 +49,40 @@ The app submits this JSON shape to `POST {EXPO_PUBLIC_API_BASE_URL}/api/v1/booki
   "vin": "",
   "preferredDate": "2026-09-01",
   "arrivalWindow": "any",
-  "notes": "",
+  "requestDetails": "Logbook service and investigate a driveline vibration.",
   "source": "mobile",
   "consent": true,
+  "depositTermsAccepted": true,
+  "depositPolicyVersion": "psi-deposit-v1",
   "company": ""
 }
 ```
 
-A successful response must contain `reference` and `status`, with an optional `message`:
+The client never sends a deposit amount or currency; the server owns both. A configured checkout response must include a provider URL:
 
 ```json
 {
+  "checkoutId": "checkout-id",
   "reference": "PSI-ABC123",
-  "status": "requested",
-  "message": "Request received. PSI will contact you to confirm."
+  "state": "requires_payment",
+  "deposit": {
+    "amountCents": 20000,
+    "currency": "AUD"
+  },
+  "payment": {
+    "provider": "provider-name",
+    "checkoutUrl": "https://secure-provider.example/checkout/..."
+  }
 }
 ```
+
+The app opens that URL but does not claim the payment succeeded. Receipt email, PSI notification, booking creation and calendar work must be driven by a verified provider webhook on the server.
+
+If the server returns `503 PAYMENT_PROVIDER_NOT_CONFIGURED`, the app clearly states that no booking or payment was created. It never falls back to the unpaid booking endpoint.
+
+## Accounts
+
+The account routes are a provider-ready UI preview only. They hold typed values in screen memory and discard them on exit. No password field, local persistence or fake signup request is implemented. Connect a managed identity provider before enabling account creation, secure links, saved vehicles, booking history or receipts.
 
 ## Validate
 
@@ -65,11 +100,9 @@ The iOS bundle identifier and Android application ID are both `com.psiperformanc
 One-time owner setup:
 
 1. Sign in with the Expo account that will own the app: `npx eas-cli login`.
-2. From this directory run `npx eas-cli init`. This creates the EAS project and adds its `extra.eas.projectId` to the Expo config.
-3. Add `EXPO_PUBLIC_API_BASE_URL` to the EAS `preview` and `production` environments. The value must be the deployed HTTPS API origin.
-4. Run `npx eas-cli build --profile preview --platform android` for an installable APK.
-5. Run `npx eas-cli build --profile preview --platform ios` for an internal iOS build. Apple requires registered test-device UDIDs for ad hoc distribution.
-6. Run `npx eas-cli build --profile production --platform all` for App Store and Google Play binaries.
-7. After store records exist, submit with `npx eas-cli submit --profile production --platform ios` and the equivalent Android command.
+2. Run `npx eas-cli init` from this directory.
+3. Add the deployed `EXPO_PUBLIC_API_BASE_URL` to EAS preview and production environments.
+4. Build an Android preview APK with `npx eas-cli build --profile preview --platform android`.
+5. Create the iOS internal and production builds after PSI's Apple signing access is available.
 
-The owner still needs active Apple Developer and Google Play Console accounts, signing credentials (EAS can manage them), store listings/screenshots, support and privacy-policy URLs, and App Store privacy / Google Play data-safety declarations. Production bookings also require the deployed API and its notification workflow to be live and tested.
+Production still requires the deployed HTTPS API, payment provider and webhook, receipt/email workflow, explicitly authorised PSI calendar, managed account provider, privacy/deposit terms, and Apple/Google developer accounts.

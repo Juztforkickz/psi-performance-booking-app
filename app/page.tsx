@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { BookingFlow } from "./components/BookingFlow";
+import { OpeningBookingPanel } from "./components/OpeningBookingPanel";
 
 export const metadata: Metadata = {
-  title: "Book a service or dyno tune",
+  title: "Book your car",
   description:
-    "Request vehicle servicing, diagnostics or a dyno tune with PSI Performance Garage in Pakenham, Victoria.",
+    "Request vehicle servicing or dyno tuning with PSI Performance Garage, choose a preferred date and continue to a secure $200 AUD deposit.",
 };
 
 const trustPoints = [
@@ -24,8 +25,10 @@ export default function Home() {
           </a>
           <nav className="site-nav" aria-label="Primary navigation">
             <a href="#services">Services</a>
+            <a href="/parts">Parts</a>
             <a href="#why-psi">Why PSI</a>
             <a href="#contact">Contact</a>
+            <a href="/account">Account preview</a>
           </nav>
           <a className="header-call" href="tel:+61433431781">
             <span>Talk to the workshop</span>
@@ -33,30 +36,31 @@ export default function Home() {
           </a>
         </header>
 
-        <div className="hero-content" id="top">
-          <p className="eyebrow">Pakenham · Victoria</p>
-          <h1>Your car.<br />Our craft.</h1>
-          <p className="hero-copy">
-            Australian and European performance specialists for precision tuning, trusted servicing and properly sorted cars.
-          </p>
-
-          <div className="booking-choices" aria-label="Choose a booking type">
-            <a className="booking-choice" href="#service-booking">
-              <span className="choice-number">01</span>
-              <span>
-                <strong>Vehicle service</strong>
-                <small>Logbook, maintenance & diagnostics</small>
-              </span>
-              <b aria-hidden="true">→</b>
-            </a>
-            <a className="booking-choice booking-choice-accent" href="#dyno-booking">
-              <span className="choice-number">02</span>
-              <span>
-                <strong>Dyno tune</strong>
-                <small>Calibration, drivability & performance</small>
-              </span>
-              <b aria-hidden="true">→</b>
-            </a>
+        <div className="opening-layout" id="top">
+          <OpeningBookingPanel />
+          <div className="opening-intro">
+            <p className="eyebrow">PSI Performance Garage · Pakenham</p>
+            <h1>Book your car<br />now.</h1>
+            <div className="opening-details">
+              <div>
+                <span>Shop hours</span>
+                <strong>Mon–Fri · 8:30am–5pm</strong>
+                <small>Saturday · By appointment only</small>
+              </div>
+              <div>
+                <span>Contact number</span>
+                <a href="tel:+61433431781">0433 431 781</a>
+              </div>
+              <div>
+                <span>Address</span>
+                <a href="https://maps.google.com/?q=21+Exchange+Drive+Pakenham+VIC+3810" target="_blank" rel="noreferrer">
+                  21 Exchange Drive, Pakenham VIC 3810
+                </a>
+              </div>
+            </div>
+            <p className="opening-deposit-note">
+              Booking requests are secured with a fixed $200 AUD deposit. PSI confirms the requested date after payment.
+            </p>
           </div>
         </div>
 

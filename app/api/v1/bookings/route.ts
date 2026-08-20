@@ -10,6 +10,13 @@ const IDEMPOTENCY_KEY_MAX_LENGTH = 128;
 const RATE_LIMIT_WINDOW_SECONDS = 15 * 60;
 const RATE_LIMIT_MAX_REQUESTS = 5;
 
+function requiresPaidCheckout() {
+  // Keep this as an explicit policy gate rather than deleting the validated
+  // legacy implementation. It prevents every public caller from persisting an
+  // unpaid booking while retaining the old code for a deliberate migration.
+  return true;
+}
+
 const SERVICE_OPTIONS = [
   "logbook_service",
   "minor_service",
@@ -523,6 +530,16 @@ async function saveBooking(
 }
 
 export async function POST(request: Request) {
+  if (requiresPaidCheckout()) {
+    return errorResponse(
+      410,
+      "PAYMENT_REQUIRED",
+      "Unpaid booking requests are no longer accepted. Start a secure deposit checkout before a booking can be created.",
+      undefined,
+      { Link: '</api/v1/booking-checkouts>; rel="successor-version"' },
+    );
+  }
+
   const idempotency = validateIdempotencyKey(request);
   if (!idempotency.key) {
     return errorResponse(

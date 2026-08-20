@@ -1,0 +1,223 @@
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
+import { colors, spacing } from '@/constants/brand';
+
+type AccountDraft = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  mobile: string;
+  registration: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleYear: string;
+};
+
+const EMPTY_ACCOUNT: AccountDraft = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  mobile: '',
+  registration: '',
+  vehicleMake: '',
+  vehicleModel: '',
+  vehicleYear: '',
+};
+
+type AccountErrors = Partial<Record<keyof AccountDraft, string>>;
+
+export default function SignUpScreen() {
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const wide = width >= 680;
+  const [form, setForm] = useState(EMPTY_ACCOUNT);
+  const [errors, setErrors] = useState<AccountErrors>({});
+  const [notice, setNotice] = useState('');
+
+  const update = (key: keyof AccountDraft, value: string) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setErrors((current) => {
+      if (!current[key]) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+    setNotice('');
+  };
+
+  const checkReadiness = () => {
+    const nextErrors: AccountErrors = {};
+    if (!form.firstName.trim()) nextErrors.firstName = 'Enter your first name.';
+    if (!form.lastName.trim()) nextErrors.lastName = 'Enter your last name.';
+    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) nextErrors.email = 'Enter a valid email address.';
+    const phoneDigits = form.mobile.replace(/\D/g, '');
+    if (phoneDigits.length < 8 || phoneDigits.length > 15) nextErrors.mobile = 'Enter a valid mobile number.';
+    if (!form.registration.trim()) nextErrors.registration = 'Enter the registration.';
+    if (!form.vehicleMake.trim()) nextErrors.vehicleMake = 'Enter the vehicle make.';
+    if (!form.vehicleModel.trim()) nextErrors.vehicleModel = 'Enter the vehicle model.';
+    const year = Number(form.vehicleYear);
+    const latestYear = new Date().getFullYear() + 1;
+    if (!Number.isInteger(year) || year < 1900 || year > latestYear) {
+      nextErrors.vehicleYear = `Enter a year between 1900 and ${latestYear}.`;
+    }
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setNotice('');
+      return;
+    }
+    setNotice('This account profile is ready for a managed identity provider. Nothing was submitted or stored in this preview.');
+  };
+
+  return (
+    <SafeAreaView edges={['top', 'bottom']} style={styles.screen}>
+      <View style={styles.header}>
+        <Pressable
+          accessibilityLabel="Back to account access"
+          accessibilityRole="button"
+          hitSlop={12}
+          onPress={() => router.back()}
+          style={({ pressed }) => [styles.back, pressed && styles.pressed]}
+        >
+          <Text style={styles.backArrow}>←</Text>
+          <Text style={styles.backText}>Account</Text>
+        </Pressable>
+        <Image
+          accessibilityLabel="PSI Performance Garage"
+          resizeMode="contain"
+          source={require('../../../assets/images/psi-logo.png')}
+          style={styles.logo}
+        />
+      </View>
+
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardDismissMode="interactive"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Eyebrow>Account setup preview</Eyebrow>
+          <Text style={styles.title}>One profile.{`\n`}Every PSI visit.</Text>
+          <Text style={styles.lead}>
+            This is the provider-ready profile PSI can connect to secure email sign-in. Passwords are deliberately excluded.
+          </Text>
+
+          <View style={styles.securityCard}>
+            <Text style={styles.securityTitle}>No data leaves this screen</Text>
+            <Text style={styles.securityCopy}>
+              Until managed authentication is connected, this preview keeps values only in memory and discards them when the screen closes.
+            </Text>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your details</Text>
+            <View style={[styles.row, wide && styles.rowWide]}>
+              <View style={styles.cell}>
+                <Field error={errors.firstName} label="First name">
+                  <FormInput autoCapitalize="words" autoComplete="given-name" error={errors.firstName} onChangeText={(value) => update('firstName', value)} value={form.firstName} />
+                </Field>
+              </View>
+              <View style={styles.cell}>
+                <Field error={errors.lastName} label="Last name">
+                  <FormInput autoCapitalize="words" autoComplete="family-name" error={errors.lastName} onChangeText={(value) => update('lastName', value)} value={form.lastName} />
+                </Field>
+              </View>
+            </View>
+            <View style={[styles.row, wide && styles.rowWide]}>
+              <View style={styles.cell}>
+                <Field error={errors.email} label="Email">
+                  <FormInput autoCapitalize="none" autoComplete="email" error={errors.email} keyboardType="email-address" onChangeText={(value) => update('email', value)} placeholder="you@example.com" value={form.email} />
+                </Field>
+              </View>
+              <View style={styles.cell}>
+                <Field error={errors.mobile} label="Mobile">
+                  <FormInput autoComplete="tel" error={errors.mobile} keyboardType="phone-pad" onChangeText={(value) => update('mobile', value)} placeholder="04xx xxx xxx" value={form.mobile} />
+                </Field>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Primary vehicle</Text>
+            <View style={[styles.row, wide && styles.rowWide]}>
+              <View style={styles.cell}>
+                <Field error={errors.registration} label="Registration">
+                  <FormInput autoCapitalize="characters" error={errors.registration} maxLength={12} onChangeText={(value) => update('registration', value.toUpperCase())} placeholder="ABC123" value={form.registration} />
+                </Field>
+              </View>
+              <View style={styles.cell}>
+                <Field error={errors.vehicleYear} label="Year">
+                  <FormInput error={errors.vehicleYear} keyboardType="number-pad" maxLength={4} onChangeText={(value) => update('vehicleYear', value.replace(/\D/g, ''))} placeholder="2017" value={form.vehicleYear} />
+                </Field>
+              </View>
+            </View>
+            <View style={[styles.row, wide && styles.rowWide]}>
+              <View style={styles.cell}>
+                <Field error={errors.vehicleMake} label="Make">
+                  <FormInput autoCapitalize="words" error={errors.vehicleMake} onChangeText={(value) => update('vehicleMake', value)} placeholder="e.g. Holden" value={form.vehicleMake} />
+                </Field>
+              </View>
+              <View style={styles.cell}>
+                <Field error={errors.vehicleModel} label="Model">
+                  <FormInput autoCapitalize="words" error={errors.vehicleModel} onChangeText={(value) => update('vehicleModel', value)} placeholder="e.g. VF SS" value={form.vehicleModel} />
+                </Field>
+              </View>
+            </View>
+          </View>
+
+          {notice ? (
+            <View accessibilityRole="alert" style={styles.notice}>
+              <Text style={styles.noticeTitle}>Profile structure ready</Text>
+              <Text style={styles.noticeCopy}>{notice}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.actions}>
+            <PrimaryButton label="Check account setup" onPress={checkReadiness} />
+            <PrimaryButton label="Book without an account" onPress={() => router.replace('/')} variant="outline" />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  screen: { flex: 1, backgroundColor: colors.ink },
+  header: { width: '100%', maxWidth: 760, minHeight: 70, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.line },
+  back: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  backArrow: { color: colors.gold, fontSize: 22 },
+  backText: { color: colors.white, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  logo: { width: 106, height: 38 },
+  scroll: { flexGrow: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.xl, paddingBottom: 64 },
+  title: { marginTop: spacing.md, color: colors.white, fontSize: 40, fontWeight: '900', letterSpacing: -1.8, lineHeight: 42, textTransform: 'uppercase' },
+  lead: { marginTop: spacing.lg, color: colors.muted, fontSize: 15, lineHeight: 23 },
+  securityCard: { gap: spacing.sm, marginTop: spacing.xl, borderLeftWidth: 3, borderLeftColor: colors.gold, backgroundColor: colors.panel, padding: spacing.md },
+  securityTitle: { color: colors.white, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
+  securityCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
+  section: { gap: spacing.lg, marginTop: spacing.xl, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
+  sectionTitle: { color: colors.white, fontSize: 19, fontWeight: '900', textTransform: 'uppercase' },
+  row: { gap: spacing.lg },
+  rowWide: { flexDirection: 'row' },
+  cell: { flex: 1 },
+  notice: { gap: spacing.sm, marginTop: spacing.xl, borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.panel, padding: spacing.lg },
+  noticeTitle: { color: colors.gold, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
+  noticeCopy: { color: colors.cream, fontSize: 12, lineHeight: 19 },
+  actions: { gap: spacing.sm, marginTop: spacing.xl },
+  pressed: { opacity: 0.72 },
+});

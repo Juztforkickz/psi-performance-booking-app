@@ -19,7 +19,7 @@ The public business details used in the interface are:
 - Monday–Friday, 8:30am–5pm; Saturday by appointment
 - Australian and European performance, servicing, diagnostics and dyno-tuning themes
 
-Social audience counts were intentionally not embedded because they change frequently. Prices, guaranteed power outcomes and instant availability were also intentionally omitted.
+Social audience counts were intentionally not embedded because they change frequently. The owner-supplied booking guides are shown as **Service & Report from $385 + GST** and **Dyno tuning from $350 + GST**; they are guides rather than quotes. Guaranteed power outcomes and instant availability are intentionally omitted.
 
 ## Supplied/public brand assets
 

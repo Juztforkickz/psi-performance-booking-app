@@ -3,7 +3,7 @@
     "name": "PSI Performance",
     "slug": "psi-performance-booking",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/psi-app-icon-1024.png",
     "scheme": "psiperformance",
     "userInterfaceStyle": "dark",
