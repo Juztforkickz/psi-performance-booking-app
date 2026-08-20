@@ -246,9 +246,28 @@ export default function BookingScreen() {
         setErrors(error.fieldErrors);
         setStep(firstErrorStep(error.fieldErrors));
       }
+      if (
+        error instanceof BookingApiError &&
+        (error.code === 'CHECKOUT_EXPIRED' || error.code === 'CHECKOUT_CANCELLED')
+      ) {
+        setIdempotencyKey(randomUUID());
+      }
       const unavailable = error instanceof BookingApiError && error.code === 'PAYMENT_PROVIDER_NOT_CONFIGURED';
-      setErrorTitle(unavailable ? 'Secure payments are not available yet' : 'Secure checkout not opened');
-      setFormError(error instanceof Error ? error.message : 'Checkout could not be prepared. No payment has been taken.');
+      const alreadyPaid = error instanceof BookingApiError && error.code === 'CHECKOUT_ALREADY_PAID_OR_PROCESSING';
+      setErrorTitle(
+        unavailable
+          ? 'Secure payments are not available yet'
+          : alreadyPaid
+            ? 'Deposit already paid or processing'
+            : 'Secure checkout not opened',
+      );
+      setFormError(
+        alreadyPaid
+          ? 'Do not try another payment. Contact PSI Performance if you need help with this deposit.'
+          : error instanceof Error
+            ? error.message
+            : 'Checkout could not be prepared. No payment has been taken.',
+      );
       scrollToTop();
     } finally {
       setSubmitting(false);
@@ -452,10 +471,17 @@ function JobStep({
   return (
     <View style={styles.stepContent}>
       <StepHeading
-        copy="Choose the workshop service, then tell PSI exactly what you need from the car."
+        copy="Choose where to begin, then tell PSI what matters to you and what you want from the vehicle. We will use it to shape the right next step together."
         eyebrow="Step 01 · Job"
         title="What are you booking in for?"
       />
+      <View style={styles.personalPromise}>
+        <Text style={styles.personalPromiseTitle}>Your vehicle. Your goals.</Text>
+        <Text style={styles.personalPromiseCopy}>
+          One-stop workshop capability with individual attention. PSI reviews every request personally so the plan
+          protects the car today and supports where you want to take it.
+        </Text>
+      </View>
       <View accessibilityRole="radiogroup" style={styles.choiceList}>
         <ChoiceCard
           detail="Workshop service, inspection and a clear report. Price guide from $385 + GST."
@@ -842,7 +868,6 @@ function SelectField<T extends string>({
           <Pressable accessibilityLabel={`Close ${label} options`} accessibilityRole="button" onPress={() => setVisible(false)} style={styles.tuningModalBackdrop} />
           <SafeAreaView
             edges={['top', 'right', 'bottom', 'left']}
-            pointerEvents="box-none"
             style={[styles.tuningModalSafeArea, tightModal && styles.tuningModalSafeAreaTight]}
           >
             <View accessibilityViewIsModal style={[styles.tuningModalSheet, tightModal && styles.tuningModalSheetTight, wideModal && styles.tuningModalSheetWide]}>
@@ -867,7 +892,8 @@ function SelectField<T extends string>({
                   return (
                     <Pressable
                       accessibilityRole="radio"
-                      accessibilityState={{ selected: active }}
+                      accessibilityState={{ checked: active }}
+                      aria-checked={active}
                       key={option.value}
                       onPress={() => {
                         onChange(option.value);
@@ -950,11 +976,11 @@ function VehicleStep({
             </Field>
           </View>
           <View style={styles.fieldCell}>
-            <Field error={errors.registration} label="Registration">
+            <Field error={errors.registration} hint="Letters & numbers" label="Registration">
               <FormInput
                 autoCapitalize="characters"
                 error={errors.registration}
-                maxLength={12}
+                maxLength={20}
                 onChangeText={(value) => update('registration', value.toUpperCase())}
                 placeholder="ABC123"
                 value={form.registration}
@@ -962,12 +988,12 @@ function VehicleStep({
             </Field>
           </View>
         </View>
-        <Field error={errors.vin} hint="Optional" label="VIN">
+        <Field error={errors.vin} hint="Optional · 17 characters" label="VIN">
           <FormInput
             autoCapitalize="characters"
             error={errors.vin}
             maxLength={17}
-            onChangeText={(value) => update('vin', value.replace(/[^A-Za-z0-9]/g, '').toUpperCase())}
+            onChangeText={(value) => update('vin', value.replace(/[^A-HJ-NPR-Za-hj-npr-z0-9]/g, '').toUpperCase())}
             placeholder="17-character vehicle identification number"
             value={form.vin}
           />
@@ -1033,13 +1059,13 @@ function DetailsStep({
         </View>
         <View style={[styles.fieldRow, wide && styles.fieldRowWide]}>
           <View style={styles.fieldCell}>
-            <Field error={errors.email} label="Email">
+            <Field error={errors.email} hint="Receipt & updates" label="Email">
               <FormInput
                 autoCapitalize="none"
                 autoComplete="email"
                 error={errors.email}
                 keyboardType="email-address"
-                maxLength={160}
+                maxLength={254}
                 onChangeText={(value) => update('email', value)}
                 placeholder="you@example.com"
                 value={form.email}
@@ -1047,12 +1073,12 @@ function DetailsStep({
             </Field>
           </View>
           <View style={styles.fieldCell}>
-            <Field error={errors.mobile} label="Mobile">
+            <Field error={errors.mobile} hint="8–15 digits" label="Mobile">
               <FormInput
                 autoComplete="tel"
                 error={errors.mobile}
                 keyboardType="phone-pad"
-                maxLength={30}
+                maxLength={32}
                 onChangeText={(value) => update('mobile', value)}
                 placeholder="04xx xxx xxx"
                 value={form.mobile}
@@ -1379,6 +1405,9 @@ const styles = StyleSheet.create({
   stepTitle: { color: colors.white, fontSize: 34, fontWeight: '900', letterSpacing: -1.5, lineHeight: 36, textTransform: 'uppercase' },
   stepTitleCompact: { fontSize: 29, letterSpacing: -1, lineHeight: 32 },
   stepIntro: { color: colors.muted, fontSize: 15, lineHeight: 23 },
+  personalPromise: { gap: spacing.sm, borderLeftWidth: 3, borderLeftColor: colors.gold, backgroundColor: colors.panel, padding: spacing.md },
+  personalPromiseTitle: { color: colors.white, fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
+  personalPromiseCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
   choiceList: { gap: spacing.sm },
   error: { marginTop: spacing.sm, color: colors.danger, fontSize: 12, lineHeight: 17 },
   fields: { gap: spacing.lg },
@@ -1407,7 +1436,7 @@ const styles = StyleSheet.create({
   tuningSelectChevron: { color: colors.gold, fontSize: 24, lineHeight: 28 },
   tuningModalRoot: { flex: 1 },
   tuningModalBackdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.86)' },
-  tuningModalSafeArea: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  tuningModalSafeArea: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg, pointerEvents: 'box-none' },
   tuningModalSafeAreaTight: { padding: spacing.sm },
   tuningModalSheet: { width: '100%', minHeight: 0, maxWidth: 560, maxHeight: '92%', gap: spacing.lg, borderWidth: 1, borderColor: colors.gold, borderRadius: 5, backgroundColor: colors.panel, padding: spacing.lg },
   tuningModalSheetTight: { maxHeight: '100%', gap: spacing.md, padding: spacing.md },

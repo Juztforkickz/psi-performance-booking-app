@@ -1,5 +1,11 @@
 import { getBookingD1 } from "../../../../db";
 import {
+  isValidBookingEmail,
+  isValidBookingMobile,
+  isValidVin,
+  isValidVehicleRegistration,
+} from "../../../lib/booking-inputs";
+import {
   DEPOSIT_AMOUNT_CENTS,
   DEPOSIT_CURRENCY,
   DEPOSIT_POLICY_VERSION,
@@ -221,23 +227,18 @@ function validateCheckout(body: JsonObject):
       tuningDetails = tuningResult.details;
     }
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/u.test(email)) {
+  if (!errors.email && !isValidBookingEmail(email)) {
     errors.email = "Enter a valid email address.";
   }
 
-  const mobileDigits = mobile.replace(/\D/gu, "");
-  if (
-    !/^[+\d() .-]+$/u.test(mobile) ||
-    mobileDigits.length < 8 ||
-    mobileDigits.length > 15
-  ) {
+  if (!errors.mobile && !isValidBookingMobile(mobile)) {
     errors.mobile = "Enter a valid mobile number with 8 to 15 digits.";
   }
-  if (registration && !/^[A-Z0-9][A-Z0-9 .-]*$/u.test(registration)) {
+  if (registration && !isValidVehicleRegistration(registration)) {
     errors.registration = "Use only letters, numbers, spaces, dots, or hyphens.";
   }
-  if (vin && !/^[A-Z0-9][A-Z0-9 -]*$/u.test(vin)) {
-    errors.vin = "Use only letters, numbers, spaces, or hyphens.";
+  if (vin && !isValidVin(vin)) {
+    errors.vin = "Enter a 17-character VIN. The letters I, O, and Q are not used.";
   }
   if (
     arrivalWindow !== "morning" &&
@@ -416,6 +417,30 @@ async function findIdempotencyRecord(
 }
 
 function replayResponse(record: CheckoutIdempotencyRecord) {
+  if (record.state === "paid" || record.state === "processing") {
+    return errorResponse(
+      409,
+      "CHECKOUT_ALREADY_PAID_OR_PROCESSING",
+      "This deposit has already been paid or is being verified. Do not start another payment. Contact PSI Performance if you need help.",
+    );
+  }
+
+  if (record.state === "expired") {
+    return errorResponse(
+      409,
+      "CHECKOUT_EXPIRED",
+      "This secure checkout has expired. Start a new checkout to continue.",
+    );
+  }
+
+  if (record.state === "cancelled") {
+    return errorResponse(
+      409,
+      "CHECKOUT_CANCELLED",
+      "This secure checkout was cancelled. Start a new checkout when you are ready.",
+    );
+  }
+
   if (
     record.state !== "awaiting_payment" ||
     !record.paymentProvider ||
@@ -424,7 +449,7 @@ function replayResponse(record: CheckoutIdempotencyRecord) {
     return errorResponse(
       409,
       "CHECKOUT_NOT_PAYABLE",
-      "This checkout can no longer accept payment. Start a new secure checkout or contact PSI Performance.",
+      "This checkout cannot be resumed safely. No new payment has been requested. Contact PSI Performance for help.",
     );
   }
 

@@ -181,6 +181,41 @@ export function maxBookingDate() {
   return date;
 }
 
+function isValidBookingEmail(rawValue: string) {
+  const value = rawValue.trim();
+  if (value.length === 0 || value.length > 254) return false;
+
+  const separator = value.indexOf('@');
+  if (separator <= 0 || separator !== value.lastIndexOf('@')) return false;
+
+  const localPart = value.slice(0, separator);
+  const domain = value.slice(separator + 1);
+  if (
+    localPart.length > 64 ||
+    localPart.startsWith('.') ||
+    localPart.endsWith('.') ||
+    localPart.includes('..') ||
+    !/^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/iu.test(localPart)
+  ) {
+    return false;
+  }
+
+  const labels = domain.split('.');
+  if (domain.length > 253 || labels.length < 2) return false;
+
+  const validLabel = /^[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?$/iu;
+  if (labels.some((label) => !validLabel.test(label))) return false;
+
+  const topLevelDomain = labels.at(-1) ?? '';
+  return /^[A-Z]{2,63}$/iu.test(topLevelDomain) || /^XN--[A-Z0-9-]{2,59}$/iu.test(topLevelDomain);
+}
+
+function isValidBookingMobile(rawValue: string) {
+  const value = rawValue.trim();
+  const digits = value.replace(/\D/gu, '');
+  return /^\+?[\d() .-]+$/u.test(value) && digits.length >= 8 && digits.length <= 15;
+}
+
 export function validateBookingStep(form: BookingFormState, step: number): BookingErrors {
   const errors: BookingErrors = {};
 
@@ -248,15 +283,21 @@ export function validateBookingStep(form: BookingFormState, step: number): Booki
       errors.vehicleYear = `Enter a year between 1900 and ${latestYear}.`;
     }
     if (!form.registration.trim()) errors.registration = 'Enter the registration.';
-    if (form.vin && form.vin.trim().length !== 17) errors.vin = 'A VIN must contain 17 characters.';
+    else if (!/^[A-Z0-9][A-Z0-9 .-]*$/u.test(form.registration.trim().toUpperCase())) {
+      errors.registration = 'Use only letters, numbers, spaces, dots or hyphens.';
+    }
+    if (form.vin && !/^[A-HJ-NPR-Z0-9]{17}$/u.test(form.vin.trim().toUpperCase())) {
+      errors.vin = 'Enter a 17-character VIN. The letters I, O and Q are not used.';
+    }
   }
 
   if (step === 3) {
     if (!form.firstName.trim()) errors.firstName = 'Enter your first name.';
     if (!form.lastName.trim()) errors.lastName = 'Enter your last name.';
-    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) errors.email = 'Enter a valid email address.';
-    const phoneDigits = form.mobile.replace(/\D/g, '');
-    if (phoneDigits.length < 8 || phoneDigits.length > 15) errors.mobile = 'Enter a valid mobile number.';
+    if (!isValidBookingEmail(form.email)) errors.email = 'Enter a valid email address.';
+    if (!isValidBookingMobile(form.mobile)) {
+      errors.mobile = 'Use 8 to 15 digits and only +, spaces, brackets, dots or hyphens.';
+    }
   }
 
   if (step === 4) {

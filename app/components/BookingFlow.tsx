@@ -1,6 +1,12 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  isValidBookingEmail,
+  isValidBookingMobile,
+  isValidVin,
+  isValidVehicleRegistration,
+} from "../lib/booking-inputs";
 
 type BookingType = "service" | "dyno";
 type ArrivalWindow = "morning" | "afternoon" | "any";
@@ -437,9 +443,10 @@ export function BookingFlow() {
     if (targetStep === 2) {
       if (!form.firstName.trim()) nextErrors.firstName = "Enter your first name.";
       if (!form.lastName.trim()) nextErrors.lastName = "Enter your last name.";
-      if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) nextErrors.email = "Enter a valid email address.";
-      const phoneDigits = form.mobile.replace(/\D/g, "");
-      if (phoneDigits.length < 8 || phoneDigits.length > 15) nextErrors.mobile = "Enter a valid mobile number.";
+      if (!isValidBookingEmail(form.email)) nextErrors.email = "Enter a valid email address.";
+      if (!isValidBookingMobile(form.mobile)) {
+        nextErrors.mobile = "Use 8 to 15 digits and only +, spaces, brackets, dots or hyphens.";
+      }
       if (!form.vehicleMake.trim()) nextErrors.vehicleMake = "Enter the vehicle make.";
       if (!form.vehicleModel.trim()) nextErrors.vehicleModel = "Enter the vehicle model.";
       const year = Number(form.vehicleYear);
@@ -448,7 +455,12 @@ export function BookingFlow() {
         nextErrors.vehicleYear = "Enter a year between 1900 and " + latestYear + ".";
       }
       if (!form.registration.trim()) nextErrors.registration = "Enter the registration.";
-      if (form.vin.trim() && form.vin.trim().length !== 17) nextErrors.vin = "A VIN must contain 17 characters.";
+      if (form.registration.trim() && !isValidVehicleRegistration(form.registration)) {
+        nextErrors.registration = "Use only letters, numbers, spaces, dots or hyphens.";
+      }
+      if (form.vin.trim() && !isValidVin(form.vin)) {
+        nextErrors.vin = "Enter a 17-character VIN. The letters I, O and Q are not used.";
+      }
       if (!form.consent) nextErrors.consent = "Please agree so PSI can contact you about this request.";
     }
 
@@ -557,6 +569,15 @@ export function BookingFlow() {
             ? apiError
             : apiError?.message || "Secure checkout could not be started. Please try again.";
         setErrorCode(code);
+        if (code === "CHECKOUT_EXPIRED" || code === "CHECKOUT_CANCELLED") {
+          idempotencyKey.current = null;
+        }
+        if (code === "CHECKOUT_ALREADY_PAID_OR_PROCESSING") {
+          setFormError(
+            "This deposit may already be paid or processing. Do not try another payment. Contact PSI Performance if you need help.",
+          );
+          return;
+        }
         if (code === "PAYMENT_PROVIDER_NOT_CONFIGURED") {
           setFormError(
             "Online deposit payments are not connected yet. Your request has not been submitted and no payment has been taken.",
@@ -718,11 +739,11 @@ export function BookingFlow() {
                 <Field label="Last name" id="lastName" error={errors.lastName}>
                   <input id="lastName" value={form.lastName} onChange={(event) => update("lastName", event.target.value)} autoComplete="family-name" maxLength={60} required aria-invalid={Boolean(errors.lastName)} aria-describedby={errors.lastName ? "lastName-error" : undefined} />
                 </Field>
-                <Field label="Email" id="email" error={errors.email}>
-                  <input id="email" type="email" value={form.email} onChange={(event) => update("email", event.target.value)} autoComplete="email" maxLength={254} placeholder="you@example.com" required aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "email-error" : undefined} />
+                <Field label="Email" hint="Receipt & updates" id="email" error={errors.email}>
+                  <input id="email" type="email" inputMode="email" value={form.email} onChange={(event) => update("email", event.target.value)} autoComplete="email" autoCapitalize="none" spellCheck={false} maxLength={254} placeholder="you@example.com" required aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "email-error" : undefined} />
                 </Field>
-                <Field label="Mobile" id="mobile" error={errors.mobile}>
-                  <input id="mobile" type="tel" value={form.mobile} onChange={(event) => update("mobile", event.target.value)} autoComplete="tel" inputMode="tel" maxLength={32} placeholder="04xx xxx xxx" required aria-invalid={Boolean(errors.mobile)} aria-describedby={errors.mobile ? "mobile-error" : undefined} />
+                <Field label="Mobile" hint="8–15 digits" id="mobile" error={errors.mobile}>
+                  <input id="mobile" type="tel" value={form.mobile} onChange={(event) => update("mobile", event.target.value)} autoComplete="tel" inputMode="tel" maxLength={32} pattern="\+?[0-9() .-]+" placeholder="04xx xxx xxx" required aria-invalid={Boolean(errors.mobile)} aria-describedby={errors.mobile ? "mobile-error" : undefined} />
                 </Field>
                 <Field label="Make" id="vehicleMake" error={errors.vehicleMake}>
                   <input id="vehicleMake" value={form.vehicleMake} onChange={(event) => update("vehicleMake", event.target.value)} autoComplete="off" maxLength={60} placeholder="e.g. Holden" required aria-invalid={Boolean(errors.vehicleMake)} aria-describedby={errors.vehicleMake ? "vehicleMake-error" : undefined} />
@@ -733,11 +754,11 @@ export function BookingFlow() {
                 <Field label="Year" id="vehicleYear" error={errors.vehicleYear}>
                   <input id="vehicleYear" type="number" inputMode="numeric" value={form.vehicleYear} onChange={(event) => update("vehicleYear", event.target.value)} min="1900" max={new Date().getFullYear() + 1} placeholder="2017" required aria-invalid={Boolean(errors.vehicleYear)} aria-describedby={errors.vehicleYear ? "vehicleYear-error" : undefined} />
                 </Field>
-                <Field label="Registration" id="registration" error={errors.registration}>
-                  <input id="registration" value={form.registration} onChange={(event) => update("registration", event.target.value.toUpperCase())} autoCapitalize="characters" maxLength={20} placeholder="ABC123" required aria-invalid={Boolean(errors.registration)} aria-describedby={errors.registration ? "registration-error" : undefined} />
+                <Field label="Registration" hint="Letters & numbers" id="registration" error={errors.registration}>
+                  <input id="registration" value={form.registration} onChange={(event) => update("registration", event.target.value.toUpperCase())} autoCapitalize="characters" spellCheck={false} maxLength={20} pattern="[A-Za-z0-9][A-Za-z0-9 .-]*" placeholder="ABC123" required aria-invalid={Boolean(errors.registration)} aria-describedby={errors.registration ? "registration-error" : undefined} />
                 </Field>
-                <Field label="VIN" hint="Optional" id="vin" error={errors.vin} wide>
-                  <input id="vin" value={form.vin} onChange={(event) => update("vin", event.target.value.toUpperCase())} autoCapitalize="characters" maxLength={17} placeholder="17-character vehicle identification number" aria-invalid={Boolean(errors.vin)} aria-describedby={errors.vin ? "vin-error" : undefined} />
+                <Field label="VIN" hint="Optional · 17 characters" id="vin" error={errors.vin} wide>
+                  <input id="vin" value={form.vin} onChange={(event) => update("vin", event.target.value.toUpperCase())} autoCapitalize="characters" spellCheck={false} minLength={17} maxLength={17} pattern="[A-HJ-NPR-Za-hj-npr-z0-9]{17}" placeholder="17-character vehicle identification number" aria-invalid={Boolean(errors.vin)} aria-describedby={errors.vin ? "vin-error" : undefined} />
                 </Field>
               </div>
 

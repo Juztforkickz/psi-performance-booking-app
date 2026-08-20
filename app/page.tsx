@@ -16,6 +16,24 @@ const trustPoints = [
   "Diagnostics & repairs",
 ];
 
+const testimonials = [
+  {
+    quote: "The team truly cares about both the car and the customer.",
+    customer: "Cale Pearson",
+    theme: "Personal care",
+  },
+  {
+    quote: "they provide everything with quality and reliability in one go",
+    customer: "Sharad Oadd",
+    theme: "One-stop capability",
+  },
+  {
+    quote: "These guys know their stuff and will look after you through the whole process.",
+    customer: "Cade",
+    theme: "Project partnership",
+  },
+] as const;
+
 export default function Home() {
   return (
     <main>
@@ -28,6 +46,7 @@ export default function Home() {
             <a href="#services">Services</a>
             <a href="/parts">Parts</a>
             <a href="#why-psi">Why PSI</a>
+            <a href="#reviews">Reviews</a>
             <a href="#contact">Contact</a>
             <a href="/account">Account preview</a>
           </nav>
@@ -42,6 +61,7 @@ export default function Home() {
           <div className="opening-intro">
             <p className="eyebrow">PSI Performance Garage · Pakenham</p>
             <h1>Book your car<br />now.</h1>
+            <p className="opening-promise">One workshop. Your vehicle. A plan built around you.</p>
             <div className="opening-details">
               <div>
                 <span>Shop hours</span>
@@ -91,12 +111,39 @@ export default function Home() {
         ))}
       </section>
 
+      <section className="partnership-section" aria-labelledby="partnership-heading">
+        <div className="partnership-heading">
+          <p className="eyebrow">One stop. Never one-size-fits-all.</p>
+          <h2 id="partnership-heading">Everything your vehicle needs.<br />Attention that stays personal.</h2>
+        </div>
+        <div className="partnership-copy">
+          <p>
+            From preventative servicing and diagnostics to carefully planned performance work and hub dyno tuning, PSI keeps the whole journey in one conversation.
+          </p>
+          <p>
+            You are not another registration on a job card. Tell us where the vehicle is today and where you want it to go—then let us protect it, build it and develop the project with you.
+          </p>
+          <a className="text-link partnership-link" href="#service-booking">Build your plan with PSI <span aria-hidden="true">→</span></a>
+        </div>
+        <div className="partnership-standard" aria-label="PSI service standard">
+          <span>Our service standard</span>
+          <strong>10/10 care</strong>
+          <p>Clear advice, careful workmanship and respect for you, your goals and your vehicle.</p>
+          <small>PSI service commitment—not a customer review aggregate.</small>
+        </div>
+        <div className="partnership-pillars" aria-label="How PSI supports your vehicle">
+          <article><span>01</span><strong>Protect</strong><p>Service, inspect and diagnose before small issues become expensive ones.</p></article>
+          <article><span>02</span><strong>Plan</strong><p>Build a clear, staged path around your priorities, budget and intended use.</p></article>
+          <article><span>03</span><strong>Build & tune</strong><p>Bring mechanical work and measured calibration together under one roof.</p></article>
+        </div>
+      </section>
+
       <section className="services-section" id="services">
         <div className="section-heading">
-          <p className="eyebrow">Two ways in</p>
-          <h2>Street manners.<br />Track-bred thinking.</h2>
+          <p className="eyebrow">Protection to performance</p>
+          <h2>Protect what you love.<br />Build what you imagine.</h2>
           <p>
-            From routine maintenance to a carefully calibrated performance setup, PSI approaches every job with the same attention to detail.
+            Daily driver, weekend car or long-term project—PSI approaches every job with the same care, measured thinking and straight communication.
           </p>
         </div>
 
@@ -143,45 +190,45 @@ export default function Home() {
           <p className="eyebrow">Why PSI</p>
           <h2>Done properly.<br />Explained clearly.</h2>
           <p className="why-lead">
-            The strongest theme across PSI customer feedback is not just the result—it is the communication, updates and confidence that the car is being looked after.
+            The strongest theme in verified PSI customer feedback is not only the result. It is the communication, regular updates and confidence that both the person and the vehicle are being looked after.
           </p>
           <div className="why-grid">
             <div><span>01</span><strong>Clear advice</strong><p>Understand what your car needs and why.</p></div>
             <div><span>02</span><strong>Measured results</strong><p>Calibrate and diagnose with real data.</p></div>
             <div><span>03</span><strong>No shortcuts</strong><p>Work built around reliability and detail.</p></div>
-            <div><span>04</span><strong>One workshop</strong><p>Servicing, mechanical work and tuning together.</p></div>
+            <div><span>04</span><strong>Your car, your plan</strong><p>Advice shaped around your goals—not a generic package.</p></div>
           </div>
         </div>
       </section>
 
-      <section className="testimonials-section" aria-labelledby="reviews-heading">
+      <section className="testimonials-section" id="reviews" aria-labelledby="reviews-heading">
         <div className="section-heading compact-heading">
-          <p className="eyebrow">Customer stories</p>
-          <h2 id="reviews-heading">Built on trust.</h2>
+          <p className="eyebrow">Verified five-star customer stories</p>
+          <h2 id="reviews-heading">People remember<br />how you look after them.</h2>
+          <p>Short excerpts from five-star customer feedback published on PSI Performance&apos;s official website.</p>
         </div>
         <div className="testimonial-grid">
-          <figure>
-            <div className="stars" aria-label="5 out of 5 stars">★★★★★</div>
-            <blockquote>“The communication was excellent. They kept me updated throughout the entire process and were always clear about the next steps.”</blockquote>
-            <figcaption>Cale Pearson · Monaro</figcaption>
-          </figure>
-          <figure>
-            <div className="stars" aria-label="5 out of 5 stars">★★★★★</div>
-            <blockquote>“Matt cleaned it up, took fuel out and extracted more power—and it was still a safe tune.”</blockquote>
-            <figcaption>Brad Young · CV8-Z</figcaption>
-          </figure>
-          <figure>
-            <div className="stars" aria-label="5 out of 5 stars">★★★★★</div>
-            <blockquote>“From dyno tuning to basic car services, they provide everything with quality and reliability in one go.”</blockquote>
-            <figcaption>Sharad Oadd</figcaption>
-          </figure>
+          {testimonials.map((testimonial) => (
+            <figure key={testimonial.customer}>
+              <div className="stars" aria-label="5 out of 5 stars">★★★★★</div>
+              <blockquote cite="https://psiperformance.com.au/">“{testimonial.quote}”</blockquote>
+              <figcaption>
+                <strong>{testimonial.customer}</strong>
+                <span>{testimonial.theme} · Verified on PSI&apos;s website</span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+        <div className="testimonial-source-row">
+          <p>Real customer words. Shortened for clarity; meaning preserved.</p>
+          <a href="https://psiperformance.com.au/" target="_blank" rel="noreferrer">Read PSI customer stories <span aria-hidden="true">↗</span></a>
         </div>
       </section>
 
       <section className="contact-section" id="contact">
         <div>
           <p className="eyebrow">PSI Performance Garage</p>
-          <h2>Ready when<br />you are.</h2>
+          <h2>Protect it.<br />Build it.<br />Together.</h2>
         </div>
         <div className="contact-panel">
           <div className="contact-grid">

@@ -56,3 +56,6 @@ GoogleService-Info.plist
 /.wrangler/
 /outputs/
 /work/
+/artifacts/
+/mobile/work/
+/mobile/expo-env.d.ts

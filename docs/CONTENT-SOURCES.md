@@ -10,6 +10,12 @@ This build uses publicly available PSI Performance Garage information and owner-
 - Facebook: https://www.facebook.com/psiperformancegarage/
 - Instagram: https://www.instagram.com/psiperformancegarage/
 
+## Customer feedback provenance
+
+The five-star excerpts attributed to Cale Pearson, Sharad Oadd and Cade are shortened from the **Our Happy Clients** section on PSI Performance's official website. The live page labels the original testimonials with five stars but does not publish review dates. The excerpts preserve the original meaning and link back to that source.
+
+No reliable PSI Pakenham customer review literally rating the business “10/10” was identified on 21 August 2026. The interface therefore uses **10/10 care** only as an explicitly labelled PSI service commitment, never as an invented customer score or aggregate rating.
+
 The public business details used in the interface are:
 
 - PSI Performance Garage

@@ -225,6 +225,15 @@ div {
   line-height: 0.9;
 }
 
+.opening-promise {
+  max-width: 560px;
+  margin: -16px 0 34px;
+  color: #d7d4cd;
+  font-size: clamp(1rem, 1.5vw, 1.22rem);
+  font-weight: 650;
+  line-height: 1.55;
+}
+
 .opening-intro {
   grid-column: 1;
   grid-row: 1;
@@ -511,6 +520,144 @@ div {
   font-weight: 400;
   line-height: 1.25;
   text-transform: uppercase;
+}
+
+.partnership-section {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(320px, 0.78fr) minmax(0, 1.22fr);
+  gap: clamp(38px, 6vw, 96px);
+  padding-top: clamp(76px, 9vw, 138px);
+  padding-right: max(clamp(22px, 7vw, 120px), calc((100% - var(--content-max)) / 2), env(safe-area-inset-right));
+  padding-bottom: clamp(76px, 9vw, 138px);
+  padding-left: max(clamp(22px, 7vw, 120px), calc((100% - var(--content-max)) / 2), env(safe-area-inset-left));
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 14% 24%, rgba(217, 179, 91, 0.11), transparent 28rem),
+    linear-gradient(135deg, #111 0%, #070707 72%);
+}
+
+.partnership-section::before {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0, transparent calc(25% - 1px), rgba(255, 255, 255, 0.025) 25%);
+  content: "";
+  pointer-events: none;
+}
+
+.partnership-section > * {
+  position: relative;
+}
+
+.partnership-heading h2 {
+  margin: 0;
+  font-size: clamp(2.1rem, 4.6vw, 5.25rem);
+  letter-spacing: -0.055em;
+  line-height: 0.96;
+}
+
+.partnership-copy {
+  align-self: end;
+  max-width: 760px;
+}
+
+.partnership-copy p {
+  color: #b8b6b0;
+  font-size: clamp(0.96rem, 1.3vw, 1.12rem);
+  line-height: 1.78;
+}
+
+.partnership-copy p + p {
+  color: #efede8;
+}
+
+.partnership-link {
+  margin-top: 10px;
+  color: var(--signal-bright);
+}
+
+.partnership-standard {
+  min-height: 310px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: clamp(28px, 4vw, 52px);
+  border-radius: var(--radius);
+  background: var(--signal-metal);
+  color: var(--ink);
+}
+
+.partnership-standard > span {
+  margin-bottom: auto;
+  font-size: 0.65rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.partnership-standard strong {
+  display: block;
+  margin-bottom: 12px;
+  font-family: "Ethnocentric", Impact, sans-serif;
+  font-size: clamp(2.25rem, 4vw, 4.6rem);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.partnership-standard p {
+  max-width: 520px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  font-weight: 720;
+  line-height: 1.58;
+}
+
+.partnership-standard small {
+  color: rgba(5, 5, 5, 0.92);
+  font-size: 0.68rem;
+  font-weight: 720;
+  line-height: 1.45;
+}
+
+.partnership-pillars {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+}
+
+.partnership-pillars article {
+  min-height: 310px;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(24px, 3vw, 38px);
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.partnership-pillars span {
+  margin-bottom: auto;
+  color: var(--signal);
+  font-size: 0.64rem;
+  font-weight: 900;
+}
+
+.partnership-pillars strong {
+  margin-bottom: 12px;
+  font-family: "Ethnocentric", Impact, sans-serif;
+  font-size: clamp(0.78rem, 1.1vw, 1rem);
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.partnership-pillars p {
+  margin: 0;
+  color: #92908a;
+  font-size: 0.8rem;
+  line-height: 1.62;
 }
 
 .services-section,
@@ -1708,6 +1855,12 @@ div {
   margin-bottom: clamp(40px, 6vw, 70px);
 }
 
+.testimonials-section .compact-heading > p:last-child {
+  max-width: 720px;
+  margin: 28px 0 0;
+  color: #9c9a94;
+}
+
 .testimonial-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1747,6 +1900,56 @@ div {
   font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
+}
+
+.testimonial-grid figcaption strong,
+.testimonial-grid figcaption span {
+  display: block;
+}
+
+.testimonial-grid figcaption strong {
+  margin-bottom: 8px;
+  color: #e5e2dc;
+  font-size: 0.72rem;
+}
+
+.testimonial-grid figcaption span {
+  color: #929089;
+  font-size: 0.58rem;
+  line-height: 1.5;
+}
+
+.testimonial-source-row {
+  width: min(var(--content-max), 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 28px auto 0;
+  color: #929089;
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.testimonial-source-row p {
+  margin: 0;
+}
+
+.testimonial-source-row a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  color: var(--signal-bright);
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.testimonial-source-row a:hover,
+.testimonial-source-row a:focus-visible {
+  color: #fff;
 }
 
 .contact-section {
@@ -2361,6 +2564,20 @@ div {
     border-bottom: 1px solid rgba(8, 8, 8, 0.22);
   }
 
+  .partnership-section {
+    grid-template-columns: 1fr;
+    gap: 38px;
+  }
+
+  .partnership-heading,
+  .partnership-copy {
+    max-width: 900px;
+  }
+
+  .partnership-copy {
+    align-self: auto;
+  }
+
   .why-section {
     grid-template-columns: 1fr;
   }
@@ -2451,6 +2668,10 @@ div {
     line-height: 0.9;
   }
 
+  .opening-promise {
+    margin-top: -10px;
+  }
+
   .opening-details {
     grid-template-columns: 1fr;
     gap: 20px;
@@ -2482,6 +2703,14 @@ div {
   .testimonial-grid,
   .contact-section {
     grid-template-columns: 1fr;
+  }
+
+  .partnership-pillars {
+    grid-template-columns: 1fr;
+  }
+
+  .partnership-pillars article {
+    min-height: 220px;
   }
 
   .booking-workspace {
@@ -2590,6 +2819,12 @@ div {
     border-left: 1px solid var(--line);
   }
 
+  .testimonial-source-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
   .contact-section {
     gap: 42px;
   }
@@ -2614,6 +2849,15 @@ div {
   .testimonials-section {
     padding-right: max(18px, env(safe-area-inset-right));
     padding-left: max(18px, env(safe-area-inset-left));
+  }
+
+  .partnership-section {
+    padding-right: max(18px, env(safe-area-inset-right));
+    padding-left: max(18px, env(safe-area-inset-left));
+  }
+
+  .partnership-standard {
+    min-height: 280px;
   }
 
   .booking-section {
@@ -2800,6 +3044,11 @@ div {
   .services-section,
   .booking-section,
   .testimonials-section {
+    padding-right: max(10px, env(safe-area-inset-right));
+    padding-left: max(10px, env(safe-area-inset-left));
+  }
+
+  .partnership-section {
     padding-right: max(10px, env(safe-area-inset-right));
     padding-left: max(10px, env(safe-area-inset-left));
   }

@@ -19,6 +19,54 @@ import { BOOKING_PURPOSES, type BookingType } from '@/lib/booking';
 
 type GatewayChoice = BookingType | 'parts';
 
+type VerifiedOwnerStory = {
+  quote: string;
+  customer: string;
+  rating: '★★★★★';
+  vehicle?: string;
+};
+
+/**
+ * Excerpts published on PSI's official homepage. Preserve the wording and only
+ * add further feedback after PSI has verified its source and approval status.
+ */
+const VERIFIED_OWNER_STORIES: readonly VerifiedOwnerStory[] = [
+  {
+    customer: 'Cale Pearson',
+    quote: 'The team truly cares about both the car and the customer.',
+    rating: '★★★★★',
+  },
+  {
+    customer: 'Sharad Oadd',
+    quote: 'they provide everything with quality and reliability in one go',
+    rating: '★★★★★',
+  },
+  {
+    customer: 'Cade',
+    quote: 'These guys know their stuff and will look after you through the whole process.',
+    rating: '★★★★★',
+  },
+];
+const OWNER_STORIES_SOURCE_URL = 'https://psiperformance.com.au/';
+
+const PSI_PROMISES = [
+  {
+    index: '01',
+    title: 'Protect',
+    copy: 'Start with the health, safety and reliability of the complete vehicle.',
+  },
+  {
+    index: '02',
+    title: 'Build',
+    copy: 'Plan the right upgrades around your goals and how you actually use the car.',
+  },
+  {
+    index: '03',
+    title: 'Together',
+    copy: 'You matter here. PSI listens, explains and shapes the project with you.',
+  },
+] as const;
+
 const PURPOSE_OPTIONS: {
   value: GatewayChoice;
   label: string;
@@ -95,7 +143,8 @@ export default function HomeScreen() {
             <Eyebrow>PSI Performance · Pakenham</Eyebrow>
             <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact, shortLandscape && styles.titleShort, wide && styles.titleWide]}>Book your car{`\n`}now.</Text>
             <Text style={styles.introCopy}>
-              Secure your preferred workshop date for servicing or dyno tuning. PSI confirms every request personally.
+              From servicing and diagnostics to dyno tuning, performance upgrades and parts, PSI is your one-stop
+              performance workshop—with every request reviewed personally.
             </Text>
 
             {wide ? <WorkshopInfo /> : null}
@@ -106,7 +155,8 @@ export default function HomeScreen() {
               <Text style={styles.panelKicker}>Online booking</Text>
               <Text style={styles.panelTitle}>What are you booking in for?</Text>
               <Text style={styles.panelCopy}>
-                Choose a starting point. Prices are guides; PSI will confirm the work and final cost with you.
+                Tell us where to begin. PSI will personally review your vehicle, your goals and the right next step
+                before confirming the work and final cost.
               </Text>
             </View>
 
@@ -175,9 +225,11 @@ export default function HomeScreen() {
           {!wide ? <WorkshopInfo /> : null}
         </View>
 
+        <PsiStandard />
+
         <View style={styles.footer}>
           <Text style={styles.footerText}>© {new Date().getFullYear()} PSI Performance™ · All rights reserved</Text>
-          <Pressable accessibilityRole="link" hitSlop={10} onPress={() => void Linking.openURL(contact.privacy)}>
+          <Pressable accessibilityRole="link" hitSlop={10} onPress={() => void Linking.openURL(contact.privacy)} style={styles.footerLinkTarget}>
             <Text style={styles.footerLink}>Privacy policy ↗</Text>
           </Pressable>
         </View>
@@ -193,6 +245,74 @@ export default function HomeScreen() {
         visible={selectorOpen}
       />
     </SafeAreaView>
+  );
+}
+
+function PsiStandard() {
+  const { compact, useFieldColumns: wide } = useResponsiveLayout();
+
+  return (
+    <View accessibilityLabel="The PSI service standard" style={styles.standardSection}>
+      <View style={[styles.standardLead, wide && styles.standardLeadWide]}>
+        <View style={styles.standardHeading}>
+          <Eyebrow>The PSI standard</Eyebrow>
+          <Text maxFontSizeMultiplier={2} style={[styles.standardTitle, compact && styles.standardTitleCompact]}>
+            One workshop.{`\n`}Your vehicle.
+          </Text>
+          <Text style={styles.standardCopy}>
+            PSI brings the complete workshop journey together without losing sight of the individual behind the
+            build. Let us protect and build your vehicle or project—together.
+          </Text>
+        </View>
+
+        <View style={[styles.standardScore, wide && styles.standardScoreWide]}>
+          <Text accessibilityLabel="Ten out of ten" maxFontSizeMultiplier={1.5} style={styles.standardScoreValue}>10/10</Text>
+          <Text style={styles.standardScoreTitle}>The standard we work toward</Text>
+          <Text style={styles.standardScoreCopy}>
+            Care, clear communication and respect for your goals—from the first conversation to final handover.
+          </Text>
+          <Text style={styles.standardScoreDisclaimer}>PSI service commitment—not a customer review rating.</Text>
+        </View>
+      </View>
+
+      <View style={[styles.promiseGrid, wide && styles.promiseGridWide]}>
+        {PSI_PROMISES.map((promise) => (
+          <View key={promise.index} style={[styles.promiseCard, wide && styles.promiseCardWide]}>
+            <Text style={styles.promiseIndex}>{promise.index}</Text>
+            <Text style={styles.promiseTitle}>{promise.title}</Text>
+            <Text style={styles.promiseCopy}>{promise.copy}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View accessibilityLabel="Verified PSI customer feedback" style={styles.ownerStories}>
+        <View style={styles.ownerStoriesHeading}>
+          <View style={styles.ownerStoriesHeadingCopy}>
+            <Text style={styles.ownerStoriesKicker}>Customer feedback</Text>
+            <Text style={styles.ownerStoriesTitle}>What PSI customers say</Text>
+          </View>
+          <Pressable
+            accessibilityHint="Opens the official PSI Performance website"
+            accessibilityRole="link"
+            onPress={() => void Linking.openURL(OWNER_STORIES_SOURCE_URL)}
+            style={({ pressed }) => [styles.ownerStoriesSourceLink, pressed && styles.pressed]}
+          >
+            <Text style={styles.ownerStoriesSourceText}>Verified on PSI homepage ↗</Text>
+          </Pressable>
+        </View>
+        <View style={[styles.ownerStoryGrid, wide && styles.ownerStoryGridWide]}>
+          {VERIFIED_OWNER_STORIES.map((story) => (
+            <View key={`${story.customer}-${story.quote}`} style={[styles.ownerStory, wide && styles.ownerStoryWide]}>
+              <Text accessibilityLabel="Five out of five stars" style={styles.ownerStoryRating}>{story.rating}</Text>
+              <Text style={styles.ownerStoryQuote}>“{story.quote}”</Text>
+              <Text style={styles.ownerStorySource}>
+                {story.customer}{story.vehicle ? ` · ${story.vehicle}` : ''}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -305,7 +425,6 @@ function PurposeSelector({
         <Pressable accessibilityLabel="Close booking type selector" accessibilityRole="button" onPress={onClose} style={styles.modalBackdrop} />
         <SafeAreaView
           edges={['top', 'right', 'bottom', 'left']}
-          pointerEvents="box-none"
           style={[styles.modalSafeArea, wide && styles.modalSafeAreaWide]}
         >
           <View accessibilityViewIsModal style={[styles.selectorSheet, tight && styles.selectorSheetTight, wide && styles.selectorSheetWide]}>
@@ -332,7 +451,8 @@ function PurposeSelector({
                   <Pressable
                     accessibilityLabel={`${option.label}. ${option.priceGuide}. ${option.detail}`}
                     accessibilityRole="radio"
-                    accessibilityState={{ selected: active }}
+                    accessibilityState={{ checked: active }}
+                    aria-checked={active}
                     key={option.value}
                     onPress={() => onSelect(option.value)}
                     style={({ pressed }) => [
@@ -760,6 +880,193 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     textAlign: 'center',
   },
+  standardSection: {
+    width: '100%',
+    maxWidth: 1180,
+    alignSelf: 'center',
+    gap: spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingVertical: 56,
+  },
+  standardLead: {
+    gap: spacing.xl,
+  },
+  standardLeadWide: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+  },
+  standardHeading: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.md,
+  },
+  standardTitle: {
+    color: colors.white,
+    fontSize: 42,
+    fontWeight: '900',
+    letterSpacing: -2,
+    lineHeight: 44,
+    textTransform: 'uppercase',
+  },
+  standardTitleCompact: {
+    fontSize: 34,
+    letterSpacing: -1.4,
+    lineHeight: 37,
+  },
+  standardCopy: {
+    maxWidth: 620,
+    color: colors.muted,
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  standardScore: {
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    backgroundColor: colors.panel,
+    padding: spacing.lg,
+  },
+  standardScoreWide: {
+    width: '36%',
+    justifyContent: 'center',
+  },
+  standardScoreValue: {
+    color: colors.gold,
+    fontSize: 42,
+    fontWeight: '900',
+    letterSpacing: -2,
+    lineHeight: 44,
+  },
+  standardScoreTitle: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  standardScoreCopy: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 19,
+  },
+  standardScoreDisclaimer: {
+    color: colors.gold,
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 15,
+  },
+  promiseGrid: {
+    gap: spacing.sm,
+  },
+  promiseGridWide: {
+    flexDirection: 'row',
+  },
+  promiseCard: {
+    gap: spacing.sm,
+    borderTopWidth: 2,
+    borderTopColor: colors.gold,
+    backgroundColor: colors.panel,
+    padding: spacing.lg,
+  },
+  promiseCardWide: {
+    flex: 1,
+  },
+  promiseIndex: {
+    color: colors.gold,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.4,
+  },
+  promiseTitle: {
+    color: colors.white,
+    fontSize: 19,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  promiseCopy: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  ownerStories: {
+    gap: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingTop: spacing.xl,
+  },
+  ownerStoriesHeading: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  ownerStoriesHeadingCopy: {
+    flex: 1,
+    minWidth: 220,
+    gap: spacing.xs,
+  },
+  ownerStoriesKicker: {
+    color: colors.gold,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  ownerStoriesTitle: {
+    color: colors.white,
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: -0.7,
+    lineHeight: 28,
+    textTransform: 'uppercase',
+  },
+  ownerStoriesSourceLink: {
+    minHeight: 44,
+    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gold,
+  },
+  ownerStoriesSourceText: {
+    color: colors.gold,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  ownerStoryGrid: {
+    gap: spacing.sm,
+  },
+  ownerStoryGridWide: {
+    flexDirection: 'row',
+  },
+  ownerStory: {
+    gap: spacing.sm,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.gold,
+    backgroundColor: colors.panel,
+    padding: spacing.lg,
+  },
+  ownerStoryWide: {
+    flex: 1,
+  },
+  ownerStoryRating: {
+    color: colors.gold,
+    fontSize: 15,
+    letterSpacing: 2,
+  },
+  ownerStoryQuote: {
+    color: colors.cream,
+    fontSize: 16,
+    fontWeight: '700',
+    lineHeight: 24,
+  },
+  ownerStorySource: {
+    color: colors.gold,
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
   footer: {
     width: '100%',
     maxWidth: 1180,
@@ -774,8 +1081,12 @@ const styles = StyleSheet.create({
     borderTopColor: colors.line,
   },
   footerText: {
-    color: colors.mutedDark,
+    color: colors.muted,
     fontSize: 10,
+  },
+  footerLinkTarget: {
+    minHeight: 44,
+    justifyContent: 'center',
   },
   footerLink: {
     color: colors.gold,
@@ -790,6 +1101,7 @@ const styles = StyleSheet.create({
   modalSafeArea: {
     flex: 1,
     justifyContent: 'flex-end',
+    pointerEvents: 'box-none',
   },
   modalSafeAreaWide: {
     justifyContent: 'center',
