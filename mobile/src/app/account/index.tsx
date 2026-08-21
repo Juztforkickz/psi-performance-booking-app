@@ -4,7 +4,7 @@ import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleShee
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
-import { colors, spacing } from '@/constants/brand';
+import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
 export default function AccountScreen() {
@@ -185,19 +185,19 @@ const styles = StyleSheet.create({
   title: { marginTop: spacing.md, color: colors.white, fontSize: 42, fontWeight: '900', letterSpacing: -2, lineHeight: 43, textTransform: 'uppercase' },
   titleCompact: { fontSize: 34, letterSpacing: -1.3, lineHeight: 37 },
   lead: { marginTop: spacing.lg, color: colors.muted, fontSize: 15, lineHeight: 24 },
-  providerNotice: { gap: spacing.sm, marginTop: spacing.xl, borderLeftWidth: 3, borderLeftColor: colors.gold, backgroundColor: colors.panel, padding: spacing.lg },
+  providerNotice: { ...mobileFrame, gap: spacing.sm, marginTop: spacing.xl, backgroundColor: colors.panel, padding: spacing.lg },
   cardCompact: { padding: spacing.md },
   providerKicker: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase' },
   providerTitle: { color: colors.white, fontSize: 17, fontWeight: '900', textTransform: 'uppercase' },
   providerCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
-  dashboardPreview: { gap: spacing.lg, marginTop: spacing.xl, borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.panel, padding: spacing.lg },
+  dashboardPreview: { ...mobileFrame, gap: spacing.lg, marginTop: spacing.xl, backgroundColor: colors.panel, padding: spacing.lg },
   dashboardHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   dashboardKicker: { flex: 1, minWidth: 0, color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase' },
   dashboardBadge: { color: colors.ink, fontSize: 8, fontWeight: '900', textTransform: 'uppercase', backgroundColor: colors.gold, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   dashboardTitle: { color: colors.white, fontSize: 22, fontWeight: '900', lineHeight: 26, textTransform: 'uppercase' },
   dashboardCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
   dashboardGrid: { gap: spacing.sm },
-  accountFeature: { gap: spacing.xs, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.inkSoft, padding: spacing.md },
+  accountFeature: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.inkSoft, padding: spacing.md },
   accountFeatureIndex: { color: colors.gold, fontSize: 9, fontWeight: '900' },
   accountFeatureTitle: { color: colors.white, fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
   accountFeatureCopy: { color: colors.muted, fontSize: 11, lineHeight: 17 },
@@ -209,19 +209,19 @@ const styles = StyleSheet.create({
   statusCopyWrap: { flex: 1, minWidth: 0, gap: 3 },
   statusLabel: { color: colors.cream, fontSize: 12, fontWeight: '900' },
   statusCopy: { color: colors.muted, fontSize: 10, lineHeight: 16 },
-  reminderPreview: { gap: spacing.xs, borderLeftWidth: 3, borderLeftColor: colors.gold, backgroundColor: colors.inkSoft, padding: spacing.md },
+  reminderPreview: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.inkSoft, padding: spacing.md },
   reminderTitle: { color: colors.white, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   reminderCopy: { color: colors.muted, fontSize: 10, lineHeight: 16 },
-  card: { gap: spacing.lg, marginTop: spacing.xl, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, padding: spacing.lg },
+  card: { ...mobileFrame, gap: spacing.lg, marginTop: spacing.xl, backgroundColor: colors.panel, padding: spacing.lg },
   cardTitle: { color: colors.white, fontSize: 22, fontWeight: '900', textTransform: 'uppercase' },
   cardCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
-  notice: { borderLeftWidth: 3, borderLeftColor: colors.gold, backgroundColor: colors.inkSoft, padding: spacing.md },
+  notice: { ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.md },
   noticeText: { color: colors.cream, fontSize: 12, lineHeight: 19 },
-  createCard: { gap: spacing.lg, marginTop: spacing.lg, borderWidth: 1, borderColor: colors.line, padding: spacing.lg },
+  createCard: { ...mobileFrame, gap: spacing.lg, marginTop: spacing.lg, padding: spacing.lg },
   createCopy: { gap: spacing.xs },
   createTitle: { color: colors.white, fontSize: 16, fontWeight: '900' },
   createText: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  guestLink: { minHeight: 66, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.lg, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, paddingVertical: spacing.sm },
+  guestLink: { ...mobileFrame, minHeight: 66, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   guestLinkText: { flex: 1, minWidth: 0, color: colors.white, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   guestArrow: { color: colors.gold, fontSize: 21 },
   pressed: { opacity: 0.72 },

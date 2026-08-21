@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
-import { colors, spacing } from '@/constants/brand';
+import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
 type AccountDraft = {
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   title: { marginTop: spacing.md, color: colors.white, fontSize: 40, fontWeight: '900', letterSpacing: -1.8, lineHeight: 42, textTransform: 'uppercase' },
   titleCompact: { fontSize: 33, letterSpacing: -1.2, lineHeight: 36 },
   lead: { marginTop: spacing.lg, color: colors.muted, fontSize: 15, lineHeight: 23 },
-  securityCard: { gap: spacing.sm, marginTop: spacing.xl, borderLeftWidth: 3, borderLeftColor: colors.gold, backgroundColor: colors.panel, padding: spacing.md },
+  securityCard: { ...mobileFrame, gap: spacing.sm, marginTop: spacing.xl, backgroundColor: colors.panel, padding: spacing.md },
   cardCompact: { paddingHorizontal: spacing.sm },
   securityTitle: { color: colors.white, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
   securityCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   row: { gap: spacing.lg },
   rowWide: { flexDirection: 'row' },
   cell: { flex: 1 },
-  notice: { gap: spacing.sm, marginTop: spacing.xl, borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.panel, padding: spacing.lg },
+  notice: { ...mobileFrame, gap: spacing.sm, marginTop: spacing.xl, backgroundColor: colors.panel, padding: spacing.lg },
   noticeTitle: { color: colors.gold, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
   noticeCopy: { color: colors.cream, fontSize: 12, lineHeight: 19 },
   actions: { gap: spacing.sm, marginTop: spacing.xl },

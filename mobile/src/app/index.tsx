@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandRail } from '@/components/brand-rail';
 import { Eyebrow, PrimaryButton } from '@/components/ui';
-import { colors, contact, spacing } from '@/constants/brand';
+import { bookingColors, colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { BOOKING_PURPOSES, type BookingType } from '@/lib/booking';
 
@@ -235,6 +235,7 @@ export default function HomeScreen() {
                   ? 'Buy a PSI gift card ↗'
                   : 'Continue to booking →'}
               onPress={continueFromGateway}
+              tone="booking"
             />
 
             <Pressable
@@ -694,8 +695,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.line,
+    ...mobileFrame,
     backgroundColor: colors.panel,
     padding: spacing.md,
   },
@@ -704,10 +704,11 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   qrImageFrame: {
-    width: 112,
-    height: 112,
+    width: 118,
+    height: 118,
     alignItems: 'center',
     justifyContent: 'center',
+    ...mobileFrame,
     backgroundColor: colors.white,
     padding: 7,
   },
@@ -716,8 +717,8 @@ const styles = StyleSheet.create({
     height: 98,
   },
   qrImageFrameStacked: {
-    width: 148,
-    height: 148,
+    width: 152,
+    height: 152,
   },
   qrImageStacked: {
     width: 132,
@@ -757,10 +758,9 @@ const styles = StyleSheet.create({
   },
   bookingPanel: {
     gap: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.line,
+    ...mobileFrame,
     borderRadius: 4,
-    backgroundColor: colors.panel,
+    backgroundColor: bookingColors.background,
     padding: spacing.lg,
   },
   bookingPanelCompact: {
@@ -775,7 +775,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   panelKicker: {
-    color: colors.gold,
+    color: bookingColors.accent,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 1.8,
@@ -790,7 +790,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   panelCopy: {
-    color: colors.muted,
+    color: bookingColors.textSecondary,
     fontSize: 14,
     lineHeight: 21,
   },
@@ -798,7 +798,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   selectorLabel: {
-    color: colors.cream,
+    color: bookingColors.label,
     fontSize: 12,
     fontWeight: '900',
   },
@@ -807,10 +807,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: colors.gold,
+    ...mobileFrame,
     borderRadius: 3,
-    backgroundColor: colors.ink,
+    backgroundColor: bookingColors.background,
     paddingHorizontal: spacing.md,
   },
   selectorCopy: {
@@ -824,16 +823,16 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   selectorPlaceholder: {
-    color: colors.muted,
+    color: bookingColors.placeholder,
     fontWeight: '600',
   },
   selectorGuide: {
-    color: colors.gold,
+    color: bookingColors.accent,
     fontSize: 11,
     fontWeight: '800',
   },
   chevron: {
-    color: colors.gold,
+    color: bookingColors.accent,
     fontSize: 27,
     lineHeight: 30,
   },
@@ -841,9 +840,8 @@ const styles = StyleSheet.create({
     minHeight: 112,
     flexDirection: 'row',
     gap: spacing.md,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.gold,
-    backgroundColor: colors.inkSoft,
+    ...mobileFrame,
+    backgroundColor: bookingColors.surfaceAlt,
     padding: spacing.md,
   },
   selectionIndex: {
@@ -852,7 +850,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 17,
-    backgroundColor: colors.gold,
+    backgroundColor: bookingColors.accent,
   },
   selectionIndexText: {
     color: colors.ink,
@@ -875,7 +873,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   selectionPrice: {
-    color: colors.gold,
+    color: bookingColors.accent,
     fontSize: 12,
     fontWeight: '900',
   },
@@ -887,13 +885,11 @@ const styles = StyleSheet.create({
   emptySelection: {
     minHeight: 94,
     justifyContent: 'center',
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.line,
+    ...mobileFrame,
     padding: spacing.md,
   },
   emptySelectionText: {
-    color: colors.muted,
+    color: bookingColors.textMuted,
     fontSize: 12,
     lineHeight: 19,
   },
@@ -903,9 +899,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.line,
+    ...mobileFrame,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
   accountPromptTitle: {
@@ -919,15 +914,15 @@ const styles = StyleSheet.create({
   },
   accountPromptCopy: {
     marginTop: 4,
-    color: colors.muted,
+    color: bookingColors.textMuted,
     fontSize: 11,
   },
   accountPromptArrow: {
-    color: colors.gold,
+    color: bookingColors.accent,
     fontSize: 22,
   },
   depositNote: {
-    color: colors.muted,
+    color: bookingColors.textMuted,
     fontSize: 11,
     lineHeight: 17,
     textAlign: 'center',
@@ -974,8 +969,7 @@ const styles = StyleSheet.create({
   },
   standardScore: {
     gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.gold,
+    ...mobileFrame,
     backgroundColor: colors.panel,
     padding: spacing.lg,
   },
@@ -1009,8 +1003,7 @@ const styles = StyleSheet.create({
   },
   standardVehiclePhoto: {
     width: '100%',
-    borderWidth: 1,
-    borderColor: colors.line,
+    ...mobileFrame,
   },
   standardVehiclePhotoWide: {
     aspectRatio: 1744 / 901,
@@ -1026,8 +1019,7 @@ const styles = StyleSheet.create({
   },
   promiseCard: {
     gap: spacing.sm,
-    borderTopWidth: 2,
-    borderTopColor: colors.gold,
+    ...mobileFrame,
     backgroundColor: colors.panel,
     padding: spacing.lg,
   },
@@ -1109,8 +1101,7 @@ const styles = StyleSheet.create({
   },
   ownerStory: {
     gap: spacing.sm,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.gold,
+    ...mobileFrame,
     backgroundColor: colors.panel,
     padding: spacing.lg,
   },
@@ -1194,9 +1185,8 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
+    ...mobileFrame,
+    backgroundColor: bookingColors.surfaceAlt,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xl,
@@ -1217,7 +1207,7 @@ const styles = StyleSheet.create({
     height: 4,
     alignSelf: 'center',
     borderRadius: 2,
-    backgroundColor: colors.line,
+    backgroundColor: bookingColors.border,
   },
   sheetHeading: {
     flexDirection: 'row',
@@ -1230,7 +1220,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   sheetKicker: {
-    color: colors.gold,
+    color: bookingColors.accent,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 1.5,
@@ -1247,7 +1237,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   closeButton: {
-    color: colors.muted,
+    color: bookingColors.textMuted,
     fontSize: 32,
     lineHeight: 34,
   },
@@ -1263,20 +1253,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.line,
+    ...mobileFrame,
     borderRadius: 3,
-    backgroundColor: colors.ink,
+    backgroundColor: bookingColors.surface,
     padding: spacing.md,
   },
   optionRowActive: {
-    borderColor: colors.gold,
-    backgroundColor: colors.gold,
+    borderColor: mobileFrame.borderColor,
+    backgroundColor: bookingColors.accent,
   },
   optionIndex: {
     alignSelf: 'flex-start',
     flexShrink: 0,
-    color: colors.gold,
+    color: bookingColors.accent,
     fontSize: 10,
     fontWeight: '900',
   },
@@ -1291,7 +1280,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   optionPrice: {
-    color: colors.gold,
+    color: bookingColors.accent,
     fontSize: 11,
     fontWeight: '900',
   },
@@ -1301,18 +1290,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   optionDetail: {
-    color: colors.muted,
+    color: bookingColors.textSecondary,
     fontSize: 11,
     lineHeight: 17,
   },
   optionTextActive: {
-    color: colors.ink,
+    color: bookingColors.accentText,
   },
   optionPriceActive: {
-    color: '#4A360C',
+    color: bookingColors.selectedSecondary,
   },
   optionDetailActive: {
-    color: '#4A360C',
+    color: bookingColors.selectedSecondary,
   },
   optionRadio: {
     width: 22,
@@ -1320,18 +1309,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.muted,
+    borderColor: bookingColors.accentDark,
     borderRadius: 11,
     flexShrink: 0,
   },
   optionRadioActive: {
-    borderColor: colors.ink,
+    borderColor: bookingColors.accentText,
   },
   optionRadioDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: colors.ink,
+    backgroundColor: bookingColors.accentText,
   },
   pressed: {
     opacity: 0.72,

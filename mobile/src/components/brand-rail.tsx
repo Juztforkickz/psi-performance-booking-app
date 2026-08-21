@@ -13,7 +13,7 @@ import {
   View,
 } from 'react-native';
 
-import { colors, spacing } from '@/constants/brand';
+import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
 type Brand = {
@@ -339,15 +339,13 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: colors.goldDark,
+    ...mobileFrame,
     backgroundColor: colors.ink,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
   motionButtonPressed: {
     backgroundColor: colors.panelRaised,
-    borderColor: colors.gold,
   },
   motionButtonText: {
     color: colors.gold,
@@ -385,26 +383,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   tile: {
-    width: 160,
-    height: 102,
+    width: 164,
+    height: 106,
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    borderWidth: 1,
-    borderColor: 'rgba(217, 179, 91, 0.34)',
+    ...mobileFrame,
     backgroundColor: '#080808',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
   tileCompact: {
-    width: 148,
-    height: 96,
+    width: 152,
+    height: 100,
     paddingVertical: spacing.sm,
   },
   tileTablet: {
-    width: 180,
-    height: 116,
+    width: 184,
+    height: 120,
     gap: spacing.sm,
     paddingVertical: spacing.sm,
   },
@@ -415,8 +412,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(5, 5, 5, 0.1)',
+    ...mobileFrame,
     backgroundColor: '#F0EDE5',
   },
   logoViewportCompact: {

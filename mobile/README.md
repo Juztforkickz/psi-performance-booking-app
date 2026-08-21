@@ -79,9 +79,13 @@ No checkout opens from this request. PSI approves or proposes a date first. Only
 
 ## Accounts
 
-The account routes are a provider-ready UI preview only. They show the intended customer detail, vehicle, request, confirmed/completed visit, receipt and next-booking structure without loading real customer records. No password field or fake signup request is implemented. Connect and test managed identity, email verification, recovery, per-customer access controls and retention before enabling accounts.
+The account routes are a provider-ready UI preview only. They show the intended customer detail, vehicle, request, confirmed/completed visit, receipt and next-booking structure without loading real customer records. No password field or fake signup request is implemented. The approved direction is a managed passwordless email-link provider, with registration disabled now and invite-only for the first controlled test group. Web and native share business-data APIs, but native authentication must use PKCE, verified deep links and OS secure token storage. Connect and test identity, email verification, recovery, per-customer access controls and retention before enabling accounts; the full gate is in `../docs/CUSTOMER-ACCOUNTS.md`.
 
 Booking drafts are separate from accounts. Drafts are saved with versioned AsyncStorage only on the current device, expire after 30 days, never auto-submit, and omit restored consent acknowledgements. The app flushes recent edits when its Back control is used or the app backgrounds. AsyncStorage is app-local but is not application-level encrypted and device backups may retain it; customers can clear the draft at any time. Review encrypted/protected draft storage and mobile backup exclusions before public release.
+
+## Private Netlify web preview
+
+The repository-level `netlify.toml` exports this Expo app as a static web/PWA preview. Keep the Netlify project visibility set to **Private** for production and preview deploys before uploading anything. Do not configure `EXPO_PUBLIC_API_BASE_URL` on that owner preview; submissions then remain fail-closed and no account provider is contacted. This preview does not replace the native EAS build or host the Cloudflare/D1 booking API.
 
 ## Validate
 

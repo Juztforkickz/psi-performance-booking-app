@@ -3,7 +3,7 @@ import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'r
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Eyebrow, PrimaryButton } from '@/components/ui';
-import { colors, contact, spacing } from '@/constants/brand';
+import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 
 const PARTS_STORE_URL = 'https://psiperformance.com.au/collections/all';
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
   },
   titleCompact: { fontSize: 34, letterSpacing: -1.3, lineHeight: 37 },
   lead: { maxWidth: 620, marginTop: spacing.lg, color: colors.muted, fontSize: 16, lineHeight: 25 },
-  statusCard: { gap: spacing.sm, marginTop: spacing.xl, borderLeftWidth: 3, borderLeftColor: colors.gold, backgroundColor: colors.panel, padding: spacing.lg },
+  statusCard: { ...mobileFrame, gap: spacing.sm, marginTop: spacing.xl, backgroundColor: colors.panel, padding: spacing.lg },
   statusKicker: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
   statusTitle: { color: colors.white, fontSize: 20, fontWeight: '900', textTransform: 'uppercase' },
   statusCopy: { color: colors.muted, fontSize: 13, lineHeight: 20 },

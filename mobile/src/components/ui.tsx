@@ -10,12 +10,27 @@ import {
   View,
 } from 'react-native';
 
-import { colors, spacing } from '@/constants/brand';
+import { bookingColors, colors, mobileFrame, spacing } from '@/constants/brand';
 
 const FieldLabelContext = createContext<string | undefined>(undefined);
+type UiTone = 'brand' | 'booking';
+const UiToneContext = createContext<UiTone>('brand');
+
+export function UiToneProvider({ children, tone }: PropsWithChildren<{ tone: UiTone }>) {
+  return <UiToneContext.Provider value={tone}>{children}</UiToneContext.Provider>;
+}
 
 export function Eyebrow({ children, dark = false }: PropsWithChildren<{ dark?: boolean }>) {
-  return <Text maxFontSizeMultiplier={2} style={[styles.eyebrow, dark && styles.eyebrowDark]}>{children}</Text>;
+  const tone = useContext(UiToneContext);
+
+  return (
+    <Text
+      maxFontSizeMultiplier={2}
+      style={[styles.eyebrow, tone === 'booking' && styles.eyebrowBooking, dark && styles.eyebrowDark]}
+    >
+      {children}
+    </Text>
+  );
 }
 
 export function PrimaryButton({
@@ -24,6 +39,7 @@ export function PrimaryButton({
   disabled = false,
   loading = false,
   variant = 'gold',
+  tone: toneOverride,
   style,
 }: {
   label: string;
@@ -31,8 +47,13 @@ export function PrimaryButton({
   disabled?: boolean;
   loading?: boolean;
   variant?: 'gold' | 'light' | 'outline';
+  tone?: UiTone;
   style?: ViewStyle;
 }) {
+  const contextTone = useContext(UiToneContext);
+  const tone = toneOverride ?? contextTone;
+  const bookingTone = tone === 'booking';
+
   return (
     <Pressable
       accessibilityLabel={label}
@@ -44,13 +65,15 @@ export function PrimaryButton({
         styles.button,
         variant === 'light' && styles.buttonLight,
         variant === 'outline' && styles.buttonOutline,
+        bookingTone && variant === 'gold' && styles.buttonBooking,
         pressed && styles.buttonPressed,
         (disabled || loading) && styles.buttonDisabled,
         style,
+        mobileFrame,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'gold' ? colors.ink : colors.white} />
+        <ActivityIndicator color={variant === 'outline' ? colors.white : colors.ink} />
       ) : (
         <Text
           maxFontSizeMultiplier={2}
@@ -73,16 +96,19 @@ export function Field({
   error,
   children,
 }: PropsWithChildren<{ label: string; hint?: string; error?: string }>) {
+  const tone = useContext(UiToneContext);
+  const bookingTone = tone === 'booking';
+
   return (
     <FieldLabelContext.Provider value={label}>
       <View style={styles.field}>
         <View style={styles.fieldLabelRow}>
-          <Text maxFontSizeMultiplier={2} style={styles.fieldLabel}>{label}</Text>
-          {hint ? <Text maxFontSizeMultiplier={2} style={styles.fieldHint}>{hint}</Text> : null}
+          <Text maxFontSizeMultiplier={2} style={[styles.fieldLabel, bookingTone && styles.fieldLabelBooking]}>{label}</Text>
+          {hint ? <Text maxFontSizeMultiplier={2} style={[styles.fieldHint, bookingTone && styles.fieldHintBooking]}>{hint}</Text> : null}
         </View>
         {children}
         {error ? (
-          <Text accessibilityRole="alert" maxFontSizeMultiplier={2} style={styles.error}>
+          <Text accessibilityRole="alert" maxFontSizeMultiplier={2} style={[styles.error, bookingTone && styles.errorBooking]}>
             {error}
           </Text>
         ) : null}
@@ -93,14 +119,24 @@ export function Field({
 
 export function FormInput({ error, style, accessibilityLabel, ...props }: TextInputProps & { error?: string }) {
   const fieldLabel = useContext(FieldLabelContext);
+  const tone = useContext(UiToneContext);
+  const bookingTone = tone === 'booking';
+
   return (
     <TextInput
       accessibilityLabel={accessibilityLabel ?? fieldLabel}
       autoCorrect={false}
       maxFontSizeMultiplier={2}
-      placeholderTextColor={colors.mutedDark}
-      selectionColor={colors.gold}
-      style={[styles.input, error ? styles.inputError : null, style]}
+      placeholderTextColor={bookingTone ? bookingColors.placeholder : colors.mutedDark}
+      selectionColor={bookingTone ? bookingColors.accent : colors.gold}
+      style={[
+        styles.input,
+        bookingTone && styles.inputBooking,
+        error ? styles.inputError : null,
+        bookingTone && error ? styles.inputErrorBooking : null,
+        style,
+        mobileFrame,
+      ]}
       {...props}
     />
   );
@@ -120,6 +156,9 @@ export function ChoiceCard({
   onPress: () => void;
   index?: string;
 }>) {
+  const tone = useContext(UiToneContext);
+  const bookingTone = tone === 'booking';
+
   return (
     <Pressable
       accessibilityRole="radio"
@@ -128,18 +167,59 @@ export function ChoiceCard({
       onPress={onPress}
       style={({ pressed }) => [
         styles.choice,
+        bookingTone && styles.choiceBooking,
         selected && styles.choiceSelected,
+        bookingTone && selected && styles.choiceSelectedBooking,
         pressed && styles.choicePressed,
       ]}
     >
-      {index ? <Text maxFontSizeMultiplier={1.5} style={[styles.choiceIndex, selected && styles.choiceIndexSelected]}>{index}</Text> : null}
+      {index ? (
+        <Text
+          maxFontSizeMultiplier={1.5}
+          style={[
+            styles.choiceIndex,
+            bookingTone && styles.choiceIndexBooking,
+            selected && styles.choiceIndexSelected,
+            bookingTone && selected && styles.choiceIndexSelectedBooking,
+          ]}
+        >
+          {index}
+        </Text>
+      ) : null}
       <View style={styles.choiceCopy}>
-        <Text maxFontSizeMultiplier={2} style={[styles.choiceTitle, selected && styles.choiceTitleSelected]}>{title}</Text>
-        <Text maxFontSizeMultiplier={2} style={[styles.choiceDetail, selected && styles.choiceDetailSelected]}>{detail}</Text>
+        <Text
+          maxFontSizeMultiplier={2}
+          style={[
+            styles.choiceTitle,
+            bookingTone && styles.choiceTitleBooking,
+            selected && styles.choiceTitleSelected,
+            bookingTone && selected && styles.choiceTitleSelectedBooking,
+          ]}
+        >
+          {title}
+        </Text>
+        <Text
+          maxFontSizeMultiplier={2}
+          style={[
+            styles.choiceDetail,
+            bookingTone && styles.choiceDetailBooking,
+            selected && styles.choiceDetailSelected,
+            bookingTone && selected && styles.choiceDetailSelectedBooking,
+          ]}
+        >
+          {detail}
+        </Text>
         {children as ReactNode}
       </View>
-      <View style={[styles.radio, selected && styles.radioSelected]}>
-        {selected ? <View style={styles.radioDot} /> : null}
+      <View
+        style={[
+          styles.radio,
+          bookingTone && styles.radioBooking,
+          selected && styles.radioSelected,
+          bookingTone && selected && styles.radioSelectedBooking,
+        ]}
+      >
+        {selected ? <View style={[styles.radioDot, bookingTone && styles.radioDotBooking]} /> : null}
       </View>
     </Pressable>
   );
@@ -156,12 +236,16 @@ const styles = StyleSheet.create({
   eyebrowDark: {
     color: colors.goldDark,
   },
+  eyebrowBooking: {
+    color: bookingColors.accent,
+  },
   button: {
     minHeight: 56,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
+    ...mobileFrame,
     borderRadius: 3,
     backgroundColor: colors.gold,
   },
@@ -169,9 +253,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.cream,
   },
   buttonOutline: {
-    borderWidth: 1,
-    borderColor: colors.line,
     backgroundColor: 'transparent',
+  },
+  buttonBooking: {
+    backgroundColor: bookingColors.accentBright,
   },
   buttonPressed: {
     opacity: 0.8,
@@ -211,14 +296,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
   },
+  fieldLabelBooking: {
+    color: bookingColors.label,
+  },
   fieldHint: {
     color: colors.muted,
     fontSize: 12,
   },
+  fieldHintBooking: {
+    color: bookingColors.textMuted,
+  },
   input: {
     minHeight: 54,
-    borderWidth: 1,
-    borderColor: colors.line,
+    ...mobileFrame,
     borderRadius: 3,
     backgroundColor: colors.inkSoft,
     color: colors.white,
@@ -227,27 +317,45 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   inputError: {
-    borderColor: colors.danger,
+    borderColor: mobileFrame.borderColor,
+  },
+  inputBooking: {
+    borderColor: mobileFrame.borderColor,
+    backgroundColor: 'transparent',
+    color: bookingColors.text,
+  },
+  inputErrorBooking: {
+    borderColor: mobileFrame.borderColor,
   },
   error: {
     color: colors.danger,
     fontSize: 12,
     lineHeight: 17,
   },
+  errorBooking: {
+    color: bookingColors.error,
+  },
   choice: {
     minHeight: 92,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.line,
+    ...mobileFrame,
     borderRadius: 3,
     backgroundColor: colors.panel,
     padding: spacing.md,
   },
   choiceSelected: {
-    borderColor: colors.gold,
+    borderColor: mobileFrame.borderColor,
     backgroundColor: colors.gold,
+  },
+  choiceBooking: {
+    borderColor: mobileFrame.borderColor,
+    backgroundColor: bookingColors.surface,
+  },
+  choiceSelectedBooking: {
+    borderColor: mobileFrame.borderColor,
+    backgroundColor: bookingColors.accent,
   },
   choicePressed: {
     opacity: 0.82,
@@ -262,6 +370,12 @@ const styles = StyleSheet.create({
   choiceIndexSelected: {
     color: colors.ink,
   },
+  choiceIndexBooking: {
+    color: bookingColors.accent,
+  },
+  choiceIndexSelectedBooking: {
+    color: bookingColors.accentText,
+  },
   choiceCopy: {
     flex: 1,
     gap: 4,
@@ -274,6 +388,12 @@ const styles = StyleSheet.create({
   choiceTitleSelected: {
     color: colors.ink,
   },
+  choiceTitleBooking: {
+    color: bookingColors.text,
+  },
+  choiceTitleSelectedBooking: {
+    color: bookingColors.accentText,
+  },
   choiceDetail: {
     color: colors.muted,
     fontSize: 13,
@@ -281,6 +401,12 @@ const styles = StyleSheet.create({
   },
   choiceDetailSelected: {
     color: '#44330E',
+  },
+  choiceDetailBooking: {
+    color: bookingColors.textSecondary,
+  },
+  choiceDetailSelectedBooking: {
+    color: bookingColors.selectedSecondary,
   },
   radio: {
     width: 22,
@@ -295,10 +421,19 @@ const styles = StyleSheet.create({
   radioSelected: {
     borderColor: colors.ink,
   },
+  radioBooking: {
+    borderColor: bookingColors.accentDark,
+  },
+  radioSelectedBooking: {
+    borderColor: bookingColors.accentText,
+  },
   radioDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
     backgroundColor: colors.ink,
+  },
+  radioDotBooking: {
+    backgroundColor: bookingColors.accentText,
   },
 });

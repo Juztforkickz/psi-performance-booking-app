@@ -84,7 +84,21 @@ The provider-ready account model is intended to keep:
 
 No public account registration is enabled until managed identity, account
 recovery, email verification, privacy/retention and per-customer data access are
-tested. Unfinished booking drafts stay only on the customer's device, expire
+tested. The accepted direction is passwordless email-link access, with
+registration disabled during owner review and invite-only for the first
+controlled test group. The identity provider will own verification and session
+security; PSI's D1 records will never contain passwords or sign-in tokens.
+Account activation is a reviewed provider integration, not an environment-only
+switch. The current status endpoint is non-personal, and all profile reads and
+writes fail closed with `CUSTOMER_ACCOUNTS_DISABLED`.
+
+Provider identities must be linked by a verified, namespaced stable subject,
+never by matching an email, registration or VIN. Web and native may share the
+profile/vehicle/history API, but web sessions must use secure HttpOnly cookies
+and native sessions require PKCE, verified deep links and operating-system
+secure storage. The full gate is recorded in `docs/CUSTOMER-ACCOUNTS.md`.
+
+Unfinished booking drafts stay only on the customer's device, expire
 after 30 days and have a visible clear action. The preview uses browser local
 storage or native app-local storage, which is not application-level encrypted
 and may be retained by device/browser backups. Protected storage or backup
