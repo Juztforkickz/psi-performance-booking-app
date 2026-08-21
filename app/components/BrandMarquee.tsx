@@ -4,18 +4,18 @@ import Image from "next/image";
 import { useState } from "react";
 
 const brands = [
-  { name: "Audi", src: "/brands/audi.png" },
-  { name: "Holden", src: "/brands/holden.png" },
-  { name: "Ford", src: "/brands/ford.png" },
-  { name: "Mercedes-Benz", src: "/brands/mercedes-benz.png" },
-  { name: "Porsche", src: "/brands/porsche.png" },
-  { name: "Lamborghini", src: "/brands/lamborghini.png" },
-  { name: "Škoda", src: "/brands/skoda.png" },
-  { name: "Volkswagen", src: "/brands/volkswagen.png" },
-  { name: "BMW", src: "/brands/bmw.png" },
-  { name: "Haltech", src: "/brands/haltech.png" },
-  { name: "FuelTech", src: "/brands/fueltech.png" },
-  { name: "HP Tuners", src: "/brands/hp-tuners.png" },
+  { name: "Audi", src: "/brands/audi.png", fit: "lockup" },
+  { name: "Holden", src: "/brands/holden.png", fit: "badge" },
+  { name: "Ford", src: "/brands/ford.png", fit: "wordmark" },
+  { name: "Mercedes-Benz", src: "/brands/mercedes-benz.png", fit: "lockup" },
+  { name: "Porsche", src: "/brands/porsche.png", fit: "crest" },
+  { name: "Lamborghini", src: "/brands/lamborghini.png", fit: "badge" },
+  { name: "Škoda", src: "/brands/skoda.png", fit: "badge" },
+  { name: "Volkswagen", src: "/brands/volkswagen.png", fit: "badge" },
+  { name: "BMW", src: "/brands/bmw.png", fit: "badge" },
+  { name: "Haltech", src: "/brands/haltech.png", fit: "wordmark" },
+  { name: "FuelTech", src: "/brands/fueltech.png", fit: "wordmark" },
+  { name: "HP Tuners", src: "/brands/hp-tuners.png", fit: "wordmark" },
 ] as const;
 
 function BrandList({ duplicate = false }: { duplicate?: boolean }) {
@@ -23,15 +23,16 @@ function BrandList({ duplicate = false }: { duplicate?: boolean }) {
     <ul className="brand-marquee-list" aria-hidden={duplicate || undefined}>
       {brands.map((brand) => (
         <li key={brand.name}>
-          <span className="brand-marquee-logo">
+          <span className={`brand-marquee-logo brand-marquee-logo-${brand.fit}`}>
             <Image
               src={brand.src}
-              alt={duplicate ? "" : brand.name}
+              alt=""
               fill
               unoptimized
-              sizes="(max-width: 760px) 118px, 152px"
+              sizes="(max-width: 760px) 126px, 152px"
             />
           </span>
+          <span className="brand-marquee-name">{brand.name}</span>
         </li>
       ))}
     </ul>

@@ -19,24 +19,32 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 type Brand = {
   name: string;
   source: ImageSourcePropType;
+  /**
+   * The supplied artwork all uses a 300 x 300 transparent canvas, while the
+   * visible marks range from tall crests to very wide wordmarks. Render the
+   * canvas at an optical size chosen for the artwork instead of forcing every
+   * logo into the same short rectangle.
+   */
+  artworkSize: number;
 };
 
 const BRANDS: readonly Brand[] = [
-  { name: 'Audi', source: require('../../assets/images/brands/audi.png') },
-  { name: 'Holden', source: require('../../assets/images/brands/holden.png') },
-  { name: 'Ford', source: require('../../assets/images/brands/ford.png') },
-  { name: 'Mercedes-Benz', source: require('../../assets/images/brands/mercedes-benz.png') },
-  { name: 'Porsche', source: require('../../assets/images/brands/porsche.png') },
-  { name: 'Lamborghini', source: require('../../assets/images/brands/lamborghini.png') },
-  { name: 'Škoda', source: require('../../assets/images/brands/skoda.png') },
-  { name: 'Volkswagen', source: require('../../assets/images/brands/volkswagen.png') },
-  { name: 'BMW', source: require('../../assets/images/brands/bmw.png') },
-  { name: 'Haltech', source: require('../../assets/images/brands/haltech.png') },
-  { name: 'FuelTech', source: require('../../assets/images/brands/fueltech.png') },
-  { name: 'HP Tuners', source: require('../../assets/images/brands/hp-tuners.png') },
+  { name: 'Audi', source: require('../../assets/images/brands/audi.png'), artworkSize: 94 },
+  { name: 'Holden', source: require('../../assets/images/brands/holden.png'), artworkSize: 60 },
+  { name: 'Ford', source: require('../../assets/images/brands/ford.png'), artworkSize: 124 },
+  { name: 'Mercedes-Benz', source: require('../../assets/images/brands/mercedes-benz.png'), artworkSize: 94 },
+  { name: 'Porsche', source: require('../../assets/images/brands/porsche.png'), artworkSize: 74 },
+  { name: 'Lamborghini', source: require('../../assets/images/brands/lamborghini.png'), artworkSize: 62 },
+  { name: 'Škoda', source: require('../../assets/images/brands/skoda.png'), artworkSize: 60 },
+  { name: 'Volkswagen', source: require('../../assets/images/brands/volkswagen.png'), artworkSize: 60 },
+  { name: 'BMW', source: require('../../assets/images/brands/bmw.png'), artworkSize: 60 },
+  { name: 'Haltech', source: require('../../assets/images/brands/haltech.png'), artworkSize: 128 },
+  { name: 'FuelTech', source: require('../../assets/images/brands/fueltech.png'), artworkSize: 128 },
+  { name: 'HP Tuners', source: require('../../assets/images/brands/hp-tuners.png'), artworkSize: 126 },
 ] as const;
 
 const RAIL_SPEED_PX_PER_SECOND = 26;
+type RailSize = 'compact' | 'regular' | 'tablet';
 
 /**
  * A restrained marque rail for the bottom of the home screen. Motion stops for
@@ -44,7 +52,7 @@ const RAIL_SPEED_PX_PER_SECOND = 26;
  * their direct control in a horizontal ScrollView.
  */
 export function BrandRail() {
-  const { horizontalPadding } = useResponsiveLayout();
+  const { compact, horizontalPadding, tablet } = useResponsiveLayout();
   const [groupWidth, setGroupWidth] = useState(0);
   const [motionPreferenceReady, setMotionPreferenceReady] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -52,6 +60,7 @@ export function BrandRail() {
   const [isPaused, setIsPaused] = useState(false);
   const [translateX] = useState(() => new Animated.Value(0));
   const showStaticRail = !motionPreferenceReady || reduceMotion || screenReaderEnabled;
+  const railSize: RailSize = tablet ? 'tablet' : compact ? 'compact' : 'regular';
 
   useEffect(() => {
     let active = true;
@@ -192,13 +201,13 @@ export function BrandRail() {
           nestedScrollEnabled
           showsHorizontalScrollIndicator={false}
         >
-          <BrandGroup />
+          <BrandGroup size={railSize} />
         </ScrollView>
       ) : (
         <View style={[styles.viewport, styles.noPointerEvents]}>
           <Animated.View style={[styles.animatedTrack, { transform: [{ translateX }] }]}>
-            <BrandGroup onWidth={setGroupWidth} />
-            <BrandGroup decorative />
+            <BrandGroup onWidth={setGroupWidth} size={railSize} />
+            <BrandGroup decorative size={railSize} />
           </Animated.View>
         </View>
       )}
@@ -206,26 +215,68 @@ export function BrandRail() {
   );
 }
 
-function BrandGroup({ decorative = false, onWidth }: { decorative?: boolean; onWidth?: (width: number) => void }) {
+function BrandGroup({
+  decorative = false,
+  onWidth,
+  size,
+}: {
+  decorative?: boolean;
+  onWidth?: (width: number) => void;
+  size: RailSize;
+}) {
+  const artworkScale = size === 'compact' ? 0.92 : size === 'tablet' ? 1.12 : 1;
+
   return (
     <View
       accessibilityElementsHidden={decorative}
       importantForAccessibility={decorative ? 'no-hide-descendants' : 'auto'}
       onLayout={onWidth ? (event) => onWidth(event.nativeEvent.layout.width) : undefined}
-      style={styles.group}
+      style={[
+        styles.group,
+        size === 'compact' && styles.groupCompact,
+        size === 'tablet' && styles.groupTablet,
+      ]}
     >
       {BRANDS.map((brand) => (
-        <View key={brand.name} style={styles.tile}>
-          <Image
-            accessible={!decorative}
-            accessibilityIgnoresInvertColors
-            accessibilityLabel={decorative ? undefined : brand.name}
-            accessibilityRole={decorative ? undefined : 'image'}
-            resizeMode="contain"
-            source={brand.source}
-            style={styles.logo}
-            tintColor={colors.gold}
-          />
+        <View
+          accessibilityLabel={decorative ? undefined : `${brand.name} logo`}
+          accessibilityRole={decorative ? undefined : 'image'}
+          accessible={!decorative}
+          key={brand.name}
+          style={[
+            styles.tile,
+            size === 'compact' && styles.tileCompact,
+            size === 'tablet' && styles.tileTablet,
+          ]}
+        >
+          <View
+            style={[
+              styles.logoViewport,
+              size === 'compact' && styles.logoViewportCompact,
+              size === 'tablet' && styles.logoViewportTablet,
+            ]}
+          >
+            <Image
+              accessible={false}
+              accessibilityIgnoresInvertColors
+              resizeMode="contain"
+              source={brand.source}
+              style={[
+                styles.logo,
+                {
+                  height: brand.artworkSize * artworkScale,
+                  width: brand.artworkSize * artworkScale,
+                },
+              ]}
+            />
+          </View>
+          <Text
+            accessibilityElementsHidden
+            maxFontSizeMultiplier={1.4}
+            style={[styles.brandName, size === 'tablet' && styles.brandNameTablet]}
+          >
+            {brand.name}
+          </Text>
         </View>
       ))}
     </View>
@@ -325,21 +376,73 @@ const styles = StyleSheet.create({
     gap: 18,
     paddingHorizontal: 9,
   },
+  groupCompact: {
+    gap: 14,
+    paddingHorizontal: 7,
+  },
+  groupTablet: {
+    gap: 24,
+    paddingHorizontal: 12,
+  },
   tile: {
-    width: 142,
-    height: 76,
+    width: 160,
+    height: 102,
     flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 7,
     borderWidth: 1,
-    borderColor: 'rgba(217, 179, 91, 0.25)',
-    backgroundColor: colors.ink,
-    paddingHorizontal: spacing.md,
+    borderColor: 'rgba(217, 179, 91, 0.34)',
+    backgroundColor: '#080808',
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
   },
+  tileCompact: {
+    width: 148,
+    height: 96,
+    paddingVertical: spacing.sm,
+  },
+  tileTablet: {
+    width: 180,
+    height: 116,
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  logoViewport: {
+    width: 140,
+    height: 62,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(5, 5, 5, 0.1)',
+    backgroundColor: '#F0EDE5',
+  },
+  logoViewportCompact: {
+    width: 128,
+    height: 56,
+  },
+  logoViewportTablet: {
+    width: 158,
+    height: 70,
+  },
   logo: {
-    width: 110,
-    height: 46,
-    opacity: 0.86,
+    flexShrink: 0,
+    opacity: 0.98,
+  },
+  brandName: {
+    color: colors.gold,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 1.05,
+    lineHeight: 12,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+  },
+  brandNameTablet: {
+    fontSize: 10,
+    letterSpacing: 1.2,
+    lineHeight: 13,
   },
 });

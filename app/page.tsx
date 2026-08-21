@@ -56,6 +56,9 @@ export default function Home() {
             <a href="#contact">Contact</a>
             <a href="/account">Account preview</a>
           </nav>
+          <a className="header-booking-cta" href="#booking-panel">
+            Book your car <span aria-hidden="true">↓</span>
+          </a>
           <a className="header-call" href="tel:+61433431781">
             <span>Talk to the workshop</span>
             0433 431 781
