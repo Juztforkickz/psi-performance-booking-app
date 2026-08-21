@@ -9,7 +9,7 @@ The repository contains:
 - an installable web app (manifest, icons and offline static shell);
 - a native Expo app in `mobile/` for iOS and Android.
 
-The intended production journey is deliberately **approval first**. A customer requests an eligible preferred date, or says they are flexible, without seeing PSI's calendar. PSI reviews workshop capacity and confirms or proposes a date before the app sends a secure deposit link ($100 AUD for Service & Report or $300 AUD for Dyno tuning). Only a verified deposit payment confirms the booking, queues the confirmation email and creates the internal Google Calendar event.
+The intended production journey is deliberately **approval first**. A customer requests an eligible preferred date, or says they are flexible, without seeing PSI's calendar. PSI reviews workshop capacity and confirms or proposes a date before the app sends a secure deposit link ($100 AUD for Service & Report or $300 AUD for Dyno Tuning). Only a verified deposit payment confirms the booking, queues the confirmation email and creates the internal Google Calendar event.
 
 The web and native home screens show PSI's verified phone, email, workshop address, Facebook and Instagram links. A branded vCard QR lets a customer save the core contact details directly to their phone.
 
@@ -48,7 +48,7 @@ Shipping signed binaries requires PSI-owned Apple Developer, Google Play Console
 
 ## Operational launch checklist
 
-- Confirm the consumer guide prices of $423.50 including GST for Service & Report and $649 including GST for Dyno tuning, the booking-type deposit amounts, workshop hours and contact details with PSI.
+- Confirm the consumer guide prices of $423.50 including GST for Service & Report and $649 including GST for Dyno Tuning, the booking-type deposit amounts, workshop hours and contact details with PSI.
 - Select and configure the live deposit provider; register and verify its signed webhook before accepting customer traffic.
 - Confirm the legal entity name, ABN, GST registration, deposit GST treatment and cancellation/refund wording before issuing anything labelled a tax invoice.
 - Connect managed customer identity; do not enable the account forms until web and native sign-in, recovery and data access controls are tested.

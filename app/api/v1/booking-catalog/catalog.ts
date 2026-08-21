@@ -35,7 +35,7 @@ export const BOOKING_CATALOG = {
     },
     {
       id: "dyno",
-      label: "Dyno tuning",
+      label: "Dyno Tuning",
       kind: "booking",
       priceGuide: {
         prefix: "from",
@@ -50,7 +50,7 @@ export const BOOKING_CATALOG = {
     },
     {
       id: "parts",
-      label: "Buy some parts",
+      label: "Buy Some Parts",
       kind: "navigation",
       href: "/parts",
     },

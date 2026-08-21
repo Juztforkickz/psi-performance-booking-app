@@ -21,7 +21,7 @@ const policySections = [
   {
     number: "02",
     title: "Deposit after approval",
-    body: "After PSI confirms the date, the customer receives a secure deposit link: $100 AUD for Service & Report or $300 AUD for Dyno tuning. The booking becomes confirmed only after the payment provider verifies the deposit.",
+    body: "After PSI confirms the date, the customer receives a secure deposit link: $100 AUD for Service & Report or $300 AUD for Dyno Tuning. The booking becomes confirmed only after the payment provider verifies the deposit.",
   },
   {
     number: "03",
@@ -61,7 +61,7 @@ export default function BookingPolicyPage() {
           <h1>Clear before<br />you commit.</h1>
         </div>
         <div className="policy-hero-copy">
-          <strong>This is a working policy for review—not the final public terms or legal advice.</strong>
+          <strong>This is a working policy for review. It is not the final public terms or legal advice.</strong>
           <p>It explains the intended approval-before-payment journey in plain language. No payment, email or calendar integration is activated by this preview.</p>
           <small>Review identifiers: {BOOKING_POLICY_VERSION} · {DEPOSIT_POLICY_VERSION}</small>
         </div>

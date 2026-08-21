@@ -108,7 +108,7 @@ export function AccountPreview() {
           <div className="account-history-list">
             <article className="account-history-next">
               <div><span className="account-status-chip">Next booking · Deposit paid</span><time dateTime="2026-09-16">Wed 16 Sep 2026</time></div>
-              <h3>Dyno tuning · Holden Commodore VF SS</h3>
+              <h3>Dyno Tuning · Holden Commodore VF SS</h3>
               <p>Confirmed workshop allocation. Google Calendar and factual 7-day / 24-hour reminders will use the staff-confirmed schedule.</p>
               <dl><div><dt>Reference</dt><dd>PSI-EXAMPLE-002</dd></div><div><dt>Deposit</dt><dd>$300 AUD · receipt recorded</dd></div></dl>
             </article>

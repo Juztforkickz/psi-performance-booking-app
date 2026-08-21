@@ -98,7 +98,7 @@ export default function Home() {
               <a href="https://www.facebook.com/psiperformancegarage/" target="_blank" rel="noreferrer">Facebook <span aria-hidden="true">↗</span></a>
             </div>
             <p className="opening-deposit-note">
-              Nothing is payable when you send a request. PSI confirms or proposes the workshop date first, then sends a secure deposit link: {formatDeposit("service")} for service or {formatDeposit("dyno")} for dyno tuning.
+              Nothing is payable when you send a request. PSI confirms or proposes the workshop date first, then sends a secure deposit link: {formatDeposit("service")} for Service or {formatDeposit("dyno")} for Dyno Tuning.
             </p>
           </div>
         </div>
@@ -130,7 +130,7 @@ export default function Home() {
             From preventative servicing and diagnostics to carefully planned performance work and hub dyno tuning, PSI keeps the whole journey in one conversation.
           </p>
           <p>
-            You are not another registration on a job card. Tell us where the vehicle is today and where you want it to go—then let us protect it, build it and develop the project with you.
+            You are not another registration on a job card. Tell us where the vehicle is today and where you want it to go. Then let us protect it, build it and develop the project with you.
           </p>
           <a className="text-link partnership-link" href="#service-booking">Build your plan with PSI <span aria-hidden="true">→</span></a>
         </div>
@@ -138,7 +138,7 @@ export default function Home() {
           <span>Our service standard</span>
           <strong>10/10 care</strong>
           <p>Clear advice, careful workmanship and respect for you, your goals and your vehicle.</p>
-          <small>PSI service commitment—not a customer review aggregate.</small>
+          <small>PSI service commitment. This is not a customer review aggregate.</small>
         </div>
         <div className="partnership-pillars" aria-label="How PSI supports your vehicle">
           <article><span>01</span><strong>Protect</strong><p>Service, inspect and diagnose before small issues become expensive ones.</p></article>
@@ -152,7 +152,7 @@ export default function Home() {
           <p className="eyebrow">Protection to performance</p>
           <h2>Protect what you love.<br />Build what you imagine.</h2>
           <p>
-            Daily driver, weekend car or long-term project—PSI approaches every job with the same care, measured thinking and straight communication.
+            Daily driver, weekend car or long-term project. PSI approaches every job with the same care, measured thinking and straight communication.
           </p>
         </div>
 
@@ -216,7 +216,7 @@ export default function Home() {
             <div><span>01</span><strong>Clear advice</strong><p>Understand what your car needs and why.</p></div>
             <div><span>02</span><strong>Measured results</strong><p>Calibrate and diagnose with real data.</p></div>
             <div><span>03</span><strong>No shortcuts</strong><p>Work built around reliability and detail.</p></div>
-            <div><span>04</span><strong>Your car, your plan</strong><p>Advice shaped around your goals—not a generic package.</p></div>
+            <div><span>04</span><strong>Your car, your plan</strong><p>Advice shaped around your goals, not a generic package.</p></div>
           </div>
         </div>
       </section>
@@ -263,7 +263,7 @@ export default function Home() {
             <div>
               <span>PSI in your phone</span>
               <strong>Scan to save PSI contact</strong>
-              <p>Phone, email, workshop address and website—ready to save.</p>
+              <p>Phone, email, workshop address and website, ready to save.</p>
             </div>
             <Image src="/psi-contact-qr.png" alt="QR code to save PSI Performance contact details" width={180} height={180} />
           </div>

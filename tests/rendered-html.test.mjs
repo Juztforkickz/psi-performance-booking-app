@@ -32,11 +32,13 @@ test("server-renders the PSI booking experience", async () => {
   assert.match(html, /Book your car \| PSI Performance/i);
   assert.match(html, /What are you booking in for\?/);
   assert.match(html, /Service &amp; Report/);
-  assert.match(html, /Dyno tuning/);
-  assert.match(html, /\$100 AUD(?:<!-- -->)? for service/);
-  assert.match(html, /\$300 AUD(?:<!-- -->)? for dyno tuning/);
+  assert.match(html, /Dyno Tuning/);
+  assert.match(html, /\$100 AUD(?:<!-- -->)? for Service/);
+  assert.match(html, /\$300 AUD(?:<!-- -->)? for Dyno Tuning/);
   assert.match(html, /\$423\.50 AUD including GST/);
   assert.match(html, /\$649 AUD including GST/);
+  assert.match(html, /Service &amp; Report from \$423\.50 incl\. GST/);
+  assert.match(html, /Dyno Tuning from \$649 incl\. GST/);
   assert.match(html, /Let’s get you sorted\./);
   assert.match(html, /0433 431 781/);
   assert.match(html, /info@psiperformance\.com\.au/);
@@ -74,7 +76,9 @@ test("keeps the booking UI and starter cleanup in source", async () => {
   assert.match(flow, /Camshaft code or specifications/);
   assert.match(flow, /pending|not confirmed/i);
   assert.doesNotMatch(flow, /fetch\("\/api\/v1\/bookings"/);
-  assert.match(openingPanel, /Buy some parts/);
+  assert.match(openingPanel, /Buy Some Parts/);
+  assert.match(openingPanel, /Choose Service, Dyno or Parts/);
+  assert.doesNotMatch(openingPanel, /optionLabel:[^\n]*—/);
   assert.match(legacyRoute, /APPROVAL_REQUIRED/);
   assert.match(layout, /PSI Performance Booking/);
   assert.match(serviceWorker, /psi-contact-qr\.png/);

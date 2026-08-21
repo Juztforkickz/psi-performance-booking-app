@@ -45,8 +45,8 @@ export const BOOKING_PURPOSES = {
     eligibleDays: 'Monday–Friday',
   },
   dyno: {
-    label: 'Dyno tuning',
-    priceGuide: 'from $649 AUD including GST',
+    label: 'Dyno Tuning',
+    priceGuide: 'From $649 incl. GST',
     priceGuideAmountCents: 64_900,
     depositAmountCents: 30_000,
     eligibleDays: 'Monday, Wednesday & Thursday',
@@ -213,7 +213,7 @@ function validateKnownTuning(tuning: TuningDetails, errors: BookingErrors) {
 export function validateBookingStep(form: BookingFormState, step: number): BookingErrors {
   const errors: BookingErrors = {};
   if (step === 1) {
-    if (!form.bookingType) errors.bookingType = 'Choose Service & Report or Dyno tuning from the PSI home screen.';
+    if (!form.bookingType) errors.bookingType = 'Choose Service & Report or Dyno Tuning from the PSI home screen.';
     if (form.requestDetails.trim().length < 10) errors.requestDetails = 'Tell PSI what you need in at least 10 characters.';
     if (form.bookingType === 'dyno') {
       if (!form.setupConfidence) errors.setupConfidence = 'Tell PSI whether you know the vehicle setup or want PSI to inspect it.';

@@ -97,7 +97,7 @@ const PURPOSE_OPTIONS: {
   },
   {
     value: 'parts',
-    label: 'Buy some parts',
+    label: 'Buy Some Parts',
     detail: 'Shop PSI performance parts on the official website.',
     priceGuide: 'Open online parts store',
   },
@@ -164,7 +164,7 @@ export default function HomeScreen() {
             <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact, shortLandscape && styles.titleShort, wide && styles.titleWide]}>Book your car{`\n`}now.</Text>
             <Text style={styles.introCopy}>
               From servicing and diagnostics to dyno tuning, performance upgrades and parts, PSI is your one-stop
-              performance workshop—with every request reviewed personally.
+              performance workshop. Every request is reviewed personally.
             </Text>
 
             {wide ? <WorkshopInfo /> : null}
@@ -193,7 +193,7 @@ export default function HomeScreen() {
               >
                 <View style={styles.selectorCopy}>
                   <Text style={[styles.selectorValue, !selectedOption && styles.selectorPlaceholder]}>
-                    {selectedOption?.label || 'Select an option'}
+                    {selectedOption?.label || 'Choose Service, Dyno or Parts'}
                   </Text>
                   {selectedOption ? (
                     <Text style={styles.selectorGuide}>
@@ -222,7 +222,7 @@ export default function HomeScreen() {
             ) : (
               <View style={styles.emptySelection}>
                 <Text style={styles.emptySelectionText}>
-                  Select an option to begin. Booking requests are reviewed before PSI confirms a date or sends a deposit link.
+                  Choose Service, Dyno or Parts to begin. Booking requests are reviewed before PSI confirms a date or sends a deposit link.
                 </Text>
               </View>
             )}
@@ -296,7 +296,7 @@ function PsiStandard() {
           </Text>
           <Text style={styles.standardCopy}>
             PSI brings the complete workshop journey together without losing sight of the individual behind the
-            build. Let us protect and build your vehicle or project—together.
+            build. Let us protect and build your vehicle or project together.
           </Text>
         </View>
 
@@ -304,9 +304,9 @@ function PsiStandard() {
           <Text accessibilityLabel="Ten out of ten" maxFontSizeMultiplier={1.5} style={styles.standardScoreValue}>10/10</Text>
           <Text style={styles.standardScoreTitle}>The standard we work toward</Text>
           <Text style={styles.standardScoreCopy}>
-            Care, clear communication and respect for your goals—from the first conversation to final handover.
+            Care, clear communication and respect for your goals from the first conversation to final handover.
           </Text>
-          <Text style={styles.standardScoreDisclaimer}>PSI service commitment—not a customer review rating.</Text>
+          <Text style={styles.standardScoreDisclaimer}>PSI service commitment. This is not a customer review rating.</Text>
         </View>
       </View>
 

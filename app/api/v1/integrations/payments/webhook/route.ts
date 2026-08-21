@@ -192,7 +192,7 @@ export async function POST(request: Request) {
     const calendarPayload = JSON.stringify({
       calendarId,
       reference: checkout.reference,
-      summary: `${checkout.bookingType === "dyno" ? "Dyno" : "Service"} — ${checkout.vehicleMake} ${checkout.vehicleModel} (${checkout.registration})`,
+      summary: `${checkout.bookingType === "dyno" ? "Dyno" : "Service"}: ${checkout.vehicleMake} ${checkout.vehicleModel} (${checkout.registration})`,
       description: `PSI internal booking ${checkout.reference}. Arrival: ${checkout.confirmedArrivalArrangement}.`,
       ...(checkout.confirmedAllocationMode === "all_day"
         ? {

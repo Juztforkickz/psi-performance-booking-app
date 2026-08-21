@@ -129,6 +129,14 @@ function formatPriceGuide(choice: CatalogBookingChoice, sentenceCase = true) {
   return `${prefix} $${amount} AUD including GST`;
 }
 
+function formatOptionPriceGuide(choice: CatalogBookingChoice) {
+  const amount = (choice.priceGuide.amountCents / 100).toLocaleString("en-AU", {
+    minimumFractionDigits: choice.priceGuide.amountCents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+  return `${choice.priceGuide.prefix} $${amount} incl. GST`;
+}
+
 const serviceCatalogChoice = requireCatalogBookingChoice("service");
 const dynoCatalogChoice = requireCatalogBookingChoice("dyno");
 
@@ -136,14 +144,14 @@ const BOOKING_TYPES = {
   service: {
     label: serviceCatalogChoice.label,
     price: formatPriceGuide(serviceCatalogChoice),
-    optionLabel: `${serviceCatalogChoice.label} — ${formatPriceGuide(serviceCatalogChoice, false)}`,
+    optionLabel: `${serviceCatalogChoice.label} ${formatOptionPriceGuide(serviceCatalogChoice)}`,
     depositAmountCents: serviceCatalogChoice.deposit.amountCents,
     detail: "Servicing, inspection and a clear report on what your car needs.",
   },
   dyno: {
     label: dynoCatalogChoice.label,
     price: formatPriceGuide(dynoCatalogChoice),
-    optionLabel: `${dynoCatalogChoice.label} — ${formatPriceGuide(dynoCatalogChoice, false)}`,
+    optionLabel: `${dynoCatalogChoice.label} ${formatOptionPriceGuide(dynoCatalogChoice)}`,
     depositAmountCents: dynoCatalogChoice.deposit.amountCents,
     detail: "Hub dyno calibration focused on safe power, drivability and vehicle health.",
   },
@@ -410,7 +418,7 @@ function isAllowedBookingDay(value: string, bookingType: BookingType | "") {
 }
 
 function displayDate(value: string, mode: AppointmentMode = "specific") {
-  if (mode === "flexible") return "I’m flexible — PSI can suggest a date";
+  if (mode === "flexible") return "I’m flexible. PSI can suggest a date";
   if (!value) return "Not selected";
   return new Intl.DateTimeFormat("en-AU", {
     weekday: "short",
@@ -654,7 +662,7 @@ export function BookingFlow() {
     const nextErrors: Record<string, string> = {};
 
     if (targetStep === 1) {
-      if (!form.bookingType) nextErrors.bookingType = "Choose Service & Report or Dyno tuning.";
+      if (!form.bookingType) nextErrors.bookingType = "Choose Service & Report or Dyno Tuning.";
       if (!form.requestDetails.trim()) nextErrors.requestDetails = "Tell PSI exactly what you are after.";
 
       if (form.bookingType === "dyno") {
@@ -986,7 +994,7 @@ export function BookingFlow() {
           <h2>Let’s get you sorted.</h2>
         </div>
         <p>
-          Send a request first—nothing is payable today. PSI checks the work and workshop plan, then confirms your date or offers another option before sending a secure deposit link.
+          Send a request first. Nothing is payable today. PSI checks the work and workshop plan, then confirms your date or offers another option before sending a secure deposit link.
         </p>
       </div>
 
@@ -1055,7 +1063,7 @@ export function BookingFlow() {
                 <div className="booking-choice-required" id="bookingType" tabIndex={-1}>
                   <div>
                     <p className="booking-choice-kicker">What are you booking in for?</p>
-                    <strong>Select service or dyno tuning to begin.</strong>
+                    <strong>Select Service or Dyno Tuning to begin.</strong>
                   </div>
                   <div className="type-grid" role="group" aria-label="Booking type">
                     {(["service", "dyno"] as const).map((bookingType, index) => {
@@ -1110,7 +1118,7 @@ export function BookingFlow() {
                     </label>
                     <label className={form.setupConfidence === "psi_inspection" ? "selected" : ""}>
                       <input id="setupConfidence-inspection" type="radio" name="setupConfidence" value="psi_inspection" checked={form.setupConfidence === "psi_inspection"} onChange={() => update("setupConfidence", "psi_inspection")} />
-                      <strong>I’m not sure—can PSI inspect it?</strong>
+                      <strong>I’m not sure. Can PSI inspect it?</strong>
                       <span>Tell us what you do know in the request notes. PSI can inspect the vehicle before confirming the tuning plan.</span>
                     </label>
                   </div>
@@ -1199,7 +1207,7 @@ export function BookingFlow() {
 
           {step === 3 && (
             <fieldset>
-              <legend id="booking-step-3-heading" tabIndex={-1}>Choose a preferred date—or stay flexible.</legend>
+              <legend id="booking-step-3-heading" tabIndex={-1}>Choose a preferred date or stay flexible.</legend>
               <p className="field-intro">
                 {form.bookingType === "dyno"
                   ? "Dyno requests can be made for Monday, Wednesday or Thursday."
@@ -1391,7 +1399,7 @@ function TuningSetupFields({
     <section className="tuning-setup" aria-labelledby="tuning-setup-heading">
       <div className="tuning-heading">
         <div>
-          <p className="tuning-kicker">Dyno tuning · vehicle specification</p>
+          <p className="tuning-kicker">Dyno Tuning · Vehicle Specification</p>
           <h3 id="tuning-setup-heading" tabIndex={-1}>Tell us how the car is set up.</h3>
         </div>
         <p>Choose the closest answer. Extra detail appears only where PSI needs it to prepare for your tune.</p>

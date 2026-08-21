@@ -241,7 +241,7 @@ function validateBooking(body: JsonObject):
   const source = readText(body, "source", errors, { defaultValue: "web" });
 
   if (bookingType && bookingType !== "service" && bookingType !== "dyno") {
-    errors.bookingType = "Choose either service or dyno.";
+    errors.bookingType = "Choose either Service or Dyno.";
   }
   if (bookingType === "service" && !(SERVICE_OPTIONS as readonly string[]).includes(serviceOption)) {
     errors.serviceOption = "Choose a valid vehicle service option.";

@@ -855,7 +855,7 @@ test("keeps customer testimonials sourced and separates PSI's 10/10 promise from
       `${customer}'s approved mobile excerpt and attribution must remain paired`,
     );
   }
-  assert.match(mobilePage, /PSI service commitment—not a customer review rating/u);
+  assert.match(mobilePage, /PSI service commitment\. This is not a customer review rating/u);
   assert.match(provenance, /Customer feedback provenance/u);
   assert.match(provenance, /Cale Pearson, Cade and Harry Beith/u);
   assert.match(provenance, /No reliable[\s\S]*literally rating the business “10\/10”/u);

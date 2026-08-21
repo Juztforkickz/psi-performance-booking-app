@@ -229,7 +229,7 @@ function validatePayload(body: JsonObject):
     rawBookingType === "service" || rawBookingType === "dyno"
       ? rawBookingType
       : null;
-  if (!bookingType && !errors.bookingType) errors.bookingType = "Choose service or dyno tuning.";
+  if (!bookingType && !errors.bookingType) errors.bookingType = "Choose Service or Dyno Tuning.";
   const firstName = textField(body, "firstName", 80, errors, { required: true });
   const lastName = textField(body, "lastName", 80, errors, { required: true });
   const email = textField(body, "email", 254, errors, { required: true }).toLowerCase();

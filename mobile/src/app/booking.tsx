@@ -610,7 +610,7 @@ function JobStep({
       ) : (
         <View style={styles.missingTypeCard}>
           <Text style={styles.missingTypeTitle}>Booking type needed</Text>
-          <Text style={styles.missingTypeCopy}>Return to the home screen and choose Service & Report or Dyno tuning once.</Text>
+          <Text style={styles.missingTypeCopy}>Return to the home screen and choose Service & Report or Dyno Tuning once.</Text>
           <PrimaryButton label="Choose on PSI home" onPress={onChooseBooking} variant="outline" />
         </View>
       )}
@@ -648,7 +648,7 @@ function JobStep({
                   update('tuningDetails', { ...EMPTY_BOOKING.tuningDetails });
                 }}
                 selected={form.setupConfidence === 'psi_inspection'}
-                title="I’m not sure — can PSI inspect it?"
+                title="I’m not sure. Can PSI inspect it?"
               />
             </View>
           </Field>
@@ -1271,7 +1271,7 @@ function DateStep({
         title="Request a date."
       />
       <View style={styles.datePrivacyCard}>
-        <Text style={styles.datePrivacyTitle}>Preference—not a confirmed booking</Text>
+        <Text style={styles.datePrivacyTitle}>Preference, not a confirmed booking</Text>
         <Text style={styles.datePrivacyCopy}>
           {scheduleCopy} If your first choice is unavailable, PSI will contact you to arrange another suitable date. Workshop work can carry over or change unexpectedly.
         </Text>

@@ -31,7 +31,11 @@ function formatPriceGuide(choice: CatalogBookingChoice) {
 }
 
 function formatOptionPriceGuide(choice: CatalogBookingChoice) {
-  return formatPriceGuide(choice).replace(/^Price guide /u, "");
+  const amount = (choice.priceGuide.amountCents / 100).toLocaleString("en-AU", {
+    minimumFractionDigits: choice.priceGuide.amountCents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+  return `${choice.priceGuide.prefix} $${amount} incl. GST`;
 }
 
 const serviceCatalogChoice = requireCatalogBookingChoice("service");
@@ -41,7 +45,7 @@ const bookingChoices = {
   service: {
     title: serviceCatalogChoice.label,
     price: formatPriceGuide(serviceCatalogChoice),
-    optionLabel: `${serviceCatalogChoice.label} — ${formatOptionPriceGuide(serviceCatalogChoice)}`,
+    optionLabel: `${serviceCatalogChoice.label} ${formatOptionPriceGuide(serviceCatalogChoice)}`,
     deposit: formatAudAmount(serviceCatalogChoice.deposit.amountCents),
     detail: "Workshop inspection, servicing and a clear report on what your car needs.",
     href: "#service-booking",
@@ -50,16 +54,16 @@ const bookingChoices = {
   dyno: {
     title: dynoCatalogChoice.label,
     price: formatPriceGuide(dynoCatalogChoice),
-    optionLabel: `${dynoCatalogChoice.label} — ${formatOptionPriceGuide(dynoCatalogChoice)}`,
+    optionLabel: `${dynoCatalogChoice.label} ${formatOptionPriceGuide(dynoCatalogChoice)}`,
     deposit: formatAudAmount(dynoCatalogChoice.deposit.amountCents),
     detail: "Hub dyno calibration focused on safe power, drivability and vehicle health.",
     href: "#dyno-booking",
     action: "Start dyno request",
   },
   parts: {
-    title: "Buy some parts",
+    title: "Buy Some Parts",
     price: "Performance parts & upgrades",
-    optionLabel: "Buy some parts",
+    optionLabel: "Buy Some Parts",
     deposit: null,
     detail: "Explore the dedicated PSI parts page and send the workshop a parts enquiry.",
     href: "/parts",
@@ -112,7 +116,7 @@ export function OpeningBookingPanel() {
           value={choice}
           onChange={(event) => selectChoice(event.target.value as BookingChoice | "")}
         >
-          <option value="">Choose service, dyno or parts</option>
+          <option value="">Choose Service, Dyno or Parts</option>
           <option value="service">{bookingChoices.service.optionLabel}</option>
           <option value="dyno">{bookingChoices.dyno.optionLabel}</option>
           <option value="parts">{bookingChoices.parts.optionLabel}</option>

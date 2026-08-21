@@ -134,7 +134,7 @@ function isEligibleDate(value: string, type: BookingType, minDate: string) {
 }
 
 function formatDate(value?: string) {
-  if (!value) return "Flexible — PSI to suggest";
+  if (!value) return "Flexible. PSI to suggest";
   return new Intl.DateTimeFormat("en-AU", {
     weekday: "short",
     day: "numeric",
@@ -189,7 +189,7 @@ export function AdminQueue() {
     const nextStatus: BookingStatus = action === "confirm" ? "date_approved" : "date_proposed";
     setBookings((current) => current.map((item) => item.reference === booking.reference ? { ...item, status: nextStatus } : item));
     setNotice(
-      `${action === "confirm" ? "Date confirmation" : "Date proposal"} previewed for ${booking.reference}. This changed only local demo state—no customer, calendar or payment provider was contacted.`,
+      `${action === "confirm" ? "Date confirmation" : "Date proposal"} previewed for ${booking.reference}. This changed only local demo state. No customer, calendar or payment provider was contacted.`,
     );
   };
 
@@ -229,7 +229,7 @@ export function AdminQueue() {
         <section className={styles.workflowStrip} aria-label="Approval workflow">
           <div><span>01</span><strong>Review request</strong><p>Check customer, vehicle, scope and date preference.</p></div>
           <div><span>02</span><strong>Agree on date</strong><p>Confirm the exact allocation or propose another date.</p></div>
-          <div><span>03</span><strong>Send deposit link</strong><p>$100 service or $300 dyno—only after date approval.</p></div>
+          <div><span>03</span><strong>Send deposit link</strong><p>$100 Service or $300 Dyno. Only after date approval.</p></div>
           <div><span>04</span><strong>Paid confirmation</strong><p>Verified payment queues receipt, email, Calendar and reminders.</p></div>
         </section>
 
@@ -270,7 +270,7 @@ export function AdminQueue() {
                 <div className={styles.cardHeading}>
                   <div>
                     <span className={styles.reference}>{booking.reference} · Preview data</span>
-                    <h3>{booking.bookingType === "dyno" ? "Dyno tuning" : "Service & Report"}</h3>
+                    <h3>{booking.bookingType === "dyno" ? "Dyno Tuning" : "Service & Report"}</h3>
                     <p>{booking.receivedAt}</p>
                   </div>
                   <span className={`${styles.statusBadge} ${styles[`status_${booking.status}`]}`}>{statusLabels[booking.status]}</span>
@@ -311,7 +311,7 @@ export function AdminQueue() {
                     <button type="submit">Preview confirm date</button>
                     <button type="button" disabled title="Payment provider is not connected">Create & send {booking.bookingType === "dyno" ? "$300" : "$100"} deposit link</button>
                   </div>
-                  <p className={styles.providerGate}>Deposit link disabled in preview. When enabled, only date-approved requests can create one. Paid verification—not this button—will queue the PSI/customer email, receipt, internal Calendar event and factual 7-day / 24-hour reminders.</p>
+                  <p className={styles.providerGate}>Deposit link disabled in preview. When enabled, only date-approved requests can create one. Paid verification, not this button, will queue the PSI/customer email, receipt, internal Calendar event and factual 7-day / 24-hour reminders.</p>
                 </form>
               </article>
             );

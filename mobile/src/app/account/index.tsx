@@ -95,7 +95,7 @@ export default function AccountScreen() {
         <View style={[styles.card, compact && styles.cardCompact]}>
           <Text style={styles.cardTitle}>Sign in with email</Text>
           <Text style={styles.cardCopy}>
-            The production experience will send a secure one-time sign-in link—no reusable password required.
+            The production experience will send a secure one-time sign-in link. No reusable password is required.
           </Text>
           <Field error={emailError} label="Email">
             <FormInput

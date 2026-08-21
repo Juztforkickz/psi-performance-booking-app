@@ -5,7 +5,7 @@ customer-identity provider is enabled by this document or by the preview build.
 
 ## Customer journey
 
-1. The customer chooses Service & Report or Dyno tuning once.
+1. The customer chooses Service & Report or Dyno Tuning once.
 2. They enter their contact, vehicle and request details. A dyno customer can
    either describe a known setup or ask PSI to inspect what is fitted.
 3. They request one eligible preferred date or choose **I'm flexible**. The
@@ -37,7 +37,7 @@ explicit PSI/manual decision.
 ## Date rules
 
 - Service & Report: Monday to Friday.
-- Dyno tuning: Monday, Wednesday and Thursday.
+- Dyno Tuning: Monday, Wednesday and Thursday.
 - Customers may choose a specific eligible date or say they are flexible.
 - Before-hours drop-off, after-hours drop-off and after-hours collection are
   requests that PSI must confirm; they are not guaranteed automatically.
@@ -48,7 +48,7 @@ explicit PSI/manual decision.
 ## Pricing shown to consumers
 
 - Service & Report: from **$423.50 AUD including GST**.
-- Dyno tuning: from **$649 AUD including GST**.
+- Dyno Tuning: from **$649 AUD including GST**.
 - Service deposit after date approval: **$100 AUD**.
 - Dyno deposit after date approval: **$300 AUD**.
 
