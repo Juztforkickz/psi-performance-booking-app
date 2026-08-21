@@ -783,7 +783,8 @@ div {
 .booking-section > .booking-intro,
 .booking-section > .booking-workspace,
 .testimonials-section > .section-heading,
-.testimonials-section > .testimonial-grid {
+.testimonials-section > .testimonial-grid,
+.testimonials-section > .testimonial-scroll-hint {
   width: min(var(--content-max), 100%);
   margin-inline: auto;
 }
@@ -2070,9 +2071,28 @@ div {
 
 .testimonial-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(320px, 36vw, 520px);
+  gap: 12px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding: 2px 2px 18px;
+  scroll-padding-inline: 2px;
+  scroll-snap-type: x mandatory;
+  scrollbar-color: var(--signal) #171717;
+  scrollbar-width: thin;
+}
+
+.testimonial-grid::-webkit-scrollbar {
+  height: 8px;
+}
+
+.testimonial-grid::-webkit-scrollbar-track {
+  background: #171717;
+}
+
+.testimonial-grid::-webkit-scrollbar-thumb {
+  background: var(--signal);
 }
 
 .testimonial-grid figure {
@@ -2081,8 +2101,19 @@ div {
   flex-direction: column;
   margin: 0;
   padding: clamp(26px, 3.5vw, 48px);
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  border: 1px solid var(--line);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.testimonial-scroll-hint {
+  margin-top: calc(clamp(40px, 6vw, 70px) * -0.62);
+  margin-bottom: 18px;
+  color: #85847f;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .stars {
@@ -3036,14 +3067,6 @@ div {
     grid-template-columns: 1fr;
   }
 
-  .testimonial-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .testimonial-grid figure:last-child {
-    grid-column: 1 / -1;
-  }
-
   .why-copy > .eyebrow,
   .why-copy h2,
   .why-lead,
@@ -3174,7 +3197,6 @@ div {
   }
 
   .service-showcase,
-  .testimonial-grid,
   .contact-section {
     grid-template-columns: 1fr;
   }
@@ -3288,24 +3310,15 @@ div {
 
   .why-image {
     min-height: 0;
-    aspect-ratio: 1;
+    aspect-ratio: 1744 / 901;
   }
 
   .testimonial-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .testimonial-grid figure:last-child {
-    grid-column: auto;
-  }
-
-  .testimonial-grid {
-    border-left: 0;
+    grid-auto-columns: min(84vw, 360px);
   }
 
   .testimonial-grid figure {
     min-height: 300px;
-    border-left: 1px solid var(--line);
   }
 
   .testimonial-source-row {

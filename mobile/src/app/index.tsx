@@ -43,16 +43,28 @@ const VERIFIED_OWNER_STORIES: readonly VerifiedOwnerStory[] = [
     vehicle: '2002 Monaro · Communication and personal care',
   },
   {
-    customer: 'Cade',
-    quote: 'Could not be happier. These guys know their stuff and will look after you through the whole process. Answering all my questions and going above and beyond to deliver a really amazing result. Thanks Matt and Dale for your work 🙏🏻',
-    rating: '★★★★★',
-    vehicle: 'Knowledge, support and gratitude',
-  },
-  {
     customer: 'Harry Beith',
     quote: 'Matt and the team rebuilt my LS1 and transmission back to factory fresh condition. I was kept up to date the whole way through the project with photos included. I can\'t praise enough the quality of work and professionalism of the whole team. They turned an old well used 400,000 km drive train into brand new.',
     rating: '★★★★★',
     vehicle: 'LS1 and transmission rebuild · Transformational result',
+  },
+  {
+    customer: 'Shaun Ward',
+    quote: 'Hands down the best service I have had.',
+    rating: '★★★★★',
+    vehicle: 'Engine, cam, differential and airbag upgrades',
+  },
+  {
+    customer: 'Emre Ozkan',
+    quote: 'Such nice and easy people to deal with.',
+    rating: '★★★★★',
+    vehicle: '2005 ClubSport · Head and cam package',
+  },
+  {
+    customer: 'Fiona Hewson',
+    quote: 'I would highly recommend them.',
+    rating: '★★★★★',
+    vehicle: 'WM Caprice · Engine replacement',
   },
 ];
 const OWNER_STORIES_SOURCE_URL = 'https://psiperformance.com.au/';
@@ -288,9 +300,10 @@ export default function HomeScreen() {
 }
 
 function PsiStandard() {
-  const { compact, useFieldColumns: wide, width } = useResponsiveLayout();
-  const tabletStories = width >= 720;
-  const wideStories = width >= 1024;
+  const { compact, horizontalPadding, useFieldColumns: wide, width } = useResponsiveLayout();
+  const standardPhotoWidth = Math.min(1180, Math.max(0, width - horizontalPadding * 2));
+  const standardPhotoHeight = Math.max(180, Math.round(standardPhotoWidth * (901 / 1744)));
+  const storyCardWidth = Math.min(420, Math.max(280, standardPhotoWidth - spacing.xl));
 
   return (
     <View accessibilityLabel="The PSI service standard" style={styles.standardSection}>
@@ -320,9 +333,9 @@ function PsiStandard() {
         accessible
         accessibilityLabel="Black VF GTSR and grey Porsche 911 GT3 RS parked together outside the PSI workshop"
         accessibilityRole="image"
-        resizeMode="cover"
-        source={wide ? require('../../assets/images/psi-gtsr-porsche-clean.jpg') : require('../../assets/images/psi-gtsr-porsche-mobile-clean.jpg')}
-        style={[styles.standardVehiclePhoto, wide ? styles.standardVehiclePhotoWide : styles.standardVehiclePhotoMobile]}
+        resizeMode="contain"
+        source={require('../../assets/images/psi-gtsr-porsche-clean.jpg')}
+        style={[styles.standardVehiclePhoto, { height: standardPhotoHeight }]}
       />
 
       <View style={[styles.promiseGrid, wide && styles.promiseGridWide]}>
@@ -350,9 +363,19 @@ function PsiStandard() {
             <Text style={styles.ownerStoriesSourceText}>Published on PSI homepage ↗</Text>
           </Pressable>
         </View>
-        <View style={[styles.ownerStoryGrid, tabletStories && styles.ownerStoryGridTablet, wideStories && styles.ownerStoryGridWide]}>
+        <Text style={styles.ownerStoriesHint}>Swipe sideways to read all five testimonials.</Text>
+        <ScrollView
+          accessibilityLabel="Five verified PSI customer testimonials. Swipe horizontally to read them all."
+          contentContainerStyle={styles.ownerStoryTrack}
+          decelerationRate="fast"
+          horizontal
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator={false}
+          snapToAlignment="start"
+          snapToInterval={storyCardWidth + spacing.sm}
+        >
           {VERIFIED_OWNER_STORIES.map((story) => (
-            <View key={`${story.customer}-${story.quote}`} style={[styles.ownerStory, tabletStories && styles.ownerStoryTablet, wideStories && styles.ownerStoryWide]}>
+            <View key={`${story.customer}-${story.quote}`} style={[styles.ownerStory, { width: storyCardWidth }]}>
               <Text accessibilityLabel="Five out of five stars" style={styles.ownerStoryRating}>{story.rating}</Text>
               <Text style={styles.ownerStoryQuote}>“{story.quote}”</Text>
               <Text style={styles.ownerStorySource}>
@@ -360,7 +383,7 @@ function PsiStandard() {
               </Text>
             </View>
           ))}
-        </View>
+        </ScrollView>
       </View>
     </View>
   );
@@ -1031,12 +1054,7 @@ const styles = StyleSheet.create({
   standardVehiclePhoto: {
     width: '100%',
     ...mobileFrame,
-  },
-  standardVehiclePhotoWide: {
-    aspectRatio: 1744 / 901,
-  },
-  standardVehiclePhotoMobile: {
-    aspectRatio: 1,
+    backgroundColor: colors.ink,
   },
   promiseGrid: {
     gap: spacing.sm,
@@ -1116,29 +1134,23 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  ownerStoryGrid: {
+  ownerStoriesHint: {
+    color: colors.muted,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+  },
+  ownerStoryTrack: {
     gap: spacing.sm,
-  },
-  ownerStoryGridTablet: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  ownerStoryGridWide: {
-    flexDirection: 'row',
+    paddingRight: spacing.lg,
   },
   ownerStory: {
+    minHeight: 300,
     gap: spacing.sm,
     ...mobileFrame,
     backgroundColor: colors.panel,
     padding: spacing.lg,
-  },
-  ownerStoryWide: {
-    flexBasis: 0,
-    flex: 1,
-  },
-  ownerStoryTablet: {
-    flexBasis: '45%',
-    flexGrow: 1,
   },
   ownerStoryRating: {
     color: colors.gold,

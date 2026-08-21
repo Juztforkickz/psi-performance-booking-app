@@ -857,13 +857,16 @@ test("keeps customer testimonials sourced and separates PSI's 10/10 promise from
   assert.match(testimonialsSection, /Genuine five-star customer feedback/u);
   assert.match(testimonialsSection, /blockquote cite="https:\/\/psiperformance\.com\.au\/"/u);
   assert.match(testimonialsSection, /aria-label="5 out of 5 stars"/u);
+  assert.match(testimonialsSection, /Scroll horizontally to read them all/u);
   assert.doesNotMatch(testimonialsSection, /10\s*(?:\/\s*10|out of 10)/iu);
   assert.match(page, /10\/10 care/u);
   assert.match(page, /not a customer review aggregate/iu);
   for (const [customer, quote] of [
     ["Cale Pearson", "The communication was excellent, they kept me updated throughout the entire process and were always clear about the next steps. I appreciated the regular progress updates and the transparency at every stage. The handover was smooth, with everything explained in detail. The team truly cares about both the car and the customer."],
-    ["Cade", "Could not be happier. These guys know their stuff and will look after you through the whole process. Answering all my questions and going above and beyond to deliver a really amazing result. Thanks Matt and Dale for your work 🙏🏻"],
     ["Harry Beith", "Matt and the team rebuilt my LS1 and transmission back to factory fresh condition. I was kept up to date the whole way through the project with photos included. I can't praise enough the quality of work and professionalism of the whole team. They turned an old well used 400,000 km drive train into brand new."],
+    ["Shaun Ward", "Hands down the best service I have had."],
+    ["Emre Ozkan", "Such nice and easy people to deal with."],
+    ["Fiona Hewson", "I would highly recommend them."],
   ]) {
     assert.ok(
       page.includes(`quote: "${quote}",\n    customer: "${customer}",`),
@@ -874,9 +877,12 @@ test("keeps customer testimonials sourced and separates PSI's 10/10 promise from
       `${customer}'s approved mobile excerpt and attribution must remain paired`,
     );
   }
+  assert.doesNotMatch(page, /customer: "Cade"/u);
+  assert.doesNotMatch(mobilePage, /customer: 'Cade'/u);
+  assert.match(mobilePage, /horizontal[\s\S]*snapToInterval/u);
   assert.match(mobilePage, /PSI service commitment\. This is not a customer review rating/u);
   assert.match(provenance, /Customer feedback provenance/u);
-  assert.match(provenance, /Cale Pearson, Cade and Harry Beith/u);
+  assert.match(provenance, /Cale Pearson, Harry Beith, Shaun Ward, Emre Ozkan and Fiona Hewson/u);
   assert.match(provenance, /No reliable[\s\S]*literally rating the business “10\/10”/u);
 });
 

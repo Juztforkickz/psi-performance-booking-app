@@ -128,11 +128,13 @@ test("keeps the Why PSI two-car media and copy responsive", async () => {
   assert.match(styles, /\.why-copy\s*{[^}]*container-type:\s*inline-size;/s);
   assert.match(styles, /\.why-copy\s*{[^}]*grid-template-columns:\s*minmax\(0, 0\.82fr\) minmax\(0, 1\.18fr\)/s);
   assert.match(styles, /\.why-copy h2\s*{[^}]*max-width:\s*100%;[^}]*overflow-wrap:\s*anywhere;[^}]*min\(5\.5vw, 12cqi\)/s);
-  assert.match(styles, /@media \(max-width: 1040px\)[\s\S]*\.why-copy\s*{[^}]*grid-template-columns:\s*1fr[\s\S]*\.testimonial-grid\s*{[^}]*repeat\(2,/s);
-  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.why-image\s*{[^}]*aspect-ratio:\s*1;[\s\S]*\.testimonial-grid\s*{[^}]*grid-template-columns:\s*1fr/s);
-  assert.match(page, /<picture className="why-image">[\s\S]*srcSet="\/psi-gtsr-porsche-mobile-clean\.jpg"[\s\S]*src="\/psi-gtsr-porsche-clean\.jpg"[\s\S]*loading="lazy"/s);
+  assert.match(styles, /\.testimonial-grid\s*{[^}]*grid-auto-flow:\s*column;[^}]*overflow-x:\s*auto;[^}]*scroll-snap-type:\s*x mandatory;/s);
+  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.why-image\s*{[^}]*aspect-ratio:\s*1744 \/ 901;[\s\S]*\.testimonial-grid\s*{[^}]*grid-auto-columns:\s*min\(84vw, 360px\)/s);
+  assert.match(page, /<picture className="why-image">[\s\S]*src="\/psi-gtsr-porsche-clean\.jpg"[\s\S]*loading="lazy"/s);
+  assert.doesNotMatch(page, /psi-gtsr-porsche-mobile-clean\.jpg/u);
   assert.match(mobilePage, /<Image\s+accessible\s+accessibilityLabel="Black VF GTSR[\s\S]*accessibilityRole="image"/s);
-  assert.match(mobilePage, /const tabletStories = width >= 720;[\s\S]*const wideStories = width >= 1024;/s);
+  assert.match(mobilePage, /resizeMode="contain"[\s\S]*source=\{require\('\.\.\/\.\.\/assets\/images\/psi-gtsr-porsche-clean\.jpg'\)\}[\s\S]*height: standardPhotoHeight/s);
+  assert.match(mobilePage, /<ScrollView[\s\S]*horizontal[\s\S]*snapToInterval=\{storyCardWidth \+ spacing\.sm\}/s);
 });
 
 test("lets the parts headline reflow on narrow layout viewports", async () => {

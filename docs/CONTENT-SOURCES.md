@@ -14,7 +14,7 @@ This build uses publicly available PSI Performance Garage information and owner-
 
 ## Customer feedback provenance
 
-The five-star customer stories attributed to Cale Pearson, Cade and Harry Beith are verbatim excerpts from the **Our Happy Clients** section on PSI Performance's official website. The live page labels the original testimonials with five stars but does not publish review dates. Their included wording and attribution are preserved, excerpts are identified as such, and the interface links back to that source.
+The five-star customer stories attributed to Cale Pearson, Harry Beith, Shaun Ward, Emre Ozkan and Fiona Hewson are verbatim excerpts from the **Our Happy Clients** section on PSI Performance's official website. The live page labels the original testimonials with five stars but does not publish review dates. Their included wording and attribution are preserved, excerpts are identified as such, and the interface links back to that source.
 
 No reliable PSI Pakenham customer review literally rating the business “10/10” was identified on 21 August 2026. The interface therefore uses **10/10 care** only as an explicitly labelled PSI service commitment, never as an invented customer score or aggregate rating.
 

@@ -30,14 +30,24 @@ const testimonials = [
     theme: "2002 Monaro · Communication and personal care",
   },
   {
-    quote: "Could not be happier. These guys know their stuff and will look after you through the whole process. Answering all my questions and going above and beyond to deliver a really amazing result. Thanks Matt and Dale for your work 🙏🏻",
-    customer: "Cade",
-    theme: "Knowledge, support and gratitude",
-  },
-  {
     quote: "Matt and the team rebuilt my LS1 and transmission back to factory fresh condition. I was kept up to date the whole way through the project with photos included. I can't praise enough the quality of work and professionalism of the whole team. They turned an old well used 400,000 km drive train into brand new.",
     customer: "Harry Beith",
     theme: "LS1 and transmission rebuild · Transformational result",
+  },
+  {
+    quote: "Hands down the best service I have had.",
+    customer: "Shaun Ward",
+    theme: "Engine, cam, differential and airbag upgrades",
+  },
+  {
+    quote: "Such nice and easy people to deal with.",
+    customer: "Emre Ozkan",
+    theme: "2005 ClubSport · Head and cam package",
+  },
+  {
+    quote: "I would highly recommend them.",
+    customer: "Fiona Hewson",
+    theme: "WM Caprice · Engine replacement",
   },
 ] as const;
 
@@ -200,7 +210,6 @@ export default function Home() {
 
       <section className="why-section" id="why-psi">
         <picture className="why-image">
-          <source media="(max-width: 760px)" srcSet="/psi-gtsr-porsche-mobile-clean.jpg" />
           <Image
             src="/psi-gtsr-porsche-clean.jpg"
             alt="Black VF GTSR and grey Porsche 911 GT3 RS parked together outside the PSI workshop"
@@ -232,7 +241,12 @@ export default function Home() {
           <h2 id="reviews-heading">Real owners.<br />Real care. Real results.</h2>
           <p>Verbatim excerpts from customer stories published on PSI Performance&apos;s official website.</p>
         </div>
-        <div className="testimonial-grid">
+        <p className="testimonial-scroll-hint">Scroll sideways to read all five testimonials.</p>
+        <div
+          aria-label="Five verified PSI customer testimonials. Scroll horizontally to read them all."
+          className="testimonial-grid"
+          role="region"
+        >
           {testimonials.map((testimonial) => (
             <figure key={testimonial.customer}>
               <div className="stars" aria-label="5 out of 5 stars">★★★★★</div>
