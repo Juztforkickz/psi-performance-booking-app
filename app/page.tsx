@@ -196,10 +196,11 @@ export default function Home() {
           <Image
             src="/psi-gtsr-porsche-clean.jpg"
             alt="Black VF GTSR and grey Porsche 911 GT3 RS parked together outside the PSI workshop"
-            width={1744}
+            width={1746}
             height={901}
             sizes="100vw"
             loading="lazy"
+            unoptimized
           />
         </picture>
         <div className="why-copy">
