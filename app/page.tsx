@@ -192,9 +192,9 @@ export default function Home() {
 
       <section className="why-section" id="why-psi">
         <picture className="why-image">
-          <source media="(max-width: 760px)" srcSet="/psi-gtsr-porsche-mobile.jpg" />
+          <source media="(max-width: 760px)" srcSet="/psi-gtsr-porsche-mobile-clean.jpg" />
           <Image
-            src="/psi-gtsr-porsche.jpg"
+            src="/psi-gtsr-porsche-clean.jpg"
             alt="Black VF GTSR and grey Porsche 911 GT3 RS parked together outside the PSI workshop"
             width={1744}
             height={901}

@@ -83,12 +83,12 @@ test("keeps the booking UI and starter cleanup in source", async () => {
   await assert.rejects(access(new URL("../app/_sites-preview/", import.meta.url)));
   await access(new URL("../public/psi-logo.png", import.meta.url));
   await access(new URL("../public/psi-hero.jpg", import.meta.url));
-  await access(new URL("../public/psi-gtsr-porsche.jpg", import.meta.url));
-  await access(new URL("../public/psi-gtsr-porsche-mobile.jpg", import.meta.url));
+  await access(new URL("../public/psi-gtsr-porsche-clean.jpg", import.meta.url));
+  await access(new URL("../public/psi-gtsr-porsche-mobile-clean.jpg", import.meta.url));
   await access(new URL("../public/psi-contact-qr.png", import.meta.url));
   await access(new URL("../mobile/assets/images/psi-contact-qr.png", import.meta.url));
-  await access(new URL("../mobile/assets/images/psi-gtsr-porsche.jpg", import.meta.url));
-  await access(new URL("../mobile/assets/images/psi-gtsr-porsche-mobile.jpg", import.meta.url));
+  await access(new URL("../mobile/assets/images/psi-gtsr-porsche-clean.jpg", import.meta.url));
+  await access(new URL("../mobile/assets/images/psi-gtsr-porsche-mobile-clean.jpg", import.meta.url));
   await access(new URL("../LICENSE", import.meta.url));
   await access(new URL("../TRADEMARKS.md", import.meta.url));
 });
@@ -122,7 +122,7 @@ test("keeps the Why PSI two-car media and copy responsive", async () => {
   assert.match(styles, /\.why-copy h2\s*{[^}]*max-width:\s*100%;[^}]*overflow-wrap:\s*anywhere;[^}]*min\(5\.5vw, 12cqi\)/s);
   assert.match(styles, /@media \(max-width: 1040px\)[\s\S]*\.why-copy\s*{[^}]*grid-template-columns:\s*1fr[\s\S]*\.testimonial-grid\s*{[^}]*repeat\(2,/s);
   assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.why-image\s*{[^}]*aspect-ratio:\s*1;[\s\S]*\.testimonial-grid\s*{[^}]*grid-template-columns:\s*1fr/s);
-  assert.match(page, /<picture className="why-image">[\s\S]*srcSet="\/psi-gtsr-porsche-mobile\.jpg"[\s\S]*src="\/psi-gtsr-porsche\.jpg"[\s\S]*loading="lazy"/s);
+  assert.match(page, /<picture className="why-image">[\s\S]*srcSet="\/psi-gtsr-porsche-mobile-clean\.jpg"[\s\S]*src="\/psi-gtsr-porsche-clean\.jpg"[\s\S]*loading="lazy"/s);
   assert.match(mobilePage, /<Image\s+accessible\s+accessibilityLabel="Black VF GTSR[\s\S]*accessibilityRole="image"/s);
   assert.match(mobilePage, /const tabletStories = width >= 720;[\s\S]*const wideStories = width >= 1024;/s);
 });

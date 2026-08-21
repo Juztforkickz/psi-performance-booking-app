@@ -315,7 +315,7 @@ function PsiStandard() {
         accessibilityLabel="Black VF GTSR and grey Porsche 911 GT3 RS parked together outside the PSI workshop"
         accessibilityRole="image"
         resizeMode="cover"
-        source={wide ? require('../../assets/images/psi-gtsr-porsche.jpg') : require('../../assets/images/psi-gtsr-porsche-mobile.jpg')}
+        source={wide ? require('../../assets/images/psi-gtsr-porsche-clean.jpg') : require('../../assets/images/psi-gtsr-porsche-mobile-clean.jpg')}
         style={[styles.standardVehiclePhoto, wide ? styles.standardVehiclePhotoWide : styles.standardVehiclePhotoMobile]}
       />
 
