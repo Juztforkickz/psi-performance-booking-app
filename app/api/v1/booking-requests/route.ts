@@ -6,6 +6,7 @@ import {
   isValidVehicleRegistration,
   isValidVin,
 } from "../../../lib/booking-inputs";
+import { publicDemoSubmissionsDisabledResponse } from "../../../lib/public-demo-response";
 import {
   depositAmountForBookingType,
   serviceOptionForBookingType,
@@ -38,6 +39,7 @@ const RATE_LIMIT_MAX_REQUESTS = 5;
 const REQUEST_STATE = "pending_staff_review" as const;
 
 type RuntimeEnv = typeof env & {
+  PSI_PUBLIC_DEMO_MODE?: string;
   PSI_EMAIL_OUTBOX_ENABLED?: string;
   PSI_EMAIL_PROVIDER_NAME?: string;
 };
@@ -430,6 +432,10 @@ function publicReference() {
 }
 
 export async function POST(request: Request) {
+  if ((env as RuntimeEnv).PSI_PUBLIC_DEMO_MODE === "true") {
+    return publicDemoSubmissionsDisabledResponse();
+  }
+
   const idempotencyKey = validateIdempotencyKey(request);
   if (!idempotencyKey) {
     return errorResponse(

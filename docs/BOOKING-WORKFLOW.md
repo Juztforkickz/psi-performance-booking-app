@@ -3,6 +3,18 @@
 Status: owner-review specification. No payment, email, Google Calendar or
 customer-identity provider is enabled by this document or by the preview build.
 
+## Public demo boundary
+
+The shareable web and app previews are demonstration builds. Both display a
+public-demo notice and disable the final booking-submission control.
+
+The OpenAI Sites demo must be deployed with `PSI_PUBLIC_DEMO_MODE=true`. The
+booking-request API then rejects every POST with a no-store
+`503 PUBLIC_DEMO_SUBMISSIONS_DISABLED` response before reading the request body
+or accessing D1. The Netlify Expo preview intentionally has no
+`EXPO_PUBLIC_API_BASE_URL`, so it has no booking backend to contact. Neither
+preview sends booking details, email, payment or calendar events.
+
 ## Customer journey
 
 1. The customer chooses Service & Report or Dyno Tuning once.

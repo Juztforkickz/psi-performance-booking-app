@@ -30,6 +30,8 @@ test("server-renders the PSI booking experience", async () => {
 
   const html = await response.text();
   assert.match(html, /Book your car \| PSI Performance/i);
+  assert.match(html, /Public demo/i);
+  assert.match(html, /Booking submissions are disabled/i);
   assert.match(html, /What are you booking in for\?/);
   assert.match(html, /Service &amp; Report/);
   assert.match(html, /Dyno Tuning/);
@@ -63,6 +65,8 @@ test("keeps the booking UI and starter cleanup in source", async () => {
   assert.match(page, /<OpeningBookingPanel \/>/);
   assert.match(page, /<BookingFlow \/>/);
   assert.match(flow, /fetch\("\/api\/v1\/booking-requests"/);
+  assert.match(flow, /PUBLIC_DEMO_CONFIG\.submissionsDisabled/);
+  assert.match(flow, /Demo only · Submission disabled/);
   assert.match(flow, /"Idempotency-Key"/);
   assert.match(flow, /bookingPolicyVersion: BOOKING_POLICY_VERSION/);
   assert.match(flow, /payload\.state !== "pending_staff_review"/);

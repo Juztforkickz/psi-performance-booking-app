@@ -4,6 +4,7 @@ import { BrandMarquee } from "./components/BrandMarquee";
 import { BookingFlow } from "./components/BookingFlow";
 import { OpeningBookingPanel } from "./components/OpeningBookingPanel";
 import { depositAmountForBookingType } from "./api/v1/booking-catalog/catalog";
+import { PUBLIC_DEMO_CONFIG } from "./lib/public-demo";
 
 export const metadata: Metadata = {
   title: "Book your car",
@@ -43,6 +44,10 @@ const testimonials = [
 export default function Home() {
   return (
     <main>
+      <aside className="public-demo-banner" role="status">
+        <strong>{PUBLIC_DEMO_CONFIG.label}</strong>
+        <span>{PUBLIC_DEMO_CONFIG.notice}</span>
+      </aside>
       <section className="hero-shell">
         <header className="site-header">
           <a href="#top" className="brand-link" aria-label="PSI Performance home">

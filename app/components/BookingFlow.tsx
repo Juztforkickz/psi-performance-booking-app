@@ -11,6 +11,7 @@ import {
   BOOKING_CATALOG,
   BOOKING_POLICY_VERSION,
 } from "../api/v1/booking-catalog/catalog";
+import { PUBLIC_DEMO_CONFIG } from "../lib/public-demo";
 
 type BookingType = "service" | "dyno";
 type AppointmentMode = "specific" | "flexible";
@@ -783,6 +784,10 @@ export function BookingFlow() {
 
   const submitBookingRequest = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (PUBLIC_DEMO_CONFIG.submissionsDisabled) {
+      setFormError(PUBLIC_DEMO_CONFIG.submissionMessage);
+      return;
+    }
     if (submittingRef.current) return;
     setFormError("");
     const allErrors = Object.assign(
@@ -999,6 +1004,10 @@ export function BookingFlow() {
       </div>
 
       <div className="booking-workspace">
+        <div className="booking-demo-notice" role="status">
+          <strong>{PUBLIC_DEMO_CONFIG.label}</strong>
+          <span>{PUBLIC_DEMO_CONFIG.notice}</span>
+        </div>
         <aside className="booking-steps" aria-label="Booking progress">
           {BOOKING_STEPS.map(({ number, label }) => (
             <button
@@ -1340,14 +1349,22 @@ export function BookingFlow() {
               <button
                 type="submit"
                 className="button button-primary payment-button"
-                disabled={submitting}
-                aria-label={selectedType ? `Submit ${selectedType.label} request for PSI review. No payment is taken.` : undefined}
+                disabled={submitting || PUBLIC_DEMO_CONFIG.submissionsDisabled}
+                aria-label={PUBLIC_DEMO_CONFIG.submissionsDisabled
+                  ? "Public demo only. Booking submission is disabled."
+                  : selectedType
+                    ? `Submit ${selectedType.label} request for PSI review. No payment is taken.`
+                    : undefined}
               >
-                {submitting ? "Sending request…" : "Submit request · No payment now"}
+                {PUBLIC_DEMO_CONFIG.submissionsDisabled
+                  ? "Demo only · Submission disabled"
+                  : submitting
+                    ? "Sending request…"
+                    : "Submit request · No payment now"}
               </button>
             )}
           </div>
-          {step === 4 && <p className="secure-checkout-note">After PSI and the customer agree on a date, a separate secure deposit link will be sent. This preview does not send email, charge a payment or create a Google Calendar event.</p>}
+          {step === 4 && <p className="secure-checkout-note">This public demo does not submit details, send email, charge a payment or create a Google Calendar event.</p>}
         </form>
       </div>
     </section>

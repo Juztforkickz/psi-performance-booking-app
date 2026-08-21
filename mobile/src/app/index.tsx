@@ -17,6 +17,7 @@ import { Eyebrow, PrimaryButton } from '@/components/ui';
 import { bookingColors, colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { BOOKING_PURPOSES, type BookingType } from '@/lib/booking';
+import { PUBLIC_DEMO } from '@/lib/public-demo';
 
 type GatewayChoice = BookingType | 'parts' | 'gift_card';
 
@@ -138,6 +139,10 @@ export default function HomeScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        <View accessibilityRole="alert" style={styles.demoBanner}>
+          <Text style={styles.demoBannerTitle}>{PUBLIC_DEMO.label}</Text>
+          <Text style={styles.demoBannerCopy}>{PUBLIC_DEMO.notice}</Text>
+        </View>
         <View style={[styles.header, compact && styles.headerCompact]}>
           <Image
             accessibilityLabel="PSI Performance Garage"
@@ -698,6 +703,28 @@ const styles = StyleSheet.create({
     ...mobileFrame,
     backgroundColor: colors.panel,
     padding: spacing.md,
+  },
+  demoBanner: {
+    width: '100%',
+    maxWidth: 1180,
+    alignSelf: 'center',
+    gap: spacing.xs,
+    ...mobileFrame,
+    backgroundColor: bookingColors.accent,
+    padding: spacing.md,
+  },
+  demoBannerTitle: {
+    color: bookingColors.accentText,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+  },
+  demoBannerCopy: {
+    color: bookingColors.accentText,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18,
   },
   qrCardStacked: {
     alignItems: 'center',

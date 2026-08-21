@@ -47,6 +47,7 @@ import {
   type TuningDetails,
   validateBookingStep,
 } from '@/lib/booking';
+import { PUBLIC_DEMO } from '@/lib/public-demo';
 
 const STEP_LABELS = ['Job', 'Vehicle', 'Details', 'Date', 'Review'];
 const COMPACT_STEP_LABELS = ['Job', 'Car', 'You', 'Date', 'Review'];
@@ -316,6 +317,12 @@ function BookingScreenContent() {
   };
 
   const submitRequest = async () => {
+    if (PUBLIC_DEMO.submissionsDisabled) {
+      setErrorTitle('Public demo');
+      setFormError(PUBLIC_DEMO.submissionMessage);
+      scrollToTop();
+      return;
+    }
     const allErrors = {
       ...validateBookingStep(form, 1),
       ...validateBookingStep(form, 2),
@@ -443,6 +450,10 @@ function BookingScreenContent() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.formInner}>
+            <View accessibilityRole="alert" style={styles.demoBanner}>
+              <Text style={styles.demoBannerTitle}>{PUBLIC_DEMO.label}</Text>
+              <Text style={styles.demoBannerCopy}>{PUBLIC_DEMO.notice}</Text>
+            </View>
             {formError ? (
               <View accessibilityRole="alert" style={styles.alert}>
                 <Text style={styles.alertTitle}>{errorTitle}</Text>
@@ -509,7 +520,8 @@ function BookingScreenContent() {
                 />
               ) : (
                 <PrimaryButton
-                  label="Submit request for PSI review"
+                  disabled={PUBLIC_DEMO.submissionsDisabled}
+                  label={PUBLIC_DEMO.submissionsDisabled ? 'Demo only · Submission disabled' : 'Submit request for PSI review'}
                   loading={submitting}
                   onPress={() => void submitRequest()}
                   style={wideFields && step > 1 ? styles.actionButtonWide : undefined}
@@ -518,7 +530,7 @@ function BookingScreenContent() {
             </View>
             <Text style={styles.requestNote}>
               {step === 5
-                ? 'No payment is taken now. PSI reviews your request first and sends a deposit link only after approving a date.'
+                ? 'This public demo does not submit details, send email, take payment or create a calendar event.'
                 : 'Every requested date and before/after-hours arrangement remains pending until PSI checks workshop capacity.'}
             </Text>
           </View>
@@ -1683,6 +1695,9 @@ const styles = StyleSheet.create({
   formScroll: { flexGrow: 1, paddingTop: spacing.xl, paddingBottom: spacing.xxl },
   formScrollShort: { paddingTop: spacing.lg, paddingBottom: spacing.xl },
   formInner: { width: '100%', maxWidth: 720, alignSelf: 'center' },
+  demoBanner: { ...mobileFrame, gap: spacing.xs, marginBottom: spacing.lg, backgroundColor: bookingColors.accent, padding: spacing.md },
+  demoBannerTitle: { color: bookingColors.accentText, fontSize: 11, fontWeight: '900', letterSpacing: 1.4, textTransform: 'uppercase' },
+  demoBannerCopy: { color: bookingColors.accentText, fontSize: 12, fontWeight: '700', lineHeight: 18 },
   alert: { ...mobileFrame, gap: spacing.sm, marginBottom: spacing.lg, backgroundColor: bookingColors.errorSurface, padding: spacing.md },
   alertTitle: { color: colors.white, fontSize: 15, fontWeight: '900' },
   alertCopy: { color: bookingColors.errorText, fontSize: 13, lineHeight: 19 },

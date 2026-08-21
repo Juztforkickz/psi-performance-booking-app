@@ -529,6 +529,25 @@ test("returns stable protocol errors before accepting booking request data", asy
   assert.equal((await readError(oversized)).code, "REQUEST_TOO_LARGE");
 });
 
+test("public demo mode rejects booking submissions before reading or storing data", async () => {
+  const database = createD1Mock();
+  const response = await fetchWorker(
+    "/api/v1/booking-requests",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(validServicePayload()),
+    },
+    { DB: database, PSI_PUBLIC_DEMO_MODE: "true" },
+  );
+
+  assert.equal(response.status, 503);
+  const error = await readError(response);
+  assert.equal(error.code, "PUBLIC_DEMO_SUBMISSIONS_DISABLED");
+  assert.match(error.message, /no details were sent or saved/i);
+  assert.equal(database.operations.length, 0);
+});
+
 test("unsubscribe rejects oversized bodies before parsing or storage", async () => {
   for (const init of [
     {

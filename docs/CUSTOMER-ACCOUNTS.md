@@ -62,5 +62,6 @@ following must be complete:
 8. Obtain PSI privacy/retention approval before any real customer is invited.
 
 Netlify project visibility is only a preview-access boundary. It is not the
-customer identity system. OpenAI Sites remains owner-only, and Shopify remains
-separate unless PSI approves a future integration.
+customer identity system. The current Netlify and OpenAI Sites demos are
+public-by-link with booking submissions disabled; Shopify remains separate
+unless PSI approves a future integration.

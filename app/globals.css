@@ -45,6 +45,42 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.public-demo-banner {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 12px max(18px, env(safe-area-inset-right, 0px)) 12px max(18px, env(safe-area-inset-left, 0px));
+  border-block: 3px solid #fff;
+  background: #f2f2f2;
+  color: #050505;
+  text-align: center;
+}
+
+.public-demo-banner strong {
+  flex: 0 0 auto;
+  font-size: 0.74rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.public-demo-banner span {
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+@media (max-width: 700px) {
+  .public-demo-banner {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
 button,
 input,
 select,
@@ -958,6 +994,30 @@ div {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #050505;
+}
+
+.booking-demo-notice {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 3px solid #fff;
+  background: #101010;
+  color: #fff;
+}
+
+.booking-demo-notice strong {
+  color: var(--signal);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.booking-demo-notice span {
+  color: #d1d0cc;
+  font-size: 0.84rem;
+  line-height: 1.6;
 }
 
 .booking-steps {

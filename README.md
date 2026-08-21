@@ -48,7 +48,9 @@ See [`mobile/README.md`](mobile/README.md) for local development, configuration 
 
 Shipping signed binaries requires PSI-owned Apple Developer, Google Play Console and Expo/EAS access. Keep signing credentials and API configuration out of Git.
 
-The repository also includes a Netlify configuration for an owner-restricted static Expo web preview. It intentionally omits `EXPO_PUBLIC_API_BASE_URL`, so booking submission and customer accounts remain unavailable. The Cloudflare/D1 web application is not deployed through that Netlify preview.
+The repository also includes a Netlify configuration for a public-by-link static Expo web demo. It intentionally omits `EXPO_PUBLIC_API_BASE_URL`, shows a public-demo notice and disables the final submission control, so booking submission and customer accounts remain unavailable. The Cloudflare/D1 web application is not deployed through that Netlify preview.
+
+The OpenAI Sites web demo uses `PSI_PUBLIC_DEMO_MODE=true` as a second, server-side safety boundary. In that mode the booking-request endpoint returns `PUBLIC_DEMO_SUBMISSIONS_DISABLED` before parsing a request body or accessing D1. The interface also labels the site as a public demo and disables its final submission control. Keep that environment variable enabled for any shareable demo deployment.
 
 ## Operational launch checklist
 
