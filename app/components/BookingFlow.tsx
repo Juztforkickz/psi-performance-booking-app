@@ -923,13 +923,32 @@ export function BookingFlow() {
     setDraftNotice("The saved copy was cleared from this device. Your open fields remain until you leave or edit again.");
   };
 
+  const chooseBookingType = (bookingType: BookingType) => {
+    if (submittingRef.current) return;
+    bookingIntent.current = bookingType;
+    setDraftSavingEnabled(true);
+    setForm((current) => ({
+      ...current,
+      bookingType,
+      serviceReminderConsent: bookingType === "service" && current.serviceReminderConsent,
+      setupConfidence: bookingType === "dyno" ? current.setupConfidence : "",
+    }));
+    idempotencyKey.current = null;
+    setErrors({});
+    setFormError("");
+    setStep(1);
+    window.history.replaceState(null, "", "#booking-panel");
+    window.requestAnimationFrame(() => document.getElementById("requestDetails")?.focus());
+  };
+
   const changeBookingType = () => {
     if (submittingRef.current) return;
+    bookingIntent.current = null;
     update("bookingType", "");
     setStep(1);
-    window.history.replaceState(null, "", "#top");
-    document.getElementById("top")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    window.requestAnimationFrame(() => document.getElementById("opening-booking-choice")?.focus());
+    window.history.replaceState(null, "", "#booking-panel");
+    document.getElementById("booking-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.requestAnimationFrame(() => document.getElementById("bookingType")?.focus());
   };
 
   if (submittedRequest) {
@@ -1019,7 +1038,7 @@ export function BookingFlow() {
           {step === 1 && (
             <fieldset>
               <legend id="booking-step-1-heading" tabIndex={-1}>Tell us about the work.</legend>
-              <p className="field-intro">Your opening choice carries into the request, so you only select it once.</p>
+              <p className="field-intro">Choose the job once, then tell PSI exactly what your vehicle needs.</p>
 
               {selectedType && (
                 <div className="selected-job-card" aria-live="polite">
@@ -1034,8 +1053,29 @@ export function BookingFlow() {
 
               {!selectedType && (
                 <div className="booking-choice-required" id="bookingType" tabIndex={-1}>
-                  <strong>Choose service or dyno tuning above to begin.</strong>
-                  <button type="button" className="button button-primary" onClick={changeBookingType}>Choose booking type</button>
+                  <div>
+                    <p className="booking-choice-kicker">What are you booking in for?</p>
+                    <strong>Select service or dyno tuning to begin.</strong>
+                  </div>
+                  <div className="type-grid" role="group" aria-label="Booking type">
+                    {(["service", "dyno"] as const).map((bookingType, index) => {
+                      const booking = BOOKING_TYPES[bookingType];
+                      return (
+                        <button
+                          key={bookingType}
+                          type="button"
+                          className="type-card"
+                          onClick={() => chooseBookingType(bookingType)}
+                          aria-label={`${booking.label}. ${booking.price}`}
+                        >
+                          <strong>{booking.label}</strong>
+                          <small>{booking.price}<br />{booking.detail}</small>
+                          <span className="type-index" aria-hidden="true">0{index + 1}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <a className="booking-parts-link" href="/parts">Looking for parts instead? View PSI parts <span aria-hidden="true">→</span></a>
                   {errors.bookingType && <p className="field-error" id="bookingType-error" role="alert">{errors.bookingType}</p>}
                 </div>
               )}

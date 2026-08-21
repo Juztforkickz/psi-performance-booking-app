@@ -27,7 +27,7 @@ The public business details used in the interface are:
 - Monday–Friday, 8:30am–5pm; Saturday by appointment
 - Australian and European performance, servicing, diagnostics and dyno-tuning themes
 
-Social audience counts were intentionally not embedded because they change frequently. The owner-supplied consumer booking guides are shown as **Service & Report from $423.50 including GST** and **Dyno tuning from $764.50 including GST**; they are guides rather than quotes. The owner-set booking deposits are **$100 AUD for Service & Report** and **$300 AUD for Dyno tuning**. Guaranteed power outcomes and instant availability are intentionally omitted.
+Social audience counts were intentionally not embedded because they change frequently. The owner-supplied consumer booking guides are shown as **Service & Report from $423.50 including GST** and **Dyno tuning from $649 including GST**; they are guides rather than quotes. The owner-set booking deposits are **$100 AUD for Service & Report** and **$300 AUD for Dyno tuning**. Guaranteed power outcomes and instant availability are intentionally omitted.
 
 ## Supplied/public brand assets
 

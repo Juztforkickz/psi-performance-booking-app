@@ -144,7 +144,7 @@ test("catalog and date rules expose GST-inclusive approval-first pricing", async
   assert.equal(BOOKING_POLICY_VERSION, "psi-booking-v1");
   assert.equal(DEPOSIT_POLICY_VERSION, "psi-deposit-v3");
   assert.equal(BOOKING_CATALOG.choices[0].priceGuide.amountCents, 42_350);
-  assert.equal(BOOKING_CATALOG.choices[1].priceGuide.amountCents, 76_450);
+  assert.equal(BOOKING_CATALOG.choices[1].priceGuide.amountCents, 64_900);
   assert.equal(BOOKING_CATALOG.choices[0].priceGuide.gstInclusive, true);
   assert.equal(BOOKING_CATALOG.choices[1].priceGuide.gstInclusive, true);
   assert.equal(BOOKING_CATALOG.deposit.requiredAtRequest, false);

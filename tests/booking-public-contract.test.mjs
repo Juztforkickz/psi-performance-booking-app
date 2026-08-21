@@ -453,7 +453,7 @@ test("publishes exactly the three booking catalog choices and server-owned price
     ["booking", "booking", "navigation"],
   );
   assert.equal(BOOKING_CATALOG.choices[0].priceGuide.amountCents, 42_350);
-  assert.equal(BOOKING_CATALOG.choices[1].priceGuide.amountCents, 76_450);
+  assert.equal(BOOKING_CATALOG.choices[1].priceGuide.amountCents, 64_900);
   assert.equal(BOOKING_CATALOG.choices[0].priceGuide.gstInclusive, true);
   assert.equal(BOOKING_CATALOG.choices[1].priceGuide.gstInclusive, true);
   assert.deepEqual(BOOKING_CATALOG.choices[0].deposit, {

@@ -5,7 +5,7 @@ Native iOS, Android and responsive React Native Web client for PSI Performance G
 The opening route is a black PSI booking gateway inspired by the workshop website. It supports:
 
 - Service & Report from $423.50 AUD including GST.
-- Dyno tuning from $764.50 AUD including GST.
+- Dyno tuning from $649 AUD including GST.
 - Direct links to PSI's official parts store and gift-card checkout.
 - A five-stage job, vehicle, customer, date and approval-request flow.
 - Approval-first deposits: $100 AUD for service and $300 AUD for dyno, requested only after PSI approves a date.

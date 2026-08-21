@@ -92,7 +92,7 @@ const PURPOSE_OPTIONS: {
     value: 'dyno',
     label: BOOKING_PURPOSES.dyno.label,
     detail: 'Hub dyno calibration, testing and measured results.',
-    priceGuide: 'From $764.50 incl. GST',
+    priceGuide: BOOKING_PURPOSES.dyno.priceGuide,
     depositGuide: '$300 deposit after date approval',
   },
   {

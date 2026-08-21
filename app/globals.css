@@ -366,13 +366,17 @@ div {
 }
 
 .opening-panel {
+  --signal: #f2f2f2;
+  --signal-bright: #ffffff;
+  --signal-dark: #a8a8a8;
+  --signal-metal: linear-gradient(135deg, #ffffff 0%, #e0e0e0 52%, #a8a8a8 100%);
   grid-column: 2;
   grid-row: 1;
   padding: clamp(28px, 4.5vw, 64px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-top: 3px solid var(--signal);
+  border-top: 3px solid #fff;
   border-radius: var(--radius);
-  background: rgba(10, 10, 10, 0.92);
+  background: rgba(0, 0, 0, 0.94);
   box-shadow: 0 40px 110px rgba(0, 0, 0, 0.45);
 }
 
@@ -396,23 +400,23 @@ div {
 
 .opening-select-wrap select {
   width: 100%;
-  min-height: 64px;
+  min-height: 55px;
   appearance: none;
   padding: 0 52px 0 18px;
-  border: 1px solid #625f59;
-  border-radius: var(--radius);
+  border: 1.6px solid rgb(224, 224, 224);
+  border-radius: 8px;
   outline: 0;
-  background: #050505;
+  background: transparent;
   color: #fff;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 15px;
   font-weight: 750;
   text-overflow: ellipsis;
 }
 
 .opening-select-wrap select:focus-visible {
   border-color: var(--signal);
-  box-shadow: 0 0 0 3px rgba(217, 179, 91, 0.16);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.16);
 }
 
 .opening-select-wrap > span {
@@ -908,10 +912,21 @@ div {
 }
 
 .booking-section {
+  --signal: #f2f2f2;
+  --signal-bright: #ffffff;
+  --signal-dark: #a8a8a8;
+  --signal-metal: linear-gradient(135deg, #ffffff 0%, #e0e0e0 52%, #a8a8a8 100%);
   position: relative;
-  background: #0d0d0d;
+  background: #000;
   color: #fff;
   scroll-margin-top: 20px;
+}
+
+.booking-intro h2 {
+  font-size: clamp(2rem, 4vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
 }
 
 .booking-anchor {
@@ -942,7 +957,7 @@ div {
   padding: clamp(24px, 4vw, 54px);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: #151515;
+  background: #050505;
 }
 
 .booking-steps {
@@ -1015,9 +1030,9 @@ div {
   gap: 18px;
   margin-bottom: 26px;
   padding: 13px 16px;
-  border: 1px solid rgba(217, 179, 91, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: var(--radius);
-  background: rgba(217, 179, 91, 0.07);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .booking-rate-banner span {
@@ -1111,7 +1126,7 @@ div {
 }
 
 .type-card.selected small {
-  color: #5a420f;
+  color: #464646;
 }
 
 .option-list {
@@ -1152,7 +1167,7 @@ div {
 
 .option-list > label:focus-within {
   border-color: var(--signal);
-  outline: 3px solid rgba(242, 179, 29, 0.18);
+  outline: 3px solid rgba(255, 255, 255, 0.18);
   outline-offset: 3px;
 }
 
@@ -1209,13 +1224,15 @@ div {
 .field select,
 .field textarea {
   width: 100%;
-  min-height: 54px;
-  padding: 14px 15px;
-  border: 1px solid #3f3e3b;
-  border-radius: var(--radius);
+  min-height: 55px;
+  padding: 15px;
+  border: 1.6px solid rgb(224, 224, 224);
+  border-radius: 8px;
   outline: 0;
-  background: #0e0e0e;
+  background: transparent;
   color: #fff;
+  font-family: Inter, Arial, Helvetica, sans-serif;
+  font-size: 15px;
   transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
@@ -1237,8 +1254,8 @@ div {
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
-  border-color: var(--signal);
-  box-shadow: 0 0 0 3px rgba(242, 179, 29, 0.12);
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.14);
 }
 
 .field input[aria-invalid="true"],
@@ -1259,10 +1276,10 @@ div {
   gap: 12px;
   margin: 18px 0 28px;
   padding: 20px;
-  border: 1px solid rgba(217, 179, 91, 0.46);
+  border: 1px solid rgba(255, 255, 255, 0.42);
   border-left: 3px solid var(--signal);
   border-radius: var(--radius);
-  background: linear-gradient(120deg, rgba(217, 179, 91, 0.1), rgba(217, 179, 91, 0.02));
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.015));
 }
 
 .selected-job-card > div {
@@ -1352,7 +1369,7 @@ div {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background:
-    linear-gradient(145deg, rgba(217, 179, 91, 0.055), transparent 42%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent 42%),
     #0c0c0c;
 }
 
@@ -1460,7 +1477,7 @@ div {
 .calendar-header button:hover,
 .calendar-header button:focus-visible {
   border-color: var(--signal);
-  outline: 2px solid rgba(217, 179, 91, 0.18);
+  outline: 2px solid rgba(255, 255, 255, 0.18);
 }
 
 .calendar-header button:disabled {
@@ -1508,7 +1525,7 @@ div {
 .calendar-grid button:hover,
 .calendar-grid button:focus-visible {
   border-color: var(--signal);
-  outline: 2px solid rgba(217, 179, 91, 0.17);
+  outline: 2px solid rgba(255, 255, 255, 0.17);
 }
 
 .calendar-grid button.selected {
@@ -1745,9 +1762,9 @@ div {
 }
 
 .form-alert-notice {
-  border-color: rgba(217, 179, 91, 0.55);
-  background: rgba(217, 179, 91, 0.1);
-  color: #e8dcc0;
+  border-color: rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.08);
+  color: #dedede;
 }
 
 .form-actions,
@@ -1791,6 +1808,19 @@ div {
   border: 1px solid var(--signal);
   background: var(--signal);
   color: var(--ink);
+}
+
+.opening-panel .button-primary,
+.booking-section .button-primary {
+  min-height: 47px;
+  padding-right: 30px;
+  padding-left: 30px;
+  border: 1px solid #fff;
+  border-radius: 5px;
+  background: #fff;
+  color: #000;
+  font-family: Inter, Arial, Helvetica, sans-serif;
+  font-size: 15px;
 }
 
 .button-ghost-dark {
@@ -3070,6 +3100,10 @@ div {
     margin-bottom: 26px;
   }
 
+  .opening-select-wrap select {
+    font-size: 16px;
+  }
+
   .hero-foot {
     display: none;
   }
@@ -3125,6 +3159,12 @@ div {
   .why-grid,
   .contact-grid {
     grid-template-columns: 1fr;
+  }
+
+  .booking-section .field input,
+  .booking-section .field select,
+  .booking-section .field textarea {
+    font-size: 16px;
   }
 
   .tuning-heading,
@@ -3598,9 +3638,9 @@ div {
   gap: 18px;
   margin-bottom: 18px;
   padding: 14px 16px;
-  border: 1px solid rgba(217, 179, 91, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: var(--radius);
-  background: rgba(217, 179, 91, 0.055);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .draft-safety strong,
@@ -3657,10 +3697,70 @@ div {
   gap: 16px;
   margin: 18px 0 28px;
   padding: 22px;
-  border: 1px solid rgba(217, 179, 91, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-left: 3px solid var(--signal);
   border-radius: var(--radius);
-  background: rgba(217, 179, 91, 0.08);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.booking-choice-required:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.22);
+  outline-offset: 4px;
+}
+
+.booking-choice-kicker {
+  margin: 0 0 7px;
+  color: #b8b8b8;
+  font-size: 0.64rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.booking-choice-required .type-grid {
+  width: 100%;
+}
+
+.booking-choice-required .type-card {
+  border-color: rgba(224, 224, 224, 0.72);
+  background: #000;
+}
+
+.booking-choice-required .type-card:hover,
+.booking-choice-required .type-card:focus-visible {
+  border-color: #fff;
+  background: #111;
+  outline: 3px solid rgba(255, 255, 255, 0.18);
+  outline-offset: 3px;
+}
+
+.booking-choice-required .type-card small {
+  color: #a8a8a8;
+}
+
+.booking-choice-required .type-index {
+  color: #fff;
+}
+
+.booking-parts-link {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #8e8e8e;
+  color: #d8d8d8;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.booking-parts-link:hover,
+.booking-parts-link:focus-visible {
+  border-color: #fff;
+  color: #fff;
 }
 
 .booking-choice-required strong {
@@ -3720,7 +3820,7 @@ div {
 .setup-confidence-options label.selected,
 .appointment-mode label.selected {
   border-color: var(--signal);
-  background: linear-gradient(135deg, rgba(217, 179, 91, 0.13), rgba(217, 179, 91, 0.03));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.025));
 }
 
 .setup-confidence-options input,
@@ -3896,7 +3996,7 @@ div {
 .request-success-policy {
   padding: 16px 18px;
   border-left: 3px solid var(--signal);
-  background: rgba(217, 179, 91, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   font-size: 0.73rem;
 }
 

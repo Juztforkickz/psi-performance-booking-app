@@ -48,7 +48,7 @@ Shipping signed binaries requires PSI-owned Apple Developer, Google Play Console
 
 ## Operational launch checklist
 
-- Confirm the consumer guide prices of $423.50 including GST for Service & Report and $764.50 including GST for Dyno tuning, the booking-type deposit amounts, workshop hours and contact details with PSI.
+- Confirm the consumer guide prices of $423.50 including GST for Service & Report and $649 including GST for Dyno tuning, the booking-type deposit amounts, workshop hours and contact details with PSI.
 - Select and configure the live deposit provider; register and verify its signed webhook before accepting customer traffic.
 - Confirm the legal entity name, ABN, GST registration, deposit GST treatment and cancellation/refund wording before issuing anything labelled a tax invoice.
 - Connect managed customer identity; do not enable the account forms until web and native sign-in, recovery and data access controls are tested.

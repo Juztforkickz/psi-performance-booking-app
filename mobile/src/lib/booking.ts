@@ -46,8 +46,8 @@ export const BOOKING_PURPOSES = {
   },
   dyno: {
     label: 'Dyno tuning',
-    priceGuide: 'From $764.50 incl. GST',
-    priceGuideAmountCents: 76_450,
+    priceGuide: 'from $649 AUD including GST',
+    priceGuideAmountCents: 64_900,
     depositAmountCents: 30_000,
     eligibleDays: 'Monday, Wednesday & Thursday',
   },

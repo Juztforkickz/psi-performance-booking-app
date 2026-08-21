@@ -22,7 +22,7 @@ Use these records only in local, preview, payment-provider test-mode and explici
 
 Use PSI / QA Dyno, `psi.qa.dyno@example.com`, registration `TEST002`, and the same synthetic contact/vehicle fields above. Use this complete setup to exercise every conditional input:
 
-The Dyno tuning price guide must show **from $764.50 including GST**, and its server-derived post-approval booking deposit must be exactly **$300 AUD**. A specific dyno date must be a Monday, Wednesday or Thursday.
+The Dyno tuning price guide must show **from $649 including GST**, and its server-derived post-approval booking deposit must be exactly **$300 AUD**. A specific dyno date must be a Monday, Wednesday or Thursday.
 
 - Engine: modified; `Stage 2 camshaft, valve springs and upgraded balancer`.
 - Transmission: automatic; converter and cooler; `3,200 rpm converter and external cooler`.

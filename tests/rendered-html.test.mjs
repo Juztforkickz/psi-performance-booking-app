@@ -36,7 +36,7 @@ test("server-renders the PSI booking experience", async () => {
   assert.match(html, /\$100 AUD(?:<!-- -->)? for service/);
   assert.match(html, /\$300 AUD(?:<!-- -->)? for dyno tuning/);
   assert.match(html, /\$423\.50 AUD including GST/);
-  assert.match(html, /\$764\.50 AUD including GST/);
+  assert.match(html, /\$649 AUD including GST/);
   assert.match(html, /Let’s get you sorted\./);
   assert.match(html, /0433 431 781/);
   assert.match(html, /info@psiperformance\.com\.au/);
@@ -165,7 +165,7 @@ test("keeps deposit values server-owned and blocks pay-first bypasses", async ()
   assert.match(catalog, /dyno:\s*30_000/);
   assert.match(catalog, /DEPOSIT_POLICY_VERSION = "psi-deposit-v3"/);
   assert.match(catalog, /amountCents: 42_350/);
-  assert.match(catalog, /amountCents: 76_450/);
+  assert.match(catalog, /amountCents: 64_900/);
   assert.match(catalog, /variesByBookingType: true/);
   assert.match(catalog, /gstInclusive: true/);
   assert.match(catalog, /requiredAtRequest: false/);

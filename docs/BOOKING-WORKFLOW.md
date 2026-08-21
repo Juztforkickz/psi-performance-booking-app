@@ -48,7 +48,7 @@ explicit PSI/manual decision.
 ## Pricing shown to consumers
 
 - Service & Report: from **$423.50 AUD including GST**.
-- Dyno tuning: from **$764.50 AUD including GST**.
+- Dyno tuning: from **$649 AUD including GST**.
 - Service deposit after date approval: **$100 AUD**.
 - Dyno deposit after date approval: **$300 AUD**.
 

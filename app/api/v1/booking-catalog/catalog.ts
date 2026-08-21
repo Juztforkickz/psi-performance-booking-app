@@ -39,7 +39,7 @@ export const BOOKING_CATALOG = {
       kind: "booking",
       priceGuide: {
         prefix: "from",
-        amountCents: 76_450,
+        amountCents: 64_900,
         currency: DEPOSIT_CURRENCY,
         gstInclusive: true,
       },
