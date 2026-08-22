@@ -86,7 +86,9 @@ test("uses one native responsive contract across every customer screen", async (
     assert.match(screen, /edges=\{\['top', 'right', 'bottom', 'left'\]\}/);
   }
 
-  assert.match(home, /oneColumn = width - horizontalPadding \* 2 < 330 \|\| largeText/);
+  assert.doesNotMatch(home, /oneColumn/);
+  assert.match(home, /tileGrid: \{[^}]*gap: spacing\.xs/);
+  assert.match(home, /tileCell: \{[^}]*flexGrow: 0[^}]*minWidth: 0/);
   assert.match(home, /threeColumns = tablet && width >= 780 && !largeText/);
   assert.match(home, /compact && styles\.compactFrame/);
   assert.match(garage, /tablet && !largeText/);

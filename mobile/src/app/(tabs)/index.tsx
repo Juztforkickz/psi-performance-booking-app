@@ -47,7 +47,6 @@ export default function CustomerHomeScreen() {
     'material-community': require('../../../assets/fonts/MaterialCommunityIcons.ttf'),
   });
   const [bookingChooserOpen, setBookingChooserOpen] = useState(false);
-  const oneColumn = width - horizontalPadding * 2 < 330 || largeText;
   const threeColumns = tablet && width >= 780 && !largeText;
 
   const openBooking = (type: 'service' | 'dyno') => {
@@ -99,7 +98,7 @@ export default function CustomerHomeScreen() {
           <Text style={styles.sectionHint}>Tap a tile</Text>
         </View>
         <View style={styles.tileGrid}>
-          <TileCell oneColumn={oneColumn} threeColumns={threeColumns}>
+          <TileCell threeColumns={threeColumns}>
             <DashboardTile
               accessibilityHint="Opens vehicle selection, photos, results and history"
               image={DASHBOARD_TILES.garage}
@@ -107,7 +106,7 @@ export default function CustomerHomeScreen() {
               onPress={() => router.push('/garage')}
             />
           </TileCell>
-          <TileCell oneColumn={oneColumn} threeColumns={threeColumns}>
+          <TileCell threeColumns={threeColumns}>
             <DashboardTile
               accessibilityHint="Opens your own upcoming and past visits"
               image={DASHBOARD_TILES.bookings}
@@ -115,7 +114,7 @@ export default function CustomerHomeScreen() {
               onPress={() => router.push('/bookings')}
             />
           </TileCell>
-          <TileCell oneColumn={oneColumn} threeColumns={threeColumns}>
+          <TileCell threeColumns={threeColumns}>
             <DashboardTile
               accessibilityHint="Choose a service or dyno request for a future date"
               image={DASHBOARD_TILES.bookAhead}
@@ -123,7 +122,7 @@ export default function CustomerHomeScreen() {
               onPress={() => setBookingChooserOpen(true)}
             />
           </TileCell>
-          <TileCell oneColumn={oneColumn} threeColumns={threeColumns}>
+          <TileCell threeColumns={threeColumns}>
             <DashboardTile
               accessibilityHint="Opens booking updates and reminders"
               image={DASHBOARD_TILES.alerts}
@@ -137,7 +136,7 @@ export default function CustomerHomeScreen() {
           <Text style={styles.sectionTitle}>Workshop</Text>
         </View>
         <View style={styles.tileGrid}>
-          <TileCell oneColumn={oneColumn} threeColumns={threeColumns}>
+          <TileCell threeColumns={threeColumns}>
             <DashboardTile
               accessibilityHint="Starts the existing approval-first dyno tuning request"
               image={DASHBOARD_TILES.dyno}
@@ -145,7 +144,7 @@ export default function CustomerHomeScreen() {
               onPress={() => openBooking('dyno')}
             />
           </TileCell>
-          <TileCell oneColumn={oneColumn} threeColumns={threeColumns}>
+          <TileCell threeColumns={threeColumns}>
             <DashboardTile
               accessibilityHint="Opens the latest PSI-published vehicle and dyno reports"
               image={DASHBOARD_TILES.reports}
@@ -153,7 +152,7 @@ export default function CustomerHomeScreen() {
               onPress={() => router.push({ pathname: '/garage', params: { section: 'dyno' } })}
             />
           </TileCell>
-          <TileCell oneColumn={oneColumn} threeColumns={threeColumns}>
+          <TileCell threeColumns={threeColumns}>
             <DashboardTile
               accessibilityHint="Opens your staged vehicle plan and official PSI parts links"
               image={DASHBOARD_TILES.planBuild}
@@ -286,15 +285,13 @@ export default function CustomerHomeScreen() {
 
 function TileCell({
   children,
-  oneColumn,
   threeColumns,
 }: {
   children: React.ReactNode;
-  oneColumn: boolean;
   threeColumns: boolean;
 }) {
   return (
-    <View style={[styles.tileCell, oneColumn && styles.tileCellFull, threeColumns && styles.tileCellThird]}>
+    <View style={[styles.tileCell, threeColumns && styles.tileCellThird]}>
       {children}
     </View>
   );
@@ -401,9 +398,8 @@ const styles = StyleSheet.create({
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.sm },
   sectionTitle: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .9, textTransform: 'uppercase' },
   sectionHint: { color: colors.gold, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
-  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  tileCell: { width: '47%', flexGrow: 1, minWidth: 148, maxWidth: 360 },
-  tileCellFull: { width: '100%', maxWidth: '100%' },
+  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  tileCell: { width: '47%', flexGrow: 0, flexShrink: 1, minWidth: 0, maxWidth: 360 },
   tileCellThird: { width: '30%', minWidth: 180 },
   standardPanel: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
   standardImageFrame: { width: '100%', aspectRatio: 1.65, overflow: 'hidden', backgroundColor: colors.inkSoft },
