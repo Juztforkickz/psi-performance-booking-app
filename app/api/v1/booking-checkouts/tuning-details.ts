@@ -20,9 +20,22 @@ export const FUEL_TYPES = [
 ] as const;
 export const INTAKE_TYPES = ["stock", "upgraded"] as const;
 export const PREVIOUS_TUNE_STATES = ["no", "yes", "unknown"] as const;
-export const EXHAUST_TYPES = ["stock", "cat_back", "full_system", "custom"] as const;
+export const EXHAUST_TYPES = ["stock", "cat_back", "downpipe", "full_system", "custom"] as const;
 export const EXHAUST_SIZES = [
   "stock",
+  "2_5_inch",
+  "3_inch",
+  "3_5_inch",
+  "4_inch",
+  "other",
+] as const;
+export const HEADER_EXTRACTOR_DOWNPIPE_SIZES = [
+  "stock",
+  "1_5_8_inch",
+  "1_3_4_inch",
+  "1_7_8_inch",
+  "2_inch",
+  "2_25_inch",
   "2_5_inch",
   "3_inch",
   "3_5_inch",
@@ -52,6 +65,7 @@ export interface TuningDetails {
   previousTuner: string;
   exhaustType: (typeof EXHAUST_TYPES)[number];
   exhaustSize: (typeof EXHAUST_SIZES)[number];
+  headerExtractorDownpipeSize?: (typeof HEADER_EXTRACTOR_DOWNPIPE_SIZES)[number];
   varexControlled: (typeof YES_NO_UNKNOWN)[number];
   exhaustDetails: string;
   camshaftType: (typeof COMPONENT_STATES)[number];
@@ -101,6 +115,7 @@ const TUNING_DETAIL_KEYS = new Set<TuningDetailsKey>([
   "previousTuner",
   "exhaustType",
   "exhaustSize",
+  "headerExtractorDownpipeSize",
   "varexControlled",
   "exhaustDetails",
   "camshaftType",
@@ -277,6 +292,9 @@ export function validateTuningDetails(value: unknown):
   const previousTuner = readDetailText(body, "previousTuner", errors);
   const exhaustType = readEnum(body, "exhaustType", EXHAUST_TYPES, errors);
   const exhaustSize = readEnum(body, "exhaustSize", EXHAUST_SIZES, errors);
+  const headerExtractorDownpipeSize = Object.hasOwn(body, "headerExtractorDownpipeSize")
+    ? readEnum(body, "headerExtractorDownpipeSize", HEADER_EXTRACTOR_DOWNPIPE_SIZES, errors)
+    : "";
   const varexControlled = readEnum(
     body,
     "varexControlled",
@@ -412,6 +430,9 @@ export function validateTuningDetails(value: unknown):
       previousTuner,
       exhaustType: exhaustType as TuningDetails["exhaustType"],
       exhaustSize: exhaustSize as TuningDetails["exhaustSize"],
+      ...(headerExtractorDownpipeSize
+        ? { headerExtractorDownpipeSize: headerExtractorDownpipeSize as NonNullable<TuningDetails["headerExtractorDownpipeSize"]> }
+        : {}),
       varexControlled: varexControlled as TuningDetails["varexControlled"],
       exhaustDetails,
       camshaftType: camshaftType as TuningDetails["camshaftType"],
@@ -461,6 +482,7 @@ export function validatePartialTuningDetails(value: unknown):
     previouslyTuned: PREVIOUS_TUNE_STATES,
     exhaustType: EXHAUST_TYPES,
     exhaustSize: EXHAUST_SIZES,
+    headerExtractorDownpipeSize: HEADER_EXTRACTOR_DOWNPIPE_SIZES,
     varexControlled: YES_NO_UNKNOWN,
     camshaftType: COMPONENT_STATES,
   } as const;
