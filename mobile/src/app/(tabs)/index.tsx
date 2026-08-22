@@ -43,8 +43,8 @@ export default function CustomerHomeScreen() {
   const { prepareBookingVehicle, selectedVehicleId } = useCustomerPreview();
   const { compact, horizontalPadding, largeText, tablet, width } = useResponsiveLayout();
   const [contactIconFontsLoaded] = useFonts({
-    ...Ionicons.font,
-    ...MaterialCommunityIcons.font,
+    ionicons: require('../../../assets/fonts/Ionicons.ttf'),
+    'material-community': require('../../../assets/fonts/MaterialCommunityIcons.ttf'),
   });
   const [bookingChooserOpen, setBookingChooserOpen] = useState(false);
   const oneColumn = width - horizontalPadding * 2 < 330 || largeText;
