@@ -1,0 +1,91 @@
+name: PSI mobile branch preview
+
+on:
+  push:
+    branches:
+      - codex/illustrated-customer-app
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: psi-mobile-pages-preview
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: mobile/pnpm-lock.yaml
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: pnpm install --frozen-lockfile
+
+      - name: Configure Expo for GitHub Pages base path
+        working-directory: mobile
+        env:
+          GITHUB_PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const app = require('./app.json');
+          const baseUrl = process.env.GITHUB_PAGES_BASE_PATH || '/psi-performance-booking-app';
+          const config = {
+            expo: {
+              ...app.expo,
+              experiments: {
+                ...(app.expo.experiments || {}),
+                baseUrl,
+              },
+            },
+          };
+          fs.writeFileSync('app.config.json', JSON.stringify(config, null, 2));
+          NODE
+
+      - name: Typecheck mobile app
+        working-directory: mobile
+        run: pnpm typecheck
+
+      - name: Export Expo web preview
+        working-directory: mobile
+        env:
+          EXPO_PUBLIC_API_BASE_URL: ''
+        run: EXPO_CONFIG_FILE=app.config.json pnpm export:web
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: mobile/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages preview
+        id: deployment
+        uses: actions/deploy-pages@v4
