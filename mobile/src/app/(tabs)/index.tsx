@@ -1,4 +1,6 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useFonts } from 'expo-font';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -40,6 +42,10 @@ export default function CustomerHomeScreen() {
   const router = useRouter();
   const { prepareBookingVehicle, selectedVehicleId } = useCustomerPreview();
   const { compact, horizontalPadding, largeText, tablet, width } = useResponsiveLayout();
+  const [contactIconFontsLoaded] = useFonts({
+    ...Ionicons.font,
+    ...MaterialCommunityIcons.font,
+  });
   const [bookingChooserOpen, setBookingChooserOpen] = useState(false);
   const oneColumn = width - horizontalPadding * 2 < 330 || largeText;
   const threeColumns = tablet && width >= 780 && !largeText;
@@ -190,12 +196,12 @@ export default function CustomerHomeScreen() {
             <WorkshopFact icon="location-outline" label="Workshop" value={contact.address} />
           </View>
           <View style={styles.contactActions}>
-            <ContactAction icon="call" label="Call PSI" onPress={() => void Linking.openURL(contact.phoneUrl)} />
-            <ContactAction icon="mail" label="Email" onPress={() => void Linking.openURL(contact.emailUrl)} />
-            <ContactAction icon="map" label="Directions" onPress={() => void Linking.openURL(contact.mapsUrl)} />
-            <ContactAction icon="instagram" label="Instagram" onPress={() => void Linking.openURL(contact.instagram)} />
-            <ContactAction icon="facebook" label="Facebook" onPress={() => void Linking.openURL(contact.facebook)} />
-            <ContactAction icon="website" label="Website" onPress={() => void Linking.openURL(contact.website)} />
+            <ContactAction icon="call" iconsLoaded={contactIconFontsLoaded} label="Call PSI" onPress={() => void Linking.openURL(contact.phoneUrl)} />
+            <ContactAction icon="mail" iconsLoaded={contactIconFontsLoaded} label="Email" onPress={() => void Linking.openURL(contact.emailUrl)} />
+            <ContactAction icon="map" iconsLoaded={contactIconFontsLoaded} label="Directions" onPress={() => void Linking.openURL(contact.mapsUrl)} />
+            <ContactAction icon="instagram" iconsLoaded={contactIconFontsLoaded} label="Instagram" onPress={() => void Linking.openURL(contact.instagram)} />
+            <ContactAction icon="facebook" iconsLoaded={contactIconFontsLoaded} label="Facebook" onPress={() => void Linking.openURL(contact.facebook)} />
+            <ContactAction icon="website" iconsLoaded={contactIconFontsLoaded} label="Website" onPress={() => void Linking.openURL(contact.website)} />
           </View>
           <View accessibilityLabel="PSI Performance contact QR code" style={[styles.qrCard, compact && styles.qrCardCompact]}>
             <View style={styles.qrImageFrame}>
@@ -313,16 +319,18 @@ function BookingChoice({ detail, label, onPress }: { detail: string; label: stri
 
 function ContactAction({
   icon,
+  iconsLoaded,
   label,
   onPress,
 }: {
   icon: ContactIconName;
+  iconsLoaded: boolean;
   label: string;
   onPress: () => void;
 }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.contactAction, pressed && styles.pressed]}>
-      <ContactActionIcon name={icon} />
+      <ContactActionIcon loaded={iconsLoaded} name={icon} />
       <Text style={styles.contactActionText}>{label}</Text>
     </Pressable>
   );
@@ -330,68 +338,27 @@ function ContactAction({
 
 type ContactIconName = 'call' | 'facebook' | 'instagram' | 'mail' | 'map' | 'website';
 
-function ContactActionIcon({ name }: { name: ContactIconName }) {
+const CONTACT_IONICON_NAMES = {
+  call: 'call',
+  facebook: 'logo-facebook',
+  instagram: 'logo-instagram',
+  mail: 'mail',
+  website: 'globe-outline',
+} as const satisfies Record<Exclude<ContactIconName, 'map'>, keyof typeof Ionicons.glyphMap>;
+
+function ContactActionIcon({ loaded, name }: { loaded: boolean; name: ContactIconName }) {
   const hiddenFromAccessibility = {
     accessibilityElementsHidden: true,
     importantForAccessibility: 'no-hide-descendants' as const,
   };
 
-  if (name === 'call') {
-    return (
-      <View {...hiddenFromAccessibility} style={styles.contactIconCanvas}>
-        <Text style={styles.contactPhoneIcon}>{'☎︎'}</Text>
-      </View>
-    );
-  }
-
-  if (name === 'mail') {
-    return (
-      <View {...hiddenFromAccessibility} style={styles.contactIconCanvas}>
-        <View style={styles.contactMailIcon}>
-          <View style={[styles.contactMailFold, styles.contactMailFoldLeft]} />
-          <View style={[styles.contactMailFold, styles.contactMailFoldRight]} />
-        </View>
-      </View>
-    );
-  }
-
-  if (name === 'map') {
-    return (
-      <View {...hiddenFromAccessibility} style={styles.contactIconCanvas}>
-        <View style={styles.contactMapPin}>
-          <View style={styles.contactMapPinDot} />
-        </View>
-      </View>
-    );
-  }
-
-  if (name === 'instagram') {
-    return (
-      <View {...hiddenFromAccessibility} style={styles.contactIconCanvas}>
-        <View style={styles.contactInstagramIcon}>
-          <View style={styles.contactInstagramLens} />
-          <View style={styles.contactInstagramDot} />
-        </View>
-      </View>
-    );
-  }
-
-  if (name === 'facebook') {
-    return (
-      <View {...hiddenFromAccessibility} style={styles.contactIconCanvas}>
-        <View style={styles.contactFacebookIcon}>
-          <Text style={styles.contactFacebookGlyph}>f</Text>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View {...hiddenFromAccessibility} style={styles.contactIconCanvas}>
-      <View style={styles.contactGlobeIcon}>
-        <View style={styles.contactGlobeMeridian} />
-        <View style={styles.contactGlobeEquator} />
-      </View>
+      {!loaded ? null : name === 'map' ? (
+        <MaterialCommunityIcons color={colors.gold} name="google-maps" size={24} />
+      ) : (
+        <Ionicons color={colors.gold} name={CONTACT_IONICON_NAMES[name]} size={23} />
+      )}
     </View>
   );
 }
@@ -458,21 +425,6 @@ const styles = StyleSheet.create({
   contactActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   contactAction: { minHeight: 50, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, ...mobileFrame, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
   contactIconCanvas: { width: 22, height: 22, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
-  contactPhoneIcon: { color: colors.gold, fontSize: 21, fontWeight: '800', lineHeight: 22 },
-  contactMailIcon: { width: 20, height: 15, overflow: 'hidden', borderWidth: 2, borderColor: colors.gold, borderRadius: 2 },
-  contactMailFold: { position: 'absolute', top: 3, width: 12, height: 2, backgroundColor: colors.gold },
-  contactMailFoldLeft: { left: -1, transform: [{ rotate: '31deg' }] },
-  contactMailFoldRight: { right: -1, transform: [{ rotate: '-31deg' }] },
-  contactMapPin: { width: 15, height: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.gold, borderRadius: 8, borderBottomRightRadius: 2, transform: [{ rotate: '45deg' }] },
-  contactMapPinDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.gold },
-  contactInstagramIcon: { width: 19, height: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.gold, borderRadius: 5 },
-  contactInstagramLens: { width: 7, height: 7, borderWidth: 2, borderColor: colors.gold, borderRadius: 4 },
-  contactInstagramDot: { position: 'absolute', top: 2, right: 2, width: 3, height: 3, borderRadius: 2, backgroundColor: colors.gold },
-  contactFacebookIcon: { width: 19, height: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.gold, borderRadius: 10 },
-  contactFacebookGlyph: { color: colors.gold, fontSize: 19, fontWeight: '900', lineHeight: 20 },
-  contactGlobeIcon: { width: 20, height: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.gold, borderRadius: 10, overflow: 'hidden' },
-  contactGlobeMeridian: { position: 'absolute', top: -2, bottom: -2, left: 5, right: 5, borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.gold, borderRadius: 7 },
-  contactGlobeEquator: { position: 'absolute', left: 1, right: 1, top: 7, height: 2, backgroundColor: colors.gold },
   contactActionText: { color: colors.white, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   qrCard: { ...mobileFrame, flexDirection: 'row', alignItems: 'center', gap: spacing.md, overflow: 'hidden', backgroundColor: colors.cream, padding: spacing.md },
   qrCardCompact: { alignItems: 'stretch', flexDirection: 'column' },
