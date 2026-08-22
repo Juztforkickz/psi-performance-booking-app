@@ -13,12 +13,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { CUSTOMER_PREVIEW, type PreviewAlert } from '@/lib/customer-preview';
+import { ThemePreference, useThemePreference } from '@/lib/theme-preference';
+
+const THEME_PREFERENCES: ReadonlyArray<{ value: ThemePreference; label: string }> = [
+  { value: 'dark', label: 'Dark' },
+  { value: 'bright', label: 'Bright' },
+  { value: 'automatic', label: 'Automatic' },
+];
 
 type AlertPreference = 'booking' | 'reminder' | 'vehicle';
 
 export default function AlertsScreen() {
   const router = useRouter();
   const { compact, horizontalPadding } = useResponsiveLayout();
+  const { setThemePreference, theme, themePreference } = useThemePreference();
   const [readIds, setReadIds] = useState<Set<string>>(
     () => new Set(CUSTOMER_PREVIEW.alerts.filter((alert) => alert.read).map((alert) => alert.id)),
   );
@@ -46,7 +54,7 @@ export default function AlertsScreen() {
         <View style={styles.header}>
           <View style={styles.headerCopy}>
             <Text style={styles.eyebrow}>Updates & reminders</Text>
-            <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact]}>Alerts</Text>
+            <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact]}>Settings & Notifications</Text>
           </View>
           <View accessibilityLabel={`${unreadCount} unread example alerts`} style={styles.countBadge}>
             <Ionicons color={colors.ink} name="notifications" size={18} />
@@ -59,6 +67,57 @@ export default function AlertsScreen() {
           <Text style={styles.previewNoticeCopy}>
             These alerts and controls are synthetic and stay in memory. This demo does not ask for notification permission, register a device or send messages.
           </Text>
+        </View>
+
+        <View style={[styles.themePanel, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+          <Text style={[styles.themeModeTitle, { color: theme.text }]}>Theme preference</Text>
+          <View style={styles.themeModeControls}>
+            {THEME_PREFERENCES.map((item) => {
+              const selected = themePreference === item.value;
+              return (
+                <Pressable
+                  accessibilityHint="Switch app theme"
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  key={item.value}
+                  onPress={() => setThemePreference(item.value)}
+                  style={({ pressed }) => [
+                    styles.themeModeOption,
+                    {
+                      backgroundColor: selected ? theme.accent : theme.surfaceRaised,
+                      borderColor: selected ? theme.accent : theme.border,
+                    },
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <View
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants"
+                    pointerEvents="none"
+                    style={styles.themeModeCheckboxRow}
+                  >
+                    <View
+                      style={[
+                        styles.themeModeCheckbox,
+                        selected && styles.themeModeCheckboxSelected,
+                          { borderColor: selected ? theme.textInverse : theme.text },
+                      ]}
+                    >
+                      {selected ? <View style={[styles.themeModeCheckboxInner, { backgroundColor: theme.textInverse }]} /> : null}
+                    </View>
+                    <Text style={[styles.themeModeOptionText, { color: selected ? theme.textInverse : theme.text }]}>
+                      {item.label}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+          {themePreference === 'automatic' ? (
+            <Text style={[styles.themeModeNotice, { color: theme.textMuted }]}>
+              Automatic follows your device setting for dark and bright.
+            </Text>
+          ) : null}
         </View>
 
         <View style={styles.sectionHeading}>
@@ -223,6 +282,16 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
   sectionAction: { color: colors.gold, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   sectionMeta: { color: colors.muted, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
+  themePanel: { ...mobileFrame, gap: spacing.sm, backgroundColor: colors.panel, paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.line },
+  themeModeControls: { flexDirection: 'row', gap: spacing.xs },
+  themeModeOption: { minHeight: 36, minWidth: 82, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 8, paddingHorizontal: spacing.sm },
+  themeModeCheckboxRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  themeModeCheckbox: { width: 15, height: 15, borderRadius: 2.5, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  themeModeCheckboxSelected: {},
+  themeModeCheckboxInner: { width: 7, height: 7, borderRadius: 1, backgroundColor: colors.ink },
+  themeModeOptionText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: .4 },
+  themeModeTitle: { color: colors.white, fontSize: 10, fontWeight: '900', letterSpacing: .9, textTransform: 'uppercase' },
+  themeModeNotice: { fontSize: 10, lineHeight: 16, fontStyle: 'italic' },
   alertList: { gap: spacing.sm },
   alertCard: { ...mobileFrame, minHeight: 116, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, backgroundColor: colors.panel, padding: spacing.md },
   alertCardUnread: { backgroundColor: colors.inkSoft },

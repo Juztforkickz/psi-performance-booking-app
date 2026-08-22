@@ -21,14 +21,14 @@ import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { PUBLIC_DEMO } from '@/lib/public-demo';
-import { ThemePreference, useThemePreference } from '@/lib/theme-preference';
+import { useThemePreference } from '@/lib/theme-preference';
 
 const DASHBOARD_TILES = {
   garage: require('../../../assets/images/dashboard/tile-my-garage.jpg'),
   bookings: require('../../../assets/images/dashboard/tile-my-bookings.jpg'),
   bookAhead: require('../../../assets/images/dashboard/tile-book-ahead.jpg'),
   alerts: require('../../../assets/images/dashboard/tile-alerts.jpg'),
-  dyno: require('../../../assets/images/dashboard/tile-hub-dyno.jpg'),
+  dyno: require('../../../assets/images/dashboard/tile-from-attachment-scaled-960x1200.jpg'),
   reports: require('../../../assets/images/dashboard/tile-vehicle-reports.jpg'),
   planBuild: require('../../../assets/images/dashboard/tile-plan-build.jpg'),
 } as const;
@@ -39,17 +39,11 @@ const PSI_PROMISES = [
   { index: '03', title: 'Together', copy: 'PSI listens, explains and shapes the project with you.' },
 ] as const;
 
-const THEME_PREFERENCES: ReadonlyArray<{ value: ThemePreference; label: string }> = [
-  { value: 'dark', label: 'Dark' },
-  { value: 'bright', label: 'Bright' },
-  { value: 'automatic', label: 'Automatic' },
-];
-
 export default function CustomerHomeScreen() {
   const router = useRouter();
   const { prepareBookingVehicle, selectedVehicleId } = useCustomerPreview();
   const { compact, horizontalPadding, largeText, tablet, width } = useResponsiveLayout();
-  const { activeTheme, setThemePreference, theme, themePreference } = useThemePreference();
+  const { activeTheme, theme } = useThemePreference();
   const [contactIconFontsLoaded] = useFonts({
     ionicons: require('../../../assets/fonts/Ionicons.ttf'),
     'material-community': require('../../../assets/fonts/MaterialCommunityIcons.ttf'),
@@ -152,7 +146,7 @@ export default function CustomerHomeScreen() {
             <DashboardTile
               accessibilityHint="Opens booking updates and reminders"
               image={DASHBOARD_TILES.alerts}
-              label="Alerts"
+              label="Settings & Notifications"
               onPress={() => router.push('/alerts')}
             />
           </TileCell>
@@ -229,40 +223,6 @@ export default function CustomerHomeScreen() {
         >
           <Text style={[styles.contactKicker, { color: theme.accent }]}>PSI Performance · Pakenham</Text>
           <Text style={[styles.contactTitle, { color: theme.text }]}>Need to speak with the workshop?</Text>
-          <View style={[styles.themeModePanel, { borderColor: theme.border }]}>
-            <Text style={[styles.themeModeTitle, { color: theme.textMuted }]}>Theme preference</Text>
-            <View style={styles.themeModeControls}>
-              {THEME_PREFERENCES.map((item) => {
-                const selected = themePreference === item.value;
-                return (
-                  <Pressable
-                    accessibilityHint="Switch app theme"
-                    accessibilityRole="button"
-                    accessibilityState={{ selected }}
-                    key={item.value}
-                    onPress={() => setThemePreference(item.value)}
-                    style={({ pressed }) => [
-                      styles.themeModeOption,
-                      {
-                        backgroundColor: selected ? theme.accent : theme.surfaceRaised,
-                        borderColor: selected ? theme.accent : theme.border,
-                      },
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    <Text style={[styles.themeModeOptionText, { color: selected ? theme.textInverse : theme.text }]}>
-                      {item.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            {themePreference === 'automatic' ? (
-              <Text style={[styles.themeModeNotice, { color: theme.textMuted }]}>
-                Automatic follows your device setting for dark and bright.
-              </Text>
-            ) : null}
-          </View>
           <View style={styles.workshopFacts}>
             <WorkshopFact icon="time-outline" label="Shop hours" value={'Mon–Fri · 8:30am–5pm\nSaturday · By appointment'} />
             <WorkshopFact icon="location-outline" label="Workshop" value={contact.address} />
@@ -568,12 +528,6 @@ const styles = StyleSheet.create({
   contactAction: { minHeight: 50, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, ...mobileFrame, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
   contactIconCanvas: { width: 22, height: 22, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   contactActionText: { color: colors.white, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  themeModePanel: { gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderWidth: 1 },
-  themeModeTitle: { fontSize: 10, fontWeight: '900', letterSpacing: .9, textTransform: 'uppercase' },
-  themeModeControls: { flexDirection: 'row', gap: spacing.xs },
-  themeModeOption: { minHeight: 36, minWidth: 82, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 8, paddingHorizontal: spacing.sm },
-  themeModeOptionText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: .4 },
-  themeModeNotice: { fontSize: 10, lineHeight: 16, fontStyle: 'italic' },
   qrCard: { ...mobileFrame, flexDirection: 'row', alignItems: 'center', gap: spacing.md, overflow: 'hidden', backgroundColor: colors.cream, padding: spacing.md },
   qrCardCompact: { alignItems: 'stretch', flexDirection: 'column' },
   qrImageFrame: { width: 118, aspectRatio: 1, flexShrink: 0, overflow: 'hidden', backgroundColor: colors.white },
@@ -589,7 +543,7 @@ const styles = StyleSheet.create({
   modalSafeArea: { flex: 1, backgroundColor: 'rgba(0,0,0,.82)' },
   modalBackdrop: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md },
   modalSheet: { width: '100%', maxWidth: 560, gap: spacing.md, ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.lg },
-  planBuildTileImage: { transform: [{ scale: 1.18 }], transformOrigin: 'center center' },
+  planBuildTileImage: {},
   modalHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   modalHeadingCopy: { flex: 1, gap: spacing.xs },
   modalTitle: { color: colors.white, fontSize: 24, fontWeight: '900', lineHeight: 28, textTransform: 'uppercase' },

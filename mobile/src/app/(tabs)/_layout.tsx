@@ -91,8 +91,8 @@ export default function CustomerTabsLayout() {
       <Tabs.Screen
         name="alerts"
         options={{
-          title: 'Alerts',
-          tabBarAccessibilityLabel: 'Alerts',
+          title: 'Settings & Notifications',
+          tabBarAccessibilityLabel: 'Settings and Notifications',
           tabBarIcon: ({ color, focused, size }) => (
             <Ionicons
               name={focused ? 'notifications' : 'notifications-outline'}
