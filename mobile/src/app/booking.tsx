@@ -115,11 +115,25 @@ const HISTORY_OPTIONS: SelectOption<Exclude<TuningDetails['previouslyTuned'], ''
 const EXHAUST_OPTIONS: SelectOption<Exclude<TuningDetails['exhaustType'], ''>>[] = [
   { value: 'stock', label: 'Stock exhaust' },
   { value: 'cat_back', label: 'Cat-back system' },
+  { value: 'downpipe', label: 'Downpipe' },
   { value: 'full_system', label: 'Full system' },
   { value: 'custom', label: 'Custom setup' },
 ];
 const EXHAUST_SIZE_OPTIONS: SelectOption<Exclude<TuningDetails['exhaustSize'], ''>>[] = [
   { value: 'stock', label: 'Stock size' },
+  { value: '2_5_inch', label: '2.5 inch' },
+  { value: '3_inch', label: '3 inch' },
+  { value: '3_5_inch', label: '3.5 inch' },
+  { value: '4_inch', label: '4 inch' },
+  { value: 'other', label: 'Other size' },
+];
+const HEADER_EXTRACTOR_DOWNPIPE_SIZE_OPTIONS: SelectOption<Exclude<TuningDetails['headerExtractorDownpipeSize'], ''>>[] = [
+  { value: 'stock', label: 'Stock size' },
+  { value: '1_5_8_inch', label: '1 5/8 inch' },
+  { value: '1_3_4_inch', label: '1 3/4 inch' },
+  { value: '1_7_8_inch', label: '1 7/8 inch' },
+  { value: '2_inch', label: '2 inch' },
+  { value: '2_25_inch', label: '2.25 inch' },
   { value: '2_5_inch', label: '2.5 inch' },
   { value: '3_inch', label: '3 inch' },
   { value: '3_5_inch', label: '3.5 inch' },
@@ -1040,6 +1054,14 @@ function TuningSetup({
           value={details.exhaustSize}
         />
         <SelectField
+          error={errors['tuningDetails.headerExtractorDownpipeSize']}
+          label="Header / extractor / downpipe size"
+          onChange={(value) => update('headerExtractorDownpipeSize', value)}
+          options={HEADER_EXTRACTOR_DOWNPIPE_SIZE_OPTIONS}
+          placeholder="Select header, extractor or downpipe size"
+          value={details.headerExtractorDownpipeSize}
+        />
+        <SelectField
           error={errors['tuningDetails.varexControlled']}
           label="Varex control"
           onChange={(value) => update('varexControlled', value)}
@@ -1054,7 +1076,7 @@ function TuningSetup({
               maxLength={800}
               multiline
               onChangeText={(value) => update('exhaustDetails', value)}
-              placeholder="Headers, cats, brand, pipe size, mufflers, valves and any other exhaust work."
+              placeholder="Headers, extractors, downpipe, cats, brand, mufflers, valves and any other exhaust work."
               style={styles.tuningNotesInput}
               textAlignVertical="top"
               value={details.exhaustDetails}
@@ -1572,7 +1594,7 @@ function ReviewStep({
                 <SummaryRow label="Previous tune" value={withDetails(selectedOptionLabel(HISTORY_OPTIONS, tuning.previouslyTuned), tuning.previousTuner)} />
                 <SummaryRow
                   label="Exhaust"
-                  value={`${selectedOptionLabel(EXHAUST_OPTIONS, tuning.exhaustType)} · ${selectedOptionLabel(EXHAUST_SIZE_OPTIONS, tuning.exhaustSize)} · ${selectedOptionLabel(VAREX_OPTIONS, tuning.varexControlled)}`}
+                  value={`${selectedOptionLabel(EXHAUST_OPTIONS, tuning.exhaustType)} · Exhaust ${selectedOptionLabel(EXHAUST_SIZE_OPTIONS, tuning.exhaustSize)} · Header/extractor/downpipe ${selectedOptionLabel(HEADER_EXTRACTOR_DOWNPIPE_SIZE_OPTIONS, tuning.headerExtractorDownpipeSize)} · ${selectedOptionLabel(VAREX_OPTIONS, tuning.varexControlled)}`}
                   secondary={tuning.exhaustDetails || undefined}
                 />
                 <SummaryRow label="Camshaft" value={withDetails(selectedOptionLabel(CAMSHAFT_OPTIONS, tuning.camshaftType), tuning.camshaftDetails)} />
