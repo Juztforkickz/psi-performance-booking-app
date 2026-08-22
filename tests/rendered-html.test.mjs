@@ -133,7 +133,8 @@ test("keeps the web Why PSI media responsive and the mobile dashboard artwork co
   assert.match(page, /<picture className="why-image">[\s\S]*src="\/psi-gtsr-porsche-clean\.jpg"[\s\S]*loading="lazy"/s);
   assert.doesNotMatch(page, /psi-gtsr-porsche-mobile-clean\.jpg/u);
   assert.match(mobilePage, /accessibilityLabel="PSI Performance Holden GTSR and Porsche outside the workshop"[\s\S]*resizeMode="contain"[\s\S]*source=\{require\('\.\.\/\.\.\/\.\.\/assets\/images\/psi-gtsr-porsche-clean\.jpg'\)\}/s);
-  assert.match(mobilePage, /standardImageFrame:\s*\{[^}]*aspectRatio:\s*1\.65[^}]*overflow:\s*'hidden'/s);
+  assert.match(mobilePage, /source=\{require\('\.\.\/\.\.\/\.\.\/assets\/images\/psi-gtsr-porsche-clean\.jpg'\)\}[\s\S]*source=\{require\('\.\.\/\.\.\/\.\.\/assets\/images\/psi-logo\.png'\)\}[\s\S]*style=\{styles\.standardShedLogo\}/s);
+  assert.match(mobilePage, /standardImageFrame:\s*\{[^}]*aspectRatio:\s*1746 \/ 901[^}]*overflow:\s*'hidden'/s);
   assert.doesNotMatch(mobilePage, /testimonial|storyCardWidth|snapToInterval/iu);
 });
 

@@ -173,6 +173,13 @@ export default function CustomerHomeScreen() {
               source={require('../../../assets/images/psi-gtsr-porsche-clean.jpg')}
               style={styles.standardImage}
             />
+            <Image
+              accessible={false}
+              accessibilityIgnoresInvertColors
+              resizeMode="contain"
+              source={require('../../../assets/images/psi-logo.png')}
+              style={styles.standardShedLogo}
+            />
           </View>
           <View style={styles.promiseList}>
             {PSI_PROMISES.map((promise) => (
@@ -402,8 +409,9 @@ const styles = StyleSheet.create({
   tileCell: { width: '47%', flexGrow: 0, flexShrink: 1, minWidth: 0, maxWidth: 360 },
   tileCellThird: { width: '30%', minWidth: 180 },
   standardPanel: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
-  standardImageFrame: { width: '100%', aspectRatio: 1.65, overflow: 'hidden', backgroundColor: colors.inkSoft },
+  standardImageFrame: { width: '100%', aspectRatio: 1746 / 901, overflow: 'hidden', backgroundColor: colors.inkSoft },
   standardImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
+  standardShedLogo: { position: 'absolute', top: '7%', left: '51%', width: '24%', height: '18%', opacity: .58 },
   promiseList: { paddingHorizontal: spacing.md },
   promise: { minHeight: 94, flexDirection: 'row', gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: spacing.md },
   promiseIndex: { color: colors.gold, fontSize: 10, fontWeight: '900' },
