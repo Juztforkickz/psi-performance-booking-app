@@ -26,8 +26,9 @@ export type TuningDetails = {
   intakeDetails: string;
   previouslyTuned: '' | 'no' | 'yes' | 'unknown';
   previousTuner: string;
-  exhaustType: '' | 'stock' | 'cat_back' | 'full_system' | 'custom';
+  exhaustType: '' | 'stock' | 'cat_back' | 'downpipe' | 'full_system' | 'custom';
   exhaustSize: '' | 'stock' | '2_5_inch' | '3_inch' | '3_5_inch' | '4_inch' | 'other';
+  headerExtractorDownpipeSize: '' | 'stock' | '1_5_8_inch' | '1_3_4_inch' | '1_7_8_inch' | '2_inch' | '2_25_inch' | '2_5_inch' | '3_inch' | '3_5_inch' | '4_inch' | 'other';
   varexControlled: '' | 'no' | 'yes' | 'unknown';
   exhaustDetails: string;
   camshaftType: '' | 'stock' | 'upgraded' | 'unknown';
@@ -93,8 +94,8 @@ export const EMPTY_TUNING_DETAILS: TuningDetails = {
   engineState: '', engineModifications: '', transmissionType: '', transmissionSetup: '', transmissionDetails: '',
   differentialType: '', differentialGearRatio: '', differentialDetails: '', fuelPumpType: '', fuelPumpDetails: '',
   injectorType: '', injectorDetails: '', fuelType: '', fuelTypeDetails: '', intakeType: '', intakeDetails: '',
-  previouslyTuned: '', previousTuner: '', exhaustType: '', exhaustSize: '', varexControlled: '', exhaustDetails: '',
-  camshaftType: '', camshaftDetails: '',
+  previouslyTuned: '', previousTuner: '', exhaustType: '', exhaustSize: '', headerExtractorDownpipeSize: '',
+  varexControlled: '', exhaustDetails: '', camshaftType: '', camshaftDetails: '',
 };
 
 export const EMPTY_BOOKING: BookingFormState = {
@@ -204,6 +205,7 @@ function validateKnownTuning(tuning: TuningDetails, errors: BookingErrors) {
   if (tuning.previouslyTuned === 'yes' && tuning.previousTuner.trim().length < 2) errors['tuningDetails.previousTuner'] = 'Enter who previously tuned the vehicle.';
   if (!tuning.exhaustType) errors['tuningDetails.exhaustType'] = 'Choose the exhaust setup.';
   if (!tuning.exhaustSize) errors['tuningDetails.exhaustSize'] = 'Choose the exhaust size.';
+  if (!tuning.headerExtractorDownpipeSize) errors['tuningDetails.headerExtractorDownpipeSize'] = 'Choose the header, extractor or downpipe size.';
   if (!tuning.varexControlled) errors['tuningDetails.varexControlled'] = 'Tell PSI whether Varex control is fitted.';
   if (tuning.exhaustType && tuning.exhaustType !== 'stock' && tuning.exhaustDetails.trim().length < 3) errors['tuningDetails.exhaustDetails'] = 'Describe the exhaust modifications.';
   if (!tuning.camshaftType) errors['tuningDetails.camshaftType'] = 'Choose the camshaft setup.';
