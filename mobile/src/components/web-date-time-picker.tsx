@@ -1,4 +1,4 @@
-import { createElement, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 type WebDateTimePickerEvent = {
   type: 'set';
@@ -51,49 +51,50 @@ export default function WebDateTimePicker({
     }
   }, [disabled]);
 
-  return createElement('input', {
-    ref: inputRef,
-    type: 'date',
-    disabled,
-    min: minimumDate ? melbourneIsoDate(minimumDate) : undefined,
-    max: maximumDate ? melbourneIsoDate(maximumDate) : undefined,
-    value: melbourneIsoDate(value),
-    'aria-label': 'Preferred booking date calendar',
-    onClick: (event) => {
-      try {
-        event.currentTarget.showPicker?.();
-      } catch {
-        // The browser will keep its normal date-input interaction as a fallback.
-      }
-    },
-    onChange: (event) => {
-      const selectedValue = event.currentTarget.value;
-      if (!selectedValue) return;
-      const selectedDate = new Date(`${selectedValue}T00:00:00Z`);
-      onChange?.(
-        {
-          type: 'set',
-          nativeEvent: {
-            timestamp: selectedDate.getTime(),
-            utcOffset: 0,
+  return (
+    <input
+      ref={inputRef}
+      type="date"
+      disabled={disabled}
+      min={minimumDate ? melbourneIsoDate(minimumDate) : undefined}
+      max={maximumDate ? melbourneIsoDate(maximumDate) : undefined}
+      value={melbourneIsoDate(value)}
+      aria-label="Preferred booking date calendar"
+      onClick={(event) => {
+        try {
+          event.currentTarget.showPicker?.();
+        } catch {
+          // The browser will keep its normal date-input interaction as a fallback.
+        }
+      }}
+      onChange={(event) => {
+        const selectedValue = event.currentTarget.value;
+        if (!selectedValue) return;
+        const selectedDate = new Date(`${selectedValue}T00:00:00Z`);
+        onChange?.(
+          {
+            type: 'set',
+            nativeEvent: {
+              timestamp: selectedDate.getTime(),
+              utcOffset: 0,
+            },
           },
-        },
-        selectedDate,
-      );
-    },
-    style: {
-      width: '100%',
-      minHeight: '52px',
-      border: 0,
-      outline: 'none',
-      background: 'transparent',
-      color: '#FFFFFF',
-      colorScheme: 'dark',
-      fontFamily: 'inherit',
-      fontSize: '16px',
-      fontWeight: 700,
-      padding: '0 12px',
-      WebkitAppearance: 'auto',
-    },
-  });
+          selectedDate,
+        );
+      }}
+      style={{
+        width: '100%',
+        minHeight: '52px',
+        border: 0,
+        outline: 'none',
+        background: 'transparent',
+        color: '#FFFFFF',
+        colorScheme: 'dark',
+        fontFamily: 'inherit',
+        fontSize: '16px',
+        fontWeight: 700,
+        padding: '0 12px',
+      }}
+    />
+  );
 }

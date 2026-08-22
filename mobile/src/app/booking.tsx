@@ -482,7 +482,7 @@ function BookingScreenContent() {
     return (
       <RequestHandoff
         draftCleared={requestDraftCleared}
-        onHome={() => router.replace('/(tabs)/index')}
+        onHome={() => router.replace('/')}
         result={requestResult}
       />
     );
@@ -602,7 +602,7 @@ function BookingScreenContent() {
             </View>
 
             {step === 1 ? (
-              <JobStep errors={errors} form={form} onChooseBooking={() => router.replace('/(tabs)/index')} update={update} updateTuning={updateTuning} />
+              <JobStep errors={errors} form={form} onChooseBooking={() => router.replace('/')} update={update} updateTuning={updateTuning} />
             ) : null}
             {step === 2 ? <VehicleStep errors={errors} form={form} update={update} wide={wideFields} /> : null}
             {step === 3 ? (
