@@ -96,4 +96,14 @@ test("uses one native responsive contract across every customer screen", async (
   assert.match(booking, /numberOfLines=\{2\}/);
   assert.match(booking, /tuningOptionScroll:\s*\{\s*flexShrink:\s*1,\s*minHeight:\s*0\s*\}/);
   assert.match(booking, /depositTotalStacked:\s*\{[^}]*flexDirection:\s*'column'/);
+  assert.match(booking, /stackDeposit\s*=\s*stackSummary\s*\|\|\s*width\s*<\s*480/);
+  assert.match(booking, /minimumFontScale=\{0\.75\}/);
+  assert.match(booking, /depositValue:\s*\{[^}]*flexShrink:\s*1/);
+  assert.match(booking, /depositCopyStacked:\s*\{[^}]*flex:\s*0[^}]*width:\s*'100%'/);
+  assert.match(garage, /dynoImageFrame:\s*\{[^}]*aspectRatio:\s*1\.1/);
+  assert.match(garage, /accessibilityLabel="Illustrated diagnostic scan tool[\s\S]*?resizeMode="contain"[\s\S]*?styles\.reportImage/);
+  assert.match(garage, /reportImage:\s*\{[\s\S]*?scale:\s*1\.36[\s\S]*?transformOrigin:\s*'top center'/);
+  assert.match(parts, /stackAreaCards\s*=\s*compact\s*\|\|\s*largeText/);
+  assert.match(parts, /!stackAreaCards\s*&&\s*styles\.areaCardTwoColumn/);
+  assert.match(parts, /areaCard:\s*\{[^}]*minHeight:\s*132/);
 });

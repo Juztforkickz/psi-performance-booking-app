@@ -157,6 +157,7 @@ export default function CustomerHomeScreen() {
               accessibilityHint="Opens your staged vehicle plan and official PSI parts links"
               image={DASHBOARD_TILES.planBuild}
               label="Plan & Build"
+              imageStyle={styles.planBuildTileImage}
               onPress={() => router.push('/parts')}
             />
           </TileCell>
@@ -445,6 +446,7 @@ const styles = StyleSheet.create({
   modalSafeArea: { flex: 1, backgroundColor: 'rgba(0,0,0,.82)' },
   modalBackdrop: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md },
   modalSheet: { width: '100%', maxWidth: 560, gap: spacing.md, ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.lg },
+  planBuildTileImage: { transform: [{ scale: 1.18 }], transformOrigin: 'center center' },
   modalHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   modalHeadingCopy: { flex: 1, gap: spacing.xs },
   modalTitle: { color: colors.white, fontSize: 24, fontWeight: '900', lineHeight: 28, textTransform: 'uppercase' },

@@ -19,6 +19,8 @@ Expo Router registers `/`, `/garage`, `/bookings` and `/alerts` inside the persi
 
 The dashboard and customer tabs currently use clearly labelled synthetic, in-memory examples for the account, vehicles, bookings, alerts, dyno results and build plan. Validated account-setup fields and the selected vehicle photo, the active vehicle selection, booking prefill and the Plan & Build handoff travel only through the root in-memory preview context. They put no personal information in route URLs, make no customer-data fetch, and perform no upload or persistence; the context clears when the app reloads or closes. This preview context is separate from the explicitly saved 30-day booking-form draft described below. Future dyno figures are intended to be published by PSI after a completed run and remain read-only to the customer; customers must never be able to enter or alter verified power and torque results.
 
+Plan & Build also includes a local-only build-brief preview. A customer can choose one or more discussion areas, refine them with category-specific selectors, add optional goals/current setup, and review the generated brief. SMS and email actions open a prefilled external draft; Instagram and Facebook actions open PSI's message thread with the verified profile/page as a fallback, but do not carry the brief. Nothing is sent automatically and no brief is stored by the app. If the customer taps Send in an external app, that becomes a real message to PSI.
+
 Date selection and validation use the `Australia/Melbourne` workshop timezone and cap requests at 18 months. Service requests accept Monday–Friday; dyno requests accept Monday, Wednesday and Thursday. Customers can instead select **I'm flexible**.
 
 ## Run locally

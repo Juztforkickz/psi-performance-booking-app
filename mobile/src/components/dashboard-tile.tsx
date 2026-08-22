@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Text,
   type ImageSourcePropType,
+  type ImageStyle,
   type StyleProp,
   type ViewStyle,
   View,
@@ -13,6 +14,8 @@ import { colors, mobileFrame, spacing } from '@/constants/brand';
 
 export type DashboardTileProps = {
   accessibilityHint?: string;
+  imageResizeMode?: 'center' | 'contain' | 'cover' | 'repeat' | 'stretch';
+  imageStyle?: StyleProp<ImageStyle>;
   disabled?: boolean;
   image: ImageSourcePropType;
   label: string;
@@ -26,6 +29,8 @@ export type DashboardTileProps = {
  */
 export function DashboardTile({
   accessibilityHint,
+  imageResizeMode = 'cover',
+  imageStyle,
   disabled = false,
   image,
   label,
@@ -49,9 +54,9 @@ export function DashboardTile({
     >
       <Image
         accessible={false}
-        resizeMode="cover"
+        resizeMode={imageResizeMode}
         source={image}
-        style={styles.image}
+        style={[styles.image, imageStyle]}
       />
       <View style={styles.shade} />
       <View style={styles.labelBand}>

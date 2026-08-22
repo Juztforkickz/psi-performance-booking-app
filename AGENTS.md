@@ -1,38 +1,25 @@
-# PSI Performance Booking Application — Agent Instructions
+# AGENTS
 
-These instructions apply to all future coding and maintenance work in this repository.
+## Project initialization
+- This file defines the persistent instructions for this repository.
+- Continue from the current verified checkpoint; do not restart or recreate the project.
+- Preserve existing approved work unless you explicitly request changes.
+- Keep deployment boundaries and safety constraints intact unless explicitly changed.
 
 ## Usage-efficiency rules
+- Use a small/targeted model for minor or narrowly scoped edits.
+- Use **Spark** for small, repetitive, or highly targeted work.
+- For normal development and routine multi-file work, use **GPT-5.6 Sol with Medium** reasoning.
+- For genuinely complex design/logic work, use **GPT-5.6 Sol with High** reasoning.
+- Use **Extra High/Max** only for exceptional/ high-risk or ambiguous problems.
 
-Before every substantial task, state the **lowest suitable model/reasoning setting** and briefly explain why it is sufficient.
+## Before substantial tasks
+- Before each substantial task, include:
+  - the lowest suitable model and reasoning level,
+  - a short reason it is sufficient,
+  - and when it is safe to reduce the setting again.
 
-Use the following default ladder:
-
-- **Spark** — small, targeted work such as one-file edits, copy changes, narrow UI fixes, simple inspections, straightforward tests, and other low-complexity tasks.
-- **GPT-5.6 Sol · Medium** — normal application development, multi-file feature work, routine debugging, refactors with clear scope, and standard architectural changes.
-- **GPT-5.6 Sol · High** — use only when the task is materially complex, ambiguous, cross-cutting, security-sensitive, or requires deeper reasoning than Medium is likely to handle efficiently.
-- **Extra High / Max** — reserve for exceptional problems only: unusually difficult debugging, high-risk architecture, major migrations, severe production incidents, or problems that have already resisted lower settings.
-
-Always prefer the lowest setting likely to complete the task correctly. Do not escalate pre-emptively.
-
-After a complex task that required High or Extra High / Max, explicitly tell the user when it is safe to reduce the setting again for subsequent work.
-
-## Project preservation
-
-- Continue from the current verified branch/checkpoint; do not restart or recreate the project.
-- Preserve existing approved work unless the user explicitly requests a change.
-- Do not undo, replace, or broadly rewrite working code to solve a narrow issue.
-- Prefer the smallest safe change that satisfies the request.
-- Inspect relevant existing files before editing them.
-- Preserve existing branches, checkpoints, restore points, safety boundaries, and deployment configuration unless explicitly instructed otherwise.
-- Do not deploy, merge to `main`, or alter external/live services unless the user explicitly authorises it.
-
-## Task completion
-
-For substantial work, finish by reporting:
-
-- model/reasoning setting used or recommended;
-- files changed;
-- validation/tests run;
-- resulting checkpoint/commit when applicable;
-- whether deployment or external services were touched.
+## Collaboration and task completion
+- Prefer the smallest safe change to meet the request.
+- Keep external/public services unchanged unless explicitly authorized.
+- For substantial work, report changed files, validation, checkpoint commit, and deployment status.

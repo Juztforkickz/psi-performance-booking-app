@@ -1529,8 +1529,9 @@ function ReviewStep({
   errors: BookingErrors;
   update: UpdateBooking;
 }) {
-  const { compact, largeText } = useResponsiveLayout();
+  const { compact, largeText, width } = useResponsiveLayout();
   const stackSummary = compact || largeText;
+  const stackDeposit = stackSummary || width < 480;
   const purpose = form.bookingType ? BOOKING_PURPOSES[form.bookingType] : null;
   const depositAmountCents = depositAmountForBookingType(form.bookingType);
   const depositDisplay = depositAmountCents === null ? 'Not selected' : displayMoney(depositAmountCents);
@@ -1606,12 +1607,20 @@ function ReviewStep({
           <Text style={[styles.summaryLabel, stackSummary && styles.summaryLabelStacked]}>Your request</Text>
           <Text style={styles.requestSummaryText}>{form.requestDetails}</Text>
         </View>
-        <View style={[styles.depositTotal, stackSummary && styles.depositTotalStacked]}>
-          <View>
+        <View style={[styles.depositTotal, stackDeposit && styles.depositTotalStacked]}>
+          <View style={[styles.depositCopy, stackDeposit && styles.depositCopyStacked]}>
             <Text style={styles.depositLabel}>Deposit after date approval</Text>
             <Text style={styles.depositCurrency}>AUD · Nothing payable with this request</Text>
           </View>
-          <Text style={styles.depositValue}>{depositDisplay}</Text>
+          <Text
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.5}
+            minimumFontScale={0.75}
+            numberOfLines={1}
+            style={[styles.depositValue, stackDeposit && styles.depositValueStacked]}
+          >
+            {depositDisplay}
+          </Text>
         </View>
       </View>
 
@@ -1973,10 +1982,13 @@ const styles = StyleSheet.create({
   requestSummary: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: spacing.md },
   requestSummaryText: { flex: 1, minWidth: 0, color: colors.cream, fontSize: 12, lineHeight: 19 },
   depositTotal: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.md, borderTopWidth: 1, borderTopColor: bookingColors.accent, paddingTop: spacing.lg },
-  depositTotalStacked: { flexDirection: 'column', alignItems: 'flex-start', gap: spacing.sm },
+  depositTotalStacked: { flexDirection: 'column', alignItems: 'stretch', gap: spacing.sm },
+  depositCopy: { flex: 1, minWidth: 0 },
+  depositCopyStacked: { flex: 0, width: '100%' },
   depositLabel: { color: colors.white, fontSize: 13, fontWeight: '900' },
   depositCurrency: { marginTop: 4, color: colors.muted, fontSize: 10 },
-  depositValue: { color: bookingColors.accent, fontSize: 30, fontWeight: '900', letterSpacing: -1 },
+  depositValue: { flexShrink: 1, color: bookingColors.accent, fontSize: 30, fontWeight: '900', letterSpacing: -1 },
+  depositValueStacked: { alignSelf: 'flex-end', fontSize: 28, lineHeight: 32, textAlign: 'right' },
   paymentCard: { ...mobileFrame, gap: spacing.sm, backgroundColor: bookingColors.surfaceAlt, padding: spacing.md },
   paymentTitle: { color: colors.white, fontSize: 14, fontWeight: '900' },
   paymentCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },

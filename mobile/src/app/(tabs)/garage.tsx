@@ -177,7 +177,7 @@ export default function GarageScreen() {
               accessibilityLabel="Illustrated engine and performance build plan"
               resizeMode="cover"
               source={require('../../../assets/images/dashboard/tile-plan-build.jpg')}
-              style={styles.fillImage}
+              style={[styles.fillImage, styles.planBuildImage]}
             />
           </View>
           <View style={styles.buildBody}>
@@ -233,10 +233,10 @@ function DynoResultCard({
     <View style={styles.dynoCard}>
       <View style={styles.dynoImageFrame}>
         <Image
-          accessibilityLabel="Vehicle report with illustrated power and torque curves"
-          resizeMode="cover"
+          accessibilityLabel="Illustrated diagnostic scan tool and vehicle health report"
+          resizeMode="contain"
           source={REPORT_IMAGE}
-          style={styles.fillImage}
+          style={[styles.fillImage, styles.reportImage]}
         />
       </View>
       <View style={styles.dynoBody}>
@@ -335,7 +335,9 @@ const styles = StyleSheet.create({
   statValue: { color: colors.white, fontSize: 12, fontWeight: '800' },
   photoSection: { ...mobileFrame, backgroundColor: colors.panel, padding: spacing.lg },
   dynoCard: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
-  dynoImageFrame: { width: '100%', aspectRatio: 16 / 8.5, overflow: 'hidden', backgroundColor: colors.inkSoft },
+  dynoImageFrame: { width: '100%', aspectRatio: 1.1, overflow: 'hidden', backgroundColor: colors.ink },
+  // The source reserves its lower third for tile text. This keeps the complete scanner and plug visible while removing only that empty area.
+  reportImage: { transform: [{ scale: 1.36 }], transformOrigin: 'top center' },
   dynoBody: { gap: spacing.lg, padding: spacing.lg },
   dynoHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   dynoHeadingCopy: { flex: 1, gap: spacing.xs },
@@ -357,6 +359,7 @@ const styles = StyleSheet.create({
   buildCardWide: { flexDirection: 'row' },
   buildImageFrame: { width: '100%', aspectRatio: 4 / 3, overflow: 'hidden', backgroundColor: colors.inkSoft },
   buildImageFrameWide: { width: '44%', aspectRatio: 1 },
+  planBuildImage: { transform: [{ scale: 1.18 }], transformOrigin: 'top center' },
   buildBody: { flex: 1, gap: spacing.md, padding: spacing.lg },
   buildTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
   stageList: { gap: spacing.sm },
