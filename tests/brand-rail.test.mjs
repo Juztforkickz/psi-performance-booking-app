@@ -86,7 +86,7 @@ test("renders a seamless accessible web marquee at the bottom of the customer pa
 test("keeps native motion optional and exposes every brand once to assistive technology", async () => {
   const [rail, home] = await Promise.all([
     readFile(new URL("../mobile/src/components/brand-rail.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../mobile/src/app/index.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../mobile/src/app/(tabs)/index.tsx", import.meta.url), "utf8"),
   ]);
 
   for (const [name, filename] of brands) {
@@ -95,8 +95,8 @@ test("keeps native motion optional and exposes every brand once to assistive tec
   }
 
   assert.ok(
-    home.indexOf("<BrandRail />") < home.indexOf("<View style={styles.footer}>"),
-    "native rail must sit above the final copyright footer",
+    home.indexOf("<View style={styles.footer}>") < home.indexOf("<BrandRail />"),
+    "native rail must sit after the final copyright footer",
   );
   assert.match(rail, /AccessibilityInfo\.isReduceMotionEnabled\(\)/u);
   assert.match(rail, /AccessibilityInfo\.isScreenReaderEnabled\(\)/u);

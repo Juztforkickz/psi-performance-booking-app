@@ -129,7 +129,7 @@ export default function AccountScreen() {
           <PrimaryButton label="Preview account setup →" onPress={() => router.push('/account/sign-up')} variant="outline" />
         </View>
 
-        <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={({ pressed }) => [styles.guestLink, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)/index')} style={({ pressed }) => [styles.guestLink, pressed && styles.pressed]}>
           <Text style={styles.guestLinkText}>Continue without an account</Text>
           <Text maxFontSizeMultiplier={1.3} style={styles.guestArrow}>→</Text>
         </Pressable>

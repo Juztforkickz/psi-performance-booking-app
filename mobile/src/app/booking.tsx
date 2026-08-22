@@ -26,6 +26,7 @@ import {
   clearBookingDraft,
   loadBookingDraft,
   saveBookingDraft,
+  type LoadedBookingDraft,
 } from '@/lib/booking-draft';
 import {
   BOOKING_PURPOSES,
@@ -47,6 +48,8 @@ import {
   type TuningDetails,
   validateBookingStep,
 } from '@/lib/booking';
+import { useCustomerPreview } from '@/lib/customer-preview-context';
+import { type PreviewVehicle } from '@/lib/customer-preview';
 import { PUBLIC_DEMO } from '@/lib/public-demo';
 
 const STEP_LABELS = ['Job', 'Vehicle', 'Details', 'Date', 'Review'];
@@ -147,6 +150,14 @@ function withDetails(value: string, details: string) {
   return details.trim() ? `${value} · ${details.trim()}` : value;
 }
 
+function draftMatchesVehicle(form: BookingFormState, vehicle: PreviewVehicle) {
+  const normalise = (value: string) => value.trim().toLocaleLowerCase('en-AU');
+  return normalise(form.vehicleMake) === normalise(vehicle.make)
+    && normalise(form.vehicleModel) === normalise(vehicle.model)
+    && normalise(form.vehicleYear) === String(vehicle.year)
+    && normalise(form.registration) === normalise(vehicle.registration);
+}
+
 function firstErrorStep(errors: BookingErrors) {
   if (errors.bookingType || errors.requestDetails || errors.setupConfidence || Object.keys(errors).some((key) => key === 'tuningDetails' || key.startsWith('tuningDetails.'))) return 1;
   if (errors.vehicleMake || errors.vehicleModel || errors.vehicleYear || errors.registration || errors.vin) return 2;
@@ -168,29 +179,56 @@ export default function BookingScreen() {
 
 function BookingScreenContent() {
   const router = useRouter();
+  const {
+    clearPendingBookingVehicle,
+    ephemeralAccount,
+    pendingBookingVehicle,
+  } = useCustomerPreview();
+  const [bookingVehicle] = useState<PreviewVehicle | null>(() => pendingBookingVehicle);
   const { compact, fontScale, horizontalPadding, short, useFieldColumns: wideFields, width } = useResponsiveLayout();
   const compactHeader = width < 350 || fontScale > 1.4;
   const params = useLocalSearchParams<{ type?: string | string[] }>();
   const initialType = bookingTypeFromParam(params.type);
+  const blankForm = useMemo<BookingFormState>(() => ({
+    ...EMPTY_BOOKING,
+    bookingType: initialType,
+    tuningDetails: { ...EMPTY_BOOKING.tuningDetails },
+    ...(bookingVehicle ? {
+      registration: bookingVehicle.registration,
+      vehicleMake: bookingVehicle.make,
+      vehicleModel: bookingVehicle.model,
+      vehicleYear: String(bookingVehicle.year),
+    } : {}),
+    ...(ephemeralAccount ? {
+      email: ephemeralAccount.profile.email,
+      firstName: ephemeralAccount.profile.firstName,
+      lastName: ephemeralAccount.profile.lastName,
+      mobile: ephemeralAccount.profile.mobile,
+    } : {}),
+  }), [bookingVehicle, ephemeralAccount, initialType]);
   const scrollRef = useRef<ScrollView>(null);
   const draftOperationRef = useRef<Promise<unknown>>(Promise.resolve());
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState<BookingFormState>(() => ({
-    ...EMPTY_BOOKING,
-    bookingType: initialType,
-  }));
+  const [form, setForm] = useState<BookingFormState>(() => blankForm);
   const [errors, setErrors] = useState<BookingErrors>({});
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
   const [errorTitle, setErrorTitle] = useState('Request not submitted');
   const [requestResult, setRequestResult] = useState<BookingRequestResult | null>(null);
+  const [requestDraftCleared, setRequestDraftCleared] = useState(true);
   const [idempotencyKey, setIdempotencyKey] = useState(() => randomUUID());
   const [draftReadyFor, setDraftReadyFor] = useState<BookingType | ''>('');
   const [draftDirty, setDraftDirty] = useState(false);
   const [draftStatus, setDraftStatus] = useState('');
+  const [draftConflict, setDraftConflict] = useState<LoadedBookingDraft | null>(null);
+  const [draftConflictError, setDraftConflictError] = useState('');
   const maxDate = useMemo(() => maxBookingDate(), []);
   const draftReady = !initialType || draftReadyFor === initialType;
+
+  useEffect(() => {
+    clearPendingBookingVehicle();
+  }, [clearPendingBookingVehicle]);
 
   useEffect(() => {
     let active = true;
@@ -201,11 +239,17 @@ function BookingScreenContent() {
       .then((draft) => {
         if (!active) return;
         setDraftDirty(false);
-        if (draft) {
+        if (draft && bookingVehicle && !draftMatchesVehicle(draft.form, bookingVehicle)) {
+          setForm(blankForm);
+          setDraftConflict(draft);
+          setDraftConflictError('');
+          setDraftStatus('');
+        } else if (draft) {
           setForm(draft.form);
           setDraftStatus(`Draft restored from this device · expires ${new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short' }).format(new Date(draft.expiresAt))}`);
         } else {
-          setForm({ ...EMPTY_BOOKING, bookingType: initialType, tuningDetails: { ...EMPTY_BOOKING.tuningDetails } });
+          setForm(blankForm);
+          setDraftConflict(null);
         }
       })
       .catch(() => {
@@ -215,7 +259,7 @@ function BookingScreenContent() {
         if (active) setDraftReadyFor(initialType);
       });
     return () => { active = false; };
-  }, [initialType]);
+  }, [blankForm, bookingVehicle, initialType]);
 
   useEffect(() => {
     if (!initialType || !draftReady || !draftDirty) return;
@@ -253,6 +297,29 @@ function BookingScreenContent() {
       .then(() => clearBookingDraft(initialType));
     draftOperationRef.current = operation;
     await operation;
+  };
+
+  const resumeConflictingDraft = () => {
+    if (!draftConflict) return;
+    setForm(draftConflict.form);
+    setDraftStatus(`Draft restored from this device · expires ${new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short' }).format(new Date(draftConflict.expiresAt))}`);
+    setDraftConflictError('');
+    setDraftConflict(null);
+  };
+
+  const startForSelectedVehicle = async () => {
+    setDraftDirty(false);
+    setDraftConflictError('');
+    try {
+      await removeStoredDraft();
+    } catch {
+      setDraftConflictError('The saved draft could not be cleared from this device, so it may still contain the previous details. Nothing was uploaded. Try again or resume that draft.');
+      return;
+    }
+    setForm(blankForm);
+    setDraftConflict(null);
+    setDraftStatus('Previous saved draft cleared. Your selected preview vehicle is ready.');
+    setIdempotencyKey(randomUUID());
   };
 
   const leaveBooking = async () => {
@@ -343,9 +410,15 @@ function BookingScreenContent() {
     try {
       const result = await createBookingRequest(form, idempotencyKey);
       setDraftDirty(false);
+      let draftCleared = true;
       if (initialType) {
-        try { await removeStoredDraft(); } catch { /* The verified request remains valid even if local cleanup fails. */ }
+        try {
+          await removeStoredDraft();
+        } catch {
+          draftCleared = false;
+        }
       }
+      setRequestDraftCleared(draftCleared);
       setDraftStatus('');
       setIdempotencyKey(randomUUID());
       setRequestResult(result);
@@ -377,8 +450,13 @@ function BookingScreenContent() {
   const clearDraft = async () => {
     if (!initialType) return;
     setDraftDirty(false);
-    try { await removeStoredDraft(); } catch { /* Reset the visible form even if storage is unavailable. */ }
-    setForm({ ...EMPTY_BOOKING, bookingType: initialType, tuningDetails: { ...EMPTY_BOOKING.tuningDetails } });
+    try {
+      await removeStoredDraft();
+    } catch {
+      setDraftStatus('Saved draft could not be cleared from this device and may still contain these details. Nothing was uploaded. Try again before leaving a shared device.');
+      return;
+    }
+    setForm(blankForm);
     setErrors({});
     setStep(1);
     setDraftStatus('Saved draft cleared from this device.');
@@ -389,7 +467,8 @@ function BookingScreenContent() {
   if (requestResult) {
     return (
       <RequestHandoff
-        onHome={() => router.replace('/')}
+        draftCleared={requestDraftCleared}
+        onHome={() => router.replace('/(tabs)/index')}
         result={requestResult}
       />
     );
@@ -403,6 +482,37 @@ function BookingScreenContent() {
           <Text style={styles.draftLoadingTitle}>Preparing your booking</Text>
           <Text style={styles.draftLoadingCopy}>Checking this device for an unfinished PSI request…</Text>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (draftConflict && bookingVehicle) {
+    const savedVehicle = [
+      draftConflict.form.vehicleYear,
+      draftConflict.form.vehicleMake,
+      draftConflict.form.vehicleModel,
+    ].filter(Boolean).join(' ') || 'another vehicle';
+    const selectedVehicle = `${bookingVehicle.year} ${bookingVehicle.make} ${bookingVehicle.model}`;
+
+    return (
+      <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.screen}>
+        <ScrollView contentContainerStyle={styles.draftConflictScroll} showsVerticalScrollIndicator={false}>
+          <View accessibilityRole="alert" style={styles.draftConflictCard}>
+            <Text style={styles.draftLoadingTitle}>Choose which vehicle to continue</Text>
+            <Text style={styles.draftLoadingCopy}>
+              This device has an unfinished {initialType === 'dyno' ? 'Dyno Tuning' : 'Service & Report'} draft for {savedVehicle}. You just selected {selectedVehicle}.
+            </Text>
+            <Text style={styles.draftConflictNote}>
+              Resuming keeps the saved draft unchanged. Starting for the selected vehicle clears that saved draft only after you choose it.
+            </Text>
+            {draftConflictError ? <Text style={styles.draftConflictError}>{draftConflictError}</Text> : null}
+            <View style={styles.draftConflictActions}>
+              <PrimaryButton label={`Resume ${savedVehicle}`} onPress={resumeConflictingDraft} variant="outline" />
+              <PrimaryButton label={`Start for ${selectedVehicle}`} onPress={() => void startForSelectedVehicle()} />
+              <PrimaryButton label="Go back" onPress={() => void leaveBooking()} variant="outline" />
+            </View>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -478,7 +588,7 @@ function BookingScreenContent() {
             </View>
 
             {step === 1 ? (
-              <JobStep errors={errors} form={form} onChooseBooking={() => router.replace('/')} update={update} updateTuning={updateTuning} />
+              <JobStep errors={errors} form={form} onChooseBooking={() => router.replace('/(tabs)/index')} update={update} updateTuning={updateTuning} />
             ) : null}
             {step === 2 ? <VehicleStep errors={errors} form={form} update={update} wide={wideFields} /> : null}
             {step === 3 ? (
@@ -1593,9 +1703,11 @@ function SummaryRow({ label, value, secondary }: { label: string; value: string;
 }
 
 function RequestHandoff({
+  draftCleared,
   result,
   onHome,
 }: {
+  draftCleared: boolean;
   result: BookingRequestResult;
   onHome: () => void;
 }) {
@@ -1610,7 +1722,9 @@ function RequestHandoff({
         <Eyebrow>Request received for review</Eyebrow>
         <Text maxFontSizeMultiplier={2} style={[styles.successTitle, compact && styles.successTitleCompact]}>PSI will check the date first.</Text>
         <Text style={styles.successLead}>
-          {result.message} If your preferred date is not suitable, PSI will contact you to arrange another option. Your unfinished on-device draft has been cleared.
+          {result.message} If your preferred date is not suitable, PSI will contact you to arrange another option. {draftCleared
+            ? 'Your unfinished on-device draft has been cleared.'
+            : 'The request was received, but the on-device draft could not be cleared and may still contain your details. Clear it before leaving a shared device.'}
         </Text>
 
         <View style={styles.checkoutReferenceCard}>
@@ -1646,6 +1760,11 @@ const styles = StyleSheet.create({
   },
   draftLoadingTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
   draftLoadingCopy: { maxWidth: 340, color: colors.muted, fontSize: 13, lineHeight: 20, textAlign: 'center' },
+  draftConflictScroll: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
+  draftConflictCard: { ...mobileFrame, width: '100%', maxWidth: 520, alignItems: 'center', gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.lg },
+  draftConflictNote: { maxWidth: 400, color: colors.cream, fontSize: 11, lineHeight: 18, textAlign: 'center' },
+  draftConflictError: { width: '100%', color: colors.danger, fontSize: 11, lineHeight: 18, textAlign: 'center' },
+  draftConflictActions: { width: '100%', gap: spacing.sm },
   topBar: {
     width: '100%',
     maxWidth: 820,

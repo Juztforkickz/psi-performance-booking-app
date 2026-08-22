@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { colors } from '@/constants/brand';
+import { CustomerPreviewProvider } from '@/lib/customer-preview-context';
 
 const psiTheme = {
   ...DarkTheme,
@@ -22,14 +23,16 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider value={psiTheme}>
-          <StatusBar style="light" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.ink },
-              animation: 'slide_from_right',
-            }}
-          />
+          <CustomerPreviewProvider>
+            <StatusBar style="light" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.ink },
+                animation: 'slide_from_right',
+              }}
+            />
+          </CustomerPreviewProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Image,
   KeyboardAvoidingView,
@@ -13,8 +13,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
+import { type LocalVehiclePhoto, VehiclePhotoPicker } from '@/components/vehicle-photo-picker';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { useCustomerPreview } from '@/lib/customer-preview-context';
+import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 
 type AccountDraft = {
   firstName: string;
@@ -42,10 +45,22 @@ type AccountErrors = Partial<Record<keyof AccountDraft, string>>;
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const { stageAccountPreview } = useCustomerPreview();
   const { compact, horizontalPadding, short, useFieldColumns: wide } = useResponsiveLayout();
   const [form, setForm] = useState(EMPTY_ACCOUNT);
   const [errors, setErrors] = useState<AccountErrors>({});
   const [notice, setNotice] = useState('');
+  const [vehiclePhoto, setVehiclePhoto] = useState<LocalVehiclePhoto | null>(null);
+  const vehiclePhotoRef = useRef(vehiclePhoto);
+  const photoTransferredRef = useRef(false);
+
+  useEffect(() => {
+    vehiclePhotoRef.current = vehiclePhoto;
+  }, [vehiclePhoto]);
+
+  useEffect(() => () => {
+    if (!photoTransferredRef.current) releaseLocalVehiclePhoto(vehiclePhotoRef.current);
+  }, []);
 
   const update = (key: keyof AccountDraft, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -78,7 +93,22 @@ export default function SignUpScreen() {
       setNotice('');
       return;
     }
-    setNotice('This account profile is ready for a managed identity provider. Nothing was submitted or stored in this preview.');
+
+    stageAccountPreview({
+      email: form.email,
+      firstName: form.firstName,
+      lastName: form.lastName,
+      mobile: form.mobile,
+      photo: vehiclePhoto,
+      registration: form.registration,
+      vehicleMake: form.vehicleMake,
+      vehicleModel: form.vehicleModel,
+      vehicleYear: year,
+    });
+    photoTransferredRef.current = true;
+    setNotice(
+      `This account profile is ready for a managed identity provider. Nothing was submitted or stored outside this open preview.${vehiclePhoto ? ' The selected vehicle photo remains only in this open preview and was not uploaded.' : ''}`,
+    );
   };
 
   return (
@@ -116,9 +146,9 @@ export default function SignUpScreen() {
           </Text>
 
           <View style={[styles.securityCard, compact && styles.cardCompact]}>
-            <Text style={styles.securityTitle}>No data leaves this screen</Text>
+            <Text style={styles.securityTitle}>No data leaves this preview</Text>
             <Text style={styles.securityCopy}>
-              Until managed authentication is connected, this preview keeps values only in memory and discards them when the screen closes.
+              Until managed authentication is connected, this preview keeps values only in app memory and discards them when the preview reloads or closes.
             </Text>
           </View>
 
@@ -176,6 +206,22 @@ export default function SignUpScreen() {
                 </Field>
               </View>
             </View>
+            <VehiclePhotoPicker
+              onChange={(photo) => {
+                const previousWasTransferred = photoTransferredRef.current;
+                photoTransferredRef.current = false;
+                vehiclePhotoRef.current = photo;
+                setVehiclePhoto((current) => {
+                  if (!previousWasTransferred && current?.uri !== photo?.uri) {
+                    releaseLocalVehiclePhoto(current);
+                  }
+                  return photo;
+                });
+                setNotice('');
+              }}
+              value={vehiclePhoto}
+              vehicleLabel={[form.vehicleYear, form.vehicleMake, form.vehicleModel].filter(Boolean).join(' ') || 'your primary vehicle'}
+            />
           </View>
 
           {notice ? (
@@ -187,7 +233,8 @@ export default function SignUpScreen() {
 
           <View style={styles.actions}>
             <PrimaryButton label="Check account setup" onPress={checkReadiness} />
-            <PrimaryButton label="Book without an account" onPress={() => router.replace('/')} variant="outline" />
+            {notice ? <PrimaryButton label="Open My Garage preview" onPress={() => router.replace('/garage')} variant="outline" /> : null}
+            <PrimaryButton label="Book without an account" onPress={() => router.replace('/booking')} variant="outline" />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

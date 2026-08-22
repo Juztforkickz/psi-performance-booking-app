@@ -844,11 +844,11 @@ test("blocks the legacy unpaid booking endpoint regardless of request contents",
   assert.match(response.headers.get("link") ?? "", /\/api\/v1\/booking-requests/u);
 });
 
-test("keeps customer testimonials sourced and separates PSI's 10/10 promise from review scores", async () => {
+test("keeps web testimonials sourced while the mobile dashboard omits customer reviews", async () => {
   const [page, provenance, mobilePage] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../docs/CONTENT-SOURCES.md", import.meta.url), "utf8"),
-    readFile(new URL("../mobile/src/app/index.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../mobile/src/app/(tabs)/index.tsx", import.meta.url), "utf8"),
   ]);
   const testimonialsSection = page.match(
     /<section className="testimonials-section"[\s\S]*?<\/section>/u,
@@ -872,27 +872,41 @@ test("keeps customer testimonials sourced and separates PSI's 10/10 promise from
       page.includes(`quote: "${quote}",\n    customer: "${customer}",`),
       `${customer}'s approved web excerpt and attribution must remain paired`,
     );
-    assert.ok(
-      mobilePage.includes(`customer: '${customer}',\n    quote: '${quote.replaceAll("'", "\\'")}',`),
-      `${customer}'s approved mobile excerpt and attribution must remain paired`,
-    );
   }
   assert.doesNotMatch(page, /customer: "Cade"/u);
-  assert.doesNotMatch(mobilePage, /customer: 'Cade'/u);
-  assert.match(mobilePage, /horizontal[\s\S]*snapToInterval/u);
-  assert.match(mobilePage, /PSI service commitment\. This is not a customer review rating/u);
+  assert.doesNotMatch(
+    mobilePage,
+    /Cale Pearson|Harry Beith|Shaun Ward|Emre Ozkan|Fiona Hewson|testimonial|storyCardWidth|snapToInterval/iu,
+  );
+  assert.match(mobilePage, /const PSI_PROMISES = \[/u);
   assert.match(provenance, /Customer feedback provenance/u);
   assert.match(provenance, /Cale Pearson, Harry Beith, Shaun Ward, Emre Ozkan and Fiona Hewson/u);
   assert.match(provenance, /No reliable[\s\S]*literally rating the business “10\/10”/u);
 });
 
-test("keeps approval-first clients and mobile radio states safe", async () => {
-  const [webBooking, mobileBooking, mobileGateway, mobileHome, mobileUi] = await Promise.all([
+test("keeps approval-first clients and the mobile dashboard preview safe", async () => {
+  const [
+    webBooking,
+    mobileBooking,
+    mobileGateway,
+    mobileHome,
+    mobileGarage,
+    mobileUi,
+    publicDemo,
+    customerPreview,
+    photoPicker,
+    mobileAppConfigSource,
+  ] = await Promise.all([
     readFile(new URL("../app/components/BookingFlow.tsx", import.meta.url), "utf8"),
     readFile(new URL("../mobile/src/app/booking.tsx", import.meta.url), "utf8"),
     readFile(new URL("../mobile/src/lib/booking.ts", import.meta.url), "utf8"),
-    readFile(new URL("../mobile/src/app/index.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../mobile/src/app/(tabs)/index.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../mobile/src/app/(tabs)/garage.tsx", import.meta.url), "utf8"),
     readFile(new URL("../mobile/src/components/ui.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../mobile/src/lib/public-demo.ts", import.meta.url), "utf8"),
+    readFile(new URL("../mobile/src/lib/customer-preview.ts", import.meta.url), "utf8"),
+    readFile(new URL("../mobile/src/components/vehicle-photo-picker.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../mobile/app.json", import.meta.url), "utf8"),
   ]);
 
   assert.match(webBooking, /fetch\("\/api\/v1\/booking-requests"/u);
@@ -901,9 +915,42 @@ test("keeps approval-first clients and mobile radio states safe", async () => {
   assert.match(mobileGateway, /pending_staff_review/u);
 
   assert.match(mobileUi, /accessibilityRole="radio"[\s\S]{0,80}accessibilityState=\{\{ checked: selected \}\}/u);
-  assert.match(mobileHome, /accessibilityRole="radio"[\s\S]{0,80}accessibilityState=\{\{ checked: active \}\}/u);
+  assert.match(mobileGarage, /accessibilityRole="radio"[\s\S]{0,100}accessibilityState=\{\{ checked: selected \}\}/u);
   assert.match(mobileBooking, /accessibilityRole="radio"[\s\S]{0,80}accessibilityState=\{\{ checked: active \}\}/u);
   assert.match(mobileUi, /aria-checked=\{selected\}/u);
-  assert.match(mobileHome, /aria-checked=\{active\}/u);
   assert.match(mobileBooking, /aria-checked=\{active\}/u);
+
+  for (const flag of [
+    "submissionsDisabled",
+    "customerAccountsDisabled",
+    "persistentVehicleRecordsDisabled",
+    "photoUploadsDisabled",
+    "pushNotificationsDisabled",
+    "customerDynoEditsDisabled",
+  ]) {
+    assert.match(publicDemo, new RegExp(`${flag}: true`, "u"));
+  }
+  assert.match(mobileHome, /Accounts, photos, alerts and submissions remain preview-only/u);
+  assert.match(customerPreview, /managedBy: 'psi'/u);
+  assert.match(customerPreview, /customerAccess: 'read_only'/u);
+  assert.match(customerPreview, /status: 'psi_verified'/u);
+  assert.match(mobileGarage, /Read-only for customers · PSI publishes each verified run/u);
+  assert.match(photoPicker, /base64: false/u);
+  assert.match(photoPicker, /exif: false/u);
+  assert.match(photoPicker, /temporary local reference/u);
+  assert.match(photoPicker, /not uploaded to PSI or saved to an account/u);
+  assert.doesNotMatch(photoPicker, /\bfetch\(|FormData|uploadAsync/u);
+  const mobileAppConfig = JSON.parse(mobileAppConfigSource);
+  const imagePickerPlugin = mobileAppConfig.expo.plugins.find(
+    (plugin) => Array.isArray(plugin) && plugin[0] === "expo-image-picker",
+  );
+  assert.deepEqual(imagePickerPlugin?.[1], {
+    photosPermission: false,
+    cameraPermission: false,
+    microphonePermission: false,
+  });
+  assert.deepEqual(mobileAppConfig.expo.android.blockedPermissions, [
+    "android.permission.READ_EXTERNAL_STORAGE",
+    "android.permission.WRITE_EXTERNAL_STORAGE",
+  ]);
 });

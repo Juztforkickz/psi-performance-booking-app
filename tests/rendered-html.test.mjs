@@ -115,11 +115,11 @@ test("sizes the mobile calendar from the usable layout container", async () => {
   assert.ok(narrowCalendarWidth(305) <= 305);
 });
 
-test("keeps the Why PSI two-car media and copy responsive", async () => {
+test("keeps the web Why PSI media responsive and the mobile dashboard artwork contained", async () => {
   const [styles, page, mobilePage] = await Promise.all([
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../mobile/src/app/index.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../mobile/src/app/(tabs)/index.tsx", import.meta.url), "utf8"),
   ]);
 
   assert.match(styles, /\.why-section\s*{[^}]*grid-template-columns:\s*1fr;[^}]*min-height:\s*0;/s);
@@ -132,9 +132,9 @@ test("keeps the Why PSI two-car media and copy responsive", async () => {
   assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.why-image\s*{[^}]*aspect-ratio:\s*1744 \/ 901;[\s\S]*\.testimonial-grid\s*{[^}]*grid-auto-columns:\s*min\(84vw, 360px\)/s);
   assert.match(page, /<picture className="why-image">[\s\S]*src="\/psi-gtsr-porsche-clean\.jpg"[\s\S]*loading="lazy"/s);
   assert.doesNotMatch(page, /psi-gtsr-porsche-mobile-clean\.jpg/u);
-  assert.match(mobilePage, /<Image\s+accessible\s+accessibilityLabel="Black VF GTSR[\s\S]*accessibilityRole="image"/s);
-  assert.match(mobilePage, /resizeMode="contain"[\s\S]*source=\{require\('\.\.\/\.\.\/assets\/images\/psi-gtsr-porsche-clean\.jpg'\)\}[\s\S]*height: standardPhotoHeight/s);
-  assert.match(mobilePage, /<ScrollView[\s\S]*horizontal[\s\S]*snapToInterval=\{storyCardWidth \+ spacing\.sm\}/s);
+  assert.match(mobilePage, /accessibilityLabel="PSI Performance Holden GTSR and Porsche outside the workshop"[\s\S]*resizeMode="contain"[\s\S]*source=\{require\('\.\.\/\.\.\/\.\.\/assets\/images\/psi-gtsr-porsche-clean\.jpg'\)\}/s);
+  assert.match(mobilePage, /standardImageFrame:\s*\{[^}]*aspectRatio:\s*1\.65[^}]*overflow:\s*'hidden'/s);
+  assert.doesNotMatch(mobilePage, /testimonial|storyCardWidth|snapToInterval/iu);
 });
 
 test("lets the parts headline reflow on narrow layout viewports", async () => {

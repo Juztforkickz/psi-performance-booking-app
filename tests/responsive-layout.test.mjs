@@ -42,7 +42,11 @@ test("uses one native responsive contract across every customer screen", async (
   const [
     appConfig,
     hook,
+    tabsLayout,
     home,
+    garage,
+    bookings,
+    alerts,
     booking,
     account,
     signUp,
@@ -50,7 +54,11 @@ test("uses one native responsive contract across every customer screen", async (
   ] = await Promise.all([
     read("../mobile/app.json"),
     read("../mobile/src/hooks/use-responsive-layout.ts"),
-    read("../mobile/src/app/index.tsx"),
+    read("../mobile/src/app/(tabs)/_layout.tsx"),
+    read("../mobile/src/app/(tabs)/index.tsx"),
+    read("../mobile/src/app/(tabs)/garage.tsx"),
+    read("../mobile/src/app/(tabs)/bookings.tsx"),
+    read("../mobile/src/app/(tabs)/alerts.tsx"),
     read("../mobile/src/app/booking.tsx"),
     read("../mobile/src/app/account/index.tsx"),
     read("../mobile/src/app/account/sign-up.tsx"),
@@ -63,14 +71,25 @@ test("uses one native responsive contract across every customer screen", async (
   assert.match(hook, /fontScale/);
   assert.match(hook, /shortLandscape/);
 
-  for (const screen of [home, booking, account, signUp, parts]) {
+  assert.deepEqual(
+    [...tabsLayout.matchAll(/<Tabs\.Screen\s+name="([^"]+)"/gu)].map((match) => match[1]),
+    ["index", "garage", "bookings", "alerts"],
+  );
+
+  for (const screen of [home, garage, bookings, alerts]) {
+    assert.match(screen, /useResponsiveLayout/);
+    assert.match(screen, /edges=\{\['top', 'right', 'left'\]\}/);
+  }
+
+  for (const screen of [booking, account, signUp, parts]) {
     assert.match(screen, /useResponsiveLayout/);
     assert.match(screen, /edges=\{\['top', 'right', 'bottom', 'left'\]\}/);
   }
 
-  assert.match(home, /stackQr = width < 440 \|\| fontScale > 1\.25/);
-  assert.match(home, /accountButtonCompact/);
-  assert.match(home, /sheetHeadingCopy/);
+  assert.match(home, /oneColumn = width - horizontalPadding \* 2 < 330 \|\| largeText/);
+  assert.match(home, /threeColumns = tablet && width >= 780 && !largeText/);
+  assert.match(home, /compact && styles\.compactFrame/);
+  assert.match(garage, /tablet && !largeText/);
   assert.match(booking, /COMPACT_STEP_LABELS/);
   assert.match(booking, /numberOfLines=\{2\}/);
   assert.match(booking, /tuningOptionScroll:\s*\{\s*flexShrink:\s*1,\s*minHeight:\s*0\s*\}/);

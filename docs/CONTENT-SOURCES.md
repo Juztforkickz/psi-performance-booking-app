@@ -37,6 +37,22 @@ The VF GTSR/Porsche media pair uses PSI-published source photography: the existi
 
 The square PWA icons were composed locally from the PSI wordmark on a black background. `public/og.png` is the single generated campaign asset used for link previews.
 
+### Illustrated mobile-dashboard assets
+
+The seven 960×1200 JPEG dashboard illustrations under `mobile/assets/images/dashboard/` were created with the built-in ImageGen tool on **21 August 2026** from the documented automotive prompts and an owner-supplied mobile tile screenshot used as a layout, mood and quality reference. The screenshot was not imported into the app or used as a runtime asset. The prompts requested generic automotive subjects and instructed the generator to avoid third-party logos, wordmarks, watermarks and embedded interface wording. The finished files were visually reviewed and no obvious third-party wordmarks or baked-in tile labels were observed. Because that review is not legal or trade-mark clearance, final distribution remains subject to PSI owner and legal review.
+
+| File | AI-generated subject | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| `tile-my-garage.jpg` | Performance vehicle and key for the customer's garage | 80,932 | `3688DD6EBDD01BDA5E759FEFA2B3EFADD7276082D8D334F63D82AB30D5A08EAE` |
+| `tile-my-bookings.jpg` | Workshop booking calendar and service tool | 70,209 | `4E3B7BA0BAB22015543BA3D290BFA05852EEB4207A48914E8E80858D67018C01` |
+| `tile-book-ahead.jpg` | Forward booking calendar with restrained gold direction cue | 101,946 | `C53BCC52D350A22A1B4B15A41A13DA525E83CBF1B6BBCB02E9C3A8D962E1D8D8` |
+| `tile-alerts.jpg` | Customer reminder bell with a red notification indicator | 66,025 | `DBB35D388AB6BD73AB7000D3C3B3C1525AA0E49806CB023D50304EEE5B6C23C4` |
+| `tile-hub-dyno.jpg` | Graphite performance sedan secured to a hub dyno, with the rear wheels removed and the rear hubs visibly connected to dyno adapters | 82,856 | `56809F2652FA497323EE27A9B2B2FE72DFB795025AEDCBAA53FEA827A44058B2` |
+| `tile-vehicle-reports.jpg` | Diagnostic tablet and vehicle-report display | 79,267 | `31F584860E6ADD2772BD02F0956E1B8E2C538FE742635C866247D9CFEB9F53C1` |
+| `tile-plan-build.jpg` | Engine, turbocharger, workshop tool and build-plan drawing | 160,715 | `7A648EBA45F7EA6A800BF50427BE6150E5FA21EFD937B8526AD011C329AD5CA1` |
+
+Prompt direction: premium, realistic automotive product illustration on carbon-black and graphite studio backgrounds, restrained champagne-gold accents, generous lower label space, and avoidance of embedded text, people, watermarks, racing clichés and unrelated branding. The hub-dyno image received a focused refinement pass so its engineering setup communicates the requested rear-wheel-off, hub-connected configuration. These statements describe the generation instructions and visual review, not a guarantee that AI output is source-free or legally cleared.
+
 ### Scrolling brand-rail assets
 
 The manufacturer and tuning-platform marks used by PSI's scrolling homepage banner were retrieved from PSI Performance's official Shopify CDN on **21 August 2026**. The app keeps the sharp 300 px transparent PNG renditions under `public/brands/`, with byte-identical native-app copies under `mobile/assets/images/brands/`. Every imported file is 300×300 px, 32-bit ARGB and contains transparent pixels.
