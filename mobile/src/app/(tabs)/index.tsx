@@ -190,12 +190,12 @@ export default function CustomerHomeScreen() {
             <WorkshopFact icon="location-outline" label="Workshop" value={contact.address} />
           </View>
           <View style={styles.contactActions}>
-            <ContactAction icon="call-outline" label="Call PSI" onPress={() => void Linking.openURL(contact.phoneUrl)} />
-            <ContactAction icon="mail-outline" label="Email" onPress={() => void Linking.openURL(contact.emailUrl)} />
-            <ContactAction icon="location-outline" label="Directions" onPress={() => void Linking.openURL(contact.mapsUrl)} />
+            <ContactAction icon="call" label="Call PSI" onPress={() => void Linking.openURL(contact.phoneUrl)} />
+            <ContactAction icon="mail" label="Email" onPress={() => void Linking.openURL(contact.emailUrl)} />
+            <ContactAction icon="map" label="Directions" onPress={() => void Linking.openURL(contact.mapsUrl)} />
             <ContactAction icon="logo-instagram" label="Instagram" onPress={() => void Linking.openURL(contact.instagram)} />
             <ContactAction icon="logo-facebook" label="Facebook" onPress={() => void Linking.openURL(contact.facebook)} />
-            <ContactAction icon="globe-outline" label="Website" onPress={() => void Linking.openURL(contact.website)} />
+            <ContactAction icon="globe" label="Website" onPress={() => void Linking.openURL(contact.website)} />
           </View>
           <View accessibilityLabel="PSI Performance contact QR code" style={[styles.qrCard, compact && styles.qrCardCompact]}>
             <View style={styles.qrImageFrame}>
@@ -322,7 +322,7 @@ function ContactAction({
 }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.contactAction, pressed && styles.pressed]}>
-      <Ionicons color={colors.gold} name={icon} size={20} />
+      <Ionicons color={colors.gold} name={icon} size={22} />
       <Text style={styles.contactActionText}>{label}</Text>
     </Pressable>
   );
