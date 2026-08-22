@@ -1,39 +1,50 @@
-import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { colors } from '@/constants/brand';
 import { CustomerPreviewProvider } from '@/lib/customer-preview-context';
+import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme-preference';
 
-const psiTheme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    background: colors.ink,
-    card: colors.ink,
-    border: colors.line,
-    primary: colors.gold,
-    text: colors.white,
-  },
-};
+function ThemeAwareRootShell() {
+  const { activeTheme, theme } = useThemePreference();
+  const baseTheme = activeTheme === 'bright' ? DefaultTheme : DarkTheme;
+  const shellTheme = {
+    ...baseTheme,
+    colors: {
+      ...baseTheme.colors,
+      background: theme.ink,
+      card: theme.ink,
+      border: theme.border,
+      primary: theme.accent,
+      text: activeTheme === 'bright' ? theme.text : colors.white,
+    },
+  };
+
+  return (
+    <ThemeProvider value={shellTheme}>
+      <CustomerPreviewProvider>
+        <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: theme.inkSoft },
+            animation: 'slide_from_right',
+          }}
+        />
+      </CustomerPreviewProvider>
+    </ThemeProvider>
+  );
+}
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider value={psiTheme}>
-          <CustomerPreviewProvider>
-            <StatusBar style="light" />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: colors.ink },
-                animation: 'slide_from_right',
-              }}
-            />
-          </CustomerPreviewProvider>
-        </ThemeProvider>
+        <ThemePreferenceProvider>
+          <ThemeAwareRootShell />
+        </ThemePreferenceProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

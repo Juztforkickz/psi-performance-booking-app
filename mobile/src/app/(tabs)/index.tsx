@@ -21,6 +21,7 @@ import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { PUBLIC_DEMO } from '@/lib/public-demo';
+import { ThemePreference, useThemePreference } from '@/lib/theme-preference';
 
 const DASHBOARD_TILES = {
   garage: require('../../../assets/images/dashboard/tile-my-garage.jpg'),
@@ -38,10 +39,17 @@ const PSI_PROMISES = [
   { index: '03', title: 'Together', copy: 'PSI listens, explains and shapes the project with you.' },
 ] as const;
 
+const THEME_PREFERENCES: ReadonlyArray<{ value: ThemePreference; label: string }> = [
+  { value: 'dark', label: 'Dark' },
+  { value: 'bright', label: 'Bright' },
+  { value: 'automatic', label: 'Automatic' },
+];
+
 export default function CustomerHomeScreen() {
   const router = useRouter();
   const { prepareBookingVehicle, selectedVehicleId } = useCustomerPreview();
   const { compact, horizontalPadding, largeText, tablet, width } = useResponsiveLayout();
+  const { activeTheme, setThemePreference, theme, themePreference } = useThemePreference();
   const [contactIconFontsLoaded] = useFonts({
     ionicons: require('../../../assets/fonts/Ionicons.ttf'),
     'material-community': require('../../../assets/fonts/MaterialCommunityIcons.ttf'),
@@ -56,14 +64,23 @@ export default function CustomerHomeScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
+    <SafeAreaView edges={['top', 'right', 'left']} style={[styles.screen, { backgroundColor: theme.screen }]}>
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]}
         showsVerticalScrollIndicator={false}
       >
-        <View accessibilityRole="alert" style={[styles.demoBanner, compact && styles.compactFrame]}>
-          <Text style={styles.demoTitle}>{PUBLIC_DEMO.label}</Text>
-          <Text style={styles.demoCopy}>
+        <View
+          accessibilityRole="alert"
+          style={[
+            styles.demoBanner,
+            compact && styles.compactFrame,
+            { backgroundColor: activeTheme === 'dark' ? colors.cream : theme.surfaceRaised, borderColor: theme.frame },
+          ]}
+        >
+          <Text style={[styles.demoTitle, { color: activeTheme === 'dark' ? colors.ink : theme.textInverse }]}>
+            {PUBLIC_DEMO.label}
+          </Text>
+          <Text style={[styles.demoCopy, { color: activeTheme === 'dark' ? '#464646' : '#5E5A55' }]}>
             Explore the new customer-app direction. Accounts, photos, alerts and submissions remain preview-only.
           </Text>
         </View>
@@ -81,21 +98,30 @@ export default function CustomerHomeScreen() {
             accessibilityLabel="Customer account"
             accessibilityRole="button"
             onPress={() => router.push('/account')}
-            style={({ pressed }) => [styles.accountButton, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.accountButton,
+              pressed && styles.pressed,
+              {
+                borderColor: theme.frame,
+                backgroundColor: activeTheme === 'dark' ? colors.white : theme.frame,
+              },
+            ]}
           >
-            <Ionicons color={colors.ink} name="person" size={20} />
+            <Ionicons color={activeTheme === 'dark' ? colors.ink : theme.textInverse} name="person" size={20} />
           </Pressable>
         </View>
 
         <View style={styles.intro}>
-          <Text style={styles.eyebrow}>Good afternoon · Customer preview</Text>
-          <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact]}>Your PSI app.</Text>
-          <Text style={styles.lead}>Your vehicle, visits, results and next plan in one place.</Text>
+          <Text style={[styles.eyebrow, { color: activeTheme === 'dark' ? colors.gold : theme.accent }]}>
+            Good afternoon · Customer preview
+          </Text>
+          <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact, { color: theme.text }]}>Your PSI app.</Text>
+          <Text style={[styles.lead, { color: theme.textMuted }]}>Your vehicle, visits, results and next plan in one place.</Text>
         </View>
 
         <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>Your shortcuts</Text>
-          <Text style={styles.sectionHint}>Tap a tile</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Your shortcuts</Text>
+          <Text style={[styles.sectionHint, { color: activeTheme === 'dark' ? theme.accent : theme.accentAlt }]}>Tap a tile</Text>
         </View>
         <View style={styles.tileGrid}>
           <TileCell threeColumns={threeColumns}>
@@ -133,7 +159,7 @@ export default function CustomerHomeScreen() {
         </View>
 
         <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>Workshop</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Workshop</Text>
         </View>
         <View style={styles.tileGrid}>
           <TileCell threeColumns={threeColumns}>
@@ -164,9 +190,9 @@ export default function CustomerHomeScreen() {
         </View>
 
         <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>The PSI standard</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>The PSI standard</Text>
         </View>
-        <View style={styles.standardPanel}>
+        <View style={[styles.standardPanel, { borderColor: theme.frame, backgroundColor: theme.surface }]}>
           <View style={styles.standardImageFrame}>
             <Image
               accessibilityLabel="PSI Performance Holden GTSR and Porsche outside the workshop"
@@ -182,35 +208,117 @@ export default function CustomerHomeScreen() {
               style={styles.standardShedLogo}
             />
           </View>
-          <View style={styles.promiseList}>
-            {PSI_PROMISES.map((promise) => (
-              <View key={promise.index} style={styles.promise}>
-                <Text style={styles.promiseIndex}>{promise.index}</Text>
-                <View style={styles.promiseCopy}>
-                  <Text style={styles.promiseTitle}>{promise.title}</Text>
-                  <Text style={styles.promiseText}>{promise.copy}</Text>
-                </View>
+        <View style={styles.promiseList}>
+          {PSI_PROMISES.map((promise) => (
+            <View key={promise.index} style={styles.promise}>
+              <Text style={[styles.promiseIndex, { color: theme.accent }]}>{promise.index}</Text>
+              <View style={styles.promiseCopy}>
+                <Text style={[styles.promiseTitle, { color: theme.text }]}>{promise.title}</Text>
+                <Text style={[styles.promiseText, { color: theme.textMuted }]}>{promise.copy}</Text>
               </View>
-            ))}
-          </View>
+            </View>
+          ))}
+        </View>
         </View>
 
-        <View style={styles.contactPanel}>
-          <Text style={styles.contactKicker}>PSI Performance · Pakenham</Text>
-          <Text style={styles.contactTitle}>Need to speak with the workshop?</Text>
+        <View
+          style={[
+            styles.contactPanel,
+            { borderColor: theme.frame, backgroundColor: activeTheme === 'dark' ? colors.panel : theme.surface },
+          ]}
+        >
+          <Text style={[styles.contactKicker, { color: theme.accent }]}>PSI Performance · Pakenham</Text>
+          <Text style={[styles.contactTitle, { color: theme.text }]}>Need to speak with the workshop?</Text>
+          <View style={[styles.themeModePanel, { borderColor: theme.border }]}>
+            <Text style={[styles.themeModeTitle, { color: theme.textMuted }]}>Theme preference</Text>
+            <View style={styles.themeModeControls}>
+              {THEME_PREFERENCES.map((item) => {
+                const selected = themePreference === item.value;
+                return (
+                  <Pressable
+                    accessibilityHint="Switch app theme"
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    key={item.value}
+                    onPress={() => setThemePreference(item.value)}
+                    style={({ pressed }) => [
+                      styles.themeModeOption,
+                      {
+                        backgroundColor: selected ? theme.accent : theme.surfaceRaised,
+                        borderColor: selected ? theme.accent : theme.border,
+                      },
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text style={[styles.themeModeOptionText, { color: selected ? theme.textInverse : theme.text }]}>
+                      {item.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {themePreference === 'automatic' ? (
+              <Text style={[styles.themeModeNotice, { color: theme.textMuted }]}>
+                Automatic follows your device setting for dark and bright.
+              </Text>
+            ) : null}
+          </View>
           <View style={styles.workshopFacts}>
             <WorkshopFact icon="time-outline" label="Shop hours" value={'Mon–Fri · 8:30am–5pm\nSaturday · By appointment'} />
             <WorkshopFact icon="location-outline" label="Workshop" value={contact.address} />
           </View>
           <View style={styles.contactActions}>
-            <ContactAction icon="call" iconsLoaded={contactIconFontsLoaded} label="Call PSI" onPress={() => void Linking.openURL(contact.phoneUrl)} />
-            <ContactAction icon="mail" iconsLoaded={contactIconFontsLoaded} label="Email" onPress={() => void Linking.openURL(contact.emailUrl)} />
-            <ContactAction icon="map" iconsLoaded={contactIconFontsLoaded} label="Directions" onPress={() => void Linking.openURL(contact.mapsUrl)} />
-            <ContactAction icon="instagram" iconsLoaded={contactIconFontsLoaded} label="Instagram" onPress={() => void Linking.openURL(contact.instagram)} />
-            <ContactAction icon="facebook" iconsLoaded={contactIconFontsLoaded} label="Facebook" onPress={() => void Linking.openURL(contact.facebook)} />
-            <ContactAction icon="website" iconsLoaded={contactIconFontsLoaded} label="Website" onPress={() => void Linking.openURL(contact.website)} />
+            <ContactAction
+              icon="call"
+              iconsLoaded={contactIconFontsLoaded}
+              label="Call PSI"
+              onPress={() => void Linking.openURL(contact.phoneUrl)}
+              theme={theme}
+            />
+            <ContactAction
+              icon="mail"
+              iconsLoaded={contactIconFontsLoaded}
+              label="Email"
+              onPress={() => void Linking.openURL(contact.emailUrl)}
+              theme={theme}
+            />
+            <ContactAction
+              icon="map"
+              iconsLoaded={contactIconFontsLoaded}
+              label="Directions"
+              onPress={() => void Linking.openURL(contact.mapsUrl)}
+              theme={theme}
+            />
+            <ContactAction
+              icon="instagram"
+              iconsLoaded={contactIconFontsLoaded}
+              label="Instagram"
+              onPress={() => void Linking.openURL(contact.instagram)}
+              theme={theme}
+            />
+            <ContactAction
+              icon="facebook"
+              iconsLoaded={contactIconFontsLoaded}
+              label="Facebook"
+              onPress={() => void Linking.openURL(contact.facebook)}
+              theme={theme}
+            />
+            <ContactAction
+              icon="website"
+              iconsLoaded={contactIconFontsLoaded}
+              label="Website"
+              onPress={() => void Linking.openURL(contact.website)}
+              theme={theme}
+            />
           </View>
-          <View accessibilityLabel="PSI Performance contact QR code" style={[styles.qrCard, compact && styles.qrCardCompact]}>
+          <View
+            accessibilityLabel="PSI Performance contact QR code"
+            style={[
+              styles.qrCard,
+              compact && styles.qrCardCompact,
+              { borderColor: theme.frame, backgroundColor: activeTheme === 'dark' ? colors.cream : theme.surfaceRaised },
+            ]}
+          >
             <View style={styles.qrImageFrame}>
               <Image
                 accessibilityIgnoresInvertColors
@@ -221,22 +329,26 @@ export default function CustomerHomeScreen() {
               />
             </View>
             <View style={styles.qrCopy}>
-              <Text style={styles.qrKicker}>Quick contact</Text>
-              <Text style={styles.qrTitle}>Scan to save PSI contact</Text>
-              <Text style={styles.qrDescription}>Phone, email, workshop address and website in one scan.</Text>
+              <Text style={[styles.qrKicker, { color: activeTheme === 'dark' ? colors.goldDark : '#4A3D2E' }]}>
+                Quick contact
+              </Text>
+              <Text style={[styles.qrTitle, { color: activeTheme === 'dark' ? colors.ink : theme.text }]}>Scan to save PSI contact</Text>
+              <Text style={[styles.qrDescription, { color: activeTheme === 'dark' ? '#57534C' : '#5D584F' }]}>
+                Phone, email, workshop address and website in one scan.
+              </Text>
             </View>
           </View>
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>© {new Date().getFullYear()} PSI Performance™ · All rights reserved</Text>
+          <Text style={[styles.footerText, { color: theme.textMuted }]}>© {new Date().getFullYear()} PSI Performance™ · All rights reserved</Text>
           <Pressable
             accessibilityRole="link"
             hitSlop={10}
             onPress={() => void Linking.openURL(contact.privacy)}
             style={({ pressed }) => [styles.footerLinkTarget, pressed && styles.pressed]}
           >
-            <Text style={styles.footerLink}>Privacy policy ↗</Text>
+            <Text style={[styles.footerLink, { color: activeTheme === 'dark' ? theme.accent : theme.accentAlt }]}>Privacy policy ↗</Text>
           </Pressable>
         </View>
 
@@ -306,18 +418,23 @@ function TileCell({
 }
 
 function BookingChoice({ detail, label, onPress }: { detail: string; label: string; onPress: () => void }) {
+  const { theme } = useThemePreference();
   return (
     <Pressable
       accessibilityHint={detail}
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.bookingChoice, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.bookingChoice,
+        { borderColor: theme.frame, backgroundColor: theme.surface },
+        pressed && styles.pressed,
+      ]}
     >
       <View style={styles.bookingChoiceCopy}>
-        <Text style={styles.bookingChoiceTitle}>{label}</Text>
-        <Text style={styles.bookingChoiceDetail}>{detail}</Text>
+        <Text style={[styles.bookingChoiceTitle, { color: theme.text }]}>{label}</Text>
+        <Text style={[styles.bookingChoiceDetail, { color: theme.textMuted }]}>{detail}</Text>
       </View>
-      <Ionicons color={colors.gold} name="arrow-forward" size={22} />
+      <Ionicons color={theme.accent} name="arrow-forward" size={22} />
     </Pressable>
   );
 }
@@ -327,16 +444,26 @@ function ContactAction({
   iconsLoaded,
   label,
   onPress,
+  theme,
 }: {
   icon: ContactIconName;
   iconsLoaded: boolean;
   label: string;
   onPress: () => void;
+  theme: { frame: string; text: string; accent: string; surface: string };
 }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.contactAction, pressed && styles.pressed]}>
-      <ContactActionIcon loaded={iconsLoaded} name={icon} />
-      <Text style={styles.contactActionText}>{label}</Text>
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.contactAction,
+        { borderColor: theme.frame, backgroundColor: theme.surface },
+        pressed && styles.pressed,
+      ]}
+    >
+      <ContactActionIcon accentColor={theme.accent} loaded={iconsLoaded} name={icon} />
+      <Text style={[styles.contactActionText, { color: theme.text }]}>{label}</Text>
     </Pressable>
   );
 }
@@ -351,7 +478,15 @@ const CONTACT_IONICON_NAMES = {
   website: 'globe-outline',
 } as const satisfies Record<Exclude<ContactIconName, 'map'>, keyof typeof Ionicons.glyphMap>;
 
-function ContactActionIcon({ loaded, name }: { loaded: boolean; name: ContactIconName }) {
+function ContactActionIcon({
+  accentColor,
+  loaded,
+  name,
+}: {
+  accentColor: string;
+  loaded: boolean;
+  name: ContactIconName;
+}) {
   const hiddenFromAccessibility = {
     accessibilityElementsHidden: true,
     importantForAccessibility: 'no-hide-descendants' as const,
@@ -360,9 +495,9 @@ function ContactActionIcon({ loaded, name }: { loaded: boolean; name: ContactIco
   return (
     <View {...hiddenFromAccessibility} style={styles.contactIconCanvas}>
       {!loaded ? null : name === 'map' ? (
-        <MaterialCommunityIcons color={colors.gold} name="google-maps" size={24} />
+        <MaterialCommunityIcons color={accentColor} name="google-maps" size={24} />
       ) : (
-        <Ionicons color={colors.gold} name={CONTACT_IONICON_NAMES[name]} size={23} />
+        <Ionicons color={accentColor} name={CONTACT_IONICON_NAMES[name]} size={23} />
       )}
     </View>
   );
@@ -377,12 +512,14 @@ function WorkshopFact({
   label: string;
   value: string;
 }) {
+  const { theme } = useThemePreference();
+
   return (
-    <View style={styles.workshopFact}>
-      <Ionicons color={colors.gold} name={icon} size={20} />
+    <View style={[styles.workshopFact, { borderTopColor: theme.border }]}>
+      <Ionicons color={theme.accent} name={icon} size={20} />
       <View style={styles.workshopFactCopy}>
-        <Text style={styles.workshopFactLabel}>{label}</Text>
-        <Text style={styles.workshopFactValue}>{value}</Text>
+        <Text style={[styles.workshopFactLabel, { color: theme.accent }]}>{label}</Text>
+        <Text style={[styles.workshopFactValue, { color: theme.textInverse }]}>{value}</Text>
       </View>
     </View>
   );
@@ -431,6 +568,12 @@ const styles = StyleSheet.create({
   contactAction: { minHeight: 50, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, ...mobileFrame, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
   contactIconCanvas: { width: 22, height: 22, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   contactActionText: { color: colors.white, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  themeModePanel: { gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderWidth: 1 },
+  themeModeTitle: { fontSize: 10, fontWeight: '900', letterSpacing: .9, textTransform: 'uppercase' },
+  themeModeControls: { flexDirection: 'row', gap: spacing.xs },
+  themeModeOption: { minHeight: 36, minWidth: 82, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 8, paddingHorizontal: spacing.sm },
+  themeModeOptionText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: .4 },
+  themeModeNotice: { fontSize: 10, lineHeight: 16, fontStyle: 'italic' },
   qrCard: { ...mobileFrame, flexDirection: 'row', alignItems: 'center', gap: spacing.md, overflow: 'hidden', backgroundColor: colors.cream, padding: spacing.md },
   qrCardCompact: { alignItems: 'stretch', flexDirection: 'column' },
   qrImageFrame: { width: 118, aspectRatio: 1, flexShrink: 0, overflow: 'hidden', backgroundColor: colors.white },

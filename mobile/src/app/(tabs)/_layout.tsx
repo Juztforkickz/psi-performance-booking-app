@@ -2,21 +2,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 
-import { colors } from '@/constants/brand';
+import { useThemePreference } from '@/lib/theme-preference';
 
 export default function CustomerTabsLayout() {
+  const { theme } = useThemePreference();
+
   return (
     <Tabs
       initialRouteName="index"
       backBehavior="history"
       screenOptions={{
         headerShown: false,
-        sceneStyle: { backgroundColor: colors.ink },
+        sceneStyle: { backgroundColor: theme.screen },
         tabBarHideOnKeyboard: true,
-        tabBarActiveTintColor: colors.gold,
+        tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: '#B8B8B8',
-        tabBarActiveBackgroundColor: colors.inkSoft,
-        tabBarInactiveBackgroundColor: colors.ink,
+        tabBarActiveBackgroundColor: theme.surfaceRaised,
+        tabBarInactiveBackgroundColor: theme.screen,
         tabBarLabelPosition: 'below-icon',
         tabBarLabelStyle: {
           fontSize: 11,
@@ -29,12 +31,12 @@ export default function CustomerTabsLayout() {
         },
         tabBarStyle: {
           paddingTop: 4,
-          backgroundColor: colors.ink,
+          backgroundColor: theme.surfaceRaised,
           borderTopWidth: 3,
-          borderTopColor: colors.white,
+          borderTopColor: theme.frame,
           elevation: 0,
           ...(Platform.OS === 'web'
-            ? { boxShadow: '0 -4px 10px rgba(0, 0, 0, 0.3)' }
+            ? { boxShadow: '0 -4px 10px rgba(0, 0, 0, 0.25)' }
             : {
                 shadowColor: '#000000',
                 shadowOpacity: 0.3,
