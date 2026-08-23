@@ -56,7 +56,7 @@ const NAVIGATION_ITEMS: readonly NavigationItem[] = [
     href: '/alerts',
     inactiveIcon: 'notifications-outline',
     isActive: (pathname) => pathname === '/alerts',
-    label: 'Settings & Notifications',
+    label: 'Settings',
   },
 ] as const;
 
