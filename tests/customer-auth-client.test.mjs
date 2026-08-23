@@ -12,6 +12,7 @@ const [
   accountAdapter,
   authStorage,
   supabaseClient,
+  appConfig,
   easConfig,
   pagesWorkflow,
 ] = await Promise.all([
@@ -22,6 +23,7 @@ const [
   read('../mobile/src/lib/customer-account.ts'),
   read('../mobile/src/lib/supabase-auth-storage.ts'),
   read('../mobile/src/lib/supabase.ts'),
+  read('../mobile/app.json'),
   read('../mobile/eas.json'),
   read('../.github/workflows/mobile-pages-preview.yml'),
 ]);
@@ -59,11 +61,15 @@ test('public Pages preview keeps real account activation explicitly disabled', (
 });
 
 test('private QA profile enables existing-account auth without registration or booking APIs', () => {
+  const app = JSON.parse(appConfig);
   const eas = JSON.parse(easConfig);
+  assert.equal(app.expo.owner, 'psi-performance');
+  assert.equal(app.expo.extra.eas.projectId, 'e62e9cdf-867c-4eb7-b8c5-a2610f969286');
   assert.equal(eas.build.qa.distribution, 'internal');
   assert.equal(eas.build.qa.env.EXPO_PUBLIC_SUPABASE_AUTH_ENABLED, 'true');
   assert.equal(eas.build.qa.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED, 'false');
-  assert.equal(eas.build.qa.env.EXPO_PUBLIC_API_BASE_URL, '');
+  assert.equal(eas.build.qa.env.EXPO_PUBLIC_API_BASE_URL, undefined);
+  assert.equal(eas.build.preview.env.EXPO_PUBLIC_API_BASE_URL, undefined);
   assert.equal(eas.build.preview.env.EXPO_PUBLIC_SUPABASE_AUTH_ENABLED, 'false');
   assert.equal(eas.build.preview.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED, 'false');
 });

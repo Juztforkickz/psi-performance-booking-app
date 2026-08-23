@@ -8,7 +8,6 @@
       "distribution": "internal",
       "environment": "preview",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "",
         "EXPO_PUBLIC_SUPABASE_AUTH_ENABLED": "false",
         "EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED": "false"
       },
@@ -20,7 +19,6 @@
       "distribution": "internal",
       "environment": "preview",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "",
         "EXPO_PUBLIC_SUPABASE_URL": "https://lslhfrujyuqcavsnugfx.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_B1fbCA2hQegGaE9JDCcp-Q_L2rvyeDN",
         "EXPO_PUBLIC_SUPABASE_AUTH_ENABLED": "true",

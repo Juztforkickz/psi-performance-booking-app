@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "PSI Performance",
-    "slug": "psi-performance-booking",
+    "slug": "matt-psi",
     "version": "1.0.0",
     "orientation": "default",
     "icon": "./assets/images/psi-app-icon-1024.png",
@@ -55,6 +55,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e62e9cdf-867c-4eb7-b8c5-a2610f969286"
+      }
+    },
+    "owner": "psi-performance"
   }
 }

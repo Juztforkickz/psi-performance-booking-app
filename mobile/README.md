@@ -112,7 +112,7 @@ pnpm dlx expo-doctor
 
 ## EAS builds
 
-The iOS bundle identifier and Android application ID are both `com.psiperformance.booking`. `eas.json` includes a fail-closed internal `preview` profile, an internal `qa` profile for the approved existing customer pilot, and a store-ready production profile. The `qa` profile enables Supabase Auth, keeps new-user registration closed and keeps `EXPO_PUBLIC_API_BASE_URL` empty. Public GitHub Pages remains fully disabled independently of this profile.
+The iOS bundle identifier and Android application ID are both `com.psiperformance.booking`. The app is linked to the owner-controlled Expo project `@psi-performance/matt-psi` (`e62e9cdf-867c-4eb7-b8c5-a2610f969286`), where unauthenticated access to internal distribution builds is disabled. `eas.json` includes a fail-closed internal `preview` profile, an internal `qa` profile for the approved existing customer pilot, and a store-ready production profile. The `qa` profile enables Supabase Auth, keeps new-user registration closed and leaves `EXPO_PUBLIC_API_BASE_URL` unset. Public GitHub Pages remains fully disabled independently of this profile.
 
 One-time owner setup:
 

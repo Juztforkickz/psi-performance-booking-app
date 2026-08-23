@@ -59,6 +59,9 @@ Remaining private-QA gates:
 4. The internal EAS `qa` profile sets Auth true, registration false and the
    booking API empty. The public GitHub Pages preview keeps both Auth and
    registration false.
+5. The app is linked to the owner-controlled Expo project
+   `@psi-performance/matt-psi`, and unauthenticated access to its internal
+   distribution build pages is disabled.
 
 ## Staff access and MFA
 
