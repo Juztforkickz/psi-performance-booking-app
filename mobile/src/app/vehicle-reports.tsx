@@ -270,7 +270,7 @@ export default function VehicleReportsScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.screen}>
+    <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]}
         keyboardShouldPersistTaps="handled"

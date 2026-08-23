@@ -42,7 +42,9 @@ test("uses one native responsive contract across every customer screen", async (
   const [
     appConfig,
     hook,
+    rootLayout,
     tabsLayout,
+    persistentNavigation,
     home,
     garage,
     bookings,
@@ -51,10 +53,13 @@ test("uses one native responsive contract across every customer screen", async (
     account,
     signUp,
     parts,
+    vehicleReports,
   ] = await Promise.all([
     read("../mobile/app.json"),
     read("../mobile/src/hooks/use-responsive-layout.ts"),
+    read("../mobile/src/app/_layout.tsx"),
     read("../mobile/src/app/(tabs)/_layout.tsx"),
+    read("../mobile/src/components/persistent-bottom-navigation.tsx"),
     read("../mobile/src/app/(tabs)/index.tsx"),
     read("../mobile/src/app/(tabs)/garage.tsx"),
     read("../mobile/src/app/(tabs)/bookings.tsx"),
@@ -63,6 +68,7 @@ test("uses one native responsive contract across every customer screen", async (
     read("../mobile/src/app/account/index.tsx"),
     read("../mobile/src/app/account/sign-up.tsx"),
     read("../mobile/src/app/parts.tsx"),
+    read("../mobile/src/app/vehicle-reports.tsx"),
   ]);
 
   assert.match(appConfig, /"orientation":\s*"default"/);
@@ -75,15 +81,24 @@ test("uses one native responsive contract across every customer screen", async (
     [...tabsLayout.matchAll(/<Tabs\.Screen\s+name="([^"]+)"/gu)].map((match) => match[1]),
     ["index", "garage", "bookings", "alerts"],
   );
+  assert.match(tabsLayout, /tabBar=\{\(\) => null\}/);
+  assert.match(rootLayout, /<PersistentBottomNavigation\s*\/>/);
+  assert.deepEqual(
+    [...persistentNavigation.matchAll(/href:\s*'([^']+)'/gu)].map((match) => match[1]),
+    ["/", "/garage", "/bookings", "/vehicle-reports", "/alerts"],
+  );
+  assert.match(persistentNavigation, /keyboardDidShow/);
+  assert.match(persistentNavigation, /keyboardDidHide/);
+  assert.match(persistentNavigation, /accessibilityRole="tab"/);
 
   for (const screen of [home, garage, bookings, alerts]) {
     assert.match(screen, /useResponsiveLayout/);
     assert.match(screen, /edges=\{\['top', 'right', 'left'\]\}/);
   }
 
-  for (const screen of [booking, account, signUp, parts]) {
+  for (const screen of [booking, account, signUp, parts, vehicleReports]) {
     assert.match(screen, /useResponsiveLayout/);
-    assert.match(screen, /edges=\{\['top', 'right', 'bottom', 'left'\]\}/);
+    assert.match(screen, /edges=\{\['top', 'right', 'left'\]\}/);
   }
 
   assert.doesNotMatch(home, /oneColumn/);

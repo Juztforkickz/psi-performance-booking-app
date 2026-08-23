@@ -490,7 +490,7 @@ function BookingScreenContent() {
 
   if (initialType && !draftReady) {
     return (
-      <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.screen}>
+      <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
         <View accessibilityLabel="Checking for a saved booking draft" accessibilityRole="progressbar" style={styles.draftLoading}>
           <ActivityIndicator color={bookingColors.accent} size="large" />
           <Text style={styles.draftLoadingTitle}>Preparing your booking</Text>
@@ -509,7 +509,7 @@ function BookingScreenContent() {
     const selectedVehicle = `${bookingVehicle.year} ${bookingVehicle.make} ${bookingVehicle.model}`;
 
     return (
-      <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.screen}>
+      <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
         <ScrollView contentContainerStyle={styles.draftConflictScroll} showsVerticalScrollIndicator={false}>
           <View accessibilityRole="alert" style={styles.draftConflictCard}>
             <Text style={styles.draftLoadingTitle}>Choose which vehicle to continue</Text>
@@ -532,7 +532,7 @@ function BookingScreenContent() {
   }
 
   return (
-    <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.screen}>
+    <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <View style={[styles.topBar, compact && styles.topBarCompact, { paddingHorizontal: horizontalPadding }]}>
         <Pressable
           accessibilityLabel="Back to PSI home"
@@ -1745,7 +1745,7 @@ function RequestHandoff({
   const { compact, horizontalPadding, short } = useResponsiveLayout();
 
   return (
-    <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.successScreen}>
+    <SafeAreaView edges={['top', 'right', 'left']} style={styles.successScreen}>
       <ScrollView contentContainerStyle={[styles.successScroll, short && styles.successScrollShort, { paddingHorizontal: horizontalPadding }]} showsVerticalScrollIndicator={false}>
         <View style={styles.checkoutMark}>
           <Text maxFontSizeMultiplier={1.3} style={styles.checkoutMarkText}>✓</Text>

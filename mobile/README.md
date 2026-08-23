@@ -2,7 +2,7 @@
 
 Native iOS, Android and responsive React Native Web client for PSI Performance Garage. The app uses Expo SDK 57, React Native 0.86 and Expo Router.
 
-The opening route is an illustrated PSI customer dashboard with persistent **Home**, **My Garage**, **Bookings** and **Alerts** tabs. It supports:
+The opening route is an illustrated PSI customer dashboard with a persistent five-button navigation bar for **Home**, **My Garage**, **Bookings**, **Vehicle Reports** and **Settings & Notifications**. It supports:
 
 - Responsive automotive tiles for the garage, bookings, booking ahead, alerts, hub-dyno results, vehicle reports and Plan & Build.
 - Service & Report from $423.50 AUD including GST.
@@ -15,7 +15,7 @@ The opening route is an illustrated PSI customer dashboard with persistent **Hom
 
 The preferred date is never presented as confirmed. Other customer bookings and PSI's Google Calendar remain private.
 
-Expo Router registers `/`, `/garage`, `/bookings` and `/alerts` inside the persistent bottom-tab shell. The existing `/booking`, `/parts`, `/vehicle-reports`, `/account` and `/account/sign-up` journeys open as full-screen routes so the guided booking, Plan & Build, Vehicle Reports and account flows keep their available screen space. Native deep links use the `psiperformance` scheme from `app.json`; universal HTTPS links should only be enabled after PSI controls the final production domain and publishes the required Apple/Android association files.
+Expo Router keeps `/`, `/garage`, `/bookings` and `/alerts` inside the customer tab navigator while one shared root-level bar remains visible across those screens and the stacked `/booking`, `/parts`, `/vehicle-reports`, `/account` and `/account/sign-up` journeys. The Vehicle Reports button opens its dedicated route directly, and the shared bar hides while the software keyboard is open so forms keep their usable screen space. Native deep links use the `psiperformance` scheme from `app.json`; universal HTTPS links should only be enabled after PSI controls the final production domain and publishes the required Apple/Android association files.
 
 The dashboard and customer tabs currently use clearly labelled synthetic, in-memory examples for the account, vehicles, bookings, alerts, dyno results and build plan. Validated account-setup fields and the selected vehicle photo, the active vehicle selection, booking prefill and the Plan & Build handoff travel only through the root in-memory preview context. They put no personal information in route URLs, make no customer-data fetch, and perform no upload or persistence; the context clears when the app reloads or closes. This preview context is separate from the explicitly saved 30-day booking-form draft described below. Future dyno figures are intended to be published by PSI after a completed run and remain read-only to the customer; customers must never be able to enter or alter verified power and torque results.
 

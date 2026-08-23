@@ -1,8 +1,10 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { PersistentBottomNavigation } from '@/components/persistent-bottom-navigation';
 import { colors } from '@/constants/brand';
 import { CustomerPreviewProvider } from '@/lib/customer-preview-context';
 import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme-preference';
@@ -26,17 +28,27 @@ function ThemeAwareRootShell() {
     <ThemeProvider value={shellTheme}>
       <CustomerPreviewProvider>
         <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: theme.inkSoft },
-            animation: 'slide_from_right',
-          }}
-        />
+        <View style={styles.shell}>
+          <View style={styles.content}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: theme.inkSoft },
+                animation: 'slide_from_right',
+              }}
+            />
+          </View>
+          <PersistentBottomNavigation />
+        </View>
       </CustomerPreviewProvider>
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  shell: { flex: 1 },
+  content: { flex: 1, minHeight: 0 },
+});
 
 export default function RootLayout() {
   return (

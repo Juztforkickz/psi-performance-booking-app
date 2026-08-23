@@ -165,7 +165,7 @@ export default function PlanBuildScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.screen}>
+    <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <View style={[styles.header, compact && styles.headerCompact, { paddingHorizontal: horizontalPadding }]}>
         <Pressable
           accessibilityLabel="Back"
