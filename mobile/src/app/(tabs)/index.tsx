@@ -148,6 +148,7 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Opens PSI's directory of independent automotive specialists"
             image={DASHBOARD_TILES.trustedPartners}
+            imageStyle={styles.trustedPartnersTileImage}
             label="Trusted Partners"
             onPress={() => router.push('/trusted-partners')}
           />
@@ -269,6 +270,7 @@ export default function CustomerHomeScreen() {
             <DashboardTile
               accessibilityHint="Opens PSI's directory of independent automotive specialists"
               image={DASHBOARD_TILES.trustedPartners}
+              imageStyle={styles.trustedPartnersTileImage}
               label="Trusted Partners"
               onPress={() => router.push('/trusted-partners')}
             />
@@ -721,6 +723,9 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -8 }, { scale: 0.97 }],
   },
   planBuildTileImage: {},
+  trustedPartnersTileImage: {
+    transform: [{ translateY: -10 }, { scale: 0.8 }],
+  },
   modalHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   modalHeadingCopy: { flex: 1, gap: spacing.xs },
   modalTitle: { color: colors.white, fontSize: 24, fontWeight: '900', lineHeight: 28, textTransform: 'uppercase' },
