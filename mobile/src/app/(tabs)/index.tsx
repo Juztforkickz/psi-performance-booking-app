@@ -151,6 +151,7 @@ export default function CustomerHomeScreen() {
             imageStyle={styles.trustedPartnersTileImage}
             label="Trusted Partners"
             onPress={() => router.push('/trusted-partners')}
+            style={styles.trustedPartnersTile}
           />
         );
     }
@@ -273,6 +274,7 @@ export default function CustomerHomeScreen() {
               imageStyle={styles.trustedPartnersTileImage}
               label="Trusted Partners"
               onPress={() => router.push('/trusted-partners')}
+              style={styles.trustedPartnersTile}
             />
           </TileCell>
         </View>
@@ -723,8 +725,11 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -8 }, { scale: 0.97 }],
   },
   planBuildTileImage: {},
+  trustedPartnersTile: {
+    backgroundColor: '#000000',
+  },
   trustedPartnersTileImage: {
-    transform: [{ translateY: -10 }, { scale: 0.8 }],
+    transform: [{ translateY: -24 }, { scale: 0.8 }],
   },
   modalHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   modalHeadingCopy: { flex: 1, gap: spacing.xs },
