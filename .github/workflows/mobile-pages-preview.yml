@@ -1,9 +1,9 @@
-name: PSI mobile branch preview
+name: PSI mobile main preview
 
 on:
   push:
     branches:
-      - codex/illustrated-customer-app
+      - main
   workflow_dispatch:
 
 permissions:
