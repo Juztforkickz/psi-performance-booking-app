@@ -4,7 +4,8 @@ Native iOS, Android and responsive React Native Web client for PSI Performance G
 
 The opening route is an illustrated PSI customer dashboard with a persistent five-button navigation bar for **Home**, **My Garage**, **Bookings**, **Vehicle Reports** and **Settings & Notifications**. It supports:
 
-- Responsive automotive tiles for the garage, bookings, booking ahead, alerts, hub-dyno results, vehicle reports and Plan & Build.
+- Responsive automotive tiles for the garage, bookings, booking ahead, alerts, hub-dyno results, vehicle reports, Plan & Build and Trusted Partners.
+- Device-local Home shortcut preferences, allowing any dashboard tiles to be shown in the opening shortcut grid without storing customer information.
 - Service & Report from $423.50 AUD including GST.
 - Dyno Tuning from $649 AUD including GST.
 - Direct links to PSI's official parts store and gift-card checkout.
@@ -16,6 +17,10 @@ The opening route is an illustrated PSI customer dashboard with a persistent fiv
 The preferred date is never presented as confirmed. Other customer bookings and PSI's Google Calendar remain private.
 
 Expo Router keeps `/`, `/garage`, `/bookings` and `/alerts` inside the customer tab navigator while one shared root-level bar remains visible across those screens and the stacked `/booking`, `/parts`, `/vehicle-reports`, `/account` and `/account/sign-up` journeys. The Vehicle Reports button opens its dedicated route directly, and the shared bar hides while the software keyboard is open so forms keep their usable screen space. Native deep links use the `psiperformance` scheme from `app.json`; universal HTTPS links should only be enabled after PSI controls the final production domain and publishes the required Apple/Android association files.
+
+Home's **Customise** control can add or remove any available dashboard tile from **Your shortcuts**. This is the only new persistent value in this feature: a versioned list of tile identifiers stored in device-local AsyncStorage. It contains no customer, vehicle, booking or partner-contact data, and at least one shortcut must remain selected. The fixed Workshop tiles remain available even when their matching shortcut is removed.
+
+The full-screen `/trusted-partners` directory presents public business contact details for independent automotive specialists PSI may recommend. It is a referral directory only: customers contact each business directly and must confirm its current services, availability and pricing. Opening a phone, email, website or Instagram link does not create a PSI booking or transmit customer data through the app. The directory has no account connection, API write, analytics or application storage. Partner names, public details and identity badges must be re-confirmed with each business before an app-store release.
 
 The dashboard and customer tabs currently use clearly labelled synthetic, in-memory examples for the account, vehicles, bookings, alerts, dyno results and build plan. Validated account-setup fields and the selected vehicle photo, the active vehicle selection, booking prefill and the Plan & Build handoff travel only through the root in-memory preview context. My Garage also lets the customer edit a preview odometer plus personal last-service and next-check-in dates; those values are shared with Vehicle Reports during the open session and can never replace the separately displayed PSI service history. They put no personal information in route URLs, make no customer-data fetch, and perform no upload or persistence; the context clears when the app reloads or closes. This preview context is separate from the explicitly saved 30-day booking-form draft described below. Future dyno figures are intended to be published by PSI after a completed run and remain read-only to the customer; customers must never be able to enter or alter verified power and torque results.
 

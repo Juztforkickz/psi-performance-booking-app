@@ -20,6 +20,11 @@ import { DashboardTile } from '@/components/dashboard-tile';
 import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
+import {
+  HOME_TILE_IDS,
+  type HomeTileId,
+  useHomeShortcutPreferences,
+} from '@/lib/home-shortcut-preferences';
 import { PUBLIC_DEMO } from '@/lib/public-demo';
 import { useThemePreference } from '@/lib/theme-preference';
 
@@ -31,7 +36,19 @@ const DASHBOARD_TILES = {
   dyno: require('../../../assets/images/dashboard/tile-hub-dyno-v2.jpg'),
   reports: require('../../../assets/images/dashboard/tile-vehicle-reports.jpg'),
   planBuild: require('../../../assets/images/dashboard/tile-plan-build.jpg'),
+  trustedPartners: require('../../../assets/images/dashboard/tile-trusted-partners.jpg'),
 } as const;
+
+const HOME_TILE_LABELS: Readonly<Record<HomeTileId, string>> = {
+  garage: 'My Garage',
+  bookings: 'My Bookings',
+  'book-ahead': 'Book Ahead',
+  alerts: 'Settings & Notifications',
+  dyno: 'Dyno Tuning',
+  reports: 'Vehicle Reports',
+  'plan-build': 'Plan & Build',
+  'trusted-partners': 'Trusted Partners',
+};
 
 const PSI_PROMISES = [
   { index: '01', title: 'Protect', copy: 'Start with the health, safety and reliability of the complete vehicle.' },
@@ -49,12 +66,93 @@ export default function CustomerHomeScreen() {
     'material-community': require('../../../assets/fonts/MaterialCommunityIcons.ttf'),
   });
   const [bookingChooserOpen, setBookingChooserOpen] = useState(false);
+  const [shortcutChooserOpen, setShortcutChooserOpen] = useState(false);
+  const { resetShortcuts, shortcutIds, toggleShortcut } = useHomeShortcutPreferences();
   const threeColumns = tablet && width >= 780 && !largeText;
 
   const openBooking = (type: 'service' | 'dyno') => {
     setBookingChooserOpen(false);
     prepareBookingVehicle(selectedVehicleId);
     router.push({ pathname: '/booking', params: { type } });
+  };
+
+  const renderHomeTile = (id: HomeTileId) => {
+    switch (id) {
+      case 'garage':
+        return (
+          <DashboardTile
+            accessibilityHint="Opens vehicle selection, photos, results and history"
+            image={DASHBOARD_TILES.garage}
+            label="My Garage"
+            onPress={() => router.push('/garage')}
+          />
+        );
+      case 'bookings':
+        return (
+          <DashboardTile
+            accessibilityHint="Opens your own upcoming and past visits"
+            image={DASHBOARD_TILES.bookings}
+            imageStyle={styles.bookingsTileImage}
+            label="My Bookings"
+            onPress={() => router.push('/bookings')}
+          />
+        );
+      case 'book-ahead':
+        return (
+          <DashboardTile
+            accessibilityHint="Choose a service or dyno request for a future date"
+            image={DASHBOARD_TILES.bookAhead}
+            label="Book Ahead"
+            onPress={() => setBookingChooserOpen(true)}
+          />
+        );
+      case 'alerts':
+        return (
+          <DashboardTile
+            accessibilityHint="Opens settings, booking updates and reminders"
+            image={DASHBOARD_TILES.alerts}
+            label="Settings & Notifications"
+            onPress={() => router.push('/alerts')}
+          />
+        );
+      case 'dyno':
+        return (
+          <DashboardTile
+            accessibilityHint="Starts the existing approval-first dyno tuning request"
+            image={DASHBOARD_TILES.dyno}
+            label="Dyno Tuning"
+            onPress={() => openBooking('dyno')}
+          />
+        );
+      case 'reports':
+        return (
+          <DashboardTile
+            accessibilityHint="Opens vehicle history, dyno results, repairs and invoices"
+            image={DASHBOARD_TILES.reports}
+            label="Vehicle Reports"
+            onPress={() => router.push('/vehicle-reports')}
+          />
+        );
+      case 'plan-build':
+        return (
+          <DashboardTile
+            accessibilityHint="Open the build brief template and official PSI parts links"
+            image={DASHBOARD_TILES.planBuild}
+            imageStyle={styles.planBuildTileImage}
+            label="Plan & Build"
+            onPress={() => router.push('/parts')}
+          />
+        );
+      case 'trusted-partners':
+        return (
+          <DashboardTile
+            accessibilityHint="Opens PSI's directory of independent automotive specialists"
+            image={DASHBOARD_TILES.trustedPartners}
+            label="Trusted Partners"
+            onPress={() => router.push('/trusted-partners')}
+          />
+        );
+    }
   };
 
   return (
@@ -115,42 +213,27 @@ export default function CustomerHomeScreen() {
 
         <View style={styles.sectionHeading}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Your shortcuts</Text>
-          <Text style={[styles.sectionHint, { color: activeTheme === 'dark' ? theme.accent : theme.accentAlt }]}>Tap a tile</Text>
+          <Pressable
+            accessibilityHint="Choose which tiles appear in your Home shortcuts"
+            accessibilityLabel="Customise Home shortcuts"
+            accessibilityRole="button"
+            onPress={() => setShortcutChooserOpen(true)}
+            style={({ pressed }) => [
+              styles.shortcutButton,
+              { borderColor: theme.accent, backgroundColor: theme.surface },
+              pressed && styles.pressed,
+            ]}
+          >
+            <Ionicons color={theme.accent} name="options-outline" size={16} />
+            <Text style={[styles.shortcutButtonText, { color: activeTheme === 'dark' ? theme.accent : theme.accentAlt }]}>Customise</Text>
+          </Pressable>
         </View>
         <View style={styles.tileGrid}>
-          <TileCell threeColumns={threeColumns}>
-            <DashboardTile
-              accessibilityHint="Opens vehicle selection, photos, results and history"
-              image={DASHBOARD_TILES.garage}
-              label="My Garage"
-              onPress={() => router.push('/garage')}
-            />
-          </TileCell>
-          <TileCell threeColumns={threeColumns}>
-            <DashboardTile
-              accessibilityHint="Opens your own upcoming and past visits"
-              image={DASHBOARD_TILES.bookings}
-              imageStyle={styles.bookingsTileImage}
-              label="My Bookings"
-              onPress={() => router.push('/bookings')}
-            />
-          </TileCell>
-          <TileCell threeColumns={threeColumns}>
-            <DashboardTile
-              accessibilityHint="Choose a service or dyno request for a future date"
-              image={DASHBOARD_TILES.bookAhead}
-              label="Book Ahead"
-              onPress={() => setBookingChooserOpen(true)}
-            />
-          </TileCell>
-          <TileCell threeColumns={threeColumns}>
-            <DashboardTile
-              accessibilityHint="Opens booking updates and reminders"
-              image={DASHBOARD_TILES.alerts}
-              label="Settings & Notifications"
-              onPress={() => router.push('/alerts')}
-            />
-          </TileCell>
+          {shortcutIds.map((id) => (
+            <TileCell key={id} threeColumns={threeColumns}>
+              {renderHomeTile(id)}
+            </TileCell>
+          ))}
         </View>
 
         <View style={styles.sectionHeading}>
@@ -180,6 +263,14 @@ export default function CustomerHomeScreen() {
               label="Plan & Build"
               imageStyle={styles.planBuildTileImage}
               onPress={() => router.push('/parts')}
+            />
+          </TileCell>
+          <TileCell threeColumns={threeColumns}>
+            <DashboardTile
+              accessibilityHint="Opens PSI's directory of independent automotive specialists"
+              image={DASHBOARD_TILES.trustedPartners}
+              label="Trusted Partners"
+              onPress={() => router.push('/trusted-partners')}
             />
           </TileCell>
         </View>
@@ -315,6 +406,85 @@ export default function CustomerHomeScreen() {
 
         <BrandRail />
       </ScrollView>
+
+      <Modal
+        animationType="fade"
+        onRequestClose={() => setShortcutChooserOpen(false)}
+        transparent
+        visible={shortcutChooserOpen}
+      >
+        <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.modalSafeArea}>
+          <ScrollView contentContainerStyle={styles.modalBackdrop} showsVerticalScrollIndicator={false}>
+            <Pressable
+              accessibilityLabel="Close shortcut chooser"
+              accessibilityRole="button"
+              onPress={() => setShortcutChooserOpen(false)}
+              style={StyleSheet.absoluteFill}
+            />
+            <View accessibilityViewIsModal style={[styles.modalSheet, { backgroundColor: theme.surface, borderColor: theme.frame }]}>
+              <View style={styles.modalHeading}>
+                <View style={styles.modalHeadingCopy}>
+                  <Text style={[styles.eyebrow, { color: theme.accent }]}>Home shortcuts</Text>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Choose your tiles</Text>
+                </View>
+                <Pressable
+                  accessibilityLabel="Done choosing shortcuts"
+                  accessibilityRole="button"
+                  onPress={() => setShortcutChooserOpen(false)}
+                  style={({ pressed }) => [styles.closeButton, { backgroundColor: theme.surfaceRaised, borderColor: theme.frame }, pressed && styles.pressed]}
+                >
+                  <Ionicons color={theme.text} name="close" size={24} />
+                </Pressable>
+              </View>
+              <Text style={[styles.shortcutNotice, { color: theme.textMuted }]}>Select any tiles you want at the top of Home. This device-only preference contains no customer or vehicle information.</Text>
+              <View accessibilityRole="list" style={styles.shortcutList}>
+                {HOME_TILE_IDS.map((id) => {
+                  const checked = shortcutIds.includes(id);
+                  const onlySelection = checked && shortcutIds.length === 1;
+                  return (
+                    <Pressable
+                      accessibilityHint={onlySelection ? 'At least one shortcut must remain selected' : undefined}
+                      accessibilityLabel={HOME_TILE_LABELS[id]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked, disabled: onlySelection }}
+                      disabled={onlySelection}
+                      key={id}
+                      onPress={() => toggleShortcut(id)}
+                      style={({ pressed }) => [
+                        styles.shortcutOption,
+                        { borderColor: checked ? theme.accent : theme.frame, backgroundColor: theme.surfaceRaised },
+                        pressed && styles.pressed,
+                        onlySelection && styles.disabled,
+                      ]}
+                    >
+                      <View style={[styles.checkbox, { borderColor: theme.frame, backgroundColor: checked ? theme.accent : 'transparent' }]}>
+                        {checked ? <Ionicons color={theme.textInverse} name="checkmark" size={18} /> : null}
+                      </View>
+                      <Text style={[styles.shortcutOptionText, { color: theme.text }]}>{HOME_TILE_LABELS[id]}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <View style={styles.shortcutModalActions}>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={resetShortcuts}
+                  style={({ pressed }) => [styles.shortcutModalButton, { borderColor: theme.frame }, pressed && styles.pressed]}
+                >
+                  <Text style={[styles.shortcutModalButtonText, { color: theme.text }]}>Reset default</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setShortcutChooserOpen(false)}
+                  style={({ pressed }) => [styles.shortcutModalButton, { borderColor: theme.accent, backgroundColor: theme.accent }, pressed && styles.pressed]}
+                >
+                  <Text style={[styles.shortcutModalButtonText, { color: theme.textInverse }]}>Done</Text>
+                </Pressable>
+              </View>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
 
       <Modal
         animationType="fade"
@@ -505,6 +675,8 @@ const styles = StyleSheet.create({
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.sm },
   sectionTitle: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .9, textTransform: 'uppercase' },
   sectionHint: { color: colors.gold, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+  shortcutButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 2, paddingHorizontal: spacing.sm },
+  shortcutButtonText: { fontSize: 9, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
   tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   tileCell: { width: '47%', flexGrow: 0, flexShrink: 1, minWidth: 0, maxWidth: 360 },
   tileCellThird: { width: '30%', minWidth: 180 },
@@ -558,5 +730,14 @@ const styles = StyleSheet.create({
   bookingChoiceTitle: { color: colors.white, fontSize: 16, fontWeight: '900', textTransform: 'uppercase' },
   bookingChoiceDetail: { color: colors.muted, fontSize: 11, lineHeight: 17 },
   modalNotice: { color: colors.muted, fontSize: 10, lineHeight: 16 },
+  shortcutNotice: { fontSize: 11, lineHeight: 17 },
+  shortcutList: { gap: spacing.xs },
+  shortcutOption: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 2, paddingHorizontal: spacing.md },
+  checkbox: { width: 28, height: 28, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  shortcutOptionText: { flex: 1, minWidth: 0, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  shortcutModalActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  shortcutModalButton: { minWidth: 140, minHeight: 48, flexGrow: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 2, paddingHorizontal: spacing.md },
+  shortcutModalButtonText: { fontSize: 10, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
+  disabled: { opacity: .52 },
   pressed: { opacity: .72 },
 });

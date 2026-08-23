@@ -55,6 +55,21 @@ On **23 August 2026**, the active My Bookings and Dyno Tuning tiles received own
 
 On **23 August 2026**, the active My Garage tile also received an owner-directed replacement using two owner-supplied photographs of the owner's grey 911 GT3 as vehicle references and PSI's official website as visual-direction reference. The generated tile follows the car's grey finish, black wheels, yellow brake calipers, dark bonnet stripe and fixed rear wing while retaining the established black/graphite dashboard treatment. The previous generic sedan and key prop were removed. The owner photographs remain generation references only and are not shipped in the app.
 
+On **23 August 2026**, a Trusted Partners dashboard tile was created with the built-in ImageGen tool. The final prompt requested a premium photorealistic automotive product illustration: a steel gear and professional handshake surrounded by restrained detailing, electrical, wrapping, tinting, paint, towing, upholstery and motorsport tools on the established carbon-black, graphite and champagne-gold tile background, with no people, business marks, embedded wording or watermark. The 960×1200 JPEG is `tile-trusted-partners.jpg` (112,432 bytes; SHA-256 `9CE6886AAD4083CF782E4243A44DCBF7F3FC77479D100BAC85C3999F02F571F1`).
+
+The eight square identity badges under `mobile/assets/images/partners/` were prepared from the owner-supplied screenshots of the businesses' public social profiles. ImageGen edit mode was used to isolate and clean each visible profile mark into a consistent 512×512 dark badge without reproducing the surrounding Instagram/Facebook interface. The direction was: preserve the supplied identity and existing visible wording, remove UI, photographic clutter and unrelated marks, add no claims or invented wording, and keep the result suitable for a small circular directory badge. These files identify independent businesses nominatively; they are not PSI-owned artwork, do not establish a commercial agreement or licence, and require each partner's confirmation before store/public release.
+
+| Partner badge | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `dark-side-film.jpg` | 31,051 | `50E1BEF5AAB28ECF9E7A0E0D933DCE363E2EC05BB558ED8B89E4FBE1B7624523` |
+| `elite-autobody.jpg` | 9,115 | `C1BEC7F922834C59C78BA858E501AB7422215530694B90C89059845AAE86668A` |
+| `elite-detailing.jpg` | 17,296 | `279F095C9A25587353D7E36DD669365B1B87C51B9A15DC7C81CD4D294FD950AA` |
+| `eye-candy.jpg` | 13,532 | `712F3F17DE9BC5802063397FEA5B84F1FA525B3B1403FD289D7C6060908DD00F` |
+| `kng-tow.jpg` | 8,995 | `9505C611E6153B366EC00608A800807C2C09F159DA5375A848E2D5BE4BB2170C` |
+| `luxe-interiors.jpg` | 47,877 | `1F5EA11032028937869B6A1DCB8888529F80D41C23FE8C6BE655CC7EB21E9E59` |
+| `race-wires.jpg` | 30,098 | `FBB901660DABE2299DB5691FC335198A7993CCA0A28CE9E054AC0F32FEEFE863` |
+| `raceline.jpg` | 28,039 | `101530618820F9012A37AA15E4D495A9B4A06874C6AAF6630AC6CD0925F1DE2E` |
+
 | Active replacement | AI-generated subject | Bytes | SHA-256 |
 | --- | --- | ---: | --- |
 | `tile-my-bookings-v2.jpg` | Full-colour graphite, steel and ivory workshop task clipboard with checklist and service tool | 76,699 | `063203B1BC2D0C2BF4A1A0460618801F6D550F66015E98903B8F27C4A84282ED` |
