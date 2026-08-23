@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { PersistentBottomNavigation } from '@/components/persistent-bottom-navigation';
 import { colors } from '@/constants/brand';
+import { CustomerAuthProvider } from '@/lib/customer-auth-context';
 import { CustomerPreviewProvider } from '@/lib/customer-preview-context';
 import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme-preference';
 import { startSupabaseAuthLifecycle } from '@/lib/supabase';
@@ -30,21 +31,23 @@ function ThemeAwareRootShell() {
 
   return (
     <ThemeProvider value={shellTheme}>
-      <CustomerPreviewProvider>
-        <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
-        <View style={styles.shell}>
-          <View style={styles.content}>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: theme.inkSoft },
-                animation: 'slide_from_right',
-              }}
-            />
+      <CustomerAuthProvider>
+        <CustomerPreviewProvider>
+          <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
+          <View style={styles.shell}>
+            <View style={styles.content}>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  contentStyle: { backgroundColor: theme.inkSoft },
+                  animation: 'slide_from_right',
+                }}
+              />
+            </View>
+            <PersistentBottomNavigation />
           </View>
-          <PersistentBottomNavigation />
-        </View>
-      </CustomerPreviewProvider>
+        </CustomerPreviewProvider>
+      </CustomerAuthProvider>
     </ThemeProvider>
   );
 }

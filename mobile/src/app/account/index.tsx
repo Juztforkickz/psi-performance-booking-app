@@ -1,27 +1,107 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { loadCustomerAccount, type CustomerAccountSnapshot } from '@/lib/customer-account';
+import {
+  CUSTOMER_AUTH,
+  requestPasswordlessEmailCode,
+  signOutCustomer,
+  verifyPasswordlessEmailCode,
+} from '@/lib/customer-auth';
+import { useCustomerAuth } from '@/lib/customer-auth-context';
 
 export default function AccountScreen() {
   const router = useRouter();
   const { compact, horizontalPadding, short } = useResponsiveLayout();
+  const auth = useCustomerAuth();
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [codeError, setCodeError] = useState('');
   const [notice, setNotice] = useState('');
+  const [codeSent, setCodeSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [account, setAccount] = useState<CustomerAccountSnapshot | null>(null);
+  const [accountError, setAccountError] = useState('');
 
-  const previewSignIn = () => {
+  useEffect(() => {
+    if (auth.status !== 'signed_in') return;
+
+    let active = true;
+    void loadCustomerAccount()
+      .then((snapshot) => {
+        if (!active) return;
+        setAccount(snapshot);
+        setAccountError('');
+      })
+      .catch(() => {
+        if (!active) return;
+        setAccountError('Your secure session is active, but the account record could not be loaded. Please try again.');
+      });
+    return () => { active = false; };
+  }, [auth.status]);
+
+  const beginSignIn = async () => {
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
       setEmailError('Enter a valid email address.');
       setNotice('');
       return;
     }
     setEmailError('');
-    setNotice('The secure Supabase foundation is ready, but customer email delivery is not active in this build. No code was sent and your email was not stored.');
+    if (!CUSTOMER_AUTH.enabled) {
+      setNotice('The secure Supabase foundation is ready, but customer email delivery is not active in this build. No code was sent and your email was not stored.');
+      return;
+    }
+
+    setBusy(true);
+    setNotice('');
+    try {
+      await requestPasswordlessEmailCode(email);
+      setCodeSent(true);
+      setNotice('A six-digit PSI sign-in code was requested. Check your inbox and enter it below. The code expires after 10 minutes.');
+    } catch {
+      setNotice('A sign-in code could not be requested. Customer registration may still be closed, or the email service may be temporarily unavailable.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verifyCode = async () => {
+    if (!/^\d{6}$/.test(code.replace(/\s/gu, ''))) {
+      setCodeError('Enter the six-digit code from your email.');
+      return;
+    }
+    setBusy(true);
+    setCodeError('');
+    setNotice('');
+    try {
+      await verifyPasswordlessEmailCode(email, code);
+      setNotice('Secure sign-in complete. Your account is loading.');
+    } catch {
+      setCodeError('That code could not be verified. Check the code, request a new one, or try again before it expires.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const signOut = async () => {
+    setBusy(true);
+    try {
+      await signOutCustomer();
+      setCode('');
+      setCodeSent(false);
+      setEmail('');
+      setNotice('Signed out securely on this device.');
+    } catch {
+      setNotice('The local sign-out could not be completed. Close the app and try again.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -60,12 +140,31 @@ export default function AccountScreen() {
 
         <View style={[styles.providerNotice, compact && styles.cardCompact]}>
           <Text style={styles.providerKicker}>Supabase security foundation ready</Text>
-          <Text style={styles.providerTitle}>Email-code activation safely gated</Text>
+          <Text style={styles.providerTitle}>{CUSTOMER_AUTH.enabled ? 'Secure email-code access' : 'Email-code activation safely gated'}</Text>
           <Text style={styles.providerCopy}>
-            Passwords are not collected or stored here. Six-digit email codes activate only after PSI’s sender and access tests pass. Customers will see only their own records; MFA-authenticated PSI staff use a separate workshop portal.
+            Passwords are not collected or stored here. {CUSTOMER_AUTH.enabled ? 'Six-digit codes provide customer access in this controlled build.' : 'Six-digit email codes activate only after PSI’s sender and access tests pass.'} Customers see only their own records; MFA-authenticated PSI staff use a separate workshop portal.
           </Text>
         </View>
 
+        {CUSTOMER_AUTH.enabled && auth.status === 'signed_in' ? (
+          <View accessibilityLabel="Secure customer account summary" style={[styles.dashboardPreview, compact && styles.cardCompact]}>
+            <View style={styles.dashboardHeading}>
+              <Text style={styles.dashboardKicker}>Secure customer account</Text>
+              <Text style={styles.dashboardBadge}>Authenticated</Text>
+            </View>
+            <Text style={styles.dashboardTitle}>{account?.profile?.first_name ? `Welcome, ${account.profile.first_name}.` : 'Your PSI account.'}</Text>
+            <Text style={styles.dashboardCopy}>{auth.user?.email}</Text>
+            {accountError ? <Text accessibilityRole="alert" style={styles.errorText}>{accountError}</Text> : null}
+            {!account && !accountError ? <Text style={styles.dashboardCopy}>Loading your private account…</Text> : null}
+            {account ? (
+              <View style={styles.dashboardGrid}>
+                <AccountFeature index="01" title="Profile" copy={account.profile ? 'Verified account profile connected.' : 'Complete your profile to continue.'} />
+                <AccountFeature index="02" title="Vehicles" copy={`${account.vehicles.length} vehicle${account.vehicles.length === 1 ? '' : 's'} connected to this account.`} />
+              </View>
+            ) : null}
+            <PrimaryButton label="Sign out" loading={busy} onPress={() => void signOut()} variant="outline" />
+          </View>
+        ) : (
         <View accessibilityLabel="Customer account dashboard preview; no customer records loaded" style={[styles.dashboardPreview, compact && styles.cardCompact]}>
           <View style={styles.dashboardHeading}>
             <Text style={styles.dashboardKicker}>Account dashboard preview</Text>
@@ -91,8 +190,9 @@ export default function AccountScreen() {
             <Text style={styles.reminderCopy}>Confirmed bookings receive factual 7-day and 24-hour appointment reminders. Optional “Ready for your next service?” messages at 6 and 12 months appear only after a completed service when the customer opted in, with unsubscribe included. No automatic review request or vehicle-package offer is added.</Text>
           </View>
         </View>
+        )}
 
-        <View style={[styles.card, compact && styles.cardCompact]}>
+        {auth.status !== 'signed_in' ? <View style={[styles.card, compact && styles.cardCompact]}>
           <Text style={styles.cardTitle}>Sign in with email</Text>
           <Text style={styles.cardCopy}>
             The production experience will send a secure six-digit sign-in code. No reusable password is required.
@@ -107,19 +207,45 @@ export default function AccountScreen() {
               onChangeText={(value) => {
                 setEmail(value);
                 setEmailError('');
+                setCodeSent(false);
+                setCode('');
+                setCodeError('');
                 setNotice('');
               }}
               placeholder="you@example.com"
               value={email}
             />
           </Field>
+          {CUSTOMER_AUTH.enabled && codeSent ? (
+            <Field error={codeError} hint="Expires after 10 minutes" label="Six-digit code">
+              <FormInput
+                autoComplete="one-time-code"
+                error={codeError}
+                keyboardType="number-pad"
+                maxLength={6}
+                onChangeText={(value) => {
+                  setCode(value.replace(/\D/gu, ''));
+                  setCodeError('');
+                }}
+                placeholder="000000"
+                value={code}
+              />
+            </Field>
+          ) : null}
           {notice ? (
             <View accessibilityRole="alert" style={styles.notice}>
               <Text style={styles.noticeText}>{notice}</Text>
             </View>
           ) : null}
-          <PrimaryButton label="Check sign-in readiness" onPress={previewSignIn} />
-        </View>
+          {CUSTOMER_AUTH.enabled && codeSent ? (
+            <>
+              <PrimaryButton label="Verify and sign in" loading={busy} onPress={() => void verifyCode()} />
+              <PrimaryButton label="Request a new code" disabled={busy} onPress={() => void beginSignIn()} variant="outline" />
+            </>
+          ) : (
+            <PrimaryButton label={CUSTOMER_AUTH.enabled ? 'Email my sign-in code' : 'Check sign-in readiness'} loading={busy} onPress={() => void beginSignIn()} />
+          )}
+        </View> : null}
 
         <View style={[styles.createCard, compact && styles.cardCompact]}>
           <View style={styles.createCopy}>
@@ -217,6 +343,7 @@ const styles = StyleSheet.create({
   cardCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
   notice: { ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.md },
   noticeText: { color: colors.cream, fontSize: 12, lineHeight: 19 },
+  errorText: { color: colors.danger, fontSize: 12, lineHeight: 19 },
   createCard: { ...mobileFrame, gap: spacing.lg, marginTop: spacing.lg, padding: spacing.lg },
   createCopy: { gap: spacing.xs },
   createTitle: { color: colors.white, fontSize: 16, fontWeight: '900' },

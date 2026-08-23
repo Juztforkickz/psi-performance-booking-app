@@ -1,6 +1,7 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createClient, processLock, type SupabaseClient } from '@supabase/supabase-js';
 import { AppState, Platform } from 'react-native';
 
+import type { Database } from '@/lib/database.types';
 import { supabaseAuthStorage } from '@/lib/supabase-auth-storage';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() ?? '';
@@ -14,20 +15,21 @@ export const SUPABASE_CONNECTION = {
   region: 'ap-southeast-2',
 } as const;
 
-let client: SupabaseClient | null = null;
+let client: SupabaseClient<Database> | null = null;
 
 export function getSupabaseClient() {
   if (!SUPABASE_CONNECTION.authEnabled) {
     throw new Error('CUSTOMER_AUTH_NOT_ENABLED');
   }
 
-  client ??= createClient(supabaseUrl, supabasePublishableKey, {
+  client ??= createClient<Database>(supabaseUrl, supabasePublishableKey, {
     auth: {
       storage: supabaseAuthStorage,
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,
       flowType: 'pkce',
+      lock: processLock,
     },
   });
 

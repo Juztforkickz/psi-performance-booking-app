@@ -1,9 +1,9 @@
 # PSI Performance App — Supabase foundation
 
-Status: database and security foundation applied; Resend custom SMTP and the
-six-digit PSI email-code template are configured. Customer sign-in and new
-registration remain deliberately inactive in the app until end-to-end access
-tests are complete. No application deployment was performed for this work.
+Status: database and security foundation applied; Resend custom SMTP, the
+six-digit PSI email-code template and the activation-gated Expo client flow are
+implemented. Customer sign-in and new registration remain deliberately inactive
+in public builds until end-to-end access tests are complete.
 
 ## Project
 
@@ -40,8 +40,8 @@ Completed email groundwork:
 
 Remaining activation gates:
 
-1. Implement and validate the customer code-entry/session UI behind the
-   existing client activation flag.
+1. Test the implemented code-entry, secure-session and profile/vehicle adapter
+   on controlled native builds.
 2. Test expiry, replay prevention, resend throttling, logout, recovery and
    cross-account isolation on real iPhone and Android devices.
 3. Re-enable Supabase new-user registration only for the controlled pilot.
@@ -106,9 +106,11 @@ as separate sources:
   completed visit therefore updates the official dates without overwriting or
   legitimising personal entries.
 
-The current Expo UI still demonstrates customer maintenance changes in memory
-only. Real reads and writes remain disabled until passwordless authentication,
-custom SMTP and cross-account/device tests pass.
+The Expo account screens now contain typed RLS-bound profile/vehicle reads and
+writes, but they are unreachable while the activation flag is false. The public
+preview continues to demonstrate customer maintenance changes in memory only.
+Real customer access remains disabled until cross-account and real-device tests
+pass.
 
 All customer tables use Row Level Security. Data API grants are also explicitly
 least-privileged: anonymous clients have no business-table grants, authenticated

@@ -16,6 +16,9 @@ import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
 import { type LocalVehiclePhoto, VehiclePhotoPicker } from '@/components/vehicle-photo-picker';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { saveCustomerProfile, saveCustomerVehicle } from '@/lib/customer-account';
+import { CUSTOMER_AUTH } from '@/lib/customer-auth';
+import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 
@@ -45,12 +48,14 @@ type AccountErrors = Partial<Record<keyof AccountDraft, string>>;
 
 export default function SignUpScreen() {
   const router = useRouter();
+  const auth = useCustomerAuth();
   const { stageAccountPreview } = useCustomerPreview();
   const { compact, horizontalPadding, short, useFieldColumns: wide } = useResponsiveLayout();
   const [form, setForm] = useState(EMPTY_ACCOUNT);
   const [errors, setErrors] = useState<AccountErrors>({});
   const [notice, setNotice] = useState('');
   const [vehiclePhoto, setVehiclePhoto] = useState<LocalVehiclePhoto | null>(null);
+  const [saving, setSaving] = useState(false);
   const vehiclePhotoRef = useRef(vehiclePhoto);
   const photoTransferredRef = useRef(false);
 
@@ -73,11 +78,17 @@ export default function SignUpScreen() {
     setNotice('');
   };
 
-  const checkReadiness = () => {
+  const checkReadiness = async () => {
+    if (CUSTOMER_AUTH.enabled && auth.status !== 'signed_in') {
+      setNotice('Sign in with your verified email code before saving an account profile.');
+      return;
+    }
+
     const nextErrors: AccountErrors = {};
     if (!form.firstName.trim()) nextErrors.firstName = 'Enter your first name.';
     if (!form.lastName.trim()) nextErrors.lastName = 'Enter your last name.';
-    if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) nextErrors.email = 'Enter a valid email address.';
+    const accountEmail = CUSTOMER_AUTH.enabled ? auth.user?.email ?? '' : form.email;
+    if (!/^\S+@\S+\.\S+$/.test(accountEmail.trim())) nextErrors.email = 'Enter a valid email address.';
     const phoneDigits = form.mobile.replace(/\D/g, '');
     if (phoneDigits.length < 8 || phoneDigits.length > 15) nextErrors.mobile = 'Enter a valid mobile number.';
     if (!form.registration.trim()) nextErrors.registration = 'Enter the registration.';
@@ -91,6 +102,30 @@ export default function SignUpScreen() {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       setNotice('');
+      return;
+    }
+
+    if (CUSTOMER_AUTH.enabled) {
+      setSaving(true);
+      setNotice('');
+      try {
+        await saveCustomerProfile({
+          firstName: form.firstName,
+          lastName: form.lastName,
+          mobile: form.mobile,
+        });
+        await saveCustomerVehicle({
+          make: form.vehicleMake,
+          model: form.vehicleModel,
+          registration: form.registration,
+          year,
+        });
+        setNotice(`Your profile and vehicle details were saved to your private Supabase account.${vehiclePhoto ? ' The selected vehicle photo remains local to this open app session and was not uploaded.' : ''}`);
+      } catch {
+        setNotice('Your profile could not be saved. Nothing was uploaded. Check the secure session and try again.');
+      } finally {
+        setSaving(false);
+      }
       return;
     }
 
@@ -139,18 +174,26 @@ export default function SignUpScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Eyebrow>Account setup preview</Eyebrow>
+          <Eyebrow>{CUSTOMER_AUTH.enabled ? 'Secure account setup' : 'Account setup preview'}</Eyebrow>
           <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>One profile.{`\n`}Every PSI visit.</Text>
           <Text style={styles.lead}>
-            This is the provider-ready profile PSI can connect to secure email sign-in. Passwords are deliberately excluded.
+            {CUSTOMER_AUTH.enabled ? 'Complete the profile connected to your verified email-code session. Passwords are deliberately excluded.' : 'This is the provider-ready profile PSI can connect to secure email sign-in. Passwords are deliberately excluded.'}
           </Text>
 
           <View style={[styles.securityCard, compact && styles.cardCompact]}>
-            <Text style={styles.securityTitle}>No data leaves this preview</Text>
+            <Text style={styles.securityTitle}>{CUSTOMER_AUTH.enabled ? 'Private account boundary' : 'No data leaves this preview'}</Text>
             <Text style={styles.securityCopy}>
-              Until managed authentication is connected, this preview keeps values only in app memory and discards them when the preview reloads or closes.
+              {CUSTOMER_AUTH.enabled ? 'Profile and vehicle details save only after a verified sign-in and remain protected by row-level ownership. Vehicle photos are still local-only and are not uploaded.' : 'Until managed authentication is connected, this preview keeps values only in app memory and discards them when the preview reloads or closes.'}
             </Text>
           </View>
+
+          {CUSTOMER_AUTH.enabled && auth.status !== 'signed_in' ? (
+            <View accessibilityRole="alert" style={styles.notice}>
+              <Text maxFontSizeMultiplier={2} style={styles.noticeTitle}>Sign-in required</Text>
+              <Text style={styles.noticeCopy}>Return to Account and verify the six-digit code before saving details.</Text>
+              <PrimaryButton label="Go to sign in" onPress={() => router.replace('/account')} variant="outline" />
+            </View>
+          ) : null}
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Your details</Text>
@@ -169,7 +212,7 @@ export default function SignUpScreen() {
             <View style={[styles.row, wide && styles.rowWide]}>
               <View style={styles.cell}>
                 <Field error={errors.email} label="Email">
-                  <FormInput autoCapitalize="none" autoComplete="email" error={errors.email} keyboardType="email-address" onChangeText={(value) => update('email', value)} placeholder="you@example.com" value={form.email} />
+                  <FormInput autoCapitalize="none" autoComplete="email" editable={!CUSTOMER_AUTH.enabled} error={errors.email} keyboardType="email-address" onChangeText={(value) => update('email', value)} placeholder="you@example.com" value={CUSTOMER_AUTH.enabled ? auth.user?.email ?? '' : form.email} />
                 </Field>
               </View>
               <View style={styles.cell}>
@@ -232,7 +275,7 @@ export default function SignUpScreen() {
           ) : null}
 
           <View style={styles.actions}>
-            <PrimaryButton label="Check account setup" onPress={checkReadiness} />
+            <PrimaryButton disabled={CUSTOMER_AUTH.enabled && auth.status !== 'signed_in'} label={CUSTOMER_AUTH.enabled ? 'Save secure account' : 'Check account setup'} loading={saving} onPress={() => void checkReadiness()} />
             {notice ? <PrimaryButton label="Open My Garage preview" onPress={() => router.replace('/garage')} variant="outline" /> : null}
             <PrimaryButton label="Book without an account" onPress={() => router.replace('/booking')} variant="outline" />
           </View>
