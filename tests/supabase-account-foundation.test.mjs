@@ -18,6 +18,10 @@ const combinedServicePolicies = await readFile(
   new URL("../supabase/migrations/20260823101520_combine_service_history_policies.sql", import.meta.url),
   "utf8",
 );
+const dataApiGrants = await readFile(
+  new URL("../supabase/migrations/20260823140259_tighten_data_api_grants.sql", import.meta.url),
+  "utf8",
+);
 const mobileEnvironment = await readFile(
   new URL("../mobile/.env.example", import.meta.url),
   "utf8",
@@ -66,6 +70,16 @@ test("mobile Supabase connection is public-key-only and activation-gated", () =>
   assert.match(mobileClient, /flowType: 'pkce'/u);
   assert.match(authStorage, /expo-secure-store/u);
   assert.doesNotMatch(authStorage, /AsyncStorage|window\.localStorage|localStorage\./u);
+});
+
+test("Supabase Data API grants are explicit and least-privileged", () => {
+  assert.match(dataApiGrants, /revoke all privileges on all tables in schema public from anon, authenticated/u);
+  assert.match(dataApiGrants, /revoke all privileges on schema public from anon/u);
+  assert.match(dataApiGrants, /grant usage on schema public to authenticated/u);
+  assert.match(dataApiGrants, /grant select, insert on public\.service_completions to authenticated/u);
+  assert.match(dataApiGrants, /grant select on public\.vehicle_service_summary to authenticated/u);
+  assert.match(dataApiGrants, /alter default privileges for role postgres in schema public[\s\S]*revoke all privileges on tables from anon, authenticated/u);
+  assert.doesNotMatch(dataApiGrants, /grant (?:all|delete|truncate|trigger|references)/iu);
 });
 
 test("completed PSI services are linked, immutable and source-separated", () => {

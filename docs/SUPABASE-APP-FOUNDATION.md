@@ -1,8 +1,9 @@
 # PSI Performance App — Supabase foundation
 
-Status: database and security foundation applied; customer and staff sign-in
-remain deliberately inactive until the email sender and end-to-end access tests
-are complete. No application deployment was performed for this work.
+Status: database and security foundation applied; Resend custom SMTP and the
+six-digit PSI email-code template are configured. Customer sign-in and new
+registration remain deliberately inactive in the app until end-to-end access
+tests are complete. No application deployment was performed for this work.
 
 ## Project
 
@@ -28,29 +29,33 @@ after the customer signs out, the session is revoked or expires, the app is
 reinstalled, or the customer signs in on a new device. The Expo web preview
 keeps any future session in memory only and signs out on refresh/close.
 
-Before activation:
+Completed email groundwork:
 
-1. Verify `psiperformance.com.au` with the chosen SMTP provider.
-2. Configure Supabase custom SMTP with `info@psiperformance.com.au` as the
-   approved From address.
-3. Change the Supabase email template to contain the OTP token and PSI wording.
-4. Test code expiry, replay prevention, resend throttling, logout and account
-   recovery on real iPhone and Android devices.
-5. Set `EXPO_PUBLIC_SUPABASE_AUTH_ENABLED=true` only in a controlled build after
-   those tests pass.
+1. `psiperformance.com.au` is verified with Resend.
+2. Supabase custom SMTP uses `smtp.resend.com`, the approved
+   `info@psiperformance.com.au` From address and the `PSI Performance` sender
+   name. Credentials remain encrypted in Supabase and are not in this repository.
+3. The Magic Link / OTP template now sends a six-digit PSI sign-in code that
+   expires after 10 minutes.
 
-`info@psiperformance.com.au` is approved as the intended sender, but it is not
-yet technically verified as a sender. Sender verification requires DNS/SPF,
-DKIM and preferably DMARC plus SMTP credentials; no credentials are stored in
-this repository.
+Remaining activation gates:
+
+1. Implement and validate the customer code-entry/session UI behind the
+   existing client activation flag.
+2. Test expiry, replay prevention, resend throttling, logout, recovery and
+   cross-account isolation on real iPhone and Android devices.
+3. Re-enable Supabase new-user registration only for the controlled pilot.
+4. Set `EXPO_PUBLIC_SUPABASE_AUTH_ENABLED=true` only in that controlled build
+   after the tests pass. The public GitHub Pages preview keeps it false.
 
 ## Staff access and MFA
 
-The allowlist is pre-created but no invitation or login email has been sent:
+The staff allowlist is pre-created. Matt accepted the owner invitation on
+23 August 2026; Dale and Jamie remain pending and have not been activated:
 
 | Email | Role | Access |
 | --- | --- | --- |
-| `matt@psiperformance.com.au` | Owner | Full staff management and owner override |
+| `matt@psiperformance.com.au` | Owner (active) | Full staff management and owner override |
 | `dale@psiperformance.com.au` | Staff | Workshop records and booking workflow |
 | `jamie@psiperformance.com.au` | Staff | Workshop records and booking workflow |
 
@@ -105,9 +110,13 @@ The current Expo UI still demonstrates customer maintenance changes in memory
 only. Real reads and writes remain disabled until passwordless authentication,
 custom SMTP and cross-account/device tests pass.
 
-The security advisor currently reports no security findings. All customer
-tables use Row Level Security. The `vehicle-photos` and `vehicle-documents`
-buckets are private and have file type/size limits; nothing is publicly listed.
+All customer tables use Row Level Security. Data API grants are also explicitly
+least-privileged: anonymous clients have no business-table grants, authenticated
+clients receive only the operations backed by the reviewed policies, and new
+public objects inherit no client grants. The `vehicle-photos` and
+`vehicle-documents` buckets are private and have file type/size limits; nothing
+is publicly listed. The security advisor's only warning is password-leak
+protection, a paid password feature that is not used by this passwordless app.
 
 ## PSI portal
 
@@ -160,8 +169,8 @@ Edge Function calls and 2 million Realtime messages. Free projects can pause
 after inactivity and do not provide downloadable backups, so production launch
 requires a capacity, backup and recovery decision.
 
-Supabase's built-in test email service is not suitable for customers (currently
-two emails per hour). A custom SMTP provider is required. Resend's current Free
-tier is a reasonable starting point at 3,000 emails per month and 100 per day;
-paid services and Supabase Pro are billed in USD, so PSI should review the live
-AUD equivalent and GST before upgrading.
+Supabase's built-in test email service is not suitable for customers. PSI now
+uses Resend custom SMTP. Resend's current Free tier is a reasonable starting
+point at 3,000 emails per month and 100 per day; paid services and Supabase Pro
+are billed in USD, so PSI should review the live AUD equivalent and GST before
+upgrading.
