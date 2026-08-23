@@ -166,10 +166,10 @@ export default function CustomerHomeScreen() {
           </TileCell>
           <TileCell threeColumns={threeColumns}>
             <DashboardTile
-              accessibilityHint="Opens the latest PSI-published vehicle and dyno reports"
+              accessibilityHint="Opens vehicle history, dyno results, repairs and invoices"
               image={DASHBOARD_TILES.reports}
               label="Vehicle Reports"
-              onPress={() => router.push({ pathname: '/garage', params: { section: 'dyno' } })}
+              onPress={() => router.push('/vehicle-reports')}
             />
           </TileCell>
           <TileCell threeColumns={threeColumns}>

@@ -1,3 +1,4 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import {
   Image,
   Pressable,
@@ -37,6 +38,9 @@ export function DashboardTile({
   onPress,
   style,
 }: DashboardTileProps) {
+  const isGarageTile = label === 'My Garage';
+  const isBookingsTile = label === 'My Bookings';
+
   return (
     <Pressable
       accessibilityHint={accessibilityHint}
@@ -56,8 +60,22 @@ export function DashboardTile({
         accessible={false}
         resizeMode={imageResizeMode}
         source={image}
-        style={[styles.image, imageStyle]}
+        style={[
+          styles.image,
+          isGarageTile && styles.garageImage,
+          isBookingsTile && styles.bookingsImage,
+          imageStyle,
+        ]}
       />
+      {isBookingsTile ? (
+        <View accessible={false} pointerEvents="none" style={styles.bookingsBadge}>
+          <MaterialCommunityIcons
+            color={colors.gold}
+            name="clipboard-check-outline"
+            size={42}
+          />
+        </View>
+      ) : null}
       <View style={styles.shade} />
       <View style={styles.labelBand}>
         <Text maxFontSizeMultiplier={1.6} numberOfLines={2} style={styles.label}>
@@ -80,6 +98,25 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  garageImage: {
+    transform: [{ scale: 1.12 }],
+  },
+  bookingsImage: {
+    transform: [{ scale: 1.08 }, { translateX: -9 }],
+  },
+  bookingsBadge: {
+    position: 'absolute',
+    top: spacing.md,
+    right: spacing.md,
+    width: 58,
+    height: 58,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(214, 176, 106, 0.72)',
+    borderRadius: 4,
+    backgroundColor: 'rgba(5, 5, 5, 0.86)',
   },
   shade: {
     position: 'absolute',
