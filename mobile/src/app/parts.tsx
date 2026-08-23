@@ -193,7 +193,7 @@ export default function PlanBuildScreen() {
           <View style={[styles.heroImageFrame, tablet && styles.heroImageFrameWide]}>
             <Image
               accessibilityLabel="Illustrated engine, turbo and staged vehicle build plan"
-              resizeMode="cover"
+              resizeMode="contain"
               source={require('../../assets/images/dashboard/tile-plan-build.jpg')}
               style={[styles.fillImage, styles.heroImage]}
             />
@@ -586,9 +586,9 @@ const styles = StyleSheet.create({
   scrollShort: { paddingTop: spacing.lg, paddingBottom: spacing.xl },
   hero: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
   heroWide: { flexDirection: 'row' },
-  heroImageFrame: { width: '100%', aspectRatio: 4 / 3, overflow: 'hidden', backgroundColor: colors.inkSoft },
+  heroImageFrame: { width: '100%', aspectRatio: 4 / 5, overflow: 'hidden', backgroundColor: colors.inkSoft },
   heroImageFrameWide: { width: '44%', aspectRatio: 1 },
-  heroImage: { transform: [{ scale: 1.18 }], transformOrigin: 'top center' },
+  heroImage: {},
   fillImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
   heroCopy: { flex: 1, justifyContent: 'center', gap: spacing.md, padding: spacing.lg },
   eyebrow: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },

@@ -53,7 +53,7 @@ export default function AlertsScreen() {
       >
         <View style={styles.header}>
           <View style={styles.headerCopy}>
-            <Text style={styles.eyebrow}>Updates & reminders</Text>
+            <Text style={styles.eyebrow}>Settings & Notifications</Text>
             <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact]}>Settings & Notifications</Text>
           </View>
           <View accessibilityLabel={`${unreadCount} unread example alerts`} style={styles.countBadge}>

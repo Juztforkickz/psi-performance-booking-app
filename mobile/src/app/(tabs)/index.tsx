@@ -174,7 +174,7 @@ export default function CustomerHomeScreen() {
           </TileCell>
           <TileCell threeColumns={threeColumns}>
             <DashboardTile
-              accessibilityHint="Opens your staged vehicle plan and official PSI parts links"
+              accessibilityHint="Open the build brief template and official PSI parts links"
               image={DASHBOARD_TILES.planBuild}
               label="Plan & Build"
               imageStyle={styles.planBuildTileImage}
@@ -431,10 +431,10 @@ function ContactAction({
 type ContactIconName = 'call' | 'facebook' | 'instagram' | 'mail' | 'map' | 'website';
 
 const CONTACT_IONICON_NAMES = {
-  call: 'call',
+  call: 'call-outline',
   facebook: 'logo-facebook',
   instagram: 'logo-instagram',
-  mail: 'mail',
+  mail: 'mail-outline',
   website: 'globe-outline',
 } as const satisfies Record<Exclude<ContactIconName, 'map'>, keyof typeof Ionicons.glyphMap>;
 

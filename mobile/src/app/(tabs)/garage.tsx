@@ -175,7 +175,7 @@ export default function GarageScreen() {
           <View style={[styles.buildImageFrame, (tablet && !largeText) && styles.buildImageFrameWide]}>
             <Image
               accessibilityLabel="Illustrated engine and performance build plan"
-              resizeMode="cover"
+              resizeMode="contain"
               source={require('../../../assets/images/dashboard/tile-plan-build.jpg')}
               style={[styles.fillImage, styles.planBuildImage]}
             />
@@ -357,9 +357,9 @@ const styles = StyleSheet.create({
   disclaimer: { color: colors.mutedDark, fontSize: 10, lineHeight: 16 },
   buildCard: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
   buildCardWide: { flexDirection: 'row' },
-  buildImageFrame: { width: '100%', aspectRatio: 4 / 3, overflow: 'hidden', backgroundColor: colors.inkSoft },
+  buildImageFrame: { width: '100%', aspectRatio: 4 / 5, overflow: 'hidden', backgroundColor: colors.inkSoft },
   buildImageFrameWide: { width: '44%', aspectRatio: 1 },
-  planBuildImage: { transform: [{ scale: 1.18 }], transformOrigin: 'top center' },
+  planBuildImage: {},
   buildBody: { flex: 1, gap: spacing.md, padding: spacing.lg },
   buildTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
   stageList: { gap: spacing.sm },
