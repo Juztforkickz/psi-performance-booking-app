@@ -45,8 +45,8 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#050505",
-          "image": "./assets/images/psi-logo.png",
-          "imageWidth": 280,
+          "image": "./assets/images/psi-splash-logo.png",
+          "imageWidth": 300,
           "resizeMode": "contain"
         }
       ]

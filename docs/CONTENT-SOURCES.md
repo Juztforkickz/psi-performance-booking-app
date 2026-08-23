@@ -94,6 +94,18 @@ The web booking experience, staff queue and native mobile app use one restrained
 
 The direction intentionally avoids flames, chequered flags, speed streaks and generic racing graphics. The performance character comes from the real cars, PSI's wordmark, precise typography and measured use of metallic gold.
 
+### App-store identity pack
+
+On **23 August 2026**, the app-store identity pack under `artifacts/PSI APP/` was prepared from the approved PSI artwork. The launcher icon uses the PSI letterform alone on solid carbon black so it remains legible at small sizes; the `PERFORMANCE GARAGE` subtitle remains in the native splash and store feature artwork. The active Expo icon, Android adaptive foreground and splash configuration were updated from the same deterministic source artwork by `scripts/Generate-PsiStoreAssets.ps1`.
+
+The Google Play feature-graphic background was generated with the built-in ImageGen tool from a text-only prompt requesting a generic black performance sedan in a dark premium workshop, with no text, people, logos, numberplate or manufacturer badge. The approved PSI logo and final tagline were composited locally afterward. The generated car/background is marketing artwork rather than PSI workshop photography and remains subject to owner and ordinary legal/store review.
+
+| File | Use | SHA-256 |
+| --- | --- | --- |
+| `psi-app-icon-1024.png` | Apple/native/web icon master | `36B36811C433C280A5EFEA69E200FB70633F9AA6E3F2D0CF21737A2F68737C9F` |
+| `psi-splash-logo-1200x500.png` | Transparent approved PSI splash artwork | `07DB3AA50F70B71F9A5F3B93B496CA2FC708834420B827B05DA47CD9B2EDB300` |
+| `google-play-feature-graphic-1024x500.png` | Google Play marketing feature graphic | `8CFF4A0C2E6D2D67AAA0B238C9100BC1667F8E9115422DC39AC4B22472054C6C` |
+
 ## Social-card generation record
 
 Mode: built-in image generation, using `public/psi-hero.jpg` and `public/psi-logo.png` as references.
