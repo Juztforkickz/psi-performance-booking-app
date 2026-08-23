@@ -103,7 +103,7 @@ export function PersistentBottomNavigation() {
               <Ionicons
                 color={selected ? theme.accent : theme.textMuted}
                 name={selected ? item.activeIcon : item.inactiveIcon}
-                size={22}
+                size={21}
               />
               <Text
                 adjustsFontSizeToFit
@@ -140,6 +140,7 @@ const styles = StyleSheet.create({
     minHeight: 66,
     flexDirection: 'row',
     alignItems: 'stretch',
+    paddingHorizontal: 3,
     paddingTop: 4,
   },
   navigationItem: {
@@ -148,16 +149,17 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
-    paddingHorizontal: 2,
-    paddingVertical: 5,
+    gap: 1,
+    paddingHorizontal: 0,
+    paddingVertical: 4,
   },
   label: {
     width: '100%',
-    fontSize: 9.5,
+    fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 0.05,
-    lineHeight: 11.5,
+    letterSpacing: 0,
+    lineHeight: 11,
+    paddingHorizontal: 1,
     textAlign: 'center',
   },
   pressed: {

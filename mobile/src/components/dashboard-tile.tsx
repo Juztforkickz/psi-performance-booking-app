@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   garageImage: {
-    transform: [{ translateY: -10 }, { scale: 1.04 }],
+    transform: [{ translateY: -14 }, { scale: 1.04 }],
   },
   shade: {
     position: 'absolute',

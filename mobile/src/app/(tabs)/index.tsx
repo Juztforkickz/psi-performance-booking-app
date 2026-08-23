@@ -130,6 +130,7 @@ export default function CustomerHomeScreen() {
             <DashboardTile
               accessibilityHint="Opens your own upcoming and past visits"
               image={DASHBOARD_TILES.bookings}
+              imageStyle={styles.bookingsTileImage}
               label="My Bookings"
               onPress={() => router.push('/bookings')}
             />
@@ -544,6 +545,9 @@ const styles = StyleSheet.create({
   modalSafeArea: { flex: 1, backgroundColor: 'rgba(0,0,0,.82)' },
   modalBackdrop: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md },
   modalSheet: { width: '100%', maxWidth: 560, gap: spacing.md, ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.lg },
+  bookingsTileImage: {
+    transform: [{ translateY: -8 }, { scale: 0.97 }],
+  },
   planBuildTileImage: {},
   modalHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   modalHeadingCopy: { flex: 1, gap: spacing.xs },
