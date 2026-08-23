@@ -18,8 +18,8 @@ import {
 export type TemporaryVehiclePhoto = LocalVehiclePhoto;
 
 export type VehicleMaintenancePreview = {
-  lastServiceDate: string | null;
-  nextCheckInDate: string | null;
+  customerLastServiceDate: string | null;
+  customerNextCheckInDate: string | null;
   odometerKm: number | null;
   updatedLocally: boolean;
 };
@@ -151,8 +151,8 @@ export function CustomerPreviewProvider({ children }: PropsWithChildren) {
     setVehicleMaintenance((current) => ({
       ...current,
       [EPHEMERAL_VEHICLE_ID]: {
-        lastServiceDate: null,
-        nextCheckInDate: null,
+        customerLastServiceDate: null,
+        customerNextCheckInDate: null,
         odometerKm: null,
         updatedLocally: false,
       },

@@ -18,11 +18,13 @@ test('Garage exposes odometer and service scheduling fields with an honest previ
   const garage = await readFile(garagePath, 'utf8');
 
   assert.match(garage, /Edit Maintenance Details/u);
-  assert.match(garage, /Current odometer/u);
-  assert.match(garage, /Last service date/u);
-  assert.match(garage, /Next check-in/u);
+  assert.match(garage, /Customer odometer/u);
+  assert.match(garage, /Last PSI service/u);
+  assert.match(garage, /Next PSI check-in/u);
+  assert.match(garage, /Personal last service/u);
+  assert.match(garage, /Personal next check-in/u);
   assert.match(garage, /Nothing was uploaded or permanently saved/u);
-  assert.match(garage, /PSI-verified visits remain read-only/u);
+  assert.match(garage, /cannot replace the protected Last PSI service or Next PSI check-in/u);
 });
 
 test('Vehicle Reports reads the same maintenance preview without adding persistence', async () => {

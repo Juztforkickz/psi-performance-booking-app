@@ -10,6 +10,14 @@ const ownership = await readFile(
   new URL("../supabase/migrations/20260823093054_enforce_record_editor_ownership.sql", import.meta.url),
   "utf8",
 );
+const protectedServiceHistory = await readFile(
+  new URL("../supabase/migrations/20260823101228_protect_service_history.sql", import.meta.url),
+  "utf8",
+);
+const combinedServicePolicies = await readFile(
+  new URL("../supabase/migrations/20260823101520_combine_service_history_policies.sql", import.meta.url),
+  "utf8",
+);
 const mobileEnvironment = await readFile(
   new URL("../mobile/.env.example", import.meta.url),
   "utf8",
@@ -58,4 +66,17 @@ test("mobile Supabase connection is public-key-only and activation-gated", () =>
   assert.match(mobileClient, /flowType: 'pkce'/u);
   assert.match(authStorage, /expo-secure-store/u);
   assert.doesNotMatch(authStorage, /AsyncStorage|window\.localStorage|localStorage\./u);
+});
+
+test("completed PSI services are linked, immutable and source-separated", () => {
+  assert.match(protectedServiceHistory, /create table public\.service_completions/u);
+  assert.match(protectedServiceHistory, /booking_request_id uuid not null unique/u);
+  assert.match(protectedServiceHistory, /Only active PSI staff can complete a service/u);
+  assert.match(protectedServiceHistory, /A service booking must be confirmed before completion/u);
+  assert.match(protectedServiceHistory, /Complete the linked PSI service record before closing this booking/u);
+  assert.match(protectedServiceHistory, /Linked PSI service records are immutable/u);
+  assert.match(protectedServiceHistory, /record_source in \('customer_entry', 'psi_record'\)/u);
+  assert.match(protectedServiceHistory, /create view public\.vehicle_service_summary[\s\S]*security_invoker = true/u);
+  assert.doesNotMatch(protectedServiceHistory, /grant[\s\S]{0,80}(update|delete)[\s\S]{0,80}service_completions/iu);
+  assert.match(combinedServicePolicies, /customers or staff can add source-bound odometer readings/u);
 });

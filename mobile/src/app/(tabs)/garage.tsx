@@ -25,8 +25,8 @@ const GARAGE_IMAGE = require('../../../assets/images/dashboard/tile-my-garage.jp
 const REPORT_IMAGE = require('../../../assets/images/dashboard/tile-vehicle-reports.jpg');
 
 type MaintenanceDraft = {
-  lastServiceDate: string;
-  nextCheckInDate: string;
+  customerLastServiceDate: string;
+  customerNextCheckInDate: string;
   odometerKm: string;
 };
 
@@ -52,15 +52,15 @@ export default function GarageScreen() {
   const vehicleLabel = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;
   const dynoFirst = section === 'dyno';
   const maintenance = vehicleMaintenance[selectedVehicle.id] ?? {
-    lastServiceDate: selectedVehicle.lastVisit,
-    nextCheckInDate: selectedVehicle.nextDue,
+    customerLastServiceDate: null,
+    customerNextCheckInDate: null,
     odometerKm: selectedVehicle.odometerKm,
     updatedLocally: false,
   };
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const [maintenanceDraft, setMaintenanceDraft] = useState<MaintenanceDraft>({
-    lastServiceDate: maintenance.lastServiceDate ?? '',
-    nextCheckInDate: maintenance.nextCheckInDate ?? '',
+    customerLastServiceDate: maintenance.customerLastServiceDate ?? '',
+    customerNextCheckInDate: maintenance.customerNextCheckInDate ?? '',
     odometerKm: maintenance.odometerKm?.toString() ?? '',
   });
   const [maintenanceError, setMaintenanceError] = useState('');
@@ -70,13 +70,13 @@ export default function GarageScreen() {
     const vehicle = vehicles.find((candidate) => candidate.id === vehicleId);
     if (!vehicle) return;
     const nextMaintenance = vehicleMaintenance[vehicleId] ?? {
-      lastServiceDate: vehicle.lastVisit,
-      nextCheckInDate: vehicle.nextDue,
+      customerLastServiceDate: null,
+      customerNextCheckInDate: null,
       odometerKm: vehicle.odometerKm,
     };
     setMaintenanceDraft({
-      lastServiceDate: nextMaintenance.lastServiceDate ?? '',
-      nextCheckInDate: nextMaintenance.nextCheckInDate ?? '',
+      customerLastServiceDate: nextMaintenance.customerLastServiceDate ?? '',
+      customerNextCheckInDate: nextMaintenance.customerNextCheckInDate ?? '',
       odometerKm: nextMaintenance.odometerKm?.toString() ?? '',
     });
     setMaintenanceOpen(false);
@@ -94,7 +94,7 @@ export default function GarageScreen() {
 
   const saveMaintenancePreview = () => {
     const odometerKm = maintenanceDraft.odometerKm ? Number(maintenanceDraft.odometerKm) : null;
-    const datesAreValid = [maintenanceDraft.lastServiceDate, maintenanceDraft.nextCheckInDate]
+    const datesAreValid = [maintenanceDraft.customerLastServiceDate, maintenanceDraft.customerNextCheckInDate]
       .every((value) => !value || isIsoDate(value));
     if (
       (odometerKm !== null && (!Number.isInteger(odometerKm) || odometerKm < 0 || odometerKm > 9999999))
@@ -105,8 +105,8 @@ export default function GarageScreen() {
       return;
     }
     updateVehicleMaintenancePreview(selectedVehicle.id, {
-      lastServiceDate: maintenanceDraft.lastServiceDate || null,
-      nextCheckInDate: maintenanceDraft.nextCheckInDate || null,
+      customerLastServiceDate: maintenanceDraft.customerLastServiceDate || null,
+      customerNextCheckInDate: maintenanceDraft.customerNextCheckInDate || null,
       odometerKm,
     });
     setMaintenanceError('');
@@ -210,11 +210,13 @@ export default function GarageScreen() {
             <View style={styles.statGrid}>
               <VehicleStat label="Registration" value={selectedVehicle.registration} />
               <VehicleStat
-                label="Current odometer"
+                label="Customer odometer"
                 value={maintenance.odometerKm == null ? 'Not added' : `${maintenance.odometerKm.toLocaleString('en-AU')} km`}
               />
-              <VehicleStat label="Last service date" value={formatShortDate(maintenance.lastServiceDate)} />
-              <VehicleStat label="Next check-in" value={formatShortDate(maintenance.nextCheckInDate)} />
+              <VehicleStat label="Last PSI service" value={formatShortDate(selectedVehicle.lastVisit)} />
+              <VehicleStat label="Next PSI check-in" value={formatShortDate(selectedVehicle.nextDue)} />
+              <VehicleStat label="Personal last service" value={formatShortDate(maintenance.customerLastServiceDate)} />
+              <VehicleStat label="Personal next check-in" value={formatShortDate(maintenance.customerNextCheckInDate)} />
             </View>
             {maintenance.updatedLocally ? <Text style={styles.localMaintenanceLabel}>Local preview details · not a PSI-verified record</Text> : null}
           </View>
@@ -225,14 +227,14 @@ export default function GarageScreen() {
             <View style={styles.maintenanceHeadingCopy}>
               <Text style={styles.primaryLabel}>Vehicle upkeep</Text>
               <Text style={styles.maintenanceTitle}>Maintenance details</Text>
-              <Text style={styles.bodyCopy}>Update the odometer, last service date and next check-in for this preview vehicle.</Text>
+              <Text style={styles.bodyCopy}>Update the customer odometer and personal service reminders for this preview vehicle.</Text>
             </View>
             <Ionicons color={colors.gold} name="create-outline" size={24} />
           </View>
-          <Text style={styles.maintenanceBoundary}>Customer-entered details stay separate from PSI workshop records. PSI-verified visits remain read-only.</Text>
+          <Text style={styles.maintenanceBoundary}>Customer-entered details stay separate from PSI workshop records. They cannot replace the protected Last PSI service or Next PSI check-in above.</Text>
           {maintenanceOpen ? (
             <View style={styles.maintenanceForm}>
-              <Field hint="Kilometres" label="Current odometer">
+              <Field hint="Customer reading · kilometres" label="Customer odometer">
                 <FormInput
                   keyboardType="number-pad"
                   maxLength={7}
@@ -242,8 +244,8 @@ export default function GarageScreen() {
                 />
               </Field>
               <View style={styles.maintenanceDateGrid}>
-                <View style={styles.maintenanceDateField}><Field hint="YYYY-MM-DD" label="Last service date"><FormInput autoCapitalize="none" maxLength={10} onChangeText={(lastServiceDate) => setMaintenanceDraft((draft) => ({ ...draft, lastServiceDate }))} placeholder="2026-05-14" value={maintenanceDraft.lastServiceDate} /></Field></View>
-                <View style={styles.maintenanceDateField}><Field hint="YYYY-MM-DD" label="Next check-in"><FormInput autoCapitalize="none" maxLength={10} onChangeText={(nextCheckInDate) => setMaintenanceDraft((draft) => ({ ...draft, nextCheckInDate }))} placeholder="2026-11-14" value={maintenanceDraft.nextCheckInDate} /></Field></View>
+                <View style={styles.maintenanceDateField}><Field hint="YYYY-MM-DD · customer entry" label="Personal last service"><FormInput autoCapitalize="none" maxLength={10} onChangeText={(customerLastServiceDate) => setMaintenanceDraft((draft) => ({ ...draft, customerLastServiceDate }))} placeholder="2026-05-14" value={maintenanceDraft.customerLastServiceDate} /></Field></View>
+                <View style={styles.maintenanceDateField}><Field hint="YYYY-MM-DD · customer entry" label="Personal next check-in"><FormInput autoCapitalize="none" maxLength={10} onChangeText={(customerNextCheckInDate) => setMaintenanceDraft((draft) => ({ ...draft, customerNextCheckInDate }))} placeholder="2026-11-14" value={maintenanceDraft.customerNextCheckInDate} /></Field></View>
               </View>
               {maintenanceError ? <Text accessibilityRole="alert" style={styles.maintenanceError}>{maintenanceError}</Text> : null}
               <View style={styles.maintenanceActions}>

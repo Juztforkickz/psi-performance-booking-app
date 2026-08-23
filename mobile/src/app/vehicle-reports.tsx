@@ -76,8 +76,8 @@ export default function VehicleReportsScreen() {
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0];
   const vehicleLabel = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;
   const maintenance = vehicleMaintenance[selectedVehicle.id] ?? {
-    lastServiceDate: selectedVehicle.lastVisit,
-    nextCheckInDate: selectedVehicle.nextDue,
+    customerLastServiceDate: null,
+    customerNextCheckInDate: null,
     odometerKm: selectedVehicle.odometerKm,
     updatedLocally: false,
   };
@@ -326,7 +326,7 @@ export default function VehicleReportsScreen() {
           <Text style={styles.selectedVehicleName}>{vehicleLabel}</Text>
           <Text style={styles.selectedVehicleRegistration}>{selectedVehicle.registration}</Text>
           <Text style={styles.selectedVehicleMaintenance}>
-            Odometer · {maintenance.odometerKm == null ? 'Not added' : `${maintenance.odometerKm.toLocaleString('en-AU')} km`} · Next check-in · {maintenance.nextCheckInDate ? formatDate(maintenance.nextCheckInDate) : 'Not scheduled'}
+            Customer odometer · {maintenance.odometerKm == null ? 'Not added' : `${maintenance.odometerKm.toLocaleString('en-AU')} km`} · Personal next check-in · {maintenance.customerNextCheckInDate ? formatDate(maintenance.customerNextCheckInDate) : 'Not scheduled'}
           </Text>
           {maintenance.updatedLocally ? <Text style={styles.selectedVehicleLocal}>Local maintenance preview · not PSI verified</Text> : null}
         </View>

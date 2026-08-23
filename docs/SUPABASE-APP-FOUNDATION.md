@@ -68,6 +68,11 @@ workshop-wide data breach. Customer MFA is not required for the initial release.
 - A customer-created record can be changed only by that customer.
 - A PSI-created record can be changed by the staff member who created it; Matt's
   owner role is the explicit operational/privacy override.
+- Completed PSI services are the integrity exception: the canonical completion,
+  its linked PSI service-history entry and its PSI odometer reading are
+  append-only. They cannot be edited or deleted through customer or staff app
+  permissions. A future owner-only correction workflow must add an audited
+  correction rather than rewriting the original visit.
 - Record authorship cannot be reassigned.
 - Booking approval and Google Calendar synchronisation are shared staff workflow
   exceptions, because another authorised staff member may need to process the
@@ -78,6 +83,27 @@ workshop-wide data breach. Customer MFA is not required for the initial release.
   never be marked PSI verified.
 - Audit records capture who changed which record and when without copying full
   customer details into the audit log.
+
+## Protected service history
+
+The database now keeps customer maintenance information and PSI workshop facts
+as separate sources:
+
+- `service_completions` is the authoritative, immutable PSI record. Active PSI
+  staff with MFA can create one only for a confirmed service booking.
+- Inserting a completion automatically marks the linked booking completed,
+  creates its read-only PSI service-history entry and records the workshop
+  odometer. A service booking cannot be marked completed without this link.
+- `odometer_readings` is append-only. Customer readings remain labelled
+  `customer_entry`; a customer cannot attach one to a PSI service completion.
+- `vehicle_service_summary` derives the latest PSI service, workshop odometer
+  and next PSI check-in independently from the latest customer odometer. A new
+  completed visit therefore updates the official dates without overwriting or
+  legitimising personal entries.
+
+The current Expo UI still demonstrates customer maintenance changes in memory
+only. Real reads and writes remain disabled until passwordless authentication,
+custom SMTP and cross-account/device tests pass.
 
 The security advisor currently reports no security findings. All customer
 tables use Row Level Security. The `vehicle-photos` and `vehicle-documents`
@@ -95,6 +121,8 @@ The first portal should provide:
 - customer and vehicle lookup;
 - read-only customer submissions;
 - PSI-authored repairs, recommended work, invoices and verified dyno results;
+- a Complete Service action that records the completion odometer, work summary
+  and next PSI check-in before the booking can close;
 - private attachment access; and
 - an audit trail plus owner-only staff access management.
 
