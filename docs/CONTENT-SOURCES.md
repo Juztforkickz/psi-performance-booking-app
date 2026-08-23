@@ -43,7 +43,7 @@ The seven 960×1200 JPEG dashboard illustrations under `mobile/assets/images/das
 
 | File | AI-generated subject | Bytes | SHA-256 |
 | --- | --- | ---: | --- |
-| `tile-my-garage.jpg` | Performance vehicle and key for the customer's garage | 80,932 | `3688DD6EBDD01BDA5E759FEFA2B3EFADD7276082D8D334F63D82AB30D5A08EAE` |
+| `tile-my-garage.jpg` | Grey 911 GT3-style customer garage vehicle, without a key prop | 77,284 | `73C0819994D6F9670EA48A2734E4B66D96742DB3E1AB4E6506C4F87A3AFED9DD` |
 | `tile-my-bookings.jpg` | Workshop booking calendar and service tool | 70,209 | `4E3B7BA0BAB22015543BA3D290BFA05852EEB4207A48914E8E80858D67018C01` |
 | `tile-book-ahead.jpg` | Forward booking calendar with restrained gold direction cue | 101,946 | `C53BCC52D350A22A1B4B15A41A13DA525E83CBF1B6BBCB02E9C3A8D962E1D8D8` |
 | `tile-alerts.jpg` | Customer reminder bell with a red notification indicator | 66,025 | `DBB35D388AB6BD73AB7000D3C3B3C1525AA0E49806CB023D50304EEE5B6C23C4` |
@@ -52,6 +52,8 @@ The seven 960×1200 JPEG dashboard illustrations under `mobile/assets/images/das
 | `tile-plan-build.jpg` | Engine, turbocharger, workshop tool and build-plan drawing | 160,715 | `7A648EBA45F7EA6A800BF50427BE6150E5FA21EFD937B8526AD011C329AD5CA1` |
 
 On **23 August 2026**, the active My Bookings and Dyno Tuning tiles received owner-directed refinement passes using the built-in ImageGen tool. The bookings replacement removes the calendar and separate icon treatment in favour of one full-colour workshop task clipboard. The dyno replacement used the earlier generated hub-dyno tile plus an owner-supplied real hub-dyno photograph as mechanical references; its prompt specifically required both rear wheels removed and supported dyno pods connected to the opposing rear hubs through visible adapter shafts. The owner photograph remains a generation reference only and is not shipped in the app.
+
+On **23 August 2026**, the active My Garage tile also received an owner-directed replacement using two owner-supplied photographs of the owner's grey 911 GT3 as vehicle references and PSI's official website as visual-direction reference. The generated tile follows the car's grey finish, black wheels, yellow brake calipers, dark bonnet stripe and fixed rear wing while retaining the established black/graphite dashboard treatment. The previous generic sedan and key prop were removed. The owner photographs remain generation references only and are not shipped in the app.
 
 | Active replacement | AI-generated subject | Bytes | SHA-256 |
 | --- | --- | ---: | --- |
