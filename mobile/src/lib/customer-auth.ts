@@ -4,6 +4,7 @@ export const CUSTOMER_AUTH = {
   provider: 'supabase',
   method: 'passwordless_email_code',
   enabled: SUPABASE_CONNECTION.authEnabled,
+  registrationEnabled: SUPABASE_CONNECTION.registrationEnabled,
   passwordStorage: 'none',
 } as const;
 
@@ -15,7 +16,7 @@ export async function requestPasswordlessEmailCode(email: string) {
 
   const { error } = await getSupabaseClient().auth.signInWithOtp({
     email: normalizedEmail,
-    options: { shouldCreateUser: true },
+    options: { shouldCreateUser: CUSTOMER_AUTH.registrationEnabled },
   });
 
   if (error) throw error;

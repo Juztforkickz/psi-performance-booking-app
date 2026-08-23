@@ -63,7 +63,7 @@ export default function AccountScreen() {
     try {
       await requestPasswordlessEmailCode(email);
       setCodeSent(true);
-      setNotice('A six-digit PSI sign-in code was requested. Check your inbox and enter it below. The code expires after 10 minutes.');
+      setNotice('If this email belongs to an approved PSI account, a six-digit sign-in code will arrive shortly. Enter it below within 10 minutes.');
     } catch {
       setNotice('A sign-in code could not be requested. Customer registration may still be closed, or the email service may be temporarily unavailable.');
     } finally {
@@ -142,7 +142,7 @@ export default function AccountScreen() {
           <Text style={styles.providerKicker}>Supabase security foundation ready</Text>
           <Text style={styles.providerTitle}>{CUSTOMER_AUTH.enabled ? 'Secure email-code access' : 'Email-code activation safely gated'}</Text>
           <Text style={styles.providerCopy}>
-            Passwords are not collected or stored here. {CUSTOMER_AUTH.enabled ? 'Six-digit codes provide customer access in this controlled build.' : 'Six-digit email codes activate only after PSI’s sender and access tests pass.'} Customers see only their own records; MFA-authenticated PSI staff use a separate workshop portal.
+            Passwords are not collected or stored here. {CUSTOMER_AUTH.enabled ? `Six-digit codes provide access to approved customer accounts in this controlled build. New account registration is ${CUSTOMER_AUTH.registrationEnabled ? 'open only for this approved onboarding window' : 'closed'}.` : 'Six-digit email codes activate only in PSI-controlled builds.'} Customers see only their own records; MFA-authenticated PSI staff use a separate workshop portal.
           </Text>
         </View>
 
@@ -250,9 +250,9 @@ export default function AccountScreen() {
         <View style={[styles.createCard, compact && styles.cardCompact]}>
           <View style={styles.createCopy}>
             <Text style={styles.createTitle}>New to PSI?</Text>
-            <Text style={styles.createText}>Preview the account setup for your details and primary vehicle.</Text>
+            <Text style={styles.createText}>{CUSTOMER_AUTH.registrationEnabled ? 'Complete the approved account setup for your details and primary vehicle.' : 'Preview the account setup for your details and primary vehicle. New account registration is currently closed.'}</Text>
           </View>
-          <PrimaryButton label="Preview account setup →" onPress={() => router.push('/account/sign-up')} variant="outline" />
+          <PrimaryButton label={CUSTOMER_AUTH.registrationEnabled ? 'Set up approved account →' : 'Preview account setup →'} onPress={() => router.push('/account/sign-up')} variant="outline" />
         </View>
 
         <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={({ pressed }) => [styles.guestLink, pressed && styles.pressed]}>

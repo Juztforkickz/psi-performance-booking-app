@@ -93,7 +93,7 @@ No checkout opens from this request. PSI approves or proposes a date first. Only
 
 ## Accounts and customer data
 
-The account screens now contain the activation-gated six-digit email-code request/verification flow, secure native session restoration, local sign-out, and typed authenticated profile/vehicle reads and writes. Supabase is the selected app identity/data foundation: a Sydney project has RLS-protected customer/workshop tables, explicit least-privilege Data API grants, a staff allowlist and private file buckets. Its protected service-history model links one immutable PSI completion to a confirmed service booking, projects the official repair/odometer record automatically, prevents a booking being marked completed without that link, and derives the latest PSI service and next PSI check-in separately from append-only customer odometer readings. Resend custom SMTP and the PSI six-digit, 10-minute email-code template are configured, but new registration and the Expo client's activation flag remain closed until end-to-end isolation and real-device tests pass. The public web preview explicitly builds with authentication disabled; a future web session is memory-only, while native sessions use operating-system protected storage. No password field exists. Vehicle photos remain local-only and no notification, booking API or file upload is activated. See `../docs/SUPABASE-APP-FOUNDATION.md` for the exact roles, ownership rules, email and Google Calendar gates; the existing root web account endpoints remain disabled as described in `../docs/CUSTOMER-ACCOUNTS.md`.
+The account screens now contain the activation-gated six-digit email-code request/verification flow, secure native session restoration, local sign-out, and typed authenticated profile/vehicle reads and writes. Supabase is the selected app identity/data foundation: a Sydney project has RLS-protected customer/workshop tables, explicit least-privilege Data API grants, a staff allowlist and private file buckets. Its protected service-history model links one immutable PSI completion to a confirmed service booking, projects the official repair/odometer record automatically, prevents a booking being marked completed without that link, and derives the latest PSI service and next PSI check-in separately from append-only customer odometer readings. Resend custom SMTP, both PSI six-digit 10-minute templates, a controlled live login and cross-account isolation tests are complete. Authentication and registration now use separate build gates: the internal `qa` profile enables login only for approved existing accounts while registration remains closed. The public web preview explicitly builds with both disabled; web sessions remain memory-only, while native sessions use operating-system protected storage. No password field exists. Vehicle photos remain local-only and no notification, booking API or file upload is activated. See `../docs/SUPABASE-APP-FOUNDATION.md` for the exact roles, ownership rules, email and Google Calendar gates; the existing root web account endpoints remain disabled as described in `../docs/CUSTOMER-ACCOUNTS.md`.
 
 Booking drafts are separate from accounts. Drafts are saved with versioned AsyncStorage only on the current device, expire after 30 days, never auto-submit, and omit restored consent acknowledgements. The app flushes recent edits when its Back control is used or the app backgrounds. AsyncStorage is app-local but is not application-level encrypted and device backups may retain it; customers can clear the draft at any time. Review encrypted/protected draft storage and mobile backup exclusions before public release.
 
@@ -112,14 +112,15 @@ pnpm dlx expo-doctor
 
 ## EAS builds
 
-The iOS bundle identifier and Android application ID are both `com.psiperformance.booking`. `eas.json` includes internal preview and store-ready production profiles.
+The iOS bundle identifier and Android application ID are both `com.psiperformance.booking`. `eas.json` includes a fail-closed internal `preview` profile, an internal `qa` profile for the approved existing customer pilot, and a store-ready production profile. The `qa` profile enables Supabase Auth, keeps new-user registration closed and keeps `EXPO_PUBLIC_API_BASE_URL` empty. Public GitHub Pages remains fully disabled independently of this profile.
 
 One-time owner setup:
 
 1. Sign in with the Expo account that will own the app: `npx eas-cli login`.
 2. Run `npx eas-cli init` from this directory.
-3. Add the deployed `EXPO_PUBLIC_API_BASE_URL` to EAS preview and production environments.
-4. Build an Android preview APK with `npx eas-cli build --profile preview --platform android`.
-5. Create the iOS internal and production builds after PSI's Apple signing access is available.
+3. In the Expo project settings, disable unauthenticated access to internal builds before sharing any QA link.
+4. Register the approved iPhone and create Apple ad hoc signing credentials, or build an Android QA APK with `npx eas-cli build --profile qa --platform android`.
+5. Keep the `qa` profile's booking API empty until the approval-first API exists.
+6. Add the deployed `EXPO_PUBLIC_API_BASE_URL` only to a later reviewed production environment.
 
 Production still requires the deployed HTTPS API, payment provider and signed webhook, receipt/email workflow, explicitly authorised PSI calendar, single-owner staff authentication, managed customer identity, approved privacy/booking/deposit terms, and Apple/Google developer accounts.

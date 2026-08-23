@@ -1,9 +1,9 @@
 # PSI Performance App — Supabase foundation
 
-Status: database and security foundation applied; Resend custom SMTP, the
-six-digit PSI email-code template and the activation-gated Expo client flow are
-implemented. Customer sign-in and new registration remain deliberately inactive
-in public builds until end-to-end access tests are complete.
+Status: database and security foundation applied; Resend custom SMTP, both
+six-digit PSI email-code templates, controlled live login and RLS isolation
+tests, and the activation-gated Expo client flow are implemented. Customer
+sign-in and new registration remain deliberately inactive in public builds.
 
 ## Project
 
@@ -38,15 +38,27 @@ Completed email groundwork:
 3. The Magic Link / OTP template now sends a six-digit PSI sign-in code that
    expires after 10 minutes.
 
-Remaining activation gates:
+Completed acceptance checks:
+
+1. Email delivery and six-digit verification were completed with the controlled
+   `info@psiperformance.com.au` pilot.
+2. The authenticated pilot saw only its own profile and no PSI staff or unrelated
+   records, then the test session was signed out.
+3. A rollback-only two-customer test exercised the real deployed RLS policies
+   without retaining test identities or records.
+4. New-user registration was independently checked closed after testing.
+
+Remaining private-QA gates:
 
 1. Test the implemented code-entry, secure-session and profile/vehicle adapter
-   on controlled native builds.
+   on controlled native iPhone and Android builds.
 2. Test expiry, replay prevention, resend throttling, logout, recovery and
    cross-account isolation on real iPhone and Android devices.
-3. Re-enable Supabase new-user registration only for the controlled pilot.
-4. Set `EXPO_PUBLIC_SUPABASE_AUTH_ENABLED=true` only in that controlled build
-   after the tests pass. The public GitHub Pages preview keeps it false.
+3. Keep registration closed in the private QA build; create any additional pilot
+   identity through a separately approved onboarding window.
+4. The internal EAS `qa` profile sets Auth true, registration false and the
+   booking API empty. The public GitHub Pages preview keeps both Auth and
+   registration false.
 
 ## Staff access and MFA
 
