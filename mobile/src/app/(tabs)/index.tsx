@@ -25,10 +25,10 @@ import { useThemePreference } from '@/lib/theme-preference';
 
 const DASHBOARD_TILES = {
   garage: require('../../../assets/images/dashboard/tile-my-garage.jpg'),
-  bookings: require('../../../assets/images/dashboard/tile-my-bookings.jpg'),
+  bookings: require('../../../assets/images/dashboard/tile-my-bookings-v2.jpg'),
   bookAhead: require('../../../assets/images/dashboard/tile-book-ahead.jpg'),
   alerts: require('../../../assets/images/dashboard/tile-alerts.jpg'),
-  dyno: require('../../../assets/images/dashboard/tile-from-attachment-scaled-960x1200.jpg'),
+  dyno: require('../../../assets/images/dashboard/tile-hub-dyno-v2.jpg'),
   reports: require('../../../assets/images/dashboard/tile-vehicle-reports.jpg'),
   planBuild: require('../../../assets/images/dashboard/tile-plan-build.jpg'),
 } as const;
@@ -85,7 +85,7 @@ export default function CustomerHomeScreen() {
             accessibilityLabel="PSI Performance Garage"
             resizeMode="contain"
             source={require('../../../assets/images/psi-logo.png')}
-            style={styles.logo}
+            style={[styles.logo, activeTheme === 'bright' && styles.logoBright]}
           />
           <Pressable
             accessibilityHint="Opens passwordless customer account access"
@@ -494,6 +494,7 @@ const styles = StyleSheet.create({
   demoCopy: { color: '#464646', fontSize: 11, lineHeight: 17 },
   header: { minHeight: 62, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   logo: { width: 126, height: 48 },
+  logoBright: { tintColor: colors.ink },
   accountButton: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.white, borderRadius: 23, backgroundColor: colors.white },
   intro: { gap: spacing.xs },
   eyebrow: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.35, textTransform: 'uppercase' },

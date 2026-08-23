@@ -51,6 +51,13 @@ The seven 960×1200 JPEG dashboard illustrations under `mobile/assets/images/das
 | `tile-vehicle-reports.jpg` | Diagnostic tablet and vehicle-report display | 79,267 | `31F584860E6ADD2772BD02F0956E1B8E2C538FE742635C866247D9CFEB9F53C1` |
 | `tile-plan-build.jpg` | Engine, turbocharger, workshop tool and build-plan drawing | 160,715 | `7A648EBA45F7EA6A800BF50427BE6150E5FA21EFD937B8526AD011C329AD5CA1` |
 
+On **23 August 2026**, the active My Bookings and Dyno Tuning tiles received owner-directed refinement passes using the built-in ImageGen tool. The bookings replacement removes the calendar and separate icon treatment in favour of one full-colour workshop task clipboard. The dyno replacement used the earlier generated hub-dyno tile plus an owner-supplied real hub-dyno photograph as mechanical references; its prompt specifically required both rear wheels removed and supported dyno pods connected to the opposing rear hubs through visible adapter shafts. The owner photograph remains a generation reference only and is not shipped in the app.
+
+| Active replacement | AI-generated subject | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| `tile-my-bookings-v2.jpg` | Full-colour graphite, steel and ivory workshop task clipboard with checklist and service tool | 76,699 | `063203B1BC2D0C2BF4A1A0460618801F6D550F66015E98903B8F27C4A84282ED` |
+| `tile-hub-dyno-v2.jpg` | Graphite performance sedan with both rear wheels removed and two floor-supported hub-dyno pods connected through visible axle-height adapters | 89,548 | `359F9AE75F9EC5B044F756E5F4E0006B76784AA4E08ADB05D2E52C3618FB9907` |
+
 Prompt direction: premium, realistic automotive product illustration on carbon-black and graphite studio backgrounds, restrained champagne-gold accents, generous lower label space, and avoidance of embedded text, people, watermarks, racing clichés and unrelated branding. The hub-dyno image received a focused refinement pass so its engineering setup communicates the requested rear-wheel-off, hub-connected configuration. These statements describe the generation instructions and visual review, not a guarantee that AI output is source-free or legally cleared.
 
 ### Scrolling brand-rail assets
