@@ -17,6 +17,13 @@ import {
 
 export type TemporaryVehiclePhoto = LocalVehiclePhoto;
 
+export type VehicleMaintenancePreview = {
+  lastServiceDate: string | null;
+  nextCheckInDate: string | null;
+  odometerKm: number | null;
+  updatedLocally: boolean;
+};
+
 export type EphemeralAccountPreview = {
   profile: {
     email: string;
@@ -48,6 +55,11 @@ type CustomerPreviewContextValue = {
   selectVehicle: (vehicleId: string) => void;
   setVehiclePhoto: (vehicleId: string, photo: TemporaryVehiclePhoto | null) => void;
   stageAccountPreview: (input: StageAccountInput) => void;
+  updateVehicleMaintenancePreview: (
+    vehicleId: string,
+    maintenance: Omit<VehicleMaintenancePreview, 'updatedLocally'>,
+  ) => void;
+  vehicleMaintenance: Readonly<Record<string, VehicleMaintenancePreview>>;
   vehiclePhotos: Readonly<Record<string, TemporaryVehiclePhoto | null>>;
   vehicles: readonly PreviewVehicle[];
 };
@@ -59,6 +71,7 @@ export function CustomerPreviewProvider({ children }: PropsWithChildren) {
   const [ephemeralAccount, setEphemeralAccount] = useState<EphemeralAccountPreview | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>(CUSTOMER_PREVIEW.selectedVehicleId);
   const [pendingBookingVehicleId, setPendingBookingVehicleId] = useState<string | null>(null);
+  const [vehicleMaintenance, setVehicleMaintenance] = useState<Record<string, VehicleMaintenancePreview>>({});
   const [vehiclePhotos, setVehiclePhotos] = useState<Record<string, TemporaryVehiclePhoto | null>>({});
   const vehiclePhotosRef = useRef(vehiclePhotos);
 
@@ -94,6 +107,17 @@ export function CustomerPreviewProvider({ children }: PropsWithChildren) {
     });
   }, []);
 
+  const updateVehicleMaintenancePreview = useCallback((
+    vehicleId: string,
+    maintenance: Omit<VehicleMaintenancePreview, 'updatedLocally'>,
+  ) => {
+    if (!vehicles.some((vehicle) => vehicle.id === vehicleId)) return;
+    setVehicleMaintenance((current) => ({
+      ...current,
+      [vehicleId]: { ...maintenance, updatedLocally: true },
+    }));
+  }, [vehicles]);
+
   const stageAccountPreview = useCallback((input: StageAccountInput) => {
     const vehicle: PreviewVehicle = {
       id: EPHEMERAL_VEHICLE_ID,
@@ -124,6 +148,15 @@ export function CustomerPreviewProvider({ children }: PropsWithChildren) {
       vehiclePhotosRef.current = next;
       return next;
     });
+    setVehicleMaintenance((current) => ({
+      ...current,
+      [EPHEMERAL_VEHICLE_ID]: {
+        lastServiceDate: null,
+        nextCheckInDate: null,
+        odometerKm: null,
+        updatedLocally: false,
+      },
+    }));
     setSelectedVehicleId(EPHEMERAL_VEHICLE_ID);
   }, []);
 
@@ -150,6 +183,8 @@ export function CustomerPreviewProvider({ children }: PropsWithChildren) {
     selectVehicle,
     setVehiclePhoto,
     stageAccountPreview,
+    updateVehicleMaintenancePreview,
+    vehicleMaintenance,
     vehiclePhotos,
     vehicles,
   }), [
@@ -161,6 +196,8 @@ export function CustomerPreviewProvider({ children }: PropsWithChildren) {
     selectedVehicleId,
     setVehiclePhoto,
     stageAccountPreview,
+    updateVehicleMaintenancePreview,
+    vehicleMaintenance,
     vehiclePhotos,
     vehicles,
   ]);

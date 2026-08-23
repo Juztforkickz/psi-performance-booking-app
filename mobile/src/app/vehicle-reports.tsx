@@ -72,9 +72,15 @@ const EMPTY_INVOICE_DRAFT: InvoiceDraft = { amount: '', attachment: null, date: 
 export default function VehicleReportsScreen() {
   const router = useRouter();
   const { compact, horizontalPadding, largeText, tablet } = useResponsiveLayout();
-  const { selectedVehicleId, selectVehicle, vehicles } = useCustomerPreview();
+  const { selectedVehicleId, selectVehicle, vehicleMaintenance, vehicles } = useCustomerPreview();
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0];
   const vehicleLabel = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;
+  const maintenance = vehicleMaintenance[selectedVehicle.id] ?? {
+    lastServiceDate: selectedVehicle.lastVisit,
+    nextCheckInDate: selectedVehicle.nextDue,
+    odometerKm: selectedVehicle.odometerKm,
+    updatedLocally: false,
+  };
 
   const [localDynoRecords, setLocalDynoRecords] = useState<DynoRecord[]>([]);
   const [localRepairs, setLocalRepairs] = useState<RepairRecord[]>([]);
@@ -319,6 +325,10 @@ export default function VehicleReportsScreen() {
           <Text style={styles.selectedVehicleKicker}>Viewing records for</Text>
           <Text style={styles.selectedVehicleName}>{vehicleLabel}</Text>
           <Text style={styles.selectedVehicleRegistration}>{selectedVehicle.registration}</Text>
+          <Text style={styles.selectedVehicleMaintenance}>
+            Odometer · {maintenance.odometerKm == null ? 'Not added' : `${maintenance.odometerKm.toLocaleString('en-AU')} km`} · Next check-in · {maintenance.nextCheckInDate ? formatDate(maintenance.nextCheckInDate) : 'Not scheduled'}
+          </Text>
+          {maintenance.updatedLocally ? <Text style={styles.selectedVehicleLocal}>Local maintenance preview · not PSI verified</Text> : null}
         </View>
 
         <ReportSection
@@ -574,6 +584,8 @@ const styles = StyleSheet.create({
   selectedVehicleKicker: { color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   selectedVehicleName: { color: colors.white, fontSize: 18, fontWeight: '900', lineHeight: 23, textTransform: 'uppercase' },
   selectedVehicleRegistration: { color: colors.muted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
+  selectedVehicleMaintenance: { color: colors.cream, fontSize: 10, fontWeight: '800', lineHeight: 16, marginTop: spacing.xs },
+  selectedVehicleLocal: { color: colors.gold, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   reportSection: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
   addAction: { ...mobileFrame, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.white, paddingHorizontal: spacing.md },
   addActionText: { color: colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: .6, textAlign: 'center', textTransform: 'uppercase' },
