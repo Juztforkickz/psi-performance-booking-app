@@ -39,6 +39,8 @@ test('Trusted Partners is a public referral directory with eight shortest-first 
   for (const category of categories) assert.match(partners, new RegExp(`category: '${category}'`, 'u'));
   assert.equal((partners.match(/id: '/gu) ?? []).length, 8);
   assert.match(partners, /left\.category\.length - right\.category\.length/u);
+  assert.match(partners, /id: 'dark-side-film',[\s\S]*phoneDisplay: '0426 246 001',[\s\S]*phoneUrl: 'tel:\+61426246001'/u);
+  assert.match(partners, /id: 'eye-candy',[\s\S]*phoneDisplay: '0414 544 317',[\s\S]*phoneUrl: 'tel:\+61414544317'/u);
   assert.match(screen, /Contact each partner directly/u);
   assert.match(screen, /referral—not a PSI booking, quote or warranty/u);
   assert.match(screen, /TRUSTED_PARTNERS\.map/u);
