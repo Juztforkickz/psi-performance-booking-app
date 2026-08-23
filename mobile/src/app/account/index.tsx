@@ -21,7 +21,7 @@ export default function AccountScreen() {
       return;
     }
     setEmailError('');
-    setNotice('Managed account sign-in is not connected in this build. No link was sent and your email was not stored.');
+    setNotice('The secure Supabase foundation is ready, but customer email delivery is not active in this build. No code was sent and your email was not stored.');
   };
 
   return (
@@ -59,10 +59,10 @@ export default function AccountScreen() {
         </Text>
 
         <View style={[styles.providerNotice, compact && styles.cardCompact]}>
-          <Text style={styles.providerKicker}>Provider-ready preview</Text>
-          <Text style={styles.providerTitle}>Secure identity connection pending</Text>
+          <Text style={styles.providerKicker}>Supabase security foundation ready</Text>
+          <Text style={styles.providerTitle}>Email-code activation safely gated</Text>
           <Text style={styles.providerCopy}>
-            Passwords are not collected or stored here. Sign-in links activate only after managed authentication is tested. Customers will see only their own records; PSI’s single-owner staff queue stays separate.
+            Passwords are not collected or stored here. Six-digit email codes activate only after PSI’s sender and access tests pass. Customers will see only their own records; MFA-authenticated PSI staff use a separate workshop portal.
           </Text>
         </View>
 
@@ -95,7 +95,7 @@ export default function AccountScreen() {
         <View style={[styles.card, compact && styles.cardCompact]}>
           <Text style={styles.cardTitle}>Sign in with email</Text>
           <Text style={styles.cardCopy}>
-            The production experience will send a secure one-time sign-in link. No reusable password is required.
+            The production experience will send a secure six-digit sign-in code. No reusable password is required.
           </Text>
           <Field error={emailError} label="Email">
             <FormInput

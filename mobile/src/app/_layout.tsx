@@ -1,5 +1,6 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -8,6 +9,7 @@ import { PersistentBottomNavigation } from '@/components/persistent-bottom-navig
 import { colors } from '@/constants/brand';
 import { CustomerPreviewProvider } from '@/lib/customer-preview-context';
 import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme-preference';
+import { startSupabaseAuthLifecycle } from '@/lib/supabase';
 
 function ThemeAwareRootShell() {
   const { activeTheme, theme } = useThemePreference();
@@ -23,6 +25,8 @@ function ThemeAwareRootShell() {
       text: activeTheme === 'bright' ? theme.text : colors.white,
     },
   };
+
+  useEffect(() => startSupabaseAuthLifecycle(), []);
 
   return (
     <ThemeProvider value={shellTheme}>

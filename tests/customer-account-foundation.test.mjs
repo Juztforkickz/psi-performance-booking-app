@@ -46,7 +46,7 @@ test("account routes expose status only and cannot trust spoofed identity", asyn
   assert.doesNotMatch(bookingRoute, /INSERT INTO customer_profiles|INSERT INTO customer_vehicles/u);
 });
 
-test("account previews do not collect passwords or activate a provider SDK", async () => {
+test("account previews do not collect passwords and mobile auth stays activation-gated", async () => {
   const [webPreview, mobileAccess, mobileSetup, packageJson] = await Promise.all([
     readFile(new URL("../app/account/AccountPreview.tsx", import.meta.url), "utf8"),
     readFile(new URL("../mobile/src/app/account/index.tsx", import.meta.url), "utf8"),
@@ -57,6 +57,14 @@ test("account previews do not collect passwords or activate a provider SDK", asy
   const accountUi = `${webPreview}\n${mobileAccess}\n${mobileSetup}`;
   assert.doesNotMatch(accountUi, /type=["']password["']|secureTextEntry/u);
   assert.doesNotMatch(packageJson, /@netlify\/identity|netlify-identity-widget|gotrue-js/u);
-  assert.match(mobileAccess, /one-time sign-in link/u);
+  assert.match(mobileAccess, /six-digit sign-in code/u);
   assert.match(mobileSetup, /Nothing was submitted or stored/u);
+
+  const mobileAuth = await readFile(
+    new URL("../mobile/src/lib/supabase.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(mobileAuth, /EXPO_PUBLIC_SUPABASE_AUTH_ENABLED/u);
+  assert.match(mobileAuth, /flowType: 'pkce'/u);
+  assert.doesNotMatch(mobileAuth, /service_role|sb_secret_/u);
 });

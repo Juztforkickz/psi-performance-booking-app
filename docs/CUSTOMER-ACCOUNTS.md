@@ -1,8 +1,9 @@
 # PSI customer accounts
 
-Status: provider-neutral, fail-closed foundation. Customer registration, sign-in
-and profile writes are disabled in every preview until PSI selects and verifies
-a managed identity provider.
+Status: the existing Cloudflare/D1 web account endpoints remain provider-neutral
+and fail-closed. The separate mobile-app foundation now selects Supabase, but its
+customer-auth activation flag remains false until custom SMTP and end-to-end
+security tests pass. See `SUPABASE-APP-FOUNDATION.md` for the app-specific model.
 
 ## Approved account model
 
