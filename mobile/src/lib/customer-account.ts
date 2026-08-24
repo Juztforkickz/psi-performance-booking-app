@@ -1,6 +1,7 @@
 import type { User } from '@supabase/supabase-js';
 
 import type {
+  BookingRequestRow,
   CustomerProfileRow,
   CustomerVehicleRow,
   VehicleServiceSummaryRow,
@@ -8,6 +9,7 @@ import type {
 import { getSupabaseClient } from '@/lib/supabase';
 
 export type CustomerAccountSnapshot = {
+  bookings: BookingRequestRow[];
   profile: CustomerProfileRow | null;
   serviceSummaries: VehicleServiceSummaryRow[];
   user: User;
@@ -36,7 +38,7 @@ async function getVerifiedCustomer() {
 export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
   const supabase = getSupabaseClient();
   const user = await getVerifiedCustomer();
-  const [profileResult, vehiclesResult, serviceSummariesResult] = await Promise.all([
+  const [profileResult, vehiclesResult, serviceSummariesResult, bookingsResult] = await Promise.all([
     supabase
       .from('customer_profiles')
       .select('*')
@@ -53,13 +55,21 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
       .from('vehicle_service_summary')
       .select('*')
       .eq('customer_id', user.id),
+    supabase
+      .from('booking_requests')
+      .select('*')
+      .eq('customer_id', user.id)
+      .is('archived_at', null)
+      .order('created_at', { ascending: false }),
   ]);
 
   if (profileResult.error) throw profileResult.error;
   if (vehiclesResult.error) throw vehiclesResult.error;
   if (serviceSummariesResult.error) throw serviceSummariesResult.error;
+  if (bookingsResult.error) throw bookingsResult.error;
 
   return {
+    bookings: bookingsResult.data ?? [],
     profile: profileResult.data,
     serviceSummaries: serviceSummariesResult.data ?? [],
     user,
@@ -190,4 +200,3 @@ export async function saveCustomerVehicle(input: CustomerVehicleInput, vehicleId
   if (error) throw error;
   return data;
 }
-

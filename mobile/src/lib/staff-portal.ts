@@ -29,6 +29,13 @@ export type StaffTotpEnrollment = {
   uri: string;
 };
 
+export type StaffBookingReviewInput = {
+  action: 'approve_date' | 'cancel' | 'propose_date';
+  approvedDate: string;
+  bookingId: string;
+  staffNote: string;
+};
+
 export type StaffPortalSnapshot = {
   bookings: BookingRequestRow[];
   customers: CustomerProfileRow[];
@@ -109,6 +116,29 @@ export async function loadStaffMfaSecurityAccess(): Promise<StaffMfaSecurityAcce
   };
 }
 
+export async function reviewBookingRequest(input: StaffBookingReviewInput) {
+  const supabase = getSupabaseClient();
+  const access = await loadStaffMfaSecurityAccess();
+  if (access.kind !== 'ready') throw new Error('STAFF_AAL2_REQUIRED');
+
+  const approvedDate = input.action === 'cancel' ? null : requiredReviewDate(input.approvedDate);
+  const staffNote = input.staffNote.trim();
+  if (input.action === 'cancel' && !staffNote) throw new Error('CANCELLATION_NOTE_REQUIRED');
+  const state = input.action === 'approve_date'
+    ? 'date_approved' as const
+    : input.action === 'propose_date'
+      ? 'date_proposed' as const
+      : 'cancelled' as const;
+  const { data, error } = await supabase
+    .from('booking_requests')
+    .update({ approved_date: approvedDate, staff_note: staffNote || null, state })
+    .eq('id', input.bookingId)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function beginStaffTotpEnrollment(friendlyName = 'PSI Performance staff'): Promise<StaffTotpEnrollment> {
   const supabase = getSupabaseClient();
   const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
@@ -178,4 +208,12 @@ function mapVerifiedTotpFactors(factors: { created_at: string; friendly_name?: s
     friendlyName: factor.friendly_name ?? 'PSI staff authenticator',
     id: factor.id,
   }));
+}
+
+function requiredReviewDate(value: string) {
+  const normalized = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(normalized)) throw new Error('BOOKING_REVIEW_DATE_INVALID');
+  const date = new Date(`${normalized}T12:00:00.000Z`);
+  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== normalized) throw new Error('BOOKING_REVIEW_DATE_INVALID');
+  return normalized;
 }

@@ -14,24 +14,42 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import { CUSTOMER_PREVIEW, type PreviewBooking } from '@/lib/customer-preview';
+import { useCustomerAccount } from '@/lib/customer-account-context';
+import { CUSTOMER_AUTH } from '@/lib/customer-auth';
+import { CUSTOMER_PREVIEW } from '@/lib/customer-preview';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
+import type { BookingRequestRow, CustomerVehicleRow } from '@/lib/database.types';
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const;
 const SEPTEMBER_2026 = [null, ...Array.from({ length: 30 }, (_, index) => index + 1), null, null, null, null];
 
 export default function BookingsScreen() {
   const router = useRouter();
-  const { prepareBookingVehicle, selectedVehicleId } = useCustomerPreview();
+  const { account, refreshAccount, status: accountStatus } = useCustomerAccount();
+  const { prepareBookingVehicle, prepareBookingVehicleRecord, selectedVehicleId } = useCustomerPreview();
   const { compact, horizontalPadding } = useResponsiveLayout();
   const [bookingChooserOpen, setBookingChooserOpen] = useState(false);
 
-  const upcoming = CUSTOMER_PREVIEW.bookings.filter((booking) => booking.status !== 'completed');
-  const past = CUSTOMER_PREVIEW.bookings.filter((booking) => booking.status === 'completed');
+  const privateAccountMode = CUSTOMER_AUTH.enabled;
+  const displayBookings = privateAccountMode
+    ? (account?.bookings ?? []).map((booking) => secureBookingDisplay(booking, account?.vehicles ?? []))
+    : CUSTOMER_PREVIEW.bookings.map(previewBookingDisplay);
+  const upcoming = displayBookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
+  const past = displayBookings.filter((booking) => ['cancelled', 'completed'].includes(booking.state));
+  const calendarBookings = displayBookings.filter((booking) => ['date_approved', 'confirmed'].includes(booking.state) && booking.date);
 
   const openBooking = (type: 'service' | 'dyno') => {
     setBookingChooserOpen(false);
-    prepareBookingVehicle(selectedVehicleId);
+    if (privateAccountMode) {
+      const vehicle = account?.vehicles.find((item) => item.is_primary) ?? account?.vehicles[0];
+      if (!vehicle) {
+        router.push('/garage');
+        return;
+      }
+      prepareBookingVehicleRecord(accountVehiclePreview(vehicle));
+    } else {
+      prepareBookingVehicle(selectedVehicleId);
+    }
     router.push({ pathname: '/booking', params: { type } });
   };
 
@@ -46,7 +64,7 @@ export default function BookingsScreen() {
             <Text style={styles.eyebrow}>Your PSI visits</Text>
             <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact]}>Bookings</Text>
           </View>
-          <View accessibilityLabel={`${upcoming.length} example upcoming bookings`} style={styles.countBadge}>
+          <View accessibilityLabel={`${upcoming.length} upcoming bookings`} style={styles.countBadge}>
             <Text style={styles.countNumber}>{upcoming.length}</Text>
             <Text style={styles.countLabel}>Ahead</Text>
           </View>
@@ -55,11 +73,46 @@ export default function BookingsScreen() {
         <View accessibilityRole="alert" style={styles.previewNotice}>
           <Text style={styles.previewNoticeTitle}>Your visits only</Text>
           <Text style={styles.previewNoticeCopy}>
-            This public demo shows synthetic appointments. A real account will show only your requests and confirmed visits; PSI workshop availability stays private.
+            {privateAccountMode
+              ? accountStatus === 'ready'
+                ? 'These are the requests and visits stored in your protected PSI account. Other customers and PSI workshop availability remain private.'
+                : accountStatus === 'signed_out'
+                  ? 'Sign in to load your private requests and confirmed visits. No synthetic bookings are substituted in an authenticated build.'
+                  : 'Your protected booking records are loading. No synthetic bookings are being substituted.'
+              : 'This public demo shows synthetic appointments. A real account will show only your requests and confirmed visits; PSI workshop availability stays private.'}
           </Text>
         </View>
+        {privateAccountMode ? (
+          <Pressable accessibilityRole="button" onPress={refreshAccount} style={({ pressed }) => [styles.refreshButton, pressed && styles.pressed]}>
+            <Ionicons color={colors.gold} name="refresh" size={17} />
+            <Text style={styles.refreshText}>Refresh private bookings</Text>
+          </Pressable>
+        ) : null}
 
-        <View style={styles.calendarCard}>
+        {privateAccountMode ? (
+          <View style={styles.calendarCard}>
+            <View style={styles.calendarHeader}>
+              <View style={styles.calendarHeadingCopy}>
+                <Text style={styles.calendarKicker}>Private visit calendar</Text>
+                <Text style={styles.calendarTitle}>Approved PSI dates</Text>
+              </View>
+              <Ionicons color={colors.gold} name="calendar-clear-outline" size={24} />
+            </View>
+            {calendarBookings.length === 0 ? (
+              <Text style={styles.calendarNote}>No approved or confirmed workshop dates are currently shown. Requested dates remain preferences until PSI approves them.</Text>
+            ) : calendarBookings.map((booking) => (
+              <View key={booking.id} style={styles.privateCalendarRow}>
+                <View style={styles.legendMark} />
+                <View style={styles.privateCalendarCopy}>
+                  <Text style={styles.bookingTitle}>{booking.service}</Text>
+                  <Text style={styles.bookingDate}>{formatBookingDate(booking.date)}</Text>
+                  <Text style={styles.bodyCopy}>{booking.vehicle}</Text>
+                </View>
+              </View>
+            ))}
+            <Text style={styles.calendarNote}>Only your approved dates appear here. This is not PSI workshop availability.</Text>
+          </View>
+        ) : <View style={styles.calendarCard}>
           <View style={styles.calendarHeader}>
             <View style={styles.calendarHeadingCopy}>
               <Text style={styles.calendarKicker}>Example month</Text>
@@ -90,7 +143,7 @@ export default function BookingsScreen() {
             <Text style={styles.legendText}>Your confirmed example visit</Text>
           </View>
           <Text style={styles.calendarNote}>The account calendar is a personal visit history—not an open PSI workshop calendar.</Text>
-        </View>
+        </View>}
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>Coming up</Text>
@@ -99,7 +152,7 @@ export default function BookingsScreen() {
           </Pressable>
         </View>
         <View style={styles.bookingList}>
-          {upcoming.map((booking) => <BookingCard booking={booking} key={booking.id} />)}
+          {upcoming.length === 0 ? <EmptyBookingState copy={privateAccountMode ? 'No active booking requests are currently shown.' : 'No example bookings are currently shown.'} /> : upcoming.map((booking) => <BookingCard booking={booking} key={booking.id} />)}
         </View>
 
         <View style={styles.callout}>
@@ -113,10 +166,10 @@ export default function BookingsScreen() {
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>Visit history</Text>
-          <Text style={styles.sectionMeta}>Example</Text>
+          <Text style={styles.sectionMeta}>{privateAccountMode ? 'Private account' : 'Example'}</Text>
         </View>
         <View style={styles.bookingList}>
-          {past.map((booking) => <BookingCard booking={booking} key={booking.id} />)}
+          {past.length === 0 ? <EmptyBookingState copy="No completed or cancelled visits are currently shown." /> : past.map((booking) => <BookingCard booking={booking} key={booking.id} />)}
         </View>
       </ScrollView>
 
@@ -151,7 +204,11 @@ export default function BookingsScreen() {
             </View>
             <BookingChoice icon="construct-outline" label="Service & Report" onPress={() => openBooking('service')} />
             <BookingChoice icon="speedometer-outline" label="Dyno Tuning" onPress={() => openBooking('dyno')} />
-            <Text style={styles.modalNote}>Submissions remain disabled in this public demo. The existing request flow can still be explored safely.</Text>
+            <Text style={styles.modalNote}>{privateAccountMode
+              ? account?.vehicles.length
+                ? 'The selected saved vehicle opens a private request. Submission saves only after all details are reviewed.'
+                : 'Add a vehicle in My Garage before submitting a private booking request.'
+              : 'Submissions remain disabled in this public demo. The existing request flow can still be explored safely.'}</Text>
             </View>
           </ScrollView>
         </SafeAreaView>
@@ -160,11 +217,19 @@ export default function BookingsScreen() {
   );
 }
 
-function BookingCard({ booking }: { booking: PreviewBooking }) {
-  const confirmed = booking.status === 'confirmed';
-  const completed = booking.status === 'completed';
-  const vehicle = CUSTOMER_PREVIEW.vehicles.find((item) => item.id === booking.vehicleId);
-  const statusLabel = confirmed ? 'Confirmed' : completed ? 'Completed' : 'PSI review';
+type BookingDisplay = {
+  date: string | null;
+  id: string;
+  reference: string;
+  service: string;
+  staffNote: string | null;
+  state: BookingRequestRow['state'];
+  vehicle: string;
+};
+
+function BookingCard({ booking }: { booking: BookingDisplay }) {
+  const confirmed = booking.state === 'confirmed';
+  const statusLabel = bookingStatusLabel(booking.state);
   const icon = booking.service === 'Dyno Tuning' ? 'speedometer-outline' : 'construct-outline';
 
   return (
@@ -178,12 +243,67 @@ function BookingCard({ booking }: { booking: PreviewBooking }) {
           <Text style={styles.bookingRef}>{booking.reference}</Text>
         </View>
         <Text style={styles.bookingTitle}>{booking.service}</Text>
-        <Text style={styles.bodyCopy}>{vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'Vehicle'}</Text>
-        <Text style={styles.bookingDate}>{formatBookingDate(booking.scheduledFor)}</Text>
+        <Text style={styles.bodyCopy}>{booking.vehicle}</Text>
+        <Text style={styles.bookingDate}>{booking.date ? formatBookingDate(booking.date) : 'Preferred date awaits PSI review'}</Text>
+        {booking.staffNote ? <Text style={styles.bookingStaffNote}>PSI note · {booking.staffNote}</Text> : null}
       </View>
       <Ionicons color={colors.muted} name="chevron-forward" size={18} />
     </View>
   );
+}
+
+function EmptyBookingState({ copy }: { copy: string }) {
+  return <View style={styles.emptyBooking}><Text style={styles.calendarNote}>{copy}</Text></View>;
+}
+
+function secureBookingDisplay(booking: BookingRequestRow, vehicles: CustomerVehicleRow[]): BookingDisplay {
+  const vehicle = vehicles.find((item) => item.id === booking.vehicle_id);
+  return {
+    date: booking.approved_date ?? booking.preferred_date,
+    id: booking.id,
+    reference: `PSI-${booking.id.slice(0, 8).toUpperCase()}`,
+    service: booking.booking_type === 'dyno' ? 'Dyno Tuning' : 'Service & Report',
+    staffNote: booking.staff_note,
+    state: booking.state,
+    vehicle: vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable',
+  };
+}
+
+function previewBookingDisplay(booking: (typeof CUSTOMER_PREVIEW.bookings)[number]): BookingDisplay {
+  const vehicle = CUSTOMER_PREVIEW.vehicles.find((item) => item.id === booking.vehicleId);
+  return {
+    date: booking.scheduledFor,
+    id: booking.id,
+    reference: booking.reference,
+    service: booking.service,
+    staffNote: null,
+    state: booking.status === 'awaiting_psi_review' ? 'pending_staff_review' : booking.status,
+    vehicle: vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'Vehicle',
+  };
+}
+
+function accountVehiclePreview(vehicle: CustomerVehicleRow) {
+  return {
+    id: vehicle.id,
+    isPrimary: vehicle.is_primary,
+    lastVisit: null,
+    make: vehicle.make,
+    model: vehicle.model,
+    nextDue: null,
+    odometerKm: vehicle.odometer_km,
+    registration: vehicle.registration,
+    vinLastFour: vehicle.vin_last_four,
+    year: vehicle.year,
+  };
+}
+
+function bookingStatusLabel(state: BookingRequestRow['state']) {
+  if (state === 'pending_staff_review') return 'PSI review';
+  if (state === 'date_proposed') return 'PSI proposed date';
+  if (state === 'date_approved') return 'Date approved · deposit not paid';
+  if (state === 'confirmed') return 'Confirmed';
+  if (state === 'completed') return 'Completed';
+  return 'Cancelled';
 }
 
 function BookingChoice({
@@ -206,14 +326,13 @@ function BookingChoice({
 
 function formatBookingDate(value: string | null) {
   if (!value) return 'Preferred date awaits PSI review';
-  return new Date(value).toLocaleString('en-AU', {
+  return new Date(value.length === 10 ? `${value}T12:00:00+10:00` : value).toLocaleString('en-AU', {
     timeZone: 'Australia/Melbourne',
     weekday: 'short',
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+    ...(value.length === 10 ? {} : { hour: 'numeric', minute: '2-digit' }),
   });
 }
 
@@ -231,6 +350,8 @@ const styles = StyleSheet.create({
   previewNotice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.cream, padding: spacing.md },
   previewNoticeTitle: { color: colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   previewNoticeCopy: { color: '#464646', fontSize: 11, lineHeight: 17 },
+  refreshButton: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: spacing.xs, paddingVertical: spacing.xs },
+  refreshText: { color: colors.gold, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   calendarCard: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.panel, padding: spacing.md },
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   calendarHeadingCopy: { gap: 2 },
@@ -246,6 +367,8 @@ const styles = StyleSheet.create({
   dayTextBooked: { color: colors.ink, fontWeight: '900' },
   dayDot: { position: 'absolute', bottom: 5, width: 5, height: 5, borderRadius: 3, backgroundColor: colors.goldDark },
   calendarLegend: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  privateCalendarRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.sm },
+  privateCalendarCopy: { flex: 1, gap: 2 },
   legendMark: { width: 11, height: 11, borderRadius: 2, backgroundColor: colors.cream },
   legendText: { color: colors.cream, fontSize: 10, fontWeight: '700' },
   calendarNote: { color: colors.mutedDark, fontSize: 10, lineHeight: 15 },
@@ -264,6 +387,8 @@ const styles = StyleSheet.create({
   bookingTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
   bodyCopy: { color: colors.muted, fontSize: 11, lineHeight: 17 },
   bookingDate: { color: colors.cream, fontSize: 10, fontWeight: '800' },
+  bookingStaffNote: { color: colors.muted, fontSize: 10, lineHeight: 15, marginTop: 2 },
+  emptyBooking: { ...mobileFrame, backgroundColor: colors.panel, padding: spacing.md },
   callout: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.lg },
   calloutCopy: { gap: spacing.xs },
   calloutTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },

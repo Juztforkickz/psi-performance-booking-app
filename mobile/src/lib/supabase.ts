@@ -7,11 +7,18 @@ import { supabaseAuthStorage } from '@/lib/supabase-auth-storage';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() ?? '';
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ?? '';
 const requestedAuthActivation = process.env.EXPO_PUBLIC_SUPABASE_AUTH_ENABLED === 'true';
+const requestedBookingActivation = process.env.EXPO_PUBLIC_SUPABASE_BOOKING_ENABLED === 'true';
 const requestedRegistrationActivation = process.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED === 'true';
 
 export const SUPABASE_CONNECTION = {
   configured: Boolean(supabaseUrl && supabasePublishableKey),
   authEnabled: Boolean(supabaseUrl && supabasePublishableKey && requestedAuthActivation),
+  bookingEnabled: Boolean(
+    supabaseUrl
+    && supabasePublishableKey
+    && requestedAuthActivation
+    && requestedBookingActivation
+  ),
   registrationEnabled: Boolean(
     supabaseUrl
     && supabasePublishableKey

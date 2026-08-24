@@ -7,7 +7,9 @@ export type Database = {
       booking_requests: {
         Row: {
           archived_at: string | null;
+          approved_date: string | null;
           booking_type: 'dyno' | 'service';
+          client_request_id: string;
           created_at: string;
           created_by: string;
           currency: 'AUD';
@@ -15,14 +17,20 @@ export type Database = {
           deposit_amount_cents: number | null;
           id: string;
           preferred_date: string | null;
+          request_context: Record<string, unknown>;
           request_notes: string | null;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          staff_note: string | null;
           state: 'cancelled' | 'completed' | 'confirmed' | 'date_approved' | 'date_proposed' | 'pending_staff_review';
           updated_at: string;
           vehicle_id: string;
         };
         Insert: {
           archived_at?: string | null;
+          approved_date?: string | null;
           booking_type: 'dyno' | 'service';
+          client_request_id?: string;
           created_at?: string;
           created_by: string;
           currency?: 'AUD';
@@ -30,16 +38,23 @@ export type Database = {
           deposit_amount_cents?: number | null;
           id?: string;
           preferred_date?: string | null;
+          request_context?: Record<string, unknown>;
           request_notes?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          staff_note?: string | null;
           state?: 'cancelled' | 'completed' | 'confirmed' | 'date_approved' | 'date_proposed' | 'pending_staff_review';
           updated_at?: string;
           vehicle_id: string;
         };
         Update: {
           archived_at?: string | null;
+          approved_date?: string | null;
           deposit_amount_cents?: number | null;
           preferred_date?: string | null;
-          request_notes?: string | null;
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          staff_note?: string | null;
           state?: 'cancelled' | 'completed' | 'confirmed' | 'date_approved' | 'date_proposed' | 'pending_staff_review';
           updated_at?: string;
         };

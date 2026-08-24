@@ -12,6 +12,12 @@ using two reserved customer identities and one reserved staff identity. It verif
 - staff record and attachment metadata cannot mismatch customer and vehicle
   ownership; and
 - only AAL2 staff can complete a confirmed service booking;
+- authenticated customers can create idempotent pending requests only for
+  vehicles they own;
+- AAL1 staff cannot review requests, AAL2 staff can approve/propose valid PSI
+  dates, and staff cannot promote a date-approved request to paid/confirmed;
+- only the trusted server role can perform the future payment-confirmed
+  transition;
 - service completion automatically closes the booking and projects immutable
   PSI repair, odometer and next-check-in history; and
 - each customer can read only the PSI records and service history published to

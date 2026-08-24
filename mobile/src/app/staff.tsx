@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { StaffRecordPublisher } from '@/components/staff-record-publisher';
+import { StaffBookingReview } from '@/components/staff-booking-review';
 import { StaffServiceCompletion } from '@/components/staff-service-completion';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -312,7 +313,7 @@ function StaffWorkspace({
           <Ionicons color={colors.success} name="shield-checkmark" size={22} />
           <View style={styles.flex}>
             <Text style={styles.securityTitle}>MFA verified · {role === 'owner' ? 'Owner access' : 'Staff access'}</Text>
-            <Text style={styles.securityCopy}>Controlled PSI record publishing and protected Complete Service are enabled in this private QA build. Calendar actions, customer registration and staff management remain disabled.</Text>
+            <Text style={styles.securityCopy}>Booking review, controlled PSI record publishing and protected Complete Service are enabled in this private QA build. Payment, email, Calendar actions, customer registration and staff management remain disabled.</Text>
           </View>
         </View>
 
@@ -350,6 +351,11 @@ function StaffWorkspace({
               <Text style={styles.cardPrimary}>{customerName(customer)}</Text>
               <Text style={styles.cardCopy}>{vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable'}</Text>
               <Text style={styles.cardMeta}>{booking.preferred_date ? `Preferred ${formatDate(booking.preferred_date)}` : 'Customer is flexible on date'}</Text>
+              {booking.approved_date ? <Text style={styles.cardMeta}>Workshop date {formatDate(booking.approved_date)}</Text> : null}
+              {booking.request_notes ? <Text style={styles.cardCopy}>{booking.request_notes}</Text> : null}
+              {bookingContextLines(booking.request_context).map((line, index) => <Text key={`${booking.id}-context-${index}`} style={styles.contextLine}>{line}</Text>)}
+              {booking.staff_note ? <Text style={styles.staffNote}>PSI note · {booking.staff_note}</Text> : null}
+              <StaffBookingReview booking={booking} onRefresh={onRefresh} />
               <StaffServiceCompletion
                 booking={booking}
                 customerLabel={customerName(customer)}
@@ -382,7 +388,7 @@ function StaffWorkspace({
             </View>
           );
         })}
-        <Text style={styles.footer}>PRIVATE QA · AAL2 STAFF PUBLISHING · PROTECTED SERVICE COMPLETION · NO CALENDAR ACTIONS</Text>
+        <Text style={styles.footer}>PRIVATE QA · AAL2 BOOKING REVIEW · PROTECTED SERVICE COMPLETION · NO PAYMENT, EMAIL OR CALENDAR ACTIONS</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -408,6 +414,29 @@ function customerName(customer: StaffPortalSnapshot['customers'][number] | undef
 function formatDate(value: string) {
   const [year, month, day] = value.slice(0, 10).split('-');
   return `${day}/${month}/${year}`;
+}
+
+function bookingContextLines(context: Record<string, unknown>) {
+  const lines: string[] = [];
+  if (typeof context.arrivalArrangement === 'string') lines.push(`Arrival · ${humanize(context.arrivalArrangement)}`);
+  if (context.afterHoursCollection === true) lines.push('Collection · After-hours requested');
+  if (context.notifyEarlierAvailability === true) lines.push('Earlier opening · Customer asked PSI to make contact');
+  if (context.serviceReminderConsent === true) lines.push('Future service reminders · Customer opted in');
+  if (typeof context.setupConfidence === 'string') lines.push(`Dyno setup · ${humanize(context.setupConfidence)}`);
+  if (context.tuningDetails && typeof context.tuningDetails === 'object' && !Array.isArray(context.tuningDetails)) {
+    Object.entries(context.tuningDetails as Record<string, unknown>)
+      .filter(([, value]) => typeof value === 'string' && value.trim())
+      .slice(0, 10)
+      .forEach(([key, value]) => lines.push(`${humanize(key)} · ${humanize(value as string)}`));
+  }
+  return lines;
+}
+
+function humanize(value: string) {
+  return value
+    .replace(/([a-z])([A-Z])/gu, '$1 $2')
+    .replace(/_/gu, ' ')
+    .replace(/\b\w/gu, (letter) => letter.toUpperCase());
 }
 
 const styles = StyleSheet.create({
@@ -451,6 +480,8 @@ const styles = StyleSheet.create({
   cardPrimary: { color: colors.white, fontSize: 15, fontWeight: '800', marginTop: spacing.sm },
   cardCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 2 },
   cardMeta: { color: colors.gold, fontSize: 12, fontWeight: '800', marginTop: spacing.xs },
+  staffNote: { color: colors.cream, fontSize: 12, fontWeight: '800', lineHeight: 18, marginTop: spacing.xs },
+  contextLine: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 2 },
   badge: { borderColor: colors.goldDark, borderWidth: 1, color: colors.gold, fontSize: 10, fontWeight: '900', paddingHorizontal: 8, paddingVertical: 5, textTransform: 'uppercase' },
   vehicleList: { gap: spacing.sm, marginTop: spacing.md },
   vehicleRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.sm },

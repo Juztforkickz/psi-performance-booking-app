@@ -281,14 +281,30 @@ GitHub or browser storage.
 Initial outbound notifications are email only. SMS and push notifications are
 not enabled.
 
-The planned booking flow is:
+The controlled QA build now connects approved authenticated customer accounts
+directly to the RLS-protected Supabase booking queue. Each request is tied to an
+owned active vehicle, uses a customer-scoped idempotency UUID, remains
+`pending_staff_review`, and stores its bounded structured booking context. The
+public GitHub Pages build does not set the separate booking activation flag and
+therefore remains submission-disabled.
 
-1. Customer submits a request after the production API is enabled.
+At AAL2, Matt can approve the requested date, record an alternative proposed
+date or cancel with an audit note. The database derives the AUD deposit amount
+from the booking type and prevents staff from changing immutable customer
+request details or falsely moving an approved request to `confirmed`. That
+transition is reserved for a later trusted server integration after verified
+payment. The customer's private Bookings tab reads only their RLS-scoped queue
+and approved dates; it never exposes PSI workshop availability.
+
+The remaining server integration flow is:
+
+1. Customer submits a request from an approved authenticated QA account.
 2. PSI receives an email notification; the initial operational recipient is
    `matt@psiperformance.com.au`.
 3. A server-side integration creates a clearly labelled `[PENDING]` event on
    the Google Calendar owned by `matt@psiperformance.com.au`.
-4. PSI approves the request in the staff portal or contacts the customer.
+4. PSI approves/proposes the date in the MFA-protected staff portal or contacts
+   the customer. This database step is active in controlled QA.
 5. Approval updates the database and calendar event, then sends the customer a
    confirmation email.
 

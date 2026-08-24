@@ -1,3 +1,6 @@
+import type { Database } from '@/lib/database.types';
+import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
+
 export type BookingType = 'service' | 'dyno';
 export type AppointmentPreferenceMode = 'specific' | 'flexible';
 export type ArrivalArrangement =
@@ -314,8 +317,12 @@ function compactTuningDetails(tuning: TuningDetails, includeAll: boolean) {
   return Object.fromEntries(Object.entries(tuning).filter(([, value]) => includeAll || value.trim().length > 0));
 }
 
-export async function createBookingRequest(form: BookingFormState, idempotencyKey: string): Promise<BookingRequestResult> {
+export async function createBookingRequest(form: BookingFormState, idempotencyKey: string, vehicleId?: string): Promise<BookingRequestResult> {
   if (idempotencyKey.trim().length < 16) throw new Error('This request could not be safely identified. Please restart the booking.');
+  if (SUPABASE_CONNECTION.bookingEnabled) {
+    if (!vehicleId) throw new Error('Choose a vehicle saved in your private PSI account before submitting this request.');
+    return createAuthenticatedBookingRequest(form, idempotencyKey, vehicleId);
+  }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20_000);
   try {
@@ -362,4 +369,96 @@ export async function createBookingRequest(form: BookingFormState, idempotencyKe
     if (error instanceof TypeError) throw new Error('We could not reach PSI booking requests. Nothing has been confirmed. Check your connection and try again.');
     throw error;
   } finally { clearTimeout(timeout); }
+}
+
+async function createAuthenticatedBookingRequest(
+  form: BookingFormState,
+  idempotencyKey: string,
+  vehicleId: string,
+): Promise<BookingRequestResult> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(idempotencyKey)) {
+    throw new Error('This request could not be safely identified. Please restart the booking.');
+  }
+  if (form.bookingType !== 'service' && form.bookingType !== 'dyno') throw new Error('Choose a booking type before submitting.');
+
+  const supabase = getSupabaseClient();
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const user = userData.user;
+  if (userError || !user?.email) throw userError ?? new Error('Sign in to your approved PSI account before submitting a booking request.');
+
+  const [profileResult, vehicleResult] = await Promise.all([
+    supabase.from('customer_profiles').select('*').eq('user_id', user.id).maybeSingle(),
+    supabase.from('customer_vehicles').select('*').eq('id', vehicleId).eq('customer_id', user.id).is('archived_at', null).maybeSingle(),
+  ]);
+  if (profileResult.error) throw profileResult.error;
+  if (vehicleResult.error) throw vehicleResult.error;
+  if (!profileResult.data || profileResult.data.account_state !== 'active') throw new Error('Complete your private PSI account profile before submitting a booking request.');
+  if (!vehicleResult.data) throw new Error('That vehicle is not available in your private PSI account. No request was submitted.');
+
+  const identityErrors: BookingErrors = {};
+  if (normaliseIdentity(form.email) !== normaliseIdentity(user.email)) identityErrors.email = 'Use the verified email shown in your PSI account.';
+  if (normaliseIdentity(form.firstName) !== normaliseIdentity(profileResult.data.first_name ?? '')) identityErrors.firstName = 'Update your first name in Account before booking.';
+  if (normaliseIdentity(form.lastName) !== normaliseIdentity(profileResult.data.last_name ?? '')) identityErrors.lastName = 'Update your last name in Account before booking.';
+  if (normalisePhone(form.mobile) !== normalisePhone(profileResult.data.mobile ?? '')) identityErrors.mobile = 'Update your mobile number in Account before booking.';
+  if (normaliseIdentity(form.vehicleMake) !== normaliseIdentity(vehicleResult.data.make)) identityErrors.vehicleMake = 'Use the make saved for this vehicle in My Garage.';
+  if (normaliseIdentity(form.vehicleModel) !== normaliseIdentity(vehicleResult.data.model)) identityErrors.vehicleModel = 'Use the model saved for this vehicle in My Garage.';
+  if (Number(form.vehicleYear) !== vehicleResult.data.year) identityErrors.vehicleYear = 'Use the year saved for this vehicle in My Garage.';
+  if (normaliseIdentity(form.registration) !== normaliseIdentity(vehicleResult.data.registration)) identityErrors.registration = 'Use the registration saved for this vehicle in My Garage.';
+  if (Object.keys(identityErrors).length > 0) {
+    throw new BookingApiError('Your booking details no longer match the protected account record. Update Account or restart from My Garage.', identityErrors, 'ACCOUNT_DETAILS_CHANGED', 409);
+  }
+
+  const payload: Database['public']['Tables']['booking_requests']['Insert'] = {
+    booking_type: form.bookingType,
+    client_request_id: idempotencyKey,
+    created_by: user.id,
+    currency: 'AUD',
+    customer_id: user.id,
+    preferred_date: form.appointmentPreferenceMode === 'specific' ? form.preferredDate : null,
+    request_context: {
+      afterHoursCollection: form.afterHoursCollection,
+      appointmentPreferenceMode: form.appointmentPreferenceMode,
+      arrivalArrangement: form.arrivalArrangement,
+      bookingPolicyVersion: BOOKING_POLICY_VERSION,
+      notifyEarlierAvailability: form.notifyEarlierAvailability,
+      schemaVersion: 1,
+      serviceReminderConsent: form.bookingType === 'service' && form.serviceReminderConsent,
+      ...(form.bookingType === 'dyno' ? {
+        setupConfidence: form.setupConfidence,
+        ...(form.setupConfidence === 'known' ? { tuningDetails: compactTuningDetails(form.tuningDetails, true) } : {}),
+      } : {}),
+    },
+    request_notes: form.requestDetails.trim(),
+    state: 'pending_staff_review',
+    vehicle_id: vehicleId,
+  };
+  const insertResult = await supabase.from('booking_requests').insert(payload).select('*').single();
+  let booking = insertResult.data;
+  if (insertResult.error) {
+    if (insertResult.error.code !== '23505') throw insertResult.error;
+    const existingResult = await supabase
+      .from('booking_requests')
+      .select('*')
+      .eq('customer_id', user.id)
+      .eq('client_request_id', idempotencyKey)
+      .maybeSingle();
+    if (existingResult.error || !existingResult.data) throw existingResult.error ?? insertResult.error;
+    booking = existingResult.data;
+  }
+  if (!booking) throw new Error('PSI could not verify that the request was stored. No success is being claimed.');
+
+  return {
+    reference: `PSI-${booking.id.slice(0, 8).toUpperCase()}`,
+    state: 'pending_staff_review',
+    paymentRequiredNow: false,
+    message: 'Your request is saved in your private PSI account for workshop review. No payment, confirmed date, email or calendar event has been created yet.',
+  };
+}
+
+function normaliseIdentity(value: string) {
+  return value.trim().toLocaleLowerCase('en-AU');
+}
+
+function normalisePhone(value: string) {
+  return value.replace(/\D/gu, '');
 }

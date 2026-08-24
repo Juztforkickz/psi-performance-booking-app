@@ -107,6 +107,7 @@ insert into public.customer_vehicles (
 
 insert into public.booking_requests (
   id,
+  client_request_id,
   customer_id,
   vehicle_id,
   booking_type,
@@ -117,6 +118,7 @@ insert into public.booking_requests (
   created_by
 ) values (
   'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
   '11111111-1111-4111-8111-111111111111',
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   'service',
@@ -414,6 +416,8 @@ select set_config(
 select set_config('request.jwt.claim.sub', '33333333-3333-4333-8333-333333333333', true);
 
 do $$
+declare
+  affected_rows integer;
 begin
   if (select private.is_active_staff()) then
     raise exception 'RLS test failed: AAL1 staff received workshop access';
@@ -421,6 +425,14 @@ begin
 
   if (select count(*) from public.customer_profiles) <> 0 then
     raise exception 'RLS test failed: AAL1 staff can view customer profiles';
+  end if;
+
+  update public.booking_requests
+  set state = 'date_approved', approved_date = current_date
+  where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  get diagnostics affected_rows = row_count;
+  if affected_rows <> 0 then
+    raise exception 'RLS test failed: AAL1 staff reviewed a booking';
   end if;
 
   begin
@@ -541,9 +553,42 @@ begin
     '33333333-3333-4333-8333-333333333333'
   );
 
+  begin
+    update public.booking_requests
+    set state = 'confirmed', approved_date = current_date
+    where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    raise exception 'RLS test failed: staff confirmed a booking without a verified payment integration';
+  exception
+    when others then
+      if sqlerrm not like '%Booking state transition is not permitted%' then
+        raise;
+      end if;
+  end;
+
+  update public.booking_requests
+  set
+    state = 'date_approved',
+    approved_date = current_date,
+    staff_note = 'Synthetic approved workshop date.'
+  where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+
+  if (select count(*) from public.booking_requests where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and state = 'date_approved' and deposit_amount_cents = 10000 and currency = 'AUD' and reviewed_by = '33333333-3333-4333-8333-333333333333') <> 1 then
+    raise exception 'RLS test failed: AAL2 date approval did not derive the protected AUD deposit and reviewer';
+  end if;
+
+  perform set_config(
+    'request.jwt.claims',
+    '{"sub":"33333333-3333-4333-8333-333333333333","email":"rls-staff@example.invalid","role":"service_role","aal":"aal2"}',
+    true
+  );
   update public.booking_requests
   set state = 'confirmed'
   where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  perform set_config(
+    'request.jwt.claims',
+    '{"sub":"33333333-3333-4333-8333-333333333333","email":"rls-staff@example.invalid","role":"authenticated","aal":"aal2"}',
+    true
+  );
 
   insert into public.service_completions (
     id,

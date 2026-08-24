@@ -1,7 +1,8 @@
 # PSI booking workflow
 
-Status: owner-review specification. No payment, email, Google Calendar or
-customer-identity provider is enabled by this document or by the preview build.
+Status: owner-review specification. No payment, booking email or Google
+Calendar provider is enabled by this document or by the public preview. The
+separate controlled QA profile uses Supabase Auth for approved pilot accounts.
 
 ## Public demo boundary
 
@@ -14,6 +15,15 @@ booking-request API then rejects every POST with a no-store
 or accessing D1. The Netlify Expo preview intentionally has no
 `EXPO_PUBLIC_API_BASE_URL`, so it has no booking backend to contact. Neither
 preview sends booking details, email, payment or calendar events.
+
+The separate authenticated QA profile now enables a customer-scoped Supabase
+request path for approved pilot accounts only. It stores an idempotent pending
+request for an owned vehicle, exposes it through the MFA-protected PSI queue and
+shows its state in that customer's private Bookings tab. AAL2 staff can approve
+or propose a valid date, or cancel with an audit note. This QA connection does
+not send email, take payment or write Google Calendar, and staff cannot move a
+date-approved request to `confirmed`; that transition remains reserved for the
+future signed payment integration.
 
 ## Customer journey
 

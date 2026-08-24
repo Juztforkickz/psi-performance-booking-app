@@ -21,7 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChoiceCard, Eyebrow, Field, FormInput, PrimaryButton, UiToneProvider } from '@/components/ui';
 import { bookingColors, colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import type { CustomerProfileRow } from '@/lib/database.types';
+import type { CustomerProfileRow, CustomerVehicleRow } from '@/lib/database.types';
 import {
   BOOKING_DRAFT_EXPIRY_DAYS,
   clearBookingDraft,
@@ -55,6 +55,7 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { PUBLIC_DEMO } from '@/lib/public-demo';
+import { SUPABASE_CONNECTION } from '@/lib/supabase';
 
 const STEP_LABELS = ['Job', 'Vehicle', 'Details', 'Date', 'Review'];
 const COMPACT_STEP_LABELS = ['Job', 'Car', 'You', 'Date', 'Review'];
@@ -189,7 +190,7 @@ type UpdateTuning = <K extends keyof TuningDetails>(key: K, value: TuningDetails
 
 export default function BookingScreen() {
   const auth = useCustomerAuth();
-  const { account, status } = useCustomerAccount();
+  const { account, refreshAccount, status } = useCustomerAccount();
   const waitingForAccount = CUSTOMER_AUTH.enabled
     && (auth.status === 'loading' || (auth.status === 'signed_in' && status === 'loading'));
 
@@ -200,11 +201,34 @@ export default function BookingScreen() {
         : (
           <BookingScreenContent
             accountProfile={auth.status === 'signed_in' ? account?.profile ?? null : null}
+            accountVehicles={auth.status === 'signed_in' ? account?.vehicles ?? [] : []}
             authenticatedEmail={auth.status === 'signed_in' ? auth.user?.email ?? null : null}
+            onBookingStored={refreshAccount}
+            privateBookingEnabled={auth.status === 'signed_in' && SUPABASE_CONNECTION.bookingEnabled}
           />
         )}
     </UiToneProvider>
   );
+}
+
+function accountVehicleToPreview(vehicle: CustomerVehicleRow | undefined): PreviewVehicle | null {
+  if (!vehicle) return null;
+  return {
+    id: vehicle.id,
+    isPrimary: vehicle.is_primary,
+    lastVisit: null,
+    make: vehicle.make,
+    model: vehicle.model,
+    nextDue: null,
+    odometerKm: vehicle.odometer_km,
+    registration: vehicle.registration,
+    vinLastFour: vehicle.vin_last_four,
+    year: vehicle.year,
+  };
+}
+
+function normaliseVehicleRegistration(value: string) {
+  return value.trim().toUpperCase().replace(/\s/gu, '');
 }
 
 function BookingAccountLoading() {
@@ -221,10 +245,16 @@ function BookingAccountLoading() {
 
 function BookingScreenContent({
   accountProfile,
+  accountVehicles,
   authenticatedEmail,
+  onBookingStored,
+  privateBookingEnabled,
 }: {
   accountProfile: CustomerProfileRow | null;
+  accountVehicles: CustomerVehicleRow[];
   authenticatedEmail: string | null;
+  onBookingStored: () => void;
+  privateBookingEnabled: boolean;
 }) {
   const router = useRouter();
   const {
@@ -232,7 +262,7 @@ function BookingScreenContent({
     ephemeralAccount,
     pendingBookingVehicle,
   } = useCustomerPreview();
-  const [bookingVehicle] = useState<PreviewVehicle | null>(() => pendingBookingVehicle);
+  const [bookingVehicle] = useState<PreviewVehicle | null>(() => pendingBookingVehicle ?? accountVehicleToPreview(accountVehicles.find((vehicle) => vehicle.is_primary) ?? accountVehicles[0]));
   const [bookingAccountProfile] = useState<CustomerProfileRow | null>(() => accountProfile);
   const [bookingAccountEmail] = useState<string | null>(() => authenticatedEmail);
   const { compact, fontScale, horizontalPadding, short, useFieldColumns: wideFields, width } = useResponsiveLayout();
@@ -280,6 +310,11 @@ function BookingScreenContent({
   const [draftConflictError, setDraftConflictError] = useState('');
   const maxDate = useMemo(() => maxBookingDate(), []);
   const draftReady = !initialType || draftReadyFor === initialType;
+  const secureBookingVehicle = bookingVehicle
+    ? accountVehicles.find((vehicle) => vehicle.id === bookingVehicle.id)
+      ?? accountVehicles.find((vehicle) => normaliseVehicleRegistration(vehicle.registration) === normaliseVehicleRegistration(bookingVehicle.registration))
+    : null;
+  const submissionEnabled = privateBookingEnabled && Boolean(secureBookingVehicle);
 
   useEffect(() => {
     clearPendingBookingVehicle();
@@ -439,9 +474,11 @@ function BookingScreenContent({
   };
 
   const submitRequest = async () => {
-    if (PUBLIC_DEMO.submissionsDisabled) {
-      setErrorTitle('Public demo');
-      setFormError(PUBLIC_DEMO.submissionMessage);
+    if (!submissionEnabled || !secureBookingVehicle) {
+      setErrorTitle(privateBookingEnabled ? 'Account vehicle required' : 'Public demo');
+      setFormError(privateBookingEnabled
+        ? 'Choose a vehicle saved in My Garage before submitting this private QA request.'
+        : PUBLIC_DEMO.submissionMessage);
       scrollToTop();
       return;
     }
@@ -463,7 +500,8 @@ function BookingScreenContent({
     setSubmitting(true);
     setFormError('');
     try {
-      const result = await createBookingRequest(form, idempotencyKey);
+      const result = await createBookingRequest(form, idempotencyKey, secureBookingVehicle.id);
+      onBookingStored();
       setDraftDirty(false);
       let draftCleared = true;
       if (initialType) {
@@ -616,8 +654,10 @@ function BookingScreenContent({
         >
           <View style={styles.formInner}>
             <View accessibilityRole="alert" style={styles.demoBanner}>
-              <Text style={styles.demoBannerTitle}>{PUBLIC_DEMO.label}</Text>
-              <Text style={styles.demoBannerCopy}>{PUBLIC_DEMO.notice}</Text>
+              <Text style={styles.demoBannerTitle}>{privateBookingEnabled ? 'Private account booking' : PUBLIC_DEMO.label}</Text>
+              <Text style={styles.demoBannerCopy}>{privateBookingEnabled
+                ? 'Approved account requests save privately to PSI for workshop review. No payment, confirmed date, email or calendar event is created at submission.'
+                : PUBLIC_DEMO.notice}</Text>
             </View>
             {formError ? (
               <View accessibilityRole="alert" style={styles.alert}>
@@ -685,8 +725,8 @@ function BookingScreenContent({
                 />
               ) : (
                 <PrimaryButton
-                  disabled={PUBLIC_DEMO.submissionsDisabled}
-                  label={PUBLIC_DEMO.submissionsDisabled ? 'Demo only · Submission disabled' : 'Submit request for PSI review'}
+                  disabled={!submissionEnabled}
+                  label={submissionEnabled ? 'Submit request for PSI review' : privateBookingEnabled ? 'Choose a saved vehicle first' : 'Demo only · Submission disabled'}
                   loading={submitting}
                   onPress={() => void submitRequest()}
                   style={wideFields && step > 1 ? styles.actionButtonWide : undefined}
@@ -695,7 +735,9 @@ function BookingScreenContent({
             </View>
             <Text style={styles.requestNote}>
               {step === 5
-                ? 'This public demo does not submit details, send email, take payment or create a calendar event.'
+                ? submissionEnabled
+                  ? 'This private request saves to PSI for review. It does not send email, take payment, confirm a date or create a calendar event yet.'
+                  : 'This public demo does not submit details, send email, take payment or create a calendar event.'
                 : 'Every requested date and before/after-hours arrangement remains pending until PSI checks workshop capacity.'}
             </Text>
           </View>
