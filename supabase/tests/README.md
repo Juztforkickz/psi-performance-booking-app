@@ -11,7 +11,11 @@ using two reserved customer identities and one reserved staff identity. It verif
 - an active staff identity cannot publish at AAL1 and can publish only at AAL2;
 - staff record and attachment metadata cannot mismatch customer and vehicle
   ownership; and
-- each customer can read only the PSI records published to their account.
+- only AAL2 staff can complete a confirmed service booking;
+- service completion automatically closes the booking and projects immutable
+  PSI repair, odometer and next-check-in history; and
+- each customer can read only the PSI records and service history published to
+  their account.
 
 The script starts a transaction and ends with `rollback`, so its users, records
 and audit events never persist. Run it only with a privileged database test

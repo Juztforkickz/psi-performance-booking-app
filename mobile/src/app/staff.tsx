@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { StaffRecordPublisher } from '@/components/staff-record-publisher';
+import { StaffServiceCompletion } from '@/components/staff-service-completion';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
@@ -110,6 +111,7 @@ export default function StaffPortalScreen() {
   return (
     <StaffWorkspace
       horizontalPadding={horizontalPadding}
+      onRefresh={refreshStaffAccess}
       role={access.staff.role}
       snapshot={access.snapshot}
       verifiedTotpFactors={access.verifiedTotpFactors}
@@ -277,11 +279,13 @@ function PortalState({
 
 function StaffWorkspace({
   horizontalPadding,
+  onRefresh,
   role,
   snapshot,
   verifiedTotpFactors,
 }: {
   horizontalPadding: number;
+  onRefresh: () => void;
   role: 'owner' | 'staff';
   snapshot: StaffPortalSnapshot;
   verifiedTotpFactors: Extract<StaffPortalAccess, { kind: 'ready' }>['verifiedTotpFactors'];
@@ -308,7 +312,7 @@ function StaffWorkspace({
           <Ionicons color={colors.success} name="shield-checkmark" size={22} />
           <View style={styles.flex}>
             <Text style={styles.securityTitle}>MFA verified · {role === 'owner' ? 'Owner access' : 'Staff access'}</Text>
-            <Text style={styles.securityCopy}>Controlled PSI record publishing is enabled in this private QA build. Calendar actions, customer registration and staff management remain disabled.</Text>
+            <Text style={styles.securityCopy}>Controlled PSI record publishing and protected Complete Service are enabled in this private QA build. Calendar actions, customer registration and staff management remain disabled.</Text>
           </View>
         </View>
 
@@ -346,6 +350,12 @@ function StaffWorkspace({
               <Text style={styles.cardPrimary}>{customerName(customer)}</Text>
               <Text style={styles.cardCopy}>{vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable'}</Text>
               <Text style={styles.cardMeta}>{booking.preferred_date ? `Preferred ${formatDate(booking.preferred_date)}` : 'Customer is flexible on date'}</Text>
+              <StaffServiceCompletion
+                booking={booking}
+                customerLabel={customerName(customer)}
+                onRefresh={onRefresh}
+                vehicleLabel={vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable'}
+              />
             </View>
           );
         })}
@@ -372,7 +382,7 @@ function StaffWorkspace({
             </View>
           );
         })}
-        <Text style={styles.footer}>PRIVATE QA · AAL2 STAFF PUBLISHING · PRIVATE IMAGE ATTACHMENTS · NO CALENDAR ACTIONS</Text>
+        <Text style={styles.footer}>PRIVATE QA · AAL2 STAFF PUBLISHING · PROTECTED SERVICE COMPLETION · NO CALENDAR ACTIONS</Text>
       </ScrollView>
     </SafeAreaView>
   );

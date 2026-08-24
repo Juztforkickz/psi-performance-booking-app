@@ -6,6 +6,7 @@ import type {
   InvoiceRow,
   RecommendedWorkRow,
   RepairRecordRow,
+  ServiceCompletionRow,
 } from '@/lib/database.types';
 import { getSupabaseClient } from '@/lib/supabase';
 
@@ -63,6 +64,44 @@ export type InvoicePublishInput = VehicleTarget & {
   invoiceNumber: string;
   summary: string;
 };
+
+export type ServiceCompletionPublishInput = VehicleTarget & {
+  bookingId: string;
+  completedDate: string;
+  nextCheckInDate: string;
+  nextCheckInOdometerKm: string;
+  odometerKm: string;
+  summary: string;
+};
+
+export async function completePsiService(input: ServiceCompletionPublishInput): Promise<ServiceCompletionRow> {
+  const actorId = await requireAal2StaffActor();
+  const completedDate = requiredDate(input.completedDate, 'SERVICE_DATE_INVALID');
+  const nextCheckInDate = input.nextCheckInDate.trim()
+    ? requiredDate(input.nextCheckInDate, 'NEXT_CHECK_IN_DATE_INVALID')
+    : null;
+  const odometerKm = optionalWholeNumber(input.odometerKm, 'ODOMETER_INVALID');
+  const nextCheckInOdometerKm = optionalWholeNumber(input.nextCheckInOdometerKm, 'NEXT_CHECK_IN_ODOMETER_INVALID');
+  if (nextCheckInDate && nextCheckInDate < completedDate) throw new Error('NEXT_CHECK_IN_DATE_BEFORE_SERVICE');
+  if (odometerKm !== null && nextCheckInOdometerKm !== null && nextCheckInOdometerKm < odometerKm) {
+    throw new Error('NEXT_CHECK_IN_ODOMETER_BELOW_SERVICE');
+  }
+
+  const payload: Database['public']['Tables']['service_completions']['Insert'] = {
+    booking_request_id: input.bookingId,
+    completed_at: `${completedDate}T00:00:00+10:00`,
+    created_by: actorId,
+    customer_id: input.customerId,
+    next_check_in_date: nextCheckInDate,
+    next_check_in_odometer_km: nextCheckInOdometerKm,
+    odometer_km: odometerKm,
+    summary: requiredText(input.summary, 'SERVICE_SUMMARY_REQUIRED'),
+    vehicle_id: input.vehicleId,
+  };
+  const { data, error } = await getSupabaseClient().from('service_completions').insert(payload).select('*').single();
+  if (error) throw error;
+  return data;
+}
 
 export async function publishPsiRepair(input: RepairPublishInput): Promise<RepairRecordRow> {
   const actorId = await requireAal2StaffActor();

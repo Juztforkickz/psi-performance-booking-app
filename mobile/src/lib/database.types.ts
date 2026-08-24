@@ -322,6 +322,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      service_completions: {
+        Row: {
+          booking_request_id: string;
+          completed_at: string;
+          created_at: string;
+          created_by: string;
+          customer_id: string;
+          id: string;
+          next_check_in_date: string | null;
+          next_check_in_odometer_km: number | null;
+          odometer_km: number | null;
+          summary: string;
+          vehicle_id: string;
+        };
+        Insert: {
+          booking_request_id: string;
+          completed_at?: string;
+          created_at?: string;
+          created_by: string;
+          customer_id: string;
+          id?: string;
+          next_check_in_date?: string | null;
+          next_check_in_odometer_km?: number | null;
+          odometer_km?: number | null;
+          summary: string;
+          vehicle_id: string;
+        };
+        Update: Record<never, never>;
+        Relationships: [];
+      };
       staff_members: {
         Row: {
           activated_at: string | null;
@@ -433,6 +463,7 @@ export type InvoiceRow = Database['public']['Tables']['invoices']['Row'];
 export type OdometerReadingRow = Database['public']['Tables']['odometer_readings']['Row'];
 export type RecommendedWorkRow = Database['public']['Tables']['recommended_work']['Row'];
 export type RepairRecordRow = Database['public']['Tables']['repair_records']['Row'];
+export type ServiceCompletionRow = Database['public']['Tables']['service_completions']['Row'];
 export type StaffMemberRow = Database['public']['Tables']['staff_members']['Row'];
 export type VehicleFileRow = Database['public']['Tables']['vehicle_files']['Row'];
 export type VehicleServiceSummaryRow = Database['public']['Views']['vehicle_service_summary']['Row'];

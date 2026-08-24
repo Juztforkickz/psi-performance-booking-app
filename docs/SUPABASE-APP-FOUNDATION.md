@@ -215,6 +215,15 @@ requires an explicit customer/vehicle confirmation and rechecks both AAL2 and
 active staff status immediately before writing. The public build renders only an
 unavailable notice.
 
+Confirmed service bookings now expose a separate protected Complete Service
+action. Staff must recheck the locked customer and vehicle, completed date,
+odometer, work summary and optional next PSI check-in before explicitly
+confirming. The client inserts one `service_completions` row only after an AAL2
+staff recheck; database triggers take the booking ownership as authority, close
+the booking, project the immutable PSI repair and odometer history, and update
+the RLS-scoped service summary. Customers cannot invoke this path or rewrite the
+projected PSI record.
+
 Optional dyno-graph and invoice images are limited to JPG, PNG or WebP under
 6 MB for the first reliable standard-upload workflow. They use a unique object
 path beginning with the owning customer's UUID inside the private
@@ -230,9 +239,11 @@ The publishing policies require `record_source = 'psi_record'` or
 `'psi_verified'`, verify that vehicle ownership matches the selected customer,
 and reject cross-customer attachment paths. The rollback-only acceptance test
 proves AAL1 denial, AAL2 staff publishing, customer visibility and unrelated-
-customer isolation. Record editing/removal, PDF selection, Complete Service,
-Calendar actions and staff management remain disabled pending separate review
-and acceptance tests.
+customer isolation. The expanded rollback test also proves customer and AAL1
+completion denial, the AAL2 Complete Service projection, immutable linked
+history and unrelated-customer isolation. General record editing/removal, PDF
+selection, Calendar actions and staff management remain disabled pending
+separate review and acceptance tests.
 
 The private route now includes the TOTP step-up flow needed to reach AAL2.
 Active allowlisted staff without a verified factor can create one in Supabase,
