@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   isValidBookingEmail,
@@ -1003,7 +1004,8 @@ export function BookingFlow() {
         </p>
       </div>
 
-      <div className="booking-workspace">
+      <div className="booking-and-app-layout">
+        <div className="booking-workspace">
         <div className="booking-demo-notice" role="status">
           <strong>{PUBLIC_DEMO_CONFIG.label}</strong>
           <span>{PUBLIC_DEMO_CONFIG.notice}</span>
@@ -1365,9 +1367,62 @@ export function BookingFlow() {
             )}
           </div>
           {step === 4 && <p className="secure-checkout-note">This public demo does not submit details, send email, charge a payment or create a Google Calendar event.</p>}
-        </form>
+          </form>
+        </div>
+
+        <AppDownloadPromo />
       </div>
     </section>
+  );
+}
+
+function AppDownloadPromo() {
+  return (
+    <aside className="app-download-promo" aria-labelledby="app-download-heading">
+      <div className="app-promo-copy">
+        <p className="app-promo-kicker">The PSI app · Coming soon</p>
+        <h3 id="app-download-heading">Your garage.<br />Always with you.</h3>
+        <p>
+          Save your vehicles, request future bookings faster and keep your PSI
+          customer history together in one secure portal.
+        </p>
+      </div>
+
+      <div className="app-phone-preview" aria-label="Preview of the PSI Performance mobile app">
+        <div className="app-phone-speaker" aria-hidden="true" />
+        <div className="app-phone-header">
+          <Image src="/psi-app-icon.png" alt="" width={42} height={42} />
+          <div>
+            <span>PSI Performance</span>
+            <strong>Good afternoon</strong>
+          </div>
+        </div>
+        <div className="app-phone-vehicle">
+          <span>MY GARAGE</span>
+          <strong>2017 Holden GTSR</strong>
+          <small>Bookings · History · Reports</small>
+        </div>
+        <div className="app-phone-actions" aria-hidden="true">
+          <span>Book</span><span>Garage</span><span>Reports</span>
+        </div>
+      </div>
+
+      <ul className="app-benefit-list">
+        <li><span>01</span>Save your vehicle details</li>
+        <li><span>02</span>Book faster on your next visit</li>
+        <li><span>03</span>Access history and vehicle reports</li>
+      </ul>
+
+      <div className="app-store-preview" aria-label="Planned app download options">
+        <span><small>COMING TO</small>App Store</span>
+        <span><small>COMING TO</small>Google Play</span>
+      </div>
+
+      <a className="app-portal-preview-link" href="/account#profile">
+        Explore the customer portal preview <span aria-hidden="true">→</span>
+      </a>
+      <p className="app-no-install-note">No app or account required. Continue booking online beside this panel.</p>
+    </aside>
   );
 }
 

@@ -72,7 +72,7 @@ export default function Home() {
             <a href="/account">Account preview</a>
           </nav>
           <a className="header-booking-cta" href="#booking-panel">
-            Book your car <span aria-hidden="true">↓</span>
+            Book an appointment <span aria-hidden="true">↓</span>
           </a>
           <a className="header-call" href="tel:+61433431781">
             <span>Talk to the workshop</span>

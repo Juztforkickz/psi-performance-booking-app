@@ -997,6 +997,242 @@ div {
   background: #050505;
 }
 
+.booking-and-app-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(310px, 0.34fr);
+  gap: clamp(18px, 2.4vw, 38px);
+  align-items: start;
+}
+
+.app-download-promo {
+  position: sticky;
+  top: 22px;
+  min-width: 0;
+  display: grid;
+  gap: 24px;
+  padding: clamp(24px, 3vw, 38px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-top: 3px solid #fff;
+  border-radius: var(--radius);
+  background: linear-gradient(155deg, #151515 0%, #050505 68%);
+  overflow: hidden;
+}
+
+.app-download-promo::after {
+  position: absolute;
+  right: -90px;
+  bottom: -90px;
+  width: 230px;
+  height: 230px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.app-promo-copy,
+.app-benefit-list,
+.app-store-preview,
+.app-portal-preview-link,
+.app-no-install-note,
+.app-phone-preview {
+  position: relative;
+  z-index: 1;
+}
+
+.app-promo-kicker {
+  margin: 0 0 13px;
+  color: #c8c8c8;
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.app-promo-copy h3 {
+  margin: 0;
+  font-size: clamp(1.25rem, 1.8vw, 2rem);
+  letter-spacing: -0.045em;
+  line-height: 1.03;
+}
+
+.app-promo-copy > p:last-child {
+  margin: 15px 0 0;
+  color: #a7a7a3;
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.app-phone-preview {
+  width: min(250px, 86%);
+  justify-self: center;
+  padding: 14px 13px 16px;
+  border: 2px solid #d5d5d5;
+  border-radius: 28px;
+  background: #f1eee7;
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.48);
+  color: #050505;
+}
+
+.app-phone-speaker {
+  width: 58px;
+  height: 5px;
+  margin: 0 auto 15px;
+  border-radius: 999px;
+  background: #111;
+}
+
+.app-phone-header {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.app-phone-header img {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+}
+
+.app-phone-header span,
+.app-phone-header strong {
+  display: block;
+}
+
+.app-phone-header span {
+  font-size: 0.54rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.app-phone-header strong {
+  margin-top: 4px;
+  font-size: 0.66rem;
+}
+
+.app-phone-vehicle {
+  display: grid;
+  gap: 7px;
+  margin-top: 16px;
+  padding: 17px;
+  border-radius: 13px;
+  background: #070707;
+  color: #fff;
+}
+
+.app-phone-vehicle span {
+  color: #aaa;
+  font-size: 0.48rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.app-phone-vehicle strong {
+  font-size: 0.72rem;
+}
+
+.app-phone-vehicle small {
+  color: #9b9b9b;
+  font-size: 0.52rem;
+}
+
+.app-phone-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.app-phone-actions span {
+  padding: 9px 3px;
+  border: 1px solid #cbc7be;
+  border-radius: 7px;
+  font-size: 0.47rem;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.app-benefit-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app-benefit-list li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  color: #d7d7d4;
+  font-size: 0.7rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.app-benefit-list span {
+  color: #868682;
+  font-size: 0.57rem;
+  font-weight: 900;
+}
+
+.app-store-preview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.app-store-preview > span {
+  min-height: 54px;
+  display: grid;
+  align-content: center;
+  padding: 9px 11px;
+  border: 1px solid #d8d8d8;
+  border-radius: 5px;
+  background: #fff;
+  color: #050505;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.app-store-preview small {
+  display: block;
+  margin-bottom: 3px;
+  color: #555;
+  font-size: 0.46rem;
+  letter-spacing: 0.09em;
+}
+
+.app-portal-preview-link {
+  width: fit-content;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #fff;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.app-portal-preview-link:hover,
+.app-portal-preview-link:focus-visible {
+  border-color: #aaa;
+  color: #d4d4d4;
+}
+
+.app-no-install-note {
+  margin: 0;
+  color: #80807c;
+  font-size: 0.64rem;
+  line-height: 1.55;
+}
+
 .booking-demo-notice {
   grid-column: 1 / -1;
   display: grid;
@@ -2927,6 +3163,31 @@ div {
   font-size: 0.9rem;
 }
 
+@media (max-width: 1280px) {
+  .booking-and-app-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .app-download-promo {
+    position: relative;
+    top: auto;
+    grid-template-columns: minmax(0, 1fr) minmax(190px, 0.42fr);
+    align-items: center;
+  }
+
+  .app-phone-preview {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+
+  .app-benefit-list,
+  .app-store-preview,
+  .app-portal-preview-link,
+  .app-no-install-note {
+    grid-column: 1;
+  }
+}
+
 @media (max-width: 1100px) {
   .tuning-card-fields-three {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3126,6 +3387,25 @@ div {
 }
 
 @media (max-width: 760px) {
+  .app-download-promo {
+    grid-template-columns: 1fr;
+    gap: 21px;
+    padding: 24px 20px;
+  }
+
+  .app-phone-preview,
+  .app-benefit-list,
+  .app-store-preview,
+  .app-portal-preview-link,
+  .app-no-install-note {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .app-phone-preview {
+    width: min(240px, 82%);
+  }
+
   .hero-shell {
     min-height: 100svh;
     padding-top: max(20px, env(safe-area-inset-top));
