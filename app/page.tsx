@@ -6,7 +6,7 @@ import { PUBLIC_DEMO_CONFIG } from "./lib/public-demo";
 export const metadata: Metadata = {
   title: "PSI Performance Garage | Booking preview",
   description:
-    "Preview the PSI Performance Garage home-page booking experience for servicing and dyno tuning enquiries.",
+    "Preview PSI Performance Garage service, dyno tuning and project planning enquiries.",
 };
 
 export default function Home() {

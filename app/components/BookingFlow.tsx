@@ -13,6 +13,7 @@ import {
   BOOKING_POLICY_VERSION,
 } from "../api/v1/booking-catalog/catalog";
 import { PUBLIC_DEMO_CONFIG } from "../lib/public-demo";
+import { PlanBuilderEnquiry } from "./PlanBuilderEnquiry";
 
 type BookingType = "service" | "dyno";
 type AppointmentMode = "specific" | "flexible";
@@ -1058,7 +1059,7 @@ export function BookingFlow() {
                 <div className="booking-choice-required" id="bookingType" tabIndex={-1}>
                   <div>
                     <p className="booking-choice-kicker">What are you booking in for?</p>
-                    <strong>Select Service or Dyno Tuning to begin.</strong>
+                    <strong>Select Service, Dyno Tuning or Plan Builder to begin.</strong>
                   </div>
                   <div className="type-grid" role="group" aria-label="Booking type">
                     {(["service", "dyno"] as const).map((bookingType, index) => {
@@ -1077,6 +1078,11 @@ export function BookingFlow() {
                         </button>
                       );
                     })}
+                    <a className="type-card plan-builder-choice" href="#plan-builder" aria-label="Plan Builder. Create a project enquiry for PSI.">
+                      <strong>Plan Builder</strong>
+                      <small>Shape a complete project brief across measured stages with PSI.</small>
+                      <span className="type-index" aria-hidden="true">03</span>
+                    </a>
                   </div>
                   <a className="booking-parts-link" href="/parts">Looking for parts instead? View PSI parts <span aria-hidden="true">→</span></a>
                   {errors.bookingType && <p className="field-error" id="bookingType-error" role="alert">{errors.bookingType}</p>}
@@ -1279,7 +1285,6 @@ export function BookingFlow() {
                   <p className="deposit-kicker">Request summary</p>
                   <dl>
                     <div><dt>Job</dt><dd>{selectedType?.label}</dd></div>
-                    <div><dt>Price guide</dt><dd>{selectedType?.price}</dd></div>
                     <div><dt>Customer</dt><dd>{form.firstName} {form.lastName}</dd></div>
                     <div><dt>Vehicle</dt><dd>{form.vehicleYear} {form.vehicleMake} {form.vehicleModel}<br />{form.registration}</dd></div>
                     <div><dt>Date preference</dt><dd>{displayDate(form.preferredDate, form.appointmentMode)}</dd></div>
@@ -1355,6 +1360,8 @@ export function BookingFlow() {
 
         <AppDownloadPromo />
       </div>
+
+      <PlanBuilderEnquiry />
     </section>
   );
 }

@@ -5399,6 +5399,317 @@ div {
   box-shadow: 0 0 0 3px rgba(101, 207, 248, 0.16);
 }
 
+/* Website Version 3 · Plan Builder */
+.website-home-preview .booking-choice-required .type-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.plan-builder-choice {
+  text-decoration: none;
+}
+
+.plan-builder-section {
+  width: min(var(--content-max), 100%);
+  margin: clamp(68px, 9vw, 128px) auto 0;
+  padding-top: clamp(54px, 7vw, 92px);
+  border-top: 1px solid rgba(101, 207, 248, 0.34);
+  scroll-margin-top: 24px;
+}
+
+.plan-builder-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
+  align-items: end;
+  gap: clamp(36px, 7vw, 110px);
+  margin-bottom: clamp(38px, 6vw, 74px);
+}
+
+.plan-builder-heading h2 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(2rem, 4.2vw, 4.6rem);
+  letter-spacing: -0.052em;
+  line-height: 0.98;
+  text-transform: uppercase;
+}
+
+.plan-builder-heading > p {
+  margin: 0;
+  color: #aeb5b8;
+  font-size: 0.9rem;
+  line-height: 1.72;
+}
+
+.plan-builder-form {
+  display: grid;
+  gap: 18px;
+}
+
+.plan-builder-step {
+  display: grid;
+  gap: clamp(28px, 4vw, 46px);
+  padding: clamp(24px, 4vw, 46px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius);
+  background: linear-gradient(145deg, #090b0c 0%, #030303 100%);
+}
+
+.plan-builder-step-heading {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.plan-builder-step-heading > span {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(101, 207, 248, 0.74);
+  border-radius: var(--radius);
+  background: rgba(101, 207, 248, 0.1);
+  color: var(--digital-accent);
+  font-size: 0.67rem;
+  font-weight: 900;
+}
+
+.plan-builder-step-heading h3 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.2rem, 2vw, 1.85rem);
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+}
+
+.plan-builder-step-heading p {
+  max-width: 740px;
+  margin: 8px 0 0;
+  color: #969da0;
+  font-size: 0.78rem;
+  line-height: 1.62;
+}
+
+.plan-builder-field-grid,
+.plan-builder-shape-grid,
+.plan-builder-notes-grid,
+.plan-area-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.plan-builder-field {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 9px;
+}
+
+.plan-builder-field > span {
+  color: #d7dadd;
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.plan-builder-field input,
+.plan-builder-field select,
+.plan-builder-field textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 50px;
+  padding: 13px 14px;
+  border: 1px solid #464b4e;
+  border-radius: var(--radius);
+  background: #050505;
+  color: #fff;
+  font: inherit;
+  font-size: 0.84rem;
+}
+
+.plan-builder-field textarea {
+  min-height: 124px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.plan-builder-field input:focus,
+.plan-builder-field select:focus,
+.plan-builder-field textarea:focus {
+  border-color: var(--digital-accent);
+  box-shadow: 0 0 0 3px rgba(101, 207, 248, 0.15);
+  outline: 0;
+}
+
+.plan-area-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.plan-area-grid:focus-visible {
+  outline: 3px solid rgba(101, 207, 248, 0.28);
+  outline-offset: 5px;
+}
+
+.plan-area-card {
+  position: relative;
+  min-height: 164px;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  align-content: start;
+  gap: 8px;
+  padding: 20px;
+  border: 1px solid #34383a;
+  border-radius: var(--radius);
+  background: #050505;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.plan-area-card:hover,
+.plan-area-card:focus-visible,
+.plan-area-card.selected {
+  border-color: var(--digital-accent);
+  outline: 0;
+}
+
+.plan-area-card.selected {
+  background: linear-gradient(145deg, rgba(101, 207, 248, 0.16), rgba(101, 207, 248, 0.035));
+  box-shadow: inset 0 3px 0 var(--digital-accent);
+}
+
+.plan-area-card > span {
+  color: var(--digital-accent);
+  font-size: 0.58rem;
+  font-weight: 900;
+}
+
+.plan-area-card strong {
+  padding-right: 24px;
+  font-family: "Ethnocentric", Impact, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 400;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.plan-area-card small {
+  color: #90979a;
+  font-size: 0.69rem;
+  line-height: 1.52;
+}
+
+.plan-area-card b {
+  position: absolute;
+  top: 17px;
+  right: 18px;
+  color: var(--digital-accent);
+  font-size: 1rem;
+}
+
+.plan-area-details {
+  padding-top: 8px;
+}
+
+.plan-area-detail {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(101, 207, 248, 0.26);
+  border-radius: var(--radius);
+  background: rgba(101, 207, 248, 0.035);
+}
+
+.plan-builder-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: clamp(24px, 5vw, 70px);
+  padding: clamp(26px, 4vw, 48px);
+  border: 1px solid rgba(101, 207, 248, 0.72);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #0d1b22 0%, #050708 72%);
+  box-shadow: 0 0 40px rgba(101, 207, 248, 0.09);
+}
+
+.plan-builder-action h3 {
+  margin: 0;
+  color: #fff;
+  font-size: clamp(1.25rem, 2.4vw, 2.25rem);
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+}
+
+.plan-builder-action p:last-child {
+  max-width: 760px;
+  margin: 10px 0 0;
+  color: #aeb5b8;
+  font-size: 0.78rem;
+  line-height: 1.65;
+}
+
+.plan-builder-action .button {
+  min-width: 220px;
+  white-space: nowrap;
+}
+
+.plan-builder-error {
+  margin: 0;
+  padding: 15px 18px;
+  border-left: 3px solid #ff8f8f;
+  background: rgba(255, 89, 89, 0.08);
+  color: #ffd1d1;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 1120px) {
+  .plan-area-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .website-home-preview .booking-choice-required .type-grid,
+  .plan-builder-heading,
+  .plan-builder-field-grid,
+  .plan-builder-shape-grid,
+  .plan-builder-notes-grid,
+  .plan-area-details,
+  .plan-builder-action {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-area-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .plan-area-card {
+    min-height: 150px;
+    padding: 17px;
+  }
+
+  .plan-builder-action .button {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .plan-area-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-area-card {
+    min-height: 124px;
+  }
+}
+
 .website-app-promo {
   --app-accent: #65cff8;
   width: min(1380px, calc(100% - 44px));
