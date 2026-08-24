@@ -15,7 +15,7 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { CUSTOMER_PREVIEW, type PreviewAlert } from '@/lib/customer-preview';
 import { ThemePreference, useThemePreference } from '@/lib/theme-preference';
 
-const THEME_PREFERENCES: ReadonlyArray<{ value: ThemePreference; label: string }> = [
+const THEME_PREFERENCES: readonly { value: ThemePreference; label: string }[] = [
   { value: 'dark', label: 'Dark' },
   { value: 'bright', label: 'Bright' },
   { value: 'automatic', label: 'Automatic' },
