@@ -11,7 +11,8 @@ begin
   if has_table_privilege('anon', 'public.customer_profiles', 'select')
     or has_table_privilege('anon', 'public.customer_vehicles', 'select')
     or has_table_privilege('anon', 'public.booking_requests', 'insert')
-    or has_table_privilege('anon', 'public.invoices', 'select') then
+    or has_table_privilege('anon', 'public.invoices', 'select')
+    or has_table_privilege('anon', 'public.vehicle_files', 'select') then
     raise exception 'RLS test failed: anon has a business-table privilege';
   end if;
 
@@ -190,6 +191,55 @@ begin
     '11111111-1111-4111-8111-111111111111'
   ) returning id into own_dyno_id;
 
+  insert into public.vehicle_files (
+    customer_id,
+    vehicle_id,
+    file_kind,
+    record_source,
+    bucket_id,
+    object_path,
+    mime_type,
+    file_size_bytes,
+    created_by
+  ) values (
+    '11111111-1111-4111-8111-111111111111',
+    'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    'vehicle_photo',
+    'customer_entry',
+    'vehicle-photos',
+    '11111111-1111-4111-8111-111111111111/vehicles/rls-customer-a.jpg',
+    'image/jpeg',
+    1024,
+    '11111111-1111-4111-8111-111111111111'
+  );
+
+  begin
+    insert into public.vehicle_files (
+      customer_id,
+      vehicle_id,
+      file_kind,
+      record_source,
+      bucket_id,
+      object_path,
+      mime_type,
+      file_size_bytes,
+      created_by
+    ) values (
+      '11111111-1111-4111-8111-111111111111',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      'vehicle_photo',
+      'customer_entry',
+      'vehicle-photos',
+      '22222222-2222-4222-8222-222222222222/vehicles/forbidden.jpg',
+      'image/jpeg',
+      1024,
+      '11111111-1111-4111-8111-111111111111'
+    );
+    raise exception 'RLS test failed: customer created file metadata outside own folder';
+  exception
+    when insufficient_privilege then null;
+  end;
+
   begin
     update public.dyno_records
     set record_source = 'psi_verified'
@@ -289,6 +339,10 @@ begin
 
   if (select count(*) from public.dyno_records) <> 0 then
     raise exception 'RLS test failed: customer B can see customer A dyno data';
+  end if;
+
+  if (select count(*) from public.vehicle_files) <> 0 then
+    raise exception 'RLS test failed: customer B can see customer A private file metadata';
   end if;
 
   if (select count(*) from public.audit_events where customer_id = '11111111-1111-4111-8111-111111111111') <> 0 then

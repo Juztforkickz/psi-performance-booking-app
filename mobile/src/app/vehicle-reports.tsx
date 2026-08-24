@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -23,6 +24,7 @@ import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
+import { getSupabaseClient } from '@/lib/supabase';
 import {
   getAccountDynoRecords,
   getAccountFutureRepairs,
@@ -45,6 +47,7 @@ import {
   type InvoiceRecord,
   type PreviewAttachment,
   type RepairRecord,
+  type SecureVehicleAttachment,
 } from '@/lib/vehicle-reports-preview';
 
 type DynoDraft = {
@@ -208,7 +211,9 @@ function VehicleReportsContent({
   const [openForm, setOpenForm] = useState<'dyno' | 'future' | 'invoice' | 'repair' | null>(null);
   const [formError, setFormError] = useState('');
   const [attachmentError, setAttachmentError] = useState('');
-  const [viewingAttachment, setViewingAttachment] = useState<{ title: string; uri: string } | null>(null);
+  const [secureAttachmentError, setSecureAttachmentError] = useState('');
+  const [loadingSecureAttachmentId, setLoadingSecureAttachmentId] = useState<string | null>(null);
+  const [viewingAttachment, setViewingAttachment] = useState<{ notice?: string; title: string; uri: string } | null>(null);
   const ownedAttachmentsRef = useRef(new Map<string, PreviewAttachment>());
 
   useEffect(() => () => {
@@ -238,6 +243,7 @@ function VehicleReportsContent({
     setOpenForm(null);
     setFormError('');
     setAttachmentError('');
+    setSecureAttachmentError('');
     if (secureVehicles) setSecureSelectedVehicleId(vehicleId);
     else selectVehicle(vehicleId);
   };
@@ -269,6 +275,40 @@ function VehicleReportsContent({
       onChange(attachment);
     } catch {
       setAttachmentError('The image picker could not be opened. Please try again.');
+    }
+  };
+
+  const openSecureAttachment = async (attachment: SecureVehicleAttachment, title: string) => {
+    if (!secureAccount || loadingSecureAttachmentId) return;
+    setSecureAttachmentError('');
+    setLoadingSecureAttachmentId(attachment.id);
+    try {
+      if (!attachment.objectPath.startsWith(`${secureAccount.user.id}/`)) {
+        throw new Error('PRIVATE_ATTACHMENT_PATH_MISMATCH');
+      }
+      if (!attachment.mimeType.startsWith('image/') && attachment.mimeType !== 'application/pdf') {
+        throw new Error('PRIVATE_ATTACHMENT_TYPE_UNSUPPORTED');
+      }
+      const { data, error: signedUrlError } = await getSupabaseClient()
+        .storage
+        .from(attachment.bucketId)
+        .createSignedUrl(attachment.objectPath, 60);
+      if (signedUrlError || !data?.signedUrl) throw signedUrlError ?? new Error('PRIVATE_ATTACHMENT_UNAVAILABLE');
+
+      if (attachment.mimeType === 'application/pdf') {
+        await Linking.openURL(data.signedUrl);
+        return;
+      }
+
+      setViewingAttachment({
+        notice: 'Private account attachment · read-only link expires after 60 seconds',
+        title,
+        uri: data.signedUrl,
+      });
+    } catch {
+      setSecureAttachmentError('This private attachment could not be opened. Your session may have expired, or PSI may need to repair the file record.');
+    } finally {
+      setLoadingSecureAttachmentId(null);
     }
   };
 
@@ -411,9 +451,10 @@ function VehicleReportsContent({
         </View>
 
         <View accessibilityRole="alert" style={styles.previewNotice}>
-          <Text style={styles.previewNoticeTitle}>{accountConnected ? 'Authenticated records · attachments disabled' : 'Stage 1 · preview data only'}</Text>
-          <Text style={styles.previewNoticeCopy}>{accountConnected ? 'The records below load from your private account through customer-scoped access controls. Any item or image you add on this screen remains a local preview and is not uploaded or saved.' : 'Synthetic PSI-style examples and anything you add stay only in this open preview. Nothing is uploaded, sent to PSI, connected to an account or permanently saved.'}</Text>
+          <Text style={styles.previewNoticeTitle}>{accountConnected ? 'Authenticated records · private read-only attachments' : 'Stage 1 · preview data only'}</Text>
+          <Text style={styles.previewNoticeCopy}>{accountConnected ? 'The records below load from your private account through customer-scoped access controls. PSI invoice images, PDFs and dyno graphs can open through short-lived links when attached. Anything you add on this screen remains a local preview and is not uploaded or saved.' : 'Synthetic PSI-style examples and anything you add stay only in this open preview. Nothing is uploaded, sent to PSI, connected to an account or permanently saved.'}</Text>
         </View>
+        <FormError message={secureAttachmentError} />
 
         <SectionHeading meta={`${vehicles.length} vehicles`} title="Vehicle selector" />
         <ScrollView accessibilityRole="radiogroup" contentContainerStyle={styles.vehicleSelector} horizontal showsHorizontalScrollIndicator={false}>
@@ -478,7 +519,7 @@ function VehicleReportsContent({
               <View style={styles.formActions}><PrimaryButton label="Add Local Preview Record" onPress={addDynoRecord} /><PrimaryButton label="Cancel" onPress={cancelDyno} variant="outline" /></View>
             </View>
           ) : null}
-          {dynoRecords.length ? dynoRecords.map((record) => <DynoCard key={record.id} record={record} onView={() => record.graphImage && setViewingAttachment({ title: 'Dyno graph preview', uri: record.graphImage.uri })} />) : <EmptyState accountConnected={accountConnected} message="No dyno records for this vehicle yet." />}
+          {dynoRecords.length ? dynoRecords.map((record) => <DynoCard attachmentLoading={loadingSecureAttachmentId === record.secureAttachment?.id} key={record.id} record={record} onView={() => record.graphImage ? setViewingAttachment({ title: 'Dyno graph preview', uri: record.graphImage.uri }) : record.secureAttachment ? void openSecureAttachment(record.secureAttachment, 'Private dyno graph') : undefined} />) : <EmptyState accountConnected={accountConnected} message="No dyno records for this vehicle yet." />}
         </ReportSection>
 
         <ReportSection
@@ -537,8 +578,8 @@ function VehicleReportsContent({
           onAction={() => startForm('invoice')}
           title="Invoice Vault"
         >
-          <Text style={styles.sectionNotice}>{accountConnected ? 'Private invoice metadata is read-only. Attachment download and upload remain disabled in this QA stage.' : 'Preview only — invoice attachments are not uploaded or saved to your account yet.'}</Text>
-          <Text style={styles.pdfNotice}>{accountConnected ? 'Any image selected through the local preview form remains on this device session only.' : 'PDF support planned for persistent Vehicle Reports. Stage 1 accepts one image only.'}</Text>
+          <Text style={styles.sectionNotice}>{accountConnected ? 'Private invoice metadata and PSI attachments are read-only. Images open inside the app; PDFs open through a short-lived private link. Uploads remain disabled.' : 'Preview only — invoice attachments are not uploaded or saved to your account yet.'}</Text>
+          <Text style={styles.pdfNotice}>{accountConnected ? 'Any image selected through the local preview form remains on this device session only and is never added to the private vault.' : 'PDF support planned for persistent Vehicle Reports. Stage 1 accepts one image only.'}</Text>
           {openForm === 'invoice' ? (
             <View style={styles.formCard}>
               <FormHeading title="Invoice · local preview" />
@@ -563,9 +604,10 @@ function VehicleReportsContent({
           {invoices.length ? invoices.map((record) => (
             <InvoiceCard
               key={record.id}
+              attachmentLoading={loadingSecureAttachmentId === record.secureAttachment?.id}
               onRemove={() => removeInvoiceAttachment(record)}
               onReplace={() => void replaceInvoiceAttachment(record)}
-              onView={() => record.attachment && setViewingAttachment({ title: `${record.invoiceNumber} attachment`, uri: record.attachment.uri })}
+              onView={() => record.attachment ? setViewingAttachment({ title: `${record.invoiceNumber} attachment`, uri: record.attachment.uri }) : record.secureAttachment ? void openSecureAttachment(record.secureAttachment, `${record.invoiceNumber} attachment`) : undefined}
               record={record}
               vehicleLabel={vehicleLabel}
             />
@@ -574,7 +616,7 @@ function VehicleReportsContent({
 
         <View style={styles.footerNotice}>
           <Text style={styles.footerNoticeTitle}>{accountConnected ? 'Private record boundary' : 'Stage 1 boundary'}</Text>
-          <Text style={styles.footerNoticeCopy}>{accountConnected ? 'Account records are read-only on this screen. File storage and uploads remain disabled; local preview entries and selected images disappear when this screen reloads or the app closes.' : 'No account, database, file-storage provider or production API is connected. Local preview entries and images disappear when this screen reloads or the app closes.'}</Text>
+          <Text style={styles.footerNoticeCopy}>{accountConnected ? 'Account records and available PSI attachments are read-only on this screen. Private links expire after 60 seconds. Uploads remain disabled; local preview entries and selected images disappear when this screen reloads or the app closes.' : 'No account, database, file-storage provider or production API is connected. Local preview entries and images disappear when this screen reloads or the app closes.'}</Text>
         </View>
       </ScrollView>
 
@@ -585,7 +627,7 @@ function VehicleReportsContent({
             <Pressable accessibilityLabel="Close attachment preview" accessibilityRole="button" onPress={() => setViewingAttachment(null)} style={({ pressed }) => [styles.modalClose, pressed && styles.pressed]}><Ionicons color={colors.ink} name="close" size={22} /></Pressable>
           </View>
           {viewingAttachment ? <Image accessibilityLabel={viewingAttachment.title} resizeMode="contain" source={{ uri: viewingAttachment.uri }} style={styles.attachmentModalImage} /> : null}
-          <Text style={styles.attachmentModalNotice}>Local image preview only · not uploaded or permanently saved</Text>
+          <Text style={styles.attachmentModalNotice}>{viewingAttachment?.notice ?? 'Local image preview only · not uploaded or permanently saved'}</Text>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -616,7 +658,7 @@ function RecordLabel({ label, local }: { label: string; local: boolean }) {
   return <View style={[styles.recordLabel, local ? styles.recordLabelLocal : styles.recordLabelPsi]}><Text style={[styles.recordLabelText, local && styles.recordLabelTextLocal]}>{label}</Text></View>;
 }
 
-function DynoCard({ onView, record }: { onView: () => void; record: DynoRecord }) {
+function DynoCard({ attachmentLoading, onView, record }: { attachmentLoading: boolean; onView: () => void; record: DynoRecord }) {
   const customerEntry = record.verification !== 'psi_verified';
   const localPreview = record.createdBy === 'customer_preview';
   const label = localPreview
@@ -633,7 +675,7 @@ function DynoCard({ onView, record }: { onView: () => void; record: DynoRecord }
       : record.createdBy === 'psi'
         ? 'Genuine PSI-published result · read-only and PSI-controlled.'
         : 'Synthetic PSI-style example only.';
-  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel label={label} local={customerEntry} /><Text style={styles.recordTitle}>Hub Dyno · {formatDate(record.recordedAt)}</Text></View>{!customerEntry ? <Ionicons color={colors.gold} name="shield-checkmark" size={24} /> : null}</View><View style={styles.resultGrid}><ResultValue label="Peak Power" unit="kW at hubs" value={record.peakPowerKwAtHubs} /><ResultValue label="Peak Torque" unit="Nm at hubs" value={record.peakTorqueNmAtHubs} /></View><View style={styles.recordMetaRow}><RecordMeta label="Fuel" value={record.fuel} /><RecordMeta label="Record control" value={customerEntry ? 'Customer entry · not PSI verified' : 'PSI-controlled · read-only'} /></View>{record.notes ? <Text style={styles.recordDescription}>{record.notes}</Text> : null}{record.graphImage ? <Pressable accessibilityLabel="View dyno graph image" accessibilityRole="button" onPress={onView} style={({ pressed }) => [styles.inlineAction, pressed && styles.pressed]}><Ionicons color={colors.gold} name="image-outline" size={18} /><Text style={styles.inlineActionText}>View dyno graph</Text></Pressable> : <Text style={styles.noAttachment}>{record.createdBy === 'psi' || record.createdBy === 'customer_account' ? 'Graph attachment access is not enabled' : 'No preview graph attached'}</Text>}<Text style={styles.localExpiry}>{footer}</Text></View>;
+  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel label={label} local={customerEntry} /><Text style={styles.recordTitle}>Hub Dyno · {formatDate(record.recordedAt)}</Text></View>{!customerEntry ? <Ionicons color={colors.gold} name="shield-checkmark" size={24} /> : null}</View><View style={styles.resultGrid}><ResultValue label="Peak Power" unit="kW at hubs" value={record.peakPowerKwAtHubs} /><ResultValue label="Peak Torque" unit="Nm at hubs" value={record.peakTorqueNmAtHubs} /></View><View style={styles.recordMetaRow}><RecordMeta label="Fuel" value={record.fuel} /><RecordMeta label="Record control" value={customerEntry ? 'Customer entry · not PSI verified' : 'PSI-controlled · read-only'} /></View>{record.notes ? <Text style={styles.recordDescription}>{record.notes}</Text> : null}{record.graphImage || record.secureAttachment ? <Pressable accessibilityLabel="View dyno graph image" accessibilityRole="button" disabled={attachmentLoading} onPress={onView} style={({ pressed }) => [styles.inlineAction, pressed && styles.pressed]}><Ionicons color={colors.gold} name={attachmentLoading ? "hourglass-outline" : "image-outline"} size={18} /><Text style={styles.inlineActionText}>{attachmentLoading ? 'Opening private graph…' : record.secureAttachment ? 'Open private dyno graph' : 'View dyno graph'}</Text></Pressable> : <Text style={styles.noAttachment}>{record.createdBy === 'psi' || record.createdBy === 'customer_account' ? 'No private graph attached' : 'No preview graph attached'}</Text>}<Text style={styles.localExpiry}>{footer}</Text></View>;
 }
 
 function ResultValue({ label, unit, value }: { label: string; unit: string; value: number | null }) {
@@ -658,12 +700,12 @@ function StatusBadge({ status }: { status: FutureRepairStatus }) {
   return <View style={[styles.statusBadge, styles[`status_${status}`]]}><Text style={styles.statusBadgeText}>{FUTURE_REPAIR_STATUS_LABELS[status]}</Text></View>;
 }
 
-function InvoiceCard({ onRemove, onReplace, onView, record, vehicleLabel }: { onRemove: () => void; onReplace: () => void; onView: () => void; record: InvoiceRecord; vehicleLabel: string }) {
+function InvoiceCard({ attachmentLoading, onRemove, onReplace, onView, record, vehicleLabel }: { attachmentLoading: boolean; onRemove: () => void; onReplace: () => void; onView: () => void; record: InvoiceRecord; vehicleLabel: string }) {
   const local = record.createdBy === 'customer_preview';
   const label = local ? 'LOCAL PREVIEW' : record.createdBy === 'psi' ? 'PSI INVOICE RECORD' : 'PSI RECORD · PREVIEW DATA';
-  const attachmentStatus = record.attachment ? 'IMAGE SELECTED LOCALLY · NOT UPLOADED' : record.attachmentStatus === 'preview_reference_only' ? 'PREVIEW REFERENCE · NO ATTACHMENT FILE' : record.attachmentStatus === 'secure_file_unavailable' ? 'PRIVATE ATTACHMENT ACCESS NOT ENABLED' : 'NO ATTACHMENT';
-  const footer = local ? 'This invoice and image clear on reload or close.' : record.createdBy === 'psi' ? 'PSI invoice metadata · read-only. Private attachment access is not enabled.' : 'Synthetic PSI-style example only. No real invoice is loaded.';
-  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel label={label} local={local} /><Text style={styles.recordTitle}>{record.invoiceNumber}</Text><Text style={styles.invoiceDate}>{formatDate(record.invoiceDate)}</Text></View><Text adjustsFontSizeToFit numberOfLines={1} style={styles.invoiceAmount}>{record.amountAud == null ? '—' : formatCurrency(record.amountAud)}</Text></View><RecordMeta label="Vehicle" value={vehicleLabel} /><Text style={styles.recordDescription}>{record.summary}</Text><Text style={styles.attachmentStatus}>{attachmentStatus}</Text>{record.attachment ? <View style={styles.attachmentActions}><SmallAction icon="eye-outline" label="View attachment" onPress={onView} /><SmallAction icon="refresh-outline" label="Replace" onPress={onReplace} /><SmallAction icon="trash-outline" label="Remove" onPress={onRemove} /></View> : local ? <SmallAction icon="image-outline" label="Choose image" onPress={onReplace} /> : null}<Text style={styles.localExpiry}>{footer}</Text></View>;
+  const attachmentStatus = record.attachment ? 'IMAGE SELECTED LOCALLY · NOT UPLOADED' : record.attachmentStatus === 'preview_reference_only' ? 'PREVIEW REFERENCE · NO ATTACHMENT FILE' : record.attachmentStatus === 'secure_attachment_available' ? 'PRIVATE PSI ATTACHMENT · READ ONLY' : record.attachmentStatus === 'secure_file_unavailable' ? 'NO PRIVATE ATTACHMENT AVAILABLE' : 'NO ATTACHMENT';
+  const footer = local ? 'This invoice and image clear on reload or close.' : record.createdBy === 'psi' ? record.secureAttachment ? 'PSI invoice metadata and attachment · read-only to the customer.' : 'PSI invoice metadata · read-only. No private file is attached.' : 'Synthetic PSI-style example only. No real invoice is loaded.';
+  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel label={label} local={local} /><Text style={styles.recordTitle}>{record.invoiceNumber}</Text><Text style={styles.invoiceDate}>{formatDate(record.invoiceDate)}</Text></View><Text adjustsFontSizeToFit numberOfLines={1} style={styles.invoiceAmount}>{record.amountAud == null ? '—' : formatCurrency(record.amountAud)}</Text></View><RecordMeta label="Vehicle" value={vehicleLabel} /><Text style={styles.recordDescription}>{record.summary}</Text><Text style={styles.attachmentStatus}>{attachmentStatus}</Text>{record.attachment ? <View style={styles.attachmentActions}><SmallAction icon="eye-outline" label="View attachment" onPress={onView} /><SmallAction icon="refresh-outline" label="Replace" onPress={onReplace} /><SmallAction icon="trash-outline" label="Remove" onPress={onRemove} /></View> : record.secureAttachment ? <SmallAction icon={attachmentLoading ? "hourglass-outline" : record.secureAttachment.mimeType === 'application/pdf' ? "document-text-outline" : "eye-outline"} label={attachmentLoading ? 'Opening private attachment…' : record.secureAttachment.mimeType === 'application/pdf' ? 'Open private PDF' : 'View private attachment'} onPress={onView} /> : local ? <SmallAction icon="image-outline" label="Choose image" onPress={onReplace} /> : null}<Text style={styles.localExpiry}>{footer}</Text></View>;
 }
 
 function RecordMeta({ label, value }: { label: string; value: string }) {

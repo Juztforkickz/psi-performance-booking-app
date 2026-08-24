@@ -5,6 +5,7 @@ import type {
   InvoiceRow,
   RecommendedWorkRow,
   RepairRecordRow,
+  VehicleFileRow,
 } from '@/lib/database.types';
 import { getSupabaseClient } from '@/lib/supabase';
 import type {
@@ -12,6 +13,7 @@ import type {
   FutureRepair,
   InvoiceRecord,
   RepairRecord,
+  SecureVehicleAttachment,
 } from '@/lib/vehicle-reports-preview';
 
 export type CustomerVehicleReportsSnapshot = {
@@ -19,6 +21,7 @@ export type CustomerVehicleReportsSnapshot = {
   invoices: InvoiceRow[];
   recommendedWork: RecommendedWorkRow[];
   repairRecords: RepairRecordRow[];
+  vehicleFiles: VehicleFileRow[];
 };
 
 export async function loadCustomerVehicleReports(): Promise<CustomerVehicleReportsSnapshot> {
@@ -27,23 +30,26 @@ export async function loadCustomerVehicleReports(): Promise<CustomerVehicleRepor
   const user = authData.user;
   if (authError || !user?.email) throw authError ?? new Error('CUSTOMER_SESSION_REQUIRED');
 
-  const [dynoRecordsResult, repairRecordsResult, recommendedWorkResult, invoicesResult] = await Promise.all([
+  const [dynoRecordsResult, repairRecordsResult, recommendedWorkResult, invoicesResult, vehicleFilesResult] = await Promise.all([
     supabase.from('dyno_records').select('*').eq('customer_id', user.id).is('archived_at', null).order('tested_at', { ascending: false }),
     supabase.from('repair_records').select('*').eq('customer_id', user.id).is('archived_at', null).order('repair_date', { ascending: false }),
     supabase.from('recommended_work').select('*').eq('customer_id', user.id).is('archived_at', null).order('created_at', { ascending: false }),
     supabase.from('invoices').select('*').eq('customer_id', user.id).is('archived_at', null).order('invoice_date', { ascending: false }),
+    supabase.from('vehicle_files').select('*').eq('customer_id', user.id).is('archived_at', null).order('created_at', { ascending: false }),
   ]);
 
   if (dynoRecordsResult.error) throw dynoRecordsResult.error;
   if (repairRecordsResult.error) throw repairRecordsResult.error;
   if (recommendedWorkResult.error) throw recommendedWorkResult.error;
   if (invoicesResult.error) throw invoicesResult.error;
+  if (vehicleFilesResult.error) throw vehicleFilesResult.error;
 
   return {
     dynoRecords: dynoRecordsResult.data ?? [],
     invoices: invoicesResult.data ?? [],
     recommendedWork: recommendedWorkResult.data ?? [],
     repairRecords: repairRecordsResult.data ?? [],
+    vehicleFiles: vehicleFilesResult.data ?? [],
   };
 }
 
@@ -77,6 +83,7 @@ export function getAccountDynoRecords(reports: CustomerVehicleReportsSnapshot): 
     peakPowerKwAtHubs: record.power_kw_at_hubs,
     peakTorqueNmAtHubs: record.torque_nm_at_hubs,
     recordedAt: record.tested_at,
+    secureAttachment: toSecureAttachment(newestFileFor(reports.vehicleFiles, 'dyno_record_id', record.id, 'dyno_graph')),
     vehicleId: record.vehicle_id,
     verification: record.record_source === 'psi_verified' ? 'psi_verified' : 'customer_entry',
   }));
@@ -107,15 +114,40 @@ export function getAccountFutureRepairs(reports: CustomerVehicleReportsSnapshot)
 }
 
 export function getAccountInvoices(reports: CustomerVehicleReportsSnapshot): InvoiceRecord[] {
-  return reports.invoices.map((record) => ({
-    amountAud: record.amount_cents == null ? null : record.amount_cents / 100,
-    attachment: null,
-    attachmentStatus: 'secure_file_unavailable',
-    createdBy: 'psi',
-    id: record.id,
-    invoiceDate: record.invoice_date,
-    invoiceNumber: record.invoice_number,
-    summary: record.summary,
-    vehicleId: record.vehicle_id,
-  }));
+  return reports.invoices.map((record) => {
+    const secureAttachment = toSecureAttachment(newestFileFor(reports.vehicleFiles, 'invoice_id', record.id, 'invoice'));
+    return {
+      amountAud: record.amount_cents == null ? null : record.amount_cents / 100,
+      attachment: null,
+      attachmentStatus: secureAttachment ? 'secure_attachment_available' : 'secure_file_unavailable',
+      createdBy: 'psi',
+      id: record.id,
+      invoiceDate: record.invoice_date,
+      invoiceNumber: record.invoice_number,
+      secureAttachment,
+      summary: record.summary,
+      vehicleId: record.vehicle_id,
+    };
+  });
+}
+
+function newestFileFor(
+  files: VehicleFileRow[],
+  relation: 'dyno_record_id' | 'invoice_id',
+  recordId: string,
+  fileKind: 'dyno_graph' | 'invoice',
+) {
+  return files.find((file) => file[relation] === recordId && file.file_kind === fileKind) ?? null;
+}
+
+function toSecureAttachment(file: VehicleFileRow | null): SecureVehicleAttachment | null {
+  if (!file) return null;
+  return {
+    bucketId: file.bucket_id,
+    fileSizeBytes: file.file_size_bytes,
+    id: file.id,
+    mimeType: file.mime_type,
+    objectPath: file.object_path,
+    recordSource: file.record_source,
+  };
 }

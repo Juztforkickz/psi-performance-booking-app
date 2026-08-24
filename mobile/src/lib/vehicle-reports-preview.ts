@@ -6,6 +6,15 @@ export type PreviewAttachment = {
   width: number;
 };
 
+export type SecureVehicleAttachment = {
+  bucketId: 'vehicle-documents' | 'vehicle-photos';
+  fileSizeBytes: number;
+  id: string;
+  mimeType: string;
+  objectPath: string;
+  recordSource: 'customer_entry' | 'psi_record';
+};
+
 export type DynoRecord = {
   createdBy: 'customer_account' | 'customer_preview' | 'psi' | 'psi_preview_fixture';
   fuel: string;
@@ -15,6 +24,7 @@ export type DynoRecord = {
   peakPowerKwAtHubs: number;
   peakTorqueNmAtHubs: number | null;
   recordedAt: string;
+  secureAttachment?: SecureVehicleAttachment | null;
   vehicleId: string;
   verification: 'customer_entry' | 'customer_preview' | 'psi_verified';
 };
@@ -41,7 +51,7 @@ export type FutureRepair = {
   vehicleId: string;
 };
 
-export type InvoiceAttachmentStatus = 'image_selected_locally' | 'no_attachment' | 'preview_reference_only' | 'secure_file_unavailable';
+export type InvoiceAttachmentStatus = 'image_selected_locally' | 'no_attachment' | 'preview_reference_only' | 'secure_attachment_available' | 'secure_file_unavailable';
 
 export type InvoiceRecord = {
   amountAud: number | null;
@@ -51,6 +61,7 @@ export type InvoiceRecord = {
   id: string;
   invoiceDate: string;
   invoiceNumber: string;
+  secureAttachment?: SecureVehicleAttachment | null;
   summary: string;
   vehicleId: string;
 };

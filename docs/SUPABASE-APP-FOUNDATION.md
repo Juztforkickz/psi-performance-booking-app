@@ -167,9 +167,14 @@ invoice queries by the verified customer ID in addition to the existing RLS
 policies, then filters displayed records again by the selected owned vehicle.
 PSI records and customer entries receive different labels; a customer entry can
 never appear PSI verified. Invoice values remain AUD metadata only. The screen
-does not query `vehicle_files`, download private objects or upload files, and
-all Add forms and selected images remain session-local preview tools. The public
-GitHub Pages build continues to render only synthetic Stage 1 data.
+also queries active `vehicle_files` metadata through the same customer-ID and
+RLS boundary. When a PSI invoice or dyno attachment exists, Storage must
+authorize that exact private object before issuing a 60-second signed URL.
+Images open in the app and PDFs open through the device browser; the URL is held
+only in screen memory. The app does not list a bucket, expose a public object URL
+or use a service-role key. File and record uploads remain disabled, and all Add
+forms and selected images remain session-local preview tools. The public GitHub
+Pages build continues to render only synthetic Stage 1 data with Auth disabled.
 
 All customer tables use Row Level Security. Data API grants are also explicitly
 least-privileged: anonymous clients have no business-table grants, authenticated

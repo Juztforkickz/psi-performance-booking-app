@@ -355,6 +355,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      vehicle_files: {
+        Row: {
+          archived_at: string | null;
+          bucket_id: 'vehicle-documents' | 'vehicle-photos';
+          created_at: string;
+          created_by: string;
+          customer_id: string;
+          dyno_record_id: string | null;
+          file_kind: 'dyno_graph' | 'invoice' | 'repair_document' | 'vehicle_photo';
+          file_size_bytes: number;
+          id: string;
+          invoice_id: string | null;
+          mime_type: string;
+          object_path: string;
+          record_source: 'customer_entry' | 'psi_record';
+          updated_at: string;
+          vehicle_id: string;
+        };
+        Insert: {
+          archived_at?: string | null;
+          bucket_id: 'vehicle-documents' | 'vehicle-photos';
+          created_at?: string;
+          created_by: string;
+          customer_id: string;
+          dyno_record_id?: string | null;
+          file_kind: 'dyno_graph' | 'invoice' | 'repair_document' | 'vehicle_photo';
+          file_size_bytes: number;
+          id?: string;
+          invoice_id?: string | null;
+          mime_type: string;
+          object_path: string;
+          record_source: 'customer_entry' | 'psi_record';
+          updated_at?: string;
+          vehicle_id: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          bucket_id?: 'vehicle-documents' | 'vehicle-photos';
+          dyno_record_id?: string | null;
+          file_kind?: 'dyno_graph' | 'invoice' | 'repair_document' | 'vehicle_photo';
+          file_size_bytes?: number;
+          invoice_id?: string | null;
+          mime_type?: string;
+          object_path?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       vehicle_service_summary: {
@@ -386,4 +434,5 @@ export type OdometerReadingRow = Database['public']['Tables']['odometer_readings
 export type RecommendedWorkRow = Database['public']['Tables']['recommended_work']['Row'];
 export type RepairRecordRow = Database['public']['Tables']['repair_records']['Row'];
 export type StaffMemberRow = Database['public']['Tables']['staff_members']['Row'];
+export type VehicleFileRow = Database['public']['Tables']['vehicle_files']['Row'];
 export type VehicleServiceSummaryRow = Database['public']['Views']['vehicle_service_summary']['Row'];
