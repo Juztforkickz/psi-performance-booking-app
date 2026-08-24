@@ -16,7 +16,11 @@ import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
 import { type LocalVehiclePhoto, VehiclePhotoPicker } from '@/components/vehicle-photo-picker';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import { saveCustomerProfile, saveCustomerVehicle } from '@/lib/customer-account';
+import {
+  saveCustomerProfile,
+  saveCustomerVehicle,
+  type CustomerAccountSnapshot,
+} from '@/lib/customer-account';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
@@ -48,12 +52,47 @@ const EMPTY_ACCOUNT: AccountDraft = {
 type AccountErrors = Partial<Record<keyof AccountDraft, string>>;
 
 export default function SignUpScreen() {
+  const auth = useCustomerAuth();
+  const { account, status } = useCustomerAccount();
+  const waitingForAccount = CUSTOMER_AUTH.enabled
+    && (auth.status === 'loading' || (auth.status === 'signed_in' && status === 'loading'));
+
+  if (waitingForAccount) return <AccountFormLoading />;
+
+  return <AccountDetailsForm initialAccount={auth.status === 'signed_in' ? account : null} />;
+}
+
+function AccountFormLoading() {
+  const { horizontalPadding } = useResponsiveLayout();
+  return (
+    <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
+      <View style={[styles.loadingState, { paddingHorizontal: horizontalPadding }]}>
+        <Text style={styles.loadingTitle}>Loading secure account</Text>
+        <Text style={styles.loadingCopy}>Preparing the profile and primary vehicle owned by this signed-in account…</Text>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function AccountDetailsForm({ initialAccount }: { initialAccount: CustomerAccountSnapshot | null }) {
   const router = useRouter();
   const auth = useCustomerAuth();
   const { refreshAccount } = useCustomerAccount();
   const { stageAccountPreview } = useCustomerPreview();
   const { compact, horizontalPadding, short, useFieldColumns: wide } = useResponsiveLayout();
-  const [form, setForm] = useState(EMPTY_ACCOUNT);
+  const initialVehicle = initialAccount?.vehicles.find((vehicle) => vehicle.is_primary) ?? initialAccount?.vehicles[0] ?? null;
+  const canEditVehicle = !initialVehicle || initialVehicle.created_by === initialAccount?.user.id;
+  const [form, setForm] = useState<AccountDraft>(() => initialAccount ? {
+    email: initialAccount.user.email ?? initialAccount.profile?.email ?? '',
+    firstName: initialAccount.profile?.first_name ?? '',
+    lastName: initialAccount.profile?.last_name ?? '',
+    mobile: initialAccount.profile?.mobile ?? '',
+    registration: initialVehicle?.registration ?? '',
+    vehicleMake: initialVehicle?.make ?? '',
+    vehicleModel: initialVehicle?.model ?? '',
+    vehicleYear: initialVehicle ? String(initialVehicle.year) : '',
+  } : EMPTY_ACCOUNT);
+  const [editingVehicleId, setEditingVehicleId] = useState(initialVehicle?.id ?? null);
   const [errors, setErrors] = useState<AccountErrors>({});
   const [notice, setNotice] = useState('');
   const [vehiclePhoto, setVehiclePhoto] = useState<LocalVehiclePhoto | null>(null);
@@ -116,14 +155,17 @@ export default function SignUpScreen() {
           lastName: form.lastName,
           mobile: form.mobile,
         });
-        await saveCustomerVehicle({
-          make: form.vehicleMake,
-          model: form.vehicleModel,
-          registration: form.registration,
-          year,
-        });
+        if (canEditVehicle) {
+          const savedVehicle = await saveCustomerVehicle({
+            make: form.vehicleMake,
+            model: form.vehicleModel,
+            registration: form.registration,
+            year,
+          }, editingVehicleId ?? undefined);
+          setEditingVehicleId(savedVehicle.id);
+        }
         refreshAccount();
-        setNotice(`Your profile and vehicle details were saved to your private Supabase account.${vehiclePhoto ? ' The selected vehicle photo remains local to this open app session and was not uploaded.' : ''}`);
+        setNotice(`${canEditVehicle ? 'Your profile and vehicle details were' : 'Your profile was'} saved to your private Supabase account.${canEditVehicle ? '' : ' This PSI-created vehicle remains read-only and was not changed.'}${vehiclePhoto ? ' The selected vehicle photo remains local to this open app session and was not uploaded.' : ''}`);
       } catch {
         setNotice('Your profile could not be saved. Nothing was uploaded. Check the secure session and try again.');
       } finally {
@@ -228,27 +270,28 @@ export default function SignUpScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Primary vehicle</Text>
+            {!canEditVehicle ? <Text style={styles.vehicleOwnershipNotice}>PSI created this vehicle record. You can view it here, but only PSI can correct its verified details.</Text> : null}
             <View style={[styles.row, wide && styles.rowWide]}>
               <View style={styles.cell}>
                 <Field error={errors.registration} label="Registration">
-                  <FormInput autoCapitalize="characters" error={errors.registration} maxLength={12} onChangeText={(value) => update('registration', value.toUpperCase())} placeholder="ABC123" value={form.registration} />
+                  <FormInput autoCapitalize="characters" editable={canEditVehicle} error={errors.registration} maxLength={12} onChangeText={(value) => update('registration', value.toUpperCase())} placeholder="ABC123" value={form.registration} />
                 </Field>
               </View>
               <View style={styles.cell}>
                 <Field error={errors.vehicleYear} label="Year">
-                  <FormInput error={errors.vehicleYear} keyboardType="number-pad" maxLength={4} onChangeText={(value) => update('vehicleYear', value.replace(/\D/g, ''))} placeholder="2017" value={form.vehicleYear} />
+                  <FormInput editable={canEditVehicle} error={errors.vehicleYear} keyboardType="number-pad" maxLength={4} onChangeText={(value) => update('vehicleYear', value.replace(/\D/g, ''))} placeholder="2017" value={form.vehicleYear} />
                 </Field>
               </View>
             </View>
             <View style={[styles.row, wide && styles.rowWide]}>
               <View style={styles.cell}>
                 <Field error={errors.vehicleMake} label="Make">
-                  <FormInput autoCapitalize="words" error={errors.vehicleMake} onChangeText={(value) => update('vehicleMake', value)} placeholder="e.g. Holden" value={form.vehicleMake} />
+                  <FormInput autoCapitalize="words" editable={canEditVehicle} error={errors.vehicleMake} onChangeText={(value) => update('vehicleMake', value)} placeholder="e.g. Holden" value={form.vehicleMake} />
                 </Field>
               </View>
               <View style={styles.cell}>
                 <Field error={errors.vehicleModel} label="Model">
-                  <FormInput autoCapitalize="words" error={errors.vehicleModel} onChangeText={(value) => update('vehicleModel', value)} placeholder="e.g. VF SS" value={form.vehicleModel} />
+                  <FormInput autoCapitalize="words" editable={canEditVehicle} error={errors.vehicleModel} onChangeText={(value) => update('vehicleModel', value)} placeholder="e.g. VF SS" value={form.vehicleModel} />
                 </Field>
               </View>
             </View>
@@ -291,6 +334,9 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: colors.ink },
+  loadingState: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
+  loadingTitle: { color: colors.white, fontSize: 20, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
+  loadingCopy: { color: colors.muted, fontSize: 12, lineHeight: 19, textAlign: 'center' },
   header: { width: '100%', maxWidth: 760, minHeight: 70, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: colors.line },
   headerCompact: { minHeight: 62 },
   back: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
@@ -308,6 +354,7 @@ const styles = StyleSheet.create({
   securityCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
   section: { gap: spacing.lg, marginTop: spacing.xl, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
   sectionTitle: { color: colors.white, fontSize: 19, fontWeight: '900', textTransform: 'uppercase' },
+  vehicleOwnershipNotice: { color: colors.gold, fontSize: 11, fontWeight: '800', lineHeight: 17 },
   row: { gap: spacing.lg },
   rowWide: { flexDirection: 'row' },
   cell: { flex: 1 },

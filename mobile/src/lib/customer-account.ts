@@ -78,10 +78,29 @@ export async function saveCustomerProfile(input: CustomerProfileInput) {
   return data;
 }
 
-export async function saveCustomerVehicle(input: CustomerVehicleInput) {
+export async function saveCustomerVehicle(input: CustomerVehicleInput, vehicleId?: string) {
   const supabase = getSupabaseClient();
   const user = await getVerifiedCustomer();
   const registration = input.registration.trim().toUpperCase();
+
+  if (vehicleId) {
+    const { data, error } = await supabase
+      .from('customer_vehicles')
+      .update({
+        make: input.make.trim(),
+        model: input.model.trim(),
+        registration,
+        year: input.year,
+      })
+      .eq('id', vehicleId)
+      .eq('customer_id', user.id)
+      .is('archived_at', null)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
 
   const { data: existing, error: existingError } = await supabase
     .from('customer_vehicles')

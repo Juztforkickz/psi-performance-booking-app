@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChoiceCard, Eyebrow, Field, FormInput, PrimaryButton, UiToneProvider } from '@/components/ui';
 import { bookingColors, colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import type { CustomerProfileRow } from '@/lib/database.types';
 import {
   BOOKING_DRAFT_EXPIRY_DAYS,
   clearBookingDraft,
@@ -50,6 +51,9 @@ import {
 } from '@/lib/booking';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { type PreviewVehicle } from '@/lib/customer-preview';
+import { useCustomerAccount } from '@/lib/customer-account-context';
+import { CUSTOMER_AUTH } from '@/lib/customer-auth';
+import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { PUBLIC_DEMO } from '@/lib/public-demo';
 
 const STEP_LABELS = ['Job', 'Vehicle', 'Details', 'Date', 'Review'];
@@ -184,14 +188,44 @@ type UpdateBooking = <K extends keyof BookingFormState>(key: K, value: BookingFo
 type UpdateTuning = <K extends keyof TuningDetails>(key: K, value: TuningDetails[K]) => void;
 
 export default function BookingScreen() {
+  const auth = useCustomerAuth();
+  const { account, status } = useCustomerAccount();
+  const waitingForAccount = CUSTOMER_AUTH.enabled
+    && (auth.status === 'loading' || (auth.status === 'signed_in' && status === 'loading'));
+
   return (
     <UiToneProvider tone="booking">
-      <BookingScreenContent />
+      {waitingForAccount
+        ? <BookingAccountLoading />
+        : (
+          <BookingScreenContent
+            accountProfile={auth.status === 'signed_in' ? account?.profile ?? null : null}
+            authenticatedEmail={auth.status === 'signed_in' ? auth.user?.email ?? null : null}
+          />
+        )}
     </UiToneProvider>
   );
 }
 
-function BookingScreenContent() {
+function BookingAccountLoading() {
+  return (
+    <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
+      <View style={styles.accountLoadingState}>
+        <ActivityIndicator color={bookingColors.accent} size="large" />
+        <Text style={styles.accountLoadingTitle}>Preparing your booking</Text>
+        <Text style={styles.accountLoadingCopy}>Loading your private account details for secure form prefill…</Text>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function BookingScreenContent({
+  accountProfile,
+  authenticatedEmail,
+}: {
+  accountProfile: CustomerProfileRow | null;
+  authenticatedEmail: string | null;
+}) {
   const router = useRouter();
   const {
     clearPendingBookingVehicle,
@@ -199,6 +233,8 @@ function BookingScreenContent() {
     pendingBookingVehicle,
   } = useCustomerPreview();
   const [bookingVehicle] = useState<PreviewVehicle | null>(() => pendingBookingVehicle);
+  const [bookingAccountProfile] = useState<CustomerProfileRow | null>(() => accountProfile);
+  const [bookingAccountEmail] = useState<string | null>(() => authenticatedEmail);
   const { compact, fontScale, horizontalPadding, short, useFieldColumns: wideFields, width } = useResponsiveLayout();
   const compactHeader = width < 350 || fontScale > 1.4;
   const params = useLocalSearchParams<{ type?: string | string[] }>();
@@ -213,13 +249,18 @@ function BookingScreenContent() {
       vehicleModel: bookingVehicle.model,
       vehicleYear: String(bookingVehicle.year),
     } : {}),
-    ...(ephemeralAccount ? {
+    ...(bookingAccountEmail || bookingAccountProfile ? {
+      email: bookingAccountEmail ?? bookingAccountProfile?.email ?? '',
+      firstName: bookingAccountProfile?.first_name ?? '',
+      lastName: bookingAccountProfile?.last_name ?? '',
+      mobile: bookingAccountProfile?.mobile ?? '',
+    } : ephemeralAccount ? {
       email: ephemeralAccount.profile.email,
       firstName: ephemeralAccount.profile.firstName,
       lastName: ephemeralAccount.profile.lastName,
       mobile: ephemeralAccount.profile.mobile,
     } : {}),
-  }), [bookingVehicle, ephemeralAccount, initialType]);
+  }), [bookingAccountEmail, bookingAccountProfile, bookingVehicle, ephemeralAccount, initialType]);
   const scrollRef = useRef<ScrollView>(null);
   const draftOperationRef = useRef<Promise<unknown>>(Promise.resolve());
   const [step, setStep] = useState(1);
@@ -1782,6 +1823,9 @@ function RequestHandoff({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   screen: { flex: 1, backgroundColor: bookingColors.background },
+  accountLoadingState: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl },
+  accountLoadingTitle: { color: colors.white, fontSize: 20, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
+  accountLoadingCopy: { color: colors.muted, fontSize: 12, lineHeight: 19, textAlign: 'center' },
   draftLoading: {
     flex: 1,
     alignItems: 'center',

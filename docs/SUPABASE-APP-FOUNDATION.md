@@ -141,11 +141,17 @@ The Expo account screens now contain typed RLS-bound profile/vehicle reads and
 writes. A shared authenticated account provider clears private data on sign-out,
 refreshes after an approved profile/vehicle save, and supplies the same owned
 vehicle snapshot to Account and My Garage. An authenticated Garage can hand the
-selected owned vehicle into the existing booking form, but photos and customer
-maintenance edits remain session-local and are not uploaded or persisted. These
-paths are unreachable while the activation flag is false; the public preview
-continues to use synthetic vehicles and in-memory maintenance changes. Real
-customer access remains disabled until cross-account and real-device tests pass.
+selected owned vehicle into the existing booking form; the verified Auth email
+and owned profile name/mobile also prefill the customer step. The account editor
+loads the existing profile and primary vehicle before accepting changes, and an
+existing vehicle update matches both its exact ID and the authenticated customer
+ID. The live RLS policy check confirms customer updates still require the same
+customer and record creator; PSI-authored vehicle details therefore render
+read-only to the customer. Photos and customer maintenance edits remain
+session-local and are not uploaded or persisted. These paths are unreachable
+while the activation flag is false; the public preview continues to use
+synthetic vehicles and in-memory maintenance changes. Real customer access
+remains disabled until cross-account and real-device tests pass.
 
 All customer tables use Row Level Security. Data API grants are also explicitly
 least-privileged: anonymous clients have no business-table grants, authenticated

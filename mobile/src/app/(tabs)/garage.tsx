@@ -264,13 +264,13 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
             );
           })}
           <Pressable
-            accessibilityLabel={secureVehicles ? 'Add or update an account vehicle' : 'Set up a vehicle in the account preview'}
+            accessibilityLabel={secureVehicles ? 'Manage the primary account vehicle' : 'Set up a vehicle in the account preview'}
             accessibilityRole="button"
             onPress={() => router.push('/account/sign-up')}
             style={({ pressed }) => [styles.addVehicle, pressed && styles.pressed]}
           >
             <Ionicons color={colors.gold} name="add" size={24} />
-            <Text style={styles.addVehicleText}>{secureVehicles ? 'Add account vehicle' : 'Set up preview vehicle'}</Text>
+            <Text style={styles.addVehicleText}>{secureVehicles ? 'Manage primary vehicle' : 'Set up preview vehicle'}</Text>
           </Pressable>
         </ScrollView>
 
@@ -398,7 +398,7 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
         <View style={styles.actions}>
           <PrimaryButton label="Book service for this vehicle" onPress={() => openBookingForVehicle('service')} />
           <PrimaryButton label="Book dyno for this vehicle" onPress={() => openBookingForVehicle('dyno')} variant="outline" />
-          <PrimaryButton label={secureVehicles ? 'Manage account vehicles' : 'Preview account setup'} onPress={() => router.push('/account/sign-up')} variant="outline" />
+          <PrimaryButton label={secureVehicles ? 'Manage primary vehicle' : 'Preview account setup'} onPress={() => router.push('/account/sign-up')} variant="outline" />
         </View>
       </ScrollView>
     </SafeAreaView>

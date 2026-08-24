@@ -252,10 +252,10 @@ export default function AccountScreen() {
 
         <View style={[styles.createCard, compact && styles.cardCompact]}>
           <View style={styles.createCopy}>
-            <Text style={styles.createTitle}>New to PSI?</Text>
-            <Text style={styles.createText}>{CUSTOMER_AUTH.registrationEnabled ? 'Complete the approved account setup for your details and primary vehicle.' : 'Preview the account setup for your details and primary vehicle. New account registration is currently closed.'}</Text>
+            <Text style={styles.createTitle}>{account ? 'Account details' : 'New to PSI?'}</Text>
+            <Text style={styles.createText}>{account ? 'Review or update the profile and primary vehicle connected to your secure account.' : CUSTOMER_AUTH.registrationEnabled ? 'Complete the approved account setup for your details and primary vehicle.' : 'Preview the account setup for your details and primary vehicle. New account registration is currently closed.'}</Text>
           </View>
-          <PrimaryButton label={CUSTOMER_AUTH.registrationEnabled ? 'Set up approved account →' : 'Preview account setup →'} onPress={() => router.push('/account/sign-up')} variant="outline" />
+          <PrimaryButton label={account ? 'Edit account details →' : CUSTOMER_AUTH.registrationEnabled ? 'Set up approved account →' : 'Preview account setup →'} onPress={() => router.push('/account/sign-up')} variant="outline" />
         </View>
 
         <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={({ pressed }) => [styles.guestLink, pressed && styles.pressed]}>
