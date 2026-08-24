@@ -219,6 +219,14 @@ to AAL2 and signs out that user's other sessions. PSI must document a controlled
 lost-device recovery process and add factor-management/replacement UX before
 staff access is treated as production-ready.
 
+The root Auth provider treats Supabase Auth events as newer than its initial
+session read, preventing a delayed signed-out result from replacing a completed
+email-code sign-in. It also advances a session revision for sign-in, token
+refresh and MFA challenge events. The staff route observes that revision and
+rechecks its allowlist and AAL immediately, including when the same user moves
+from AAL1 to AAL2. Normal Back navigation therefore does not require a browser
+refresh to reveal the authenticator gate or the verified workspace.
+
 The Supabase secret/service-role key must exist only in trusted server or Edge
 Function configuration. It must never be placed in Expo, Netlify client code,
 GitHub or browser storage.

@@ -58,7 +58,7 @@ export default function StaffPortalScreen() {
     return () => {
       active = false;
     };
-  }, [auth.status, auth.user?.id, refreshNonce]);
+  }, [auth.sessionRevision, auth.status, auth.user?.id, refreshNonce]);
 
   if (!CUSTOMER_AUTH.enabled) {
     return (
