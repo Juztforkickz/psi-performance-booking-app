@@ -7,20 +7,20 @@ export type PreviewAttachment = {
 };
 
 export type DynoRecord = {
-  createdBy: 'customer_preview' | 'psi';
+  createdBy: 'customer_account' | 'customer_preview' | 'psi' | 'psi_preview_fixture';
   fuel: string;
   graphImage: PreviewAttachment | null;
   id: string;
   notes: string;
   peakPowerKwAtHubs: number;
-  peakTorqueNmAtHubs: number;
+  peakTorqueNmAtHubs: number | null;
   recordedAt: string;
   vehicleId: string;
-  verification: 'customer_preview' | 'psi_verified';
+  verification: 'customer_entry' | 'customer_preview' | 'psi_verified';
 };
 
 export type RepairRecord = {
-  createdBy: 'customer_preview' | 'psi_preview_fixture';
+  createdBy: 'customer_account' | 'customer_preview' | 'psi' | 'psi_preview_fixture';
   description: string;
   id: string;
   odometerKm: number | null;
@@ -32,7 +32,7 @@ export type RepairRecord = {
 export type FutureRepairStatus = 'due_soon' | 'monitor' | 'priority' | 'recommended';
 
 export type FutureRepair = {
-  createdBy: 'customer_preview' | 'psi_preview_fixture';
+  createdBy: 'customer_account' | 'customer_preview' | 'psi' | 'psi_preview_fixture';
   id: string;
   notes: string;
   status: FutureRepairStatus;
@@ -41,13 +41,13 @@ export type FutureRepair = {
   vehicleId: string;
 };
 
-export type InvoiceAttachmentStatus = 'image_selected_locally' | 'no_attachment' | 'preview_reference_only';
+export type InvoiceAttachmentStatus = 'image_selected_locally' | 'no_attachment' | 'preview_reference_only' | 'secure_file_unavailable';
 
 export type InvoiceRecord = {
   amountAud: number | null;
   attachment: PreviewAttachment | null;
   attachmentStatus: InvoiceAttachmentStatus;
-  createdBy: 'customer_preview' | 'psi_preview_fixture';
+  createdBy: 'customer_preview' | 'psi' | 'psi_preview_fixture';
   id: string;
   invoiceDate: string;
   invoiceNumber: string;
@@ -71,7 +71,7 @@ export const PREVIEW_DYNO_RECORDS: readonly DynoRecord[] = CUSTOMER_PREVIEW.dyno
   fuel: result.fuel,
   notes: result.summary,
   graphImage: null,
-  createdBy: 'psi',
+  createdBy: 'psi_preview_fixture',
   verification: 'psi_verified',
 }));
 

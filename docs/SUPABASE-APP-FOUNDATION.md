@@ -159,6 +159,18 @@ while the activation flag is false; the public preview continues to use
 synthetic vehicles and in-memory maintenance changes. Real customer access
 remains disabled until cross-account and real-device tests pass.
 
+Vehicle Reports now has a read-only authenticated QA path using the root-owned
+vehicle snapshot plus a route-local report loader. Report metadata is fetched
+only while Vehicle Reports is open, rather than being held by unrelated Account
+or Garage screens. It explicitly filters dyno, repair, recommended-work and
+invoice queries by the verified customer ID in addition to the existing RLS
+policies, then filters displayed records again by the selected owned vehicle.
+PSI records and customer entries receive different labels; a customer entry can
+never appear PSI verified. Invoice values remain AUD metadata only. The screen
+does not query `vehicle_files`, download private objects or upload files, and
+all Add forms and selected images remain session-local preview tools. The public
+GitHub Pages build continues to render only synthetic Stage 1 data.
+
 All customer tables use Row Level Security. Data API grants are also explicitly
 least-privileged: anonymous clients have no business-table grants, authenticated
 clients receive only the operations backed by the reviewed policies, and new

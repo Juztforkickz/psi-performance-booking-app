@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   Modal,
   Pressable,
@@ -16,8 +17,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import type { CustomerAccountSnapshot } from '@/lib/customer-account';
+import { useCustomerAccount } from '@/lib/customer-account-context';
+import { CUSTOMER_AUTH } from '@/lib/customer-auth';
+import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
+import {
+  getAccountDynoRecords,
+  getAccountFutureRepairs,
+  getAccountInvoices,
+  getAccountRepairRecords,
+  getAccountReportVehicles,
+  loadCustomerVehicleReports,
+  type CustomerVehicleReportsSnapshot,
+} from '@/lib/vehicle-reports-account';
 import {
   filterVehicleRecords,
   FUTURE_REPAIR_STATUS_LABELS,
@@ -70,12 +84,113 @@ const EMPTY_FUTURE_DRAFT: FutureRepairDraft = { notes: '', status: 'monitor', ti
 const EMPTY_INVOICE_DRAFT: InvoiceDraft = { amount: '', attachment: null, date: '', invoiceNumber: '', summary: '' };
 
 export default function VehicleReportsScreen() {
+  const auth = useCustomerAuth();
+  const { account, error, status } = useCustomerAccount();
+  const secureAccountActive = CUSTOMER_AUTH.enabled && auth.status === 'signed_in';
+
+  if (CUSTOMER_AUTH.enabled && auth.status === 'loading') {
+    return <VehicleReportsAccountState copy="Restoring your protected customer session…" loading title="Opening vehicle reports" />;
+  }
+  if (secureAccountActive && status === 'loading') {
+    return <VehicleReportsAccountState copy="Loading records owned by your authenticated account…" loading title="Opening vehicle reports" />;
+  }
+  if (secureAccountActive && (status === 'error' || !account)) {
+    return <VehicleReportsAccountState copy={error || 'Your private vehicle records could not be loaded.'} title="Vehicle reports unavailable" />;
+  }
+  if (secureAccountActive && account?.vehicles.length === 0) {
+    return <VehicleReportsAccountState actionLabel="Add your first vehicle" copy="Your secure account is active, but it does not have a vehicle yet." title="Vehicle reports are ready" />;
+  }
+
+  if (secureAccountActive && account) {
+    return <AuthenticatedVehicleReportsScreen account={account} key={account.user.id} />;
+  }
+  return <VehicleReportsContent secureAccount={null} secureReports={null} />;
+}
+
+type ReportsLoadState =
+  | { reports: null; status: 'error' | 'loading' }
+  | { reports: CustomerVehicleReportsSnapshot; status: 'ready' };
+
+function AuthenticatedVehicleReportsScreen({ account }: { account: CustomerAccountSnapshot }) {
+  const [loadState, setLoadState] = useState<ReportsLoadState>({ reports: null, status: 'loading' });
+
+  useEffect(() => {
+    let active = true;
+    void loadCustomerVehicleReports()
+      .then((reports) => {
+        if (active) setLoadState({ reports, status: 'ready' });
+      })
+      .catch(() => {
+        if (active) setLoadState({ reports: null, status: 'error' });
+      });
+    return () => {
+      active = false;
+    };
+  }, [account.user.id]);
+
+  if (loadState.status === 'loading') {
+    return <VehicleReportsAccountState copy="Loading your private dyno, repair, recommendation and invoice records…" loading title="Opening vehicle reports" />;
+  }
+  if (loadState.status === 'error') {
+    return <VehicleReportsAccountState copy="Your private report records could not be loaded. Nothing from the public preview has been substituted." title="Vehicle reports unavailable" />;
+  }
+  return <VehicleReportsContent secureAccount={account} secureReports={loadState.reports} />;
+}
+
+function VehicleReportsAccountState({
+  actionLabel,
+  copy,
+  loading = false,
+  title,
+}: {
+  actionLabel?: string;
+  copy: string;
+  loading?: boolean;
+  title: string;
+}) {
+  const router = useRouter();
+  const { horizontalPadding } = useResponsiveLayout();
+  return (
+    <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
+      <View style={[styles.accountState, { paddingHorizontal: horizontalPadding }]}>
+        {loading ? <ActivityIndicator color={colors.gold} size="large" /> : <Ionicons color={colors.gold} name="document-text" size={38} />}
+        <Text style={styles.accountStateTitle}>{title}</Text>
+        <Text style={styles.accountStateCopy}>{copy}</Text>
+        {actionLabel ? <PrimaryButton label={actionLabel} onPress={() => router.push('/account/sign-up')} /> : null}
+        {!loading ? <PrimaryButton label="Open account" onPress={() => router.push('/account')} variant="outline" /> : null}
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function VehicleReportsContent({
+  secureAccount,
+  secureReports,
+}: {
+  secureAccount: CustomerAccountSnapshot | null;
+  secureReports: CustomerVehicleReportsSnapshot | null;
+}) {
   const router = useRouter();
   const { compact, horizontalPadding, largeText, tablet } = useResponsiveLayout();
-  const { selectedVehicleId, selectVehicle, vehicleMaintenance, vehicles } = useCustomerPreview();
+  const {
+    selectedVehicleId: previewSelectedVehicleId,
+    selectVehicle,
+    vehicleMaintenance,
+    vehicles: previewVehicles,
+  } = useCustomerPreview();
+  const secureVehicles = secureAccount ? getAccountReportVehicles(secureAccount) : null;
+  const vehicles = secureVehicles ?? previewVehicles;
+  const [secureSelectedVehicleId, setSecureSelectedVehicleId] = useState(() => secureVehicles?.find((vehicle) => vehicle.isPrimary)?.id ?? secureVehicles?.[0]?.id ?? '');
+  const selectedVehicleId = secureVehicles ? secureSelectedVehicleId : previewSelectedVehicleId;
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0];
   const vehicleLabel = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;
-  const maintenance = vehicleMaintenance[selectedVehicle.id] ?? {
+  const localMaintenance = vehicleMaintenance[selectedVehicle.id];
+  const maintenance = secureVehicles ? {
+    customerLastServiceDate: localMaintenance?.customerLastServiceDate ?? null,
+    customerNextCheckInDate: localMaintenance?.customerNextCheckInDate ?? null,
+    odometerKm: selectedVehicle.odometerKm,
+    updatedLocally: Boolean(localMaintenance?.customerLastServiceDate || localMaintenance?.customerNextCheckInDate),
+  } : localMaintenance ?? {
     customerLastServiceDate: null,
     customerNextCheckInDate: null,
     odometerKm: selectedVehicle.odometerKm,
@@ -101,10 +216,11 @@ export default function VehicleReportsScreen() {
     ownedAttachmentsRef.current.clear();
   }, []);
 
-  const dynoRecords = filterVehicleRecords([...PREVIEW_DYNO_RECORDS, ...localDynoRecords], selectedVehicle.id);
-  const repairRecords = filterVehicleRecords([...PREVIEW_REPAIR_RECORDS, ...localRepairs], selectedVehicle.id);
-  const futureRepairs = [...PREVIEW_FUTURE_REPAIRS, ...localFutureRepairs].filter((record) => record.vehicleId === selectedVehicle.id);
-  const invoices = filterVehicleRecords([...PREVIEW_INVOICE_RECORDS, ...localInvoices], selectedVehicle.id);
+  const accountConnected = Boolean(secureAccount);
+  const dynoRecords = filterVehicleRecords([...(secureReports ? getAccountDynoRecords(secureReports) : PREVIEW_DYNO_RECORDS), ...localDynoRecords], selectedVehicle.id);
+  const repairRecords = filterVehicleRecords([...(secureReports ? getAccountRepairRecords(secureReports) : PREVIEW_REPAIR_RECORDS), ...localRepairs], selectedVehicle.id);
+  const futureRepairs = [...(secureReports ? getAccountFutureRepairs(secureReports) : PREVIEW_FUTURE_REPAIRS), ...localFutureRepairs].filter((record) => record.vehicleId === selectedVehicle.id);
+  const invoices = filterVehicleRecords([...(secureReports ? getAccountInvoices(secureReports) : PREVIEW_INVOICE_RECORDS), ...localInvoices], selectedVehicle.id);
 
   const releaseAttachment = (attachment: PreviewAttachment | null) => {
     if (!attachment) return;
@@ -122,7 +238,8 @@ export default function VehicleReportsScreen() {
     setOpenForm(null);
     setFormError('');
     setAttachmentError('');
-    selectVehicle(vehicleId);
+    if (secureVehicles) setSecureSelectedVehicleId(vehicleId);
+    else selectVehicle(vehicleId);
   };
 
   const chooseImage = async (
@@ -287,15 +404,15 @@ export default function VehicleReportsScreen() {
             <Ionicons color={colors.ink} name="arrow-back" size={22} />
           </Pressable>
           <View style={styles.headerCopy}>
-            <Text style={styles.eyebrow}>Customer workspace · preview</Text>
+            <Text style={styles.eyebrow}>{accountConnected ? 'Private customer workspace' : 'Customer workspace · preview'}</Text>
             <Text maxFontSizeMultiplier={1.7} style={[styles.title, compact && styles.titleCompact]}>Vehicle Reports</Text>
             <Text style={styles.lead}>Your PSI vehicle history, dyno results, invoices and recommended work.</Text>
           </View>
         </View>
 
         <View accessibilityRole="alert" style={styles.previewNotice}>
-          <Text style={styles.previewNoticeTitle}>Stage 1 · preview data only</Text>
-          <Text style={styles.previewNoticeCopy}>Synthetic PSI-style examples and anything you add stay only in this open preview. Nothing is uploaded, sent to PSI, connected to an account or permanently saved.</Text>
+          <Text style={styles.previewNoticeTitle}>{accountConnected ? 'Authenticated records · attachments disabled' : 'Stage 1 · preview data only'}</Text>
+          <Text style={styles.previewNoticeCopy}>{accountConnected ? 'The records below load from your private account through customer-scoped access controls. Any item or image you add on this screen remains a local preview and is not uploaded or saved.' : 'Synthetic PSI-style examples and anything you add stay only in this open preview. Nothing is uploaded, sent to PSI, connected to an account or permanently saved.'}</Text>
         </View>
 
         <SectionHeading meta={`${vehicles.length} vehicles`} title="Vehicle selector" />
@@ -328,6 +445,7 @@ export default function VehicleReportsScreen() {
           <Text style={styles.selectedVehicleMaintenance}>
             Customer odometer · {maintenance.odometerKm == null ? 'Not added' : `${maintenance.odometerKm.toLocaleString('en-AU')} km`} · Personal next check-in · {maintenance.customerNextCheckInDate ? formatDate(maintenance.customerNextCheckInDate) : 'Not scheduled'}
           </Text>
+          {accountConnected ? <Text style={styles.selectedVehicleMaintenance}>Last PSI service · {selectedVehicle.lastVisit ? formatDate(selectedVehicle.lastVisit) : 'Not recorded'} · Next PSI check-in · {selectedVehicle.nextDue ? formatDate(selectedVehicle.nextDue) : 'Not scheduled'}</Text> : null}
           {maintenance.updatedLocally ? <Text style={styles.selectedVehicleLocal}>Local maintenance preview · not PSI verified</Text> : null}
         </View>
 
@@ -360,7 +478,7 @@ export default function VehicleReportsScreen() {
               <View style={styles.formActions}><PrimaryButton label="Add Local Preview Record" onPress={addDynoRecord} /><PrimaryButton label="Cancel" onPress={cancelDyno} variant="outline" /></View>
             </View>
           ) : null}
-          {dynoRecords.length ? dynoRecords.map((record) => <DynoCard key={record.id} record={record} onView={() => record.graphImage && setViewingAttachment({ title: 'Dyno graph preview', uri: record.graphImage.uri })} />) : <EmptyState message="No dyno records for this vehicle yet." />}
+          {dynoRecords.length ? dynoRecords.map((record) => <DynoCard key={record.id} record={record} onView={() => record.graphImage && setViewingAttachment({ title: 'Dyno graph preview', uri: record.graphImage.uri })} />) : <EmptyState accountConnected={accountConnected} message="No dyno records for this vehicle yet." />}
         </ReportSection>
 
         <ReportSection
@@ -383,7 +501,7 @@ export default function VehicleReportsScreen() {
               <View style={styles.formActions}><PrimaryButton label="Add Local Preview Repair" onPress={addRepairRecord} /><PrimaryButton label="Cancel" onPress={() => { setRepairDraft(EMPTY_REPAIR_DRAFT); setOpenForm(null); setFormError(''); }} variant="outline" /></View>
             </View>
           ) : null}
-          {repairRecords.length ? repairRecords.map((record) => <RepairCard key={record.id} record={record} />) : <EmptyState message="No previous repairs recorded." />}
+          {repairRecords.length ? repairRecords.map((record) => <RepairCard key={record.id} record={record} />) : <EmptyState accountConnected={accountConnected} message="No previous repairs recorded." />}
         </ReportSection>
 
         <ReportSection
@@ -410,7 +528,7 @@ export default function VehicleReportsScreen() {
               <View style={styles.formActions}><PrimaryButton label="Add Local Preview Recommendation" onPress={addFutureRepair} /><PrimaryButton label="Cancel" onPress={() => { setFutureDraft(EMPTY_FUTURE_DRAFT); setOpenForm(null); setFormError(''); }} variant="outline" /></View>
             </View>
           ) : null}
-          {futureRepairs.length ? futureRepairs.map((record) => <FutureRepairCard key={record.id} record={record} />) : <EmptyState message="No recommended work currently shown." />}
+          {futureRepairs.length ? futureRepairs.map((record) => <FutureRepairCard key={record.id} record={record} />) : <EmptyState accountConnected={accountConnected} message="No recommended work currently shown." />}
         </ReportSection>
 
         <ReportSection
@@ -419,8 +537,8 @@ export default function VehicleReportsScreen() {
           onAction={() => startForm('invoice')}
           title="Invoice Vault"
         >
-          <Text style={styles.sectionNotice}>Preview only — invoice attachments are not uploaded or saved to your account yet.</Text>
-          <Text style={styles.pdfNotice}>PDF support planned for persistent Vehicle Reports. Stage 1 accepts one image only.</Text>
+          <Text style={styles.sectionNotice}>{accountConnected ? 'Private invoice metadata is read-only. Attachment download and upload remain disabled in this QA stage.' : 'Preview only — invoice attachments are not uploaded or saved to your account yet.'}</Text>
+          <Text style={styles.pdfNotice}>{accountConnected ? 'Any image selected through the local preview form remains on this device session only.' : 'PDF support planned for persistent Vehicle Reports. Stage 1 accepts one image only.'}</Text>
           {openForm === 'invoice' ? (
             <View style={styles.formCard}>
               <FormHeading title="Invoice · local preview" />
@@ -451,12 +569,12 @@ export default function VehicleReportsScreen() {
               record={record}
               vehicleLabel={vehicleLabel}
             />
-          )) : <EmptyState message="No invoices available for this vehicle." />}
+          )) : <EmptyState accountConnected={accountConnected} message="No invoices available for this vehicle." />}
         </ReportSection>
 
         <View style={styles.footerNotice}>
-          <Text style={styles.footerNoticeTitle}>Stage 1 boundary</Text>
-          <Text style={styles.footerNoticeCopy}>No account, database, file-storage provider or production API is connected. Local preview entries and images disappear when this screen reloads or the app closes.</Text>
+          <Text style={styles.footerNoticeTitle}>{accountConnected ? 'Private record boundary' : 'Stage 1 boundary'}</Text>
+          <Text style={styles.footerNoticeCopy}>{accountConnected ? 'Account records are read-only on this screen. File storage and uploads remain disabled; local preview entries and selected images disappear when this screen reloads or the app closes.' : 'No account, database, file-storage provider or production API is connected. Local preview entries and images disappear when this screen reloads or the app closes.'}</Text>
         </View>
       </ScrollView>
 
@@ -490,31 +608,50 @@ function FormError({ message }: { message: string }) {
   return message ? <Text accessibilityRole="alert" style={styles.formError}>{message}</Text> : null;
 }
 
-function EmptyState({ message }: { message: string }) {
-  return <View style={styles.emptyState}><Ionicons color={colors.gold} name="document-text-outline" size={24} /><Text style={styles.emptyStateTitle}>{message}</Text><Text style={styles.emptyStateCopy}>Only records associated with the selected preview vehicle appear here.</Text></View>;
+function EmptyState({ accountConnected, message }: { accountConnected: boolean; message: string }) {
+  return <View style={styles.emptyState}><Ionicons color={colors.gold} name="document-text-outline" size={24} /><Text style={styles.emptyStateTitle}>{message}</Text><Text style={styles.emptyStateCopy}>Only records associated with the selected {accountConnected ? 'account' : 'preview'} vehicle appear here.</Text></View>;
 }
 
-function RecordLabel({ local, localLabel = 'LOCAL PREVIEW', verified = false }: { local: boolean; localLabel?: string; verified?: boolean }) {
-  return <View style={[styles.recordLabel, local ? styles.recordLabelLocal : styles.recordLabelPsi]}><Text style={[styles.recordLabelText, local && styles.recordLabelTextLocal]}>{local ? localLabel : verified ? 'PSI VERIFIED · PREVIEW DATA' : 'PSI RECORD · PREVIEW DATA'}</Text></View>;
+function RecordLabel({ label, local }: { label: string; local: boolean }) {
+  return <View style={[styles.recordLabel, local ? styles.recordLabelLocal : styles.recordLabelPsi]}><Text style={[styles.recordLabelText, local && styles.recordLabelTextLocal]}>{label}</Text></View>;
 }
 
 function DynoCard({ onView, record }: { onView: () => void; record: DynoRecord }) {
-  const local = record.verification === 'customer_preview';
-  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel local={local} localLabel="CUSTOMER PREVIEW ENTRY · LOCAL PREVIEW" verified={!local} /><Text style={styles.recordTitle}>Hub Dyno · {formatDate(record.recordedAt)}</Text></View>{!local ? <Ionicons color={colors.gold} name="shield-checkmark" size={24} /> : null}</View><View style={styles.resultGrid}><ResultValue label="Peak Power" unit="kW at hubs" value={record.peakPowerKwAtHubs} /><ResultValue label="Peak Torque" unit="Nm at hubs" value={record.peakTorqueNmAtHubs} /></View><View style={styles.recordMetaRow}><RecordMeta label="Fuel" value={record.fuel} /><RecordMeta label="Record control" value={local ? 'Customer preview entry' : 'PSI-controlled · read-only'} /></View>{record.notes ? <Text style={styles.recordDescription}>{record.notes}</Text> : null}{record.graphImage ? <Pressable accessibilityLabel="View dyno graph image" accessibilityRole="button" onPress={onView} style={({ pressed }) => [styles.inlineAction, pressed && styles.pressed]}><Ionicons color={colors.gold} name="image-outline" size={18} /><Text style={styles.inlineActionText}>View dyno graph</Text></Pressable> : <Text style={styles.noAttachment}>No preview graph attached</Text>}{local ? <Text style={styles.localExpiry}>This customer preview entry clears on reload or close and is not PSI verified.</Text> : <Text style={styles.localExpiry}>Genuine PSI-published results remain read-only and PSI-controlled.</Text>}</View>;
+  const customerEntry = record.verification !== 'psi_verified';
+  const localPreview = record.createdBy === 'customer_preview';
+  const label = localPreview
+    ? 'CUSTOMER PREVIEW ENTRY · LOCAL PREVIEW'
+    : record.createdBy === 'customer_account'
+      ? 'CUSTOMER ENTRY · ACCOUNT RECORD'
+      : record.createdBy === 'psi'
+        ? 'PSI VERIFIED'
+        : 'PSI VERIFIED · PREVIEW DATA';
+  const footer = localPreview
+    ? 'This customer preview entry clears on reload or close and is not PSI verified.'
+    : record.createdBy === 'customer_account'
+      ? 'Customer account entry · not PSI verified or editable as a PSI result.'
+      : record.createdBy === 'psi'
+        ? 'Genuine PSI-published result · read-only and PSI-controlled.'
+        : 'Synthetic PSI-style example only.';
+  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel label={label} local={customerEntry} /><Text style={styles.recordTitle}>Hub Dyno · {formatDate(record.recordedAt)}</Text></View>{!customerEntry ? <Ionicons color={colors.gold} name="shield-checkmark" size={24} /> : null}</View><View style={styles.resultGrid}><ResultValue label="Peak Power" unit="kW at hubs" value={record.peakPowerKwAtHubs} /><ResultValue label="Peak Torque" unit="Nm at hubs" value={record.peakTorqueNmAtHubs} /></View><View style={styles.recordMetaRow}><RecordMeta label="Fuel" value={record.fuel} /><RecordMeta label="Record control" value={customerEntry ? 'Customer entry · not PSI verified' : 'PSI-controlled · read-only'} /></View>{record.notes ? <Text style={styles.recordDescription}>{record.notes}</Text> : null}{record.graphImage ? <Pressable accessibilityLabel="View dyno graph image" accessibilityRole="button" onPress={onView} style={({ pressed }) => [styles.inlineAction, pressed && styles.pressed]}><Ionicons color={colors.gold} name="image-outline" size={18} /><Text style={styles.inlineActionText}>View dyno graph</Text></Pressable> : <Text style={styles.noAttachment}>{record.createdBy === 'psi' || record.createdBy === 'customer_account' ? 'Graph attachment access is not enabled' : 'No preview graph attached'}</Text>}<Text style={styles.localExpiry}>{footer}</Text></View>;
 }
 
-function ResultValue({ label, unit, value }: { label: string; unit: string; value: number }) {
-  return <View style={styles.resultValue}><Text style={styles.resultLabel}>{label}</Text><Text adjustsFontSizeToFit maxFontSizeMultiplier={1.5} numberOfLines={1} style={styles.resultNumber}>{value}</Text><Text style={styles.resultUnit}>{unit}</Text></View>;
+function ResultValue({ label, unit, value }: { label: string; unit: string; value: number | null }) {
+  return <View style={styles.resultValue}><Text style={styles.resultLabel}>{label}</Text><Text adjustsFontSizeToFit maxFontSizeMultiplier={1.5} numberOfLines={1} style={styles.resultNumber}>{value ?? '—'}</Text><Text style={styles.resultUnit}>{unit}</Text></View>;
 }
 
 function RepairCard({ record }: { record: RepairRecord }) {
-  const local = record.createdBy === 'customer_preview';
-  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel local={local} /><Text style={styles.recordTitle}>{record.title}</Text></View><Ionicons color={colors.gold} name="construct-outline" size={23} /></View><View style={styles.recordMetaRow}><RecordMeta label="Date" value={formatDate(record.repairedAt)} /><RecordMeta label="Odometer" value={record.odometerKm == null ? 'Not recorded' : `${record.odometerKm.toLocaleString('en-AU')} km`} /></View><Text style={styles.recordDescription}>{record.description}</Text>{local ? <Text style={styles.localExpiry}>Clears when this preview reloads or closes.</Text> : null}</View>;
+  const local = record.createdBy === 'customer_preview' || record.createdBy === 'customer_account';
+  const label = record.createdBy === 'customer_preview' ? 'LOCAL PREVIEW' : record.createdBy === 'customer_account' ? 'CUSTOMER ENTRY · ACCOUNT RECORD' : record.createdBy === 'psi' ? 'PSI RECORD' : 'PSI RECORD · PREVIEW DATA';
+  const footer = record.createdBy === 'customer_preview' ? 'Clears when this preview reloads or closes.' : record.createdBy === 'customer_account' ? 'Customer-provided account record · not PSI verified.' : record.createdBy === 'psi' ? 'PSI workshop record · read-only to the customer.' : '';
+  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel label={label} local={local} /><Text style={styles.recordTitle}>{record.title}</Text></View><Ionicons color={colors.gold} name="construct-outline" size={23} /></View><View style={styles.recordMetaRow}><RecordMeta label="Date" value={formatDate(record.repairedAt)} /><RecordMeta label="Odometer" value={record.odometerKm == null ? 'Not recorded' : `${record.odometerKm.toLocaleString('en-AU')} km`} /></View><Text style={styles.recordDescription}>{record.description}</Text>{footer ? <Text style={styles.localExpiry}>{footer}</Text> : null}</View>;
 }
 
 function FutureRepairCard({ record }: { record: FutureRepair }) {
-  const local = record.createdBy === 'customer_preview';
-  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel local={local} /><Text style={styles.recordTitle}>{record.title}</Text></View><StatusBadge status={record.status} /></View><RecordMeta label="Timing" value={record.timing} /><Text style={styles.recordDescription}>{record.notes}</Text>{local ? <Text style={styles.localExpiry}>Customer-added preview only · not verified or recommended by PSI.</Text> : <Text style={styles.localExpiry}>Synthetic example only · PSI has not reviewed this preview vehicle.</Text>}</View>;
+  const local = record.createdBy === 'customer_preview' || record.createdBy === 'customer_account';
+  const label = record.createdBy === 'customer_preview' ? 'LOCAL PREVIEW' : record.createdBy === 'customer_account' ? 'CUSTOMER NOTE · ACCOUNT RECORD' : record.createdBy === 'psi' ? 'PSI RECOMMENDATION' : 'PSI RECORD · PREVIEW DATA';
+  const footer = record.createdBy === 'customer_preview' ? 'Customer-added preview only · not verified or recommended by PSI.' : record.createdBy === 'customer_account' ? 'Customer account note · not a PSI recommendation.' : record.createdBy === 'psi' ? 'PSI recommendation · read-only to the customer.' : 'Synthetic example only · PSI has not reviewed this preview vehicle.';
+  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel label={label} local={local} /><Text style={styles.recordTitle}>{record.title}</Text></View><StatusBadge status={record.status} /></View><RecordMeta label="Timing" value={record.timing} /><Text style={styles.recordDescription}>{record.notes}</Text><Text style={styles.localExpiry}>{footer}</Text></View>;
 }
 
 function StatusBadge({ status }: { status: FutureRepairStatus }) {
@@ -523,7 +660,10 @@ function StatusBadge({ status }: { status: FutureRepairStatus }) {
 
 function InvoiceCard({ onRemove, onReplace, onView, record, vehicleLabel }: { onRemove: () => void; onReplace: () => void; onView: () => void; record: InvoiceRecord; vehicleLabel: string }) {
   const local = record.createdBy === 'customer_preview';
-  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel local={local} /><Text style={styles.recordTitle}>{record.invoiceNumber}</Text><Text style={styles.invoiceDate}>{formatDate(record.invoiceDate)}</Text></View><Text adjustsFontSizeToFit numberOfLines={1} style={styles.invoiceAmount}>{record.amountAud == null ? '—' : formatCurrency(record.amountAud)}</Text></View><RecordMeta label="Vehicle" value={vehicleLabel} /><Text style={styles.recordDescription}>{record.summary}</Text><Text style={styles.attachmentStatus}>{record.attachment ? 'IMAGE SELECTED LOCALLY · NOT UPLOADED' : record.attachmentStatus === 'preview_reference_only' ? 'PREVIEW REFERENCE · NO ATTACHMENT FILE' : 'NO ATTACHMENT'}</Text>{record.attachment ? <View style={styles.attachmentActions}><SmallAction icon="eye-outline" label="View attachment" onPress={onView} /><SmallAction icon="refresh-outline" label="Replace" onPress={onReplace} /><SmallAction icon="trash-outline" label="Remove" onPress={onRemove} /></View> : local ? <SmallAction icon="image-outline" label="Choose image" onPress={onReplace} /> : null}<Text style={styles.localExpiry}>{local ? 'This invoice and image clear on reload or close.' : 'Synthetic PSI-style example only. No real invoice is loaded.'}</Text></View>;
+  const label = local ? 'LOCAL PREVIEW' : record.createdBy === 'psi' ? 'PSI INVOICE RECORD' : 'PSI RECORD · PREVIEW DATA';
+  const attachmentStatus = record.attachment ? 'IMAGE SELECTED LOCALLY · NOT UPLOADED' : record.attachmentStatus === 'preview_reference_only' ? 'PREVIEW REFERENCE · NO ATTACHMENT FILE' : record.attachmentStatus === 'secure_file_unavailable' ? 'PRIVATE ATTACHMENT ACCESS NOT ENABLED' : 'NO ATTACHMENT';
+  const footer = local ? 'This invoice and image clear on reload or close.' : record.createdBy === 'psi' ? 'PSI invoice metadata · read-only. Private attachment access is not enabled.' : 'Synthetic PSI-style example only. No real invoice is loaded.';
+  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel label={label} local={local} /><Text style={styles.recordTitle}>{record.invoiceNumber}</Text><Text style={styles.invoiceDate}>{formatDate(record.invoiceDate)}</Text></View><Text adjustsFontSizeToFit numberOfLines={1} style={styles.invoiceAmount}>{record.amountAud == null ? '—' : formatCurrency(record.amountAud)}</Text></View><RecordMeta label="Vehicle" value={vehicleLabel} /><Text style={styles.recordDescription}>{record.summary}</Text><Text style={styles.attachmentStatus}>{attachmentStatus}</Text>{record.attachment ? <View style={styles.attachmentActions}><SmallAction icon="eye-outline" label="View attachment" onPress={onView} /><SmallAction icon="refresh-outline" label="Replace" onPress={onReplace} /><SmallAction icon="trash-outline" label="Remove" onPress={onRemove} /></View> : local ? <SmallAction icon="image-outline" label="Choose image" onPress={onReplace} /> : null}<Text style={styles.localExpiry}>{footer}</Text></View>;
 }
 
 function RecordMeta({ label, value }: { label: string; value: string }) {
@@ -558,6 +698,9 @@ function makeLocalId(prefix: string) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.ink },
+  accountState: { flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', gap: spacing.md },
+  accountStateTitle: { color: colors.white, fontSize: 24, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
+  accountStateCopy: { maxWidth: 420, color: colors.muted, fontSize: 13, lineHeight: 20, textAlign: 'center' },
   scroll: { width: '100%', maxWidth: 980, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   backButton: { ...mobileFrame, width: 46, height: 46, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 23, backgroundColor: colors.white },
