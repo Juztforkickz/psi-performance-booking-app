@@ -60,10 +60,11 @@ test("the Shopify Version 3 handoff is self-contained, enquiry-only and responsi
 });
 
 test("the Shopify global theme layer carries the approved PSI palette across shared components", async () => {
-  const [styles, globalScript, versionSix] = await Promise.all([
+  const [styles, globalScript, versionSix, versionSeven] = await Promise.all([
     read("shopify/psi-global-brand-system.css"),
     read("shopify/psi-website-version-5-global.js"),
     read("shopify/psi-website-version-6-global.js"),
+    read("shopify/psi-website-version-7-desktop-hero.js"),
   ]);
 
   for (const colour of ["#65cff8", "#155d78", "#dbe3e7", "#8f999e", "#050505"]) {
@@ -90,6 +91,10 @@ test("the Shopify global theme layer carries the approved PSI palette across sha
   assert.match(versionSix, /Real feedback from customers/u);
   assert.match(versionSix, /psi-v6-brand-grid/u);
   assert.doesNotMatch(versionSix, /yellow|#ffd700|#ffcc00|#f5c400/iu);
+  assert.match(versionSeven, /@media\(min-width:750px\)/u);
+  assert.match(versionSeven, /max-width:54\.5rem!important/u);
+  assert.match(versionSeven, /padding:4rem 3\.5rem!important/u);
+  assert.doesNotMatch(versionSeven, /max-width:749px|@media\(max-width/u);
   assert.doesNotMatch(styles, /yellow|#ffd700|#ffcc00|#f5c400/iu);
   assert.doesNotMatch(globalScript, /yellow|#ffd700|#ffcc00|#f5c400/iu);
 });
