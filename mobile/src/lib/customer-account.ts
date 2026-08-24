@@ -86,7 +86,6 @@ export async function saveCustomerVehicle(input: CustomerVehicleInput) {
   const { data: existing, error: existingError } = await supabase
     .from('customer_vehicles')
     .select('*')
-      .eq('customer_id', user.id)
     .eq('customer_id', user.id)
     .eq('registration', registration)
     .is('archived_at', null)
@@ -104,6 +103,7 @@ export async function saveCustomerVehicle(input: CustomerVehicleInput) {
         year: input.year,
       })
       .eq('id', existing.id)
+      .eq('customer_id', user.id)
       .select('*')
       .single();
 
