@@ -1,10 +1,15 @@
 import type { User } from '@supabase/supabase-js';
 
-import type { CustomerProfileRow, CustomerVehicleRow } from '@/lib/database.types';
+import type {
+  CustomerProfileRow,
+  CustomerVehicleRow,
+  VehicleServiceSummaryRow,
+} from '@/lib/database.types';
 import { getSupabaseClient } from '@/lib/supabase';
 
 export type CustomerAccountSnapshot = {
   profile: CustomerProfileRow | null;
+  serviceSummaries: VehicleServiceSummaryRow[];
   user: User;
   vehicles: CustomerVehicleRow[];
 };
@@ -31,7 +36,7 @@ async function getVerifiedCustomer() {
 export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
   const supabase = getSupabaseClient();
   const user = await getVerifiedCustomer();
-  const [profileResult, vehiclesResult] = await Promise.all([
+  const [profileResult, vehiclesResult, serviceSummariesResult] = await Promise.all([
     supabase
       .from('customer_profiles')
       .select('*')
@@ -44,16 +49,46 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
       .is('archived_at', null)
       .order('is_primary', { ascending: false })
       .order('created_at', { ascending: true }),
+    supabase
+      .from('vehicle_service_summary')
+      .select('*')
+      .eq('customer_id', user.id),
   ]);
 
   if (profileResult.error) throw profileResult.error;
   if (vehiclesResult.error) throw vehiclesResult.error;
+  if (serviceSummariesResult.error) throw serviceSummariesResult.error;
 
   return {
     profile: profileResult.data,
+    serviceSummaries: serviceSummariesResult.data ?? [],
     user,
     vehicles: vehiclesResult.data ?? [],
   };
+}
+
+export async function saveCustomerOdometer(vehicleId: string, readingKm: number) {
+  if (!Number.isInteger(readingKm) || readingKm < 0 || readingKm > 9_999_999) {
+    throw new Error('INVALID_ODOMETER_READING');
+  }
+
+  const supabase = getSupabaseClient();
+  const user = await getVerifiedCustomer();
+  const { data, error } = await supabase
+    .from('odometer_readings')
+    .insert({
+      created_by: user.id,
+      customer_id: user.id,
+      reading_km: readingKm,
+      record_source: 'customer_entry',
+      service_completion_id: null,
+      vehicle_id: vehicleId,
+    })
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return data;
 }
 
 export async function saveCustomerProfile(input: CustomerProfileInput) {

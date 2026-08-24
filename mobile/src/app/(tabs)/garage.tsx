@@ -16,6 +16,7 @@ import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { VehiclePhotoPicker } from '@/components/vehicle-photo-picker';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { saveCustomerOdometer } from '@/lib/customer-account';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
@@ -53,18 +54,23 @@ export default function GarageScreen() {
   }
 
   const secureVehicles = secureAccountActive
-    ? (account?.vehicles ?? []).map((vehicle): PreviewVehicle => ({
-      id: vehicle.id,
-      isPrimary: vehicle.is_primary,
-      lastVisit: null,
-      make: vehicle.make,
-      model: vehicle.model,
-      nextDue: null,
-      odometerKm: vehicle.odometer_km,
-      registration: vehicle.registration,
-      vinLastFour: vehicle.vin_last_four,
-      year: vehicle.year,
-    }))
+    ? (account?.vehicles ?? []).map((vehicle): PreviewVehicle => {
+      const summary = account?.serviceSummaries.find((candidate) => candidate.vehicle_id === vehicle.id);
+      return {
+        id: vehicle.id,
+        isPrimary: vehicle.is_primary,
+        lastVisit: summary?.latest_psi_service_at ?? null,
+        latestPsiOdometerKm: summary?.latest_psi_odometer_km ?? null,
+        make: vehicle.make,
+        model: vehicle.model,
+        nextDue: summary?.next_psi_check_in_date ?? null,
+        nextPsiCheckInOdometerKm: summary?.next_psi_check_in_odometer_km ?? null,
+        odometerKm: summary?.latest_customer_odometer_km ?? vehicle.odometer_km,
+        registration: vehicle.registration,
+        vinLastFour: vehicle.vin_last_four,
+        year: vehicle.year,
+      };
+    })
     : null;
 
   if (secureVehicles && secureVehicles.length === 0) {
@@ -103,6 +109,7 @@ function GarageAccountState({
 
 function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVehicle[] | null }) {
   const router = useRouter();
+  const { refreshAccount } = useCustomerAccount();
   const { section } = useLocalSearchParams<{ section?: string }>();
   const { compact, horizontalPadding, largeText, tablet } = useResponsiveLayout();
   const {
@@ -127,7 +134,13 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
   const buildPlan = CUSTOMER_PREVIEW.buildPlans.find((plan) => plan.vehicleId === selectedVehicle.id);
   const vehicleLabel = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;
   const dynoFirst = section === 'dyno';
-  const maintenance = vehicleMaintenance[selectedVehicle.id] ?? {
+  const localMaintenance = vehicleMaintenance[selectedVehicle.id];
+  const maintenance = secureVehicles ? {
+    customerLastServiceDate: localMaintenance?.customerLastServiceDate ?? null,
+    customerNextCheckInDate: localMaintenance?.customerNextCheckInDate ?? null,
+    odometerKm: selectedVehicle.odometerKm,
+    updatedLocally: Boolean(localMaintenance?.customerLastServiceDate || localMaintenance?.customerNextCheckInDate),
+  } : localMaintenance ?? {
     customerLastServiceDate: null,
     customerNextCheckInDate: null,
     odometerKm: selectedVehicle.odometerKm,
@@ -141,12 +154,14 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
   });
   const [maintenanceError, setMaintenanceError] = useState('');
   const [maintenanceNotice, setMaintenanceNotice] = useState('');
+  const [maintenanceSaving, setMaintenanceSaving] = useState(false);
 
   const resetMaintenanceDraft = (vehicle: PreviewVehicle) => {
-    const nextMaintenance = vehicleMaintenance[vehicle.id] ?? {
-      customerLastServiceDate: null,
-      customerNextCheckInDate: null,
-      odometerKm: vehicle.odometerKm,
+    const local = vehicleMaintenance[vehicle.id];
+    const nextMaintenance = {
+      customerLastServiceDate: local?.customerLastServiceDate ?? null,
+      customerNextCheckInDate: local?.customerNextCheckInDate ?? null,
+      odometerKm: secureVehicles ? vehicle.odometerKm : local?.odometerKm ?? vehicle.odometerKm,
     };
     setMaintenanceDraft({
       customerLastServiceDate: nextMaintenance.customerLastServiceDate ?? '',
@@ -174,7 +189,7 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
     router.push({ pathname: '/booking', params: { type } });
   };
 
-  const saveMaintenancePreview = () => {
+  const saveMaintenancePreview = async () => {
     const odometerKm = maintenanceDraft.odometerKm ? Number(maintenanceDraft.odometerKm) : null;
     const datesAreValid = [maintenanceDraft.customerLastServiceDate, maintenanceDraft.customerNextCheckInDate]
       .every((value) => !value || isIsoDate(value));
@@ -186,14 +201,34 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
       setMaintenanceError('Enter a valid odometer and use YYYY-MM-DD for each date, or leave a field blank.');
       return;
     }
-    updateVehicleMaintenancePreview(selectedVehicle.id, {
-      customerLastServiceDate: maintenanceDraft.customerLastServiceDate || null,
-      customerNextCheckInDate: maintenanceDraft.customerNextCheckInDate || null,
-      odometerKm,
-    });
-    setMaintenanceError('');
-    setMaintenanceNotice('Maintenance details updated for this open preview only. Nothing was uploaded or permanently saved.');
-    setMaintenanceOpen(false);
+    if (secureVehicles && odometerKm !== null && selectedVehicle.odometerKm !== null && odometerKm < selectedVehicle.odometerKm) {
+      setMaintenanceNotice('');
+      setMaintenanceError(`A new customer reading cannot be lower than the latest saved reading of ${selectedVehicle.odometerKm.toLocaleString('en-AU')} km.`);
+      return;
+    }
+
+    setMaintenanceSaving(true);
+    try {
+      if (secureVehicles && odometerKm !== null && odometerKm !== selectedVehicle.odometerKm) {
+        await saveCustomerOdometer(selectedVehicle.id, odometerKm);
+        refreshAccount();
+      }
+      updateVehicleMaintenancePreview(selectedVehicle.id, {
+        customerLastServiceDate: maintenanceDraft.customerLastServiceDate || null,
+        customerNextCheckInDate: maintenanceDraft.customerNextCheckInDate || null,
+        odometerKm,
+      });
+      setMaintenanceError('');
+      setMaintenanceNotice(secureVehicles
+        ? `Customer odometer ${odometerKm !== null && odometerKm !== selectedVehicle.odometerKm ? 'saved privately to the account' : 'was not changed'}. Personal service dates remain local to this open session and are not PSI verified.`
+        : 'Maintenance details updated for this open preview only. Nothing was uploaded or permanently saved.');
+      setMaintenanceOpen(false);
+    } catch {
+      setMaintenanceNotice('');
+      setMaintenanceError('The customer odometer could not be saved. No new reading was added; check the secure session and try again.');
+    } finally {
+      setMaintenanceSaving(false);
+    }
   };
 
   return (
@@ -221,7 +256,7 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
           <Text style={styles.previewNoticeTitle}>{secureVehicles ? 'Private account vehicles' : 'Preview vehicle data'}</Text>
           <Text style={styles.previewNoticeCopy}>
             {secureVehicles
-              ? 'This vehicle list is loaded from your authenticated private account. Photos and maintenance edits on this screen remain local to this open session and are not uploaded or saved yet.'
+              ? 'Vehicles, PSI service dates and customer odometer readings load from your authenticated private account. Photos and personal reminder dates remain local to this open session.'
               : 'This garage is not connected to PSI records. Details and photos stay only in this open app preview and clear when it reloads or closes.'}
           </Text>
         </View>
@@ -299,10 +334,12 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
               />
               <VehicleStat label="Last PSI service" value={formatShortDate(selectedVehicle.lastVisit)} />
               <VehicleStat label="Next PSI check-in" value={formatShortDate(selectedVehicle.nextDue)} />
+              {secureVehicles ? <VehicleStat label="Latest PSI odometer" value={formatOdometer(selectedVehicle.latestPsiOdometerKm)} /> : null}
+              {secureVehicles ? <VehicleStat label="Next PSI odometer" value={formatOdometer(selectedVehicle.nextPsiCheckInOdometerKm)} /> : null}
               <VehicleStat label="Personal last service" value={formatShortDate(maintenance.customerLastServiceDate)} />
               <VehicleStat label="Personal next check-in" value={formatShortDate(maintenance.customerNextCheckInDate)} />
             </View>
-            {maintenance.updatedLocally ? <Text style={styles.localMaintenanceLabel}>Local preview details · not a PSI-verified record</Text> : null}
+            {maintenance.updatedLocally ? <Text style={styles.localMaintenanceLabel}>{secureVehicles ? 'Local personal reminders · not PSI verified' : 'Local preview details · not a PSI-verified record'}</Text> : null}
           </View>
         </View>
 
@@ -311,7 +348,7 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
             <View style={styles.maintenanceHeadingCopy}>
               <Text style={styles.primaryLabel}>Vehicle upkeep</Text>
               <Text style={styles.maintenanceTitle}>Maintenance details</Text>
-              <Text style={styles.bodyCopy}>Update the customer odometer and personal service reminders for this {secureVehicles ? 'open session' : 'preview vehicle'}.</Text>
+              <Text style={styles.bodyCopy}>{secureVehicles ? 'Add a private customer odometer reading and keep optional personal service reminders for this open session.' : 'Update the customer odometer and personal service reminders for this preview vehicle.'}</Text>
             </View>
             <Ionicons color={colors.gold} name="create-outline" size={24} />
           </View>
@@ -333,8 +370,8 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
               </View>
               {maintenanceError ? <Text accessibilityRole="alert" style={styles.maintenanceError}>{maintenanceError}</Text> : null}
               <View style={styles.maintenanceActions}>
-                <PrimaryButton label="Save Preview Details" onPress={saveMaintenancePreview} />
-                <PrimaryButton label="Cancel" onPress={() => { setMaintenanceOpen(false); setMaintenanceError(''); }} variant="outline" />
+                <PrimaryButton label={secureVehicles ? 'Save Maintenance Details' : 'Save Preview Details'} loading={maintenanceSaving} onPress={() => void saveMaintenancePreview()} />
+                <PrimaryButton disabled={maintenanceSaving} label="Cancel" onPress={() => { setMaintenanceOpen(false); setMaintenanceError(''); }} variant="outline" />
               </View>
             </View>
           ) : (
@@ -344,7 +381,7 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
             </View>
           )}
           {maintenanceNotice ? <Text accessibilityRole="alert" style={styles.maintenanceNotice}>{maintenanceNotice}</Text> : null}
-          <Text style={styles.maintenanceExpiry}>Local only · these edits clear when the app reloads or closes.</Text>
+          <Text style={styles.maintenanceExpiry}>{secureVehicles ? 'Customer odometer readings are append-only account records. Personal dates remain local and clear when the app reloads or closes.' : 'Local only · these edits clear when the app reloads or closes.'}</Text>
         </View>
 
         {dynoFirst ? <DynoResultCard result={dynoResult} vehicleLabel={vehicleLabel} /> : null}
@@ -484,6 +521,10 @@ function formatShortDate(value: string | null) {
     month: 'short',
     year: 'numeric',
   });
+}
+
+function formatOdometer(value: number | null | undefined) {
+  return value == null ? 'Not recorded' : `${value.toLocaleString('en-AU')} km`;
 }
 
 function isIsoDate(value: string) {

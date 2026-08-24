@@ -140,15 +140,21 @@ as separate sources:
 The Expo account screens now contain typed RLS-bound profile/vehicle reads and
 writes. A shared authenticated account provider clears private data on sign-out,
 refreshes after an approved profile/vehicle save, and supplies the same owned
-vehicle snapshot to Account and My Garage. An authenticated Garage can hand the
-selected owned vehicle into the existing booking form; the verified Auth email
-and owned profile name/mobile also prefill the customer step. The account editor
+vehicle snapshot and service summary to Account and My Garage. An authenticated
+Garage reads the protected latest PSI service/check-in and PSI odometer figures
+separately from the latest customer odometer, and adds a changed customer
+odometer as an append-only `customer_entry` row. The client rejects a lower
+reading and never presents a
+customer reading as PSI verified; database RLS remains the ownership authority.
+Personal last-service/next-check-in reminders and vehicle photos remain local to
+the open session. Garage can hand the selected owned vehicle into the existing
+booking form; the verified Auth email and owned profile name/mobile also prefill
+the customer step. The account editor
 loads the existing profile and primary vehicle before accepting changes, and an
 existing vehicle update matches both its exact ID and the authenticated customer
 ID. The live RLS policy check confirms customer updates still require the same
 customer and record creator; PSI-authored vehicle details therefore render
-read-only to the customer. Photos and customer maintenance edits remain
-session-local and are not uploaded or persisted. These paths are unreachable
+read-only to the customer. These authenticated paths are unreachable
 while the activation flag is false; the public preview continues to use
 synthetic vehicles and in-memory maintenance changes. Real customer access
 remains disabled until cross-account and real-device tests pass.

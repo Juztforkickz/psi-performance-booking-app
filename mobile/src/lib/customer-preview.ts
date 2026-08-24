@@ -2,9 +2,11 @@ export type PreviewVehicle = {
   id: string;
   isPrimary: boolean;
   lastVisit: string | null;
+  latestPsiOdometerKm?: number | null;
   make: string;
   model: string;
   nextDue: string | null;
+  nextPsiCheckInOdometerKm?: number | null;
   odometerKm: number | null;
   registration: string;
   vinLastFour: string | null;

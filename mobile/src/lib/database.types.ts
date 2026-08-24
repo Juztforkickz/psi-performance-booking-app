@@ -90,8 +90,48 @@ export type Database = {
           },
         ];
       };
+      odometer_readings: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          customer_id: string;
+          id: string;
+          reading_km: number;
+          recorded_at: string;
+          record_source: 'customer_entry' | 'psi_record';
+          service_completion_id: string | null;
+          vehicle_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          customer_id: string;
+          id?: string;
+          reading_km: number;
+          recorded_at?: string;
+          record_source: 'customer_entry' | 'psi_record';
+          service_completion_id?: string | null;
+          vehicle_id: string;
+        };
+        Update: Record<never, never>;
+        Relationships: [];
+      };
     };
-    Views: Record<never, never>;
+    Views: {
+      vehicle_service_summary: {
+        Row: {
+          customer_id: string | null;
+          latest_customer_odometer_km: number | null;
+          latest_customer_odometer_recorded_at: string | null;
+          latest_psi_odometer_km: number | null;
+          latest_psi_service_at: string | null;
+          next_psi_check_in_date: string | null;
+          next_psi_check_in_odometer_km: number | null;
+          vehicle_id: string | null;
+        };
+        Relationships: [];
+      };
+    };
     Functions: Record<never, never>;
     Enums: Record<never, never>;
     CompositeTypes: Record<never, never>;
@@ -100,3 +140,5 @@ export type Database = {
 
 export type CustomerProfileRow = Database['public']['Tables']['customer_profiles']['Row'];
 export type CustomerVehicleRow = Database['public']['Tables']['customer_vehicles']['Row'];
+export type OdometerReadingRow = Database['public']['Tables']['odometer_readings']['Row'];
+export type VehicleServiceSummaryRow = Database['public']['Views']['vehicle_service_summary']['Row'];
