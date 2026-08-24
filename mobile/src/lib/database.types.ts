@@ -371,7 +371,22 @@ export type Database = {
         Relationships: [];
       };
     };
-    Functions: Record<never, never>;
+    Functions: {
+      current_staff_access: {
+        Args: Record<never, never>;
+        Returns: {
+          activated_at: string | null;
+          created_at: string;
+          email: string;
+          id: string;
+          invited_at: string;
+          role: 'owner' | 'staff';
+          status: 'active' | 'disabled' | 'pending';
+          updated_at: string;
+          user_id: string | null;
+        }[];
+      };
+    };
     Enums: Record<never, never>;
     CompositeTypes: Record<never, never>;
   };

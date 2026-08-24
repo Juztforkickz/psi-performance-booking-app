@@ -36,9 +36,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
   if (userError || !userData.user) throw userError ?? new Error('STAFF_SESSION_REQUIRED');
 
   const { data: staff, error: staffError } = await supabase
-    .from('staff_members')
-    .select('*')
-    .eq('user_id', userData.user.id)
+    .rpc('current_staff_access')
     .maybeSingle();
   if (staffError) throw staffError;
   if (!staff || staff.status !== 'active') return { kind: 'access_denied' };

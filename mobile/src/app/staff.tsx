@@ -76,7 +76,14 @@ export default function StaffPortalScreen() {
   }
   if (loadState.status === 'loading' || loadState.userId !== auth.user?.id) return <PortalState copy="Checking the staff allowlist and MFA level…" loading title="Checking staff access" />;
   if (loadState.status === 'error') {
-    return <PortalState copy="Staff access could not be verified. No workshop records were loaded." title="Staff portal unavailable" />;
+    return (
+      <PortalState
+        actionLabel="Try again"
+        copy="Staff access could not be verified. No workshop records were loaded."
+        onAction={() => setRefreshNonce((current) => current + 1)}
+        title="Staff portal unavailable"
+      />
+    );
   }
   const access = loadState.access;
   if (!access) {

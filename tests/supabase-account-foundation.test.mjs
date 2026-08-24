@@ -22,6 +22,10 @@ const dataApiGrants = await readFile(
   new URL("../supabase/migrations/20260823140259_tighten_data_api_grants.sql", import.meta.url),
   "utf8",
 );
+const staffMfaBootstrap = await readFile(
+  new URL("../supabase/migrations/20260824101743_restrict_staff_access_and_bootstrap_mfa.sql", import.meta.url),
+  "utf8",
+);
 const mobileEnvironment = await readFile(
   new URL("../mobile/.env.example", import.meta.url),
   "utf8",
@@ -56,8 +60,13 @@ test("Supabase customer data and file access remain RLS-protected", () => {
 
 test("staff allowlist and editor ownership match the approved PSI model", () => {
   assert.match(foundation, /'matt@psiperformance\.com\.au', 'owner', 'pending'/u);
-  assert.match(foundation, /'dale@psiperformance\.com\.au', 'staff', 'pending'/u);
-  assert.match(foundation, /'jamie@psiperformance\.com\.au', 'staff', 'pending'/u);
+  assert.match(staffMfaBootstrap, /delete from public\.staff_members/u);
+  assert.match(staffMfaBootstrap, /'dale@psiperformance\.com\.au'/u);
+  assert.match(staffMfaBootstrap, /'jamie@psiperformance\.com\.au'/u);
+  assert.match(staffMfaBootstrap, /create or replace function public\.current_staff_access\(\)/u);
+  assert.match(staffMfaBootstrap, /staff\.user_id = \(select auth\.uid\(\)\)/u);
+  assert.match(staffMfaBootstrap, /revoke all on function public\.current_staff_access\(\) from public, anon, authenticated/u);
+  assert.match(staffMfaBootstrap, /grant execute on function public\.current_staff_access\(\) to authenticated/u);
   assert.match(ownership, /prevent_created_by_change/u);
   assert.match(ownership, /staff creators or owner can update dyno records/u);
   assert.match(ownership, /staff uploaders or owner can remove private files/u);

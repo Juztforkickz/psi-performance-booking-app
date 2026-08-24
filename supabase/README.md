@@ -16,6 +16,9 @@ The public GitHub Pages demo does not activate this connection.
   `https://juztforkickz.github.io/psi-performance-booking-app/`, providing a
   safe public-preview fallback instead of `localhost`.
 - `matt@psiperformance.com.au` remains the PSI owner identity.
+- Matt is currently the only allowlisted staff identity. The unused pending
+  Dale and Jamie rows were removed and may be re-added later through the
+  reviewed staff invitation process.
 - `info@psiperformance.com.au` is the confirmed controlled customer pilot used
   to verify email delivery, code verification and customer-session RLS.
 - The GitHub Pages workflow explicitly keeps

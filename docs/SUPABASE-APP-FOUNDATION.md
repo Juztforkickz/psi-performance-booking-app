@@ -81,14 +81,14 @@ Remaining private-QA gates:
 
 ## Staff access and MFA
 
-The staff allowlist is pre-created. Matt accepted the owner invitation on
-23 August 2026; Dale and Jamie remain pending and have not been activated:
+The initial staff allowlist is owner-only. Matt accepted the owner invitation
+on 23 August 2026. The unused pending Dale and Jamie entries were removed on
+24 August 2026 and can be added again later through the reviewed staff-invite
+process:
 
 | Email | Role | Access |
 | --- | --- | --- |
 | `matt@psiperformance.com.au` | Owner (active) | Full staff management and owner override |
-| `dale@psiperformance.com.au` | Staff | Workshop records and booking workflow |
-| `jamie@psiperformance.com.au` | Staff | Workshop records and booking workflow |
 
 Staff MFA is required before the database recognises a staff session. Email
 code login proves access to the mailbox; MFA adds a separately held factor.
@@ -199,8 +199,9 @@ The first portal should provide:
 The first client foundation for that portal now exists at the Expo route
 `/staff`. It is deliberately unlinked from customer navigation and available
 only when Auth is enabled in a controlled QA build. The route first verifies the
-current Auth user against their own `staff_members` row, then checks the current
-authenticator assurance level. It does not issue workshop-wide queries until an
+current Auth user through a narrowly scoped function that can return only that
+user's own `staff_members` row, then checks the current authenticator assurance
+level. It does not issue workshop-wide queries until an
 active allowlisted staff identity has reached AAL2. At AAL2, its initial view is
 read-only: active booking requests plus customer and vehicle lookup through the
 existing RLS policies. The public build renders only an unavailable notice.
