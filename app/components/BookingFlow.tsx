@@ -112,14 +112,6 @@ function requireCatalogBookingChoice(bookingType: BookingType): CatalogBookingCh
   return choice;
 }
 
-function formatAudAmount(amountCents: number, includeCents = false) {
-  const amount = (amountCents / 100).toLocaleString("en-AU", {
-    minimumFractionDigits: includeCents || amountCents % 100 !== 0 ? 2 : 0,
-    maximumFractionDigits: 2,
-  });
-  return `$${amount} AUD`;
-}
-
 function formatPriceGuide(choice: CatalogBookingChoice, sentenceCase = true) {
   const prefix = sentenceCase
     ? choice.priceGuide.prefix.charAt(0).toUpperCase() + choice.priceGuide.prefix.slice(1)
@@ -758,7 +750,7 @@ export function BookingFlow() {
     }
 
     if (targetStep === 4 && !form.bookingTermsAccepted) {
-      nextErrors.bookingTermsAccepted = "Confirm the request, date and deposit policy before submitting.";
+      nextErrors.bookingTermsAccepted = "Confirm the request and booking policy before submitting.";
     }
 
     return nextErrors;
@@ -922,12 +914,6 @@ export function BookingFlow() {
   };
 
   const selectedType = form.bookingType ? BOOKING_TYPES[form.bookingType] : null;
-  const selectedDeposit = selectedType
-    ? formatAudAmount(selectedType.depositAmountCents)
-    : null;
-  const selectedDepositWithCents = selectedType
-    ? formatAudAmount(selectedType.depositAmountCents, true)
-    : null;
 
   const clearSavedDraft = () => {
     if (submittingRef.current) return;
@@ -969,17 +955,15 @@ export function BookingFlow() {
     return (
       <section className="booking-section booking-success-section" id="booking-panel">
         <div className="request-success">
-          <p className="eyebrow" role="status">Request received · No payment taken</p>
+          <p className="eyebrow" role="status">Request received · No payment required</p>
           <h2 id="request-success-heading" tabIndex={-1}>PSI will check the workshop plan.</h2>
           <p className="request-success-reference">Reference <strong>{submittedRequest.reference}</strong></p>
           <p>{submittedRequest.message}</p>
           <ol>
             <li><strong>PSI reviews your request.</strong><span>We check the requested work, workshop capacity and your preferred date.</span></li>
             <li><strong>We confirm or propose a date.</strong><span>If your choice is unavailable, we will contact you to reschedule the vehicle.</span></li>
-            <li><strong>You receive a secure deposit link.</strong><span>Only after the date is agreed: {selectedDepositWithCents} for this request.</span></li>
-            <li><strong>Payment confirms the booking.</strong><span>A receipt and booking confirmation will be sent to you and PSI.</span></li>
+            <li><strong>Both sides receive confirmation.</strong><span>PSI receives your request instantly and you receive an enquiry confirmation email.</span></li>
           </ol>
-          <p className="request-success-policy">Once paid, the deposit is ordinarily non-refundable because PSI allocates technicians and reserves hoist, dyno and workshop capacity. If PSI needs to move the booking, the deposit can be transferred to the agreed replacement date or refunded. Your rights under the Australian Consumer Law are not excluded.</p>
           <div className="success-actions">
             <a className="button button-primary" href="/account#profile">View account preview</a>
             <a className="button button-ghost-dark" href="/booking-policy">Read booking policy</a>
@@ -1000,7 +984,7 @@ export function BookingFlow() {
           <h2>Let’s get you sorted.</h2>
         </div>
         <p>
-          Send a request first. Nothing is payable today. PSI checks the work and workshop plan, then confirms your date or offers another option before sending a secure deposit link.
+          Send an enquiry first. PSI checks the work and workshop plan, confirms your date or offers another option, then confirms by email.
         </p>
       </div>
 
@@ -1031,8 +1015,8 @@ export function BookingFlow() {
             </button>
           ))}
           <div className="request-note" aria-live="polite" aria-atomic="true">
-            <strong>Approval before payment</strong>
-            <p>Your request is reviewed by PSI first. A deposit link is sent only after a workshop date is agreed.</p>
+            <strong>Request first, payment later</strong>
+            <p>Your request is reviewed by PSI first. Pricing, scheduling and scope are confirmed before any payment request.</p>
           </div>
         </aside>
 
@@ -1047,10 +1031,10 @@ export function BookingFlow() {
             </div>
             <button type="button" onClick={clearSavedDraft} disabled={submitting || !draftSavedAt}>Clear saved draft</button>
           </div>
-          {selectedType && selectedDeposit && (
+          {selectedType && (
             <div className="booking-rate-banner" role="status" aria-live="polite" aria-atomic="true">
-              <span>{selectedType.label} · {selectedType.price}</span>
-              <strong>{selectedDeposit} deposit after approval</strong>
+              <span>{selectedType.label}</span>
+              <strong>No payment required · Enquiry only</strong>
             </div>
           )}
 
@@ -1063,7 +1047,7 @@ export function BookingFlow() {
                 <div className="selected-job-card" aria-live="polite">
                   <div>
                     <strong>{selectedType.label}</strong>
-                    <span>{selectedType.price}</span>
+                    <span>Enquiry only</span>
                   </div>
                   <p>{selectedType.detail}</p>
                   <button type="button" className="inline-change-button" onClick={changeBookingType} disabled={submitting}>Change booking type</button>
@@ -1085,10 +1069,10 @@ export function BookingFlow() {
                           type="button"
                           className="type-card"
                           onClick={() => chooseBookingType(bookingType)}
-                          aria-label={`${booking.label}. ${booking.price}`}
+                          aria-label={`${booking.label}. Send an enquiry to PSI.`}
                         >
                           <strong>{booking.label}</strong>
-                          <small>{booking.price}<br />{booking.detail}</small>
+                          <small>{booking.detail}</small>
                           <span className="type-index" aria-hidden="true">0{index + 1}</span>
                         </button>
                       );
@@ -1288,7 +1272,7 @@ export function BookingFlow() {
           {step === 4 && (
             <fieldset>
               <legend id="booking-step-4-heading" tabIndex={-1}>Review and send your request.</legend>
-              <p className="field-intro">No payment is requested at this step. PSI will review the work and confirm or propose a date first.</p>
+              <p className="field-intro">No payment is requested at this step. PSI will review the work and confirm a schedule or propose another option first.</p>
 
               <div className="deposit-layout">
                 <div className="deposit-summary">
@@ -1299,15 +1283,14 @@ export function BookingFlow() {
                     <div><dt>Customer</dt><dd>{form.firstName} {form.lastName}</dd></div>
                     <div><dt>Vehicle</dt><dd>{form.vehicleYear} {form.vehicleMake} {form.vehicleModel}<br />{form.registration}</dd></div>
                     <div><dt>Date preference</dt><dd>{displayDate(form.preferredDate, form.appointmentMode)}</dd></div>
-                    <div className="deposit-total"><dt>Deposit after date approval</dt><dd>{selectedDepositWithCents}</dd></div>
                   </dl>
                   <p>The guide price is not a final quote. PSI confirms the scope and any additional costs before work outside the agreed scope proceeds.</p>
                 </div>
 
                 <div className="bank-panel">
-                  <p className="deposit-kicker">Approval before payment</p>
-                  <h3>Request now. Pay only after confirmation.</h3>
-                  <p>PSI checks workshop capacity and either confirms your preferred date or contacts you with another option. Once agreed, PSI sends the secure {selectedDeposit} deposit link. No bank or card details are requested here.</p>
+                  <p className="deposit-kicker">Next step</p>
+                  <h3>Request sent to PSI after your final send.</h3>
+                  <p>PSI checks workshop capacity and either confirms your preferred date or contacts you with another option. You will receive an email confirmation once your request is accepted or needs rework.</p>
                 </div>
               </div>
 
@@ -1322,7 +1305,7 @@ export function BookingFlow() {
                   aria-describedby={errors.bookingTermsAccepted ? "bookingTermsAccepted-error" : undefined}
                 />
                 <span>
-                  I understand this is a request only. PSI will confirm or propose a date before sending the {selectedDeposit} deposit link. Once paid, the deposit is ordinarily non-refundable because technician time and hoist, dyno or workshop capacity are reserved. If PSI must move the booking, it can be transferred to the agreed replacement date or otherwise remedied as required. Nothing limits rights that cannot be excluded under the Australian Consumer Law.
+                  I understand this is an enquiry. PSI will confirm availability and scope first. If a date is agreed, they will send the next instructions by email.
                 </span>
               </label>
               {errors.bookingTermsAccepted && <p className="field-error" id="bookingTermsAccepted-error" role="alert">{errors.bookingTermsAccepted}</p>}
@@ -1348,25 +1331,25 @@ export function BookingFlow() {
             {step < 4 ? (
               <button type="button" className="button button-primary" onClick={goNext} disabled={submitting}>Continue <span aria-hidden="true">→</span></button>
             ) : (
-              <button
-                type="submit"
-                className="button button-primary payment-button"
-                disabled={submitting || PUBLIC_DEMO_CONFIG.submissionsDisabled}
-                aria-label={PUBLIC_DEMO_CONFIG.submissionsDisabled
-                  ? "Public demo only. Booking submission is disabled."
-                  : selectedType
-                    ? `Submit ${selectedType.label} request for PSI review. No payment is taken.`
-                    : undefined}
-              >
-                {PUBLIC_DEMO_CONFIG.submissionsDisabled
-                  ? "Demo only · Submission disabled"
-                  : submitting
-                    ? "Sending request…"
-                    : "Submit request · No payment now"}
-              </button>
-            )}
-          </div>
-          {step === 4 && <p className="secure-checkout-note">This public demo does not submit details, send email, charge a payment or create a Google Calendar event.</p>}
+                <button
+                  type="submit"
+                  className="button button-primary payment-button"
+                  disabled={submitting || PUBLIC_DEMO_CONFIG.submissionsDisabled}
+                  aria-label={PUBLIC_DEMO_CONFIG.submissionsDisabled
+                    ? "Public demo only. Booking submission is disabled."
+                    : selectedType
+                      ? `Submit ${selectedType.label} request for PSI review. No payment is required.`
+                      : undefined}
+                >
+                  {PUBLIC_DEMO_CONFIG.submissionsDisabled
+                    ? "Demo only · Submission disabled"
+                    : submitting
+                      ? "Sending request…"
+                      : "Submit request · Send enquiry"}
+                </button>
+              )}
+            </div>
+           {step === 4 && <p className="secure-checkout-note">This public demo does not submit details, send email, charge a payment or create a Google Calendar event.</p>}
           </form>
         </div>
 
@@ -1380,11 +1363,11 @@ function AppDownloadPromo() {
   return (
     <aside className="app-download-promo" aria-labelledby="app-download-heading">
       <div className="app-promo-copy">
-        <p className="app-promo-kicker">The PSI app · Coming soon</p>
+        <p className="app-promo-kicker app-promo-kicker--standout">PSI App · Coming Soon</p>
         <h3 id="app-download-heading">Your garage.<br />Always with you.</h3>
         <p>
           Save your vehicles, request future bookings faster and keep your PSI
-          customer history together in one secure portal.
+          customer history together in one secure portal. Portal launch details coming soon.
         </p>
       </div>
 
