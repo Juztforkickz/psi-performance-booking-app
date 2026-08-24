@@ -49,6 +49,9 @@ test("the Shopify Version 3 handoff is self-contained, enquiry-only and responsi
   assert.match(liquid, /data-psi-kind="plan"/u);
   assert.match(liquid, /PSI App · Coming Soon/u);
   assert.match(liquid, /@media\(max-width:760px\)/u);
+  assert.match(liquid, /Book an Appointment/u);
+  assert.match(liquid, /label==='contact'/u);
+  assert.match(liquid, /\.psi-v3 \[hidden\]\{display:none!important\}/u);
   assert.doesNotMatch(liquid, /Payright|deposit|\$\d/iu);
 
   for (const area of ["Engine", "Suspension", "Exhaust", "Intake", "Repairs", "Interior", "Programming", "Other"]) {
@@ -57,7 +60,10 @@ test("the Shopify Version 3 handoff is self-contained, enquiry-only and responsi
 });
 
 test("the Shopify global theme layer carries the approved PSI palette across shared components", async () => {
-  const styles = await read("shopify/psi-global-brand-system.css");
+  const [styles, globalScript] = await Promise.all([
+    read("shopify/psi-global-brand-system.css"),
+    read("shopify/psi-website-version-5-global.js"),
+  ]);
 
   for (const colour of ["#65cff8", "#155d78", "#dbe3e7", "#8f999e", "#050505"]) {
     assert.match(styles, new RegExp(colour, "iu"));
@@ -67,5 +73,14 @@ test("the Shopify global theme layer carries the approved PSI palette across sha
     assert.match(styles, new RegExp(selector.replaceAll(".", "\\."), "u"));
   }
 
+  assert.match(styles, /Website Version 5/u);
+  assert.match(styles, /#psi-estimator #page-title\{color:#fff!important/u);
+  assert.match(styles, /@media\(max-width:749px\)[\s\S]*#psi-estimator #page-title/u);
+  assert.match(globalScript, /psi-website-version-5-theme/u);
+  assert.match(globalScript, /window\.location\.pathname === "\/" \? "#booking-panel" : "\/#booking-panel"/u);
+  assert.match(globalScript, /Book an Appointment/u);
+  assert.match(globalScript, /bookingPanel[\s\S]*upgrade-item-link[\s\S]*replaceWith/u);
+  assert.match(globalScript, /#psi-estimator #page-title\{color:#fff!important/u);
   assert.doesNotMatch(styles, /yellow|#ffd700|#ffcc00|#f5c400/iu);
+  assert.doesNotMatch(globalScript, /yellow|#ffd700|#ffcc00|#f5c400/iu);
 });

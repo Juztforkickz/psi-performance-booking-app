@@ -1,4 +1,11 @@
-/* PSI Performance global blue/silver theme — Website Version 5 */
+/* PSI Performance Website Version 5 — global Shopify enhancement */
+(() => {
+  const styleId = "psi-website-version-5-theme";
+
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
 :root{--psi-blue:#65cff8;--psi-deep:#155d78;--psi-silver:#dbe3e7;--psi-steel:#8f999e;--psi-charcoal:#111416;--psi-black:#050505}
 html{scroll-behavior:smooth}
 body,.gradient{background-color:var(--psi-black)}
@@ -17,14 +24,48 @@ body,.gradient{background-color:var(--psi-black)}
 .pagination__item--current,.pagination__item:hover,.underlined-link:hover{color:var(--psi-blue)}
 .footer{border-top:2px solid var(--psi-blue)!important;background:linear-gradient(180deg,#0b0d0e,#020202)}
 .footer a:hover{color:var(--psi-blue)!important}
-
-/* Keep the PSI power calculator hero legible over its dark performance artwork. */
 #psi-estimator #page-title{color:#fff!important;text-shadow:0 2px 22px rgba(0,0,0,.72)}
 #psi-estimator .hero-lead{color:#d4d9dc!important}
 #psi-estimator .hero-stats span{color:#aeb6bb!important}
 #psi-estimator select:focus{border-color:var(--psi-blue)!important;box-shadow:0 0 0 3px rgba(101,207,248,.2)!important}
+@media(max-width:749px){.title-wrapper-with-link,.main-page-title,.collection-hero__title{padding-left:12px}#psi-estimator #page-title{font-size:clamp(34px,11vw,54px)!important;line-height:1.02!important}}
+`;
+    document.head.appendChild(style);
+  }
 
-@media(max-width:749px){
-  .title-wrapper-with-link,.main-page-title,.collection-hero__title{padding-left:12px}
-  #psi-estimator #page-title{font-size:clamp(34px,11vw,54px)!important;line-height:1.02!important}
-}
+  function wireBookingLinks() {
+    const target = window.location.pathname === "/" ? "#booking-panel" : "/#booking-panel";
+    const bookingPanel = document.getElementById("booking-panel");
+
+    if (bookingPanel) {
+      bookingPanel
+        .querySelectorAll('a.upgrade-item-link[href*="/products/psiperformance-gift-card"]')
+        .forEach((link) => link.replaceWith(...link.childNodes));
+    }
+
+    document.querySelectorAll("a").forEach((link) => {
+      const label = (link.textContent || "").trim().replace(/\s+/g, " ").toLowerCase();
+
+      if (label === "contact") {
+        link.setAttribute("href", target);
+      }
+
+      if (
+        label === "book a free consultation" ||
+        label === "book a free consulation" ||
+        label === "book an appointment"
+      ) {
+        link.textContent = "Book an Appointment";
+        link.setAttribute("href", target);
+      }
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", wireBookingLinks, { once: true });
+  } else {
+    wireBookingLinks();
+  }
+
+  document.addEventListener("shopify:section:load", wireBookingLinks);
+})();
