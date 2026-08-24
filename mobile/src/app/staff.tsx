@@ -123,6 +123,7 @@ function StaffMfaGate({
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [enrollment, setEnrollment] = useState<StaffTotpEnrollment | null>(null);
+  const [showManualKey, setShowManualKey] = useState(false);
   const verifiedFactor = access.verifiedTotpFactors[0];
 
   const beginEnrollment = async () => {
@@ -132,6 +133,7 @@ function StaffMfaGate({
     try {
       setEnrollment(await beginStaffTotpEnrollment());
       setCode('');
+      setShowManualKey(false);
     } catch {
       setError('Authenticator setup could not be started. No workshop records were loaded.');
     } finally {
@@ -159,7 +161,7 @@ function StaffMfaGate({
     }
   };
 
-  const qrUri = enrollment ? `data:image/svg+xml;utf8,${encodeURIComponent(enrollment.qrCode)}` : '';
+  const qrUri = enrollment?.qrCode ?? '';
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <ScrollView contentContainerStyle={[styles.mfaScroll, { paddingHorizontal: horizontalPadding }]} keyboardShouldPersistTaps="handled">
@@ -187,7 +189,11 @@ function StaffMfaGate({
               {Platform.OS === 'web' ? <View style={styles.qrFrame}><Image accessibilityLabel="PSI staff authenticator QR code" source={{ uri: qrUri }} style={styles.qrImage} /></View> : null}
               {Platform.OS !== 'web' ? <PrimaryButton label="Open authenticator app" onPress={() => void Linking.openURL(enrollment.uri)} variant="outline" /> : null}
               <Text style={styles.manualLabel}>Manual setup key</Text>
-              <Text selectable style={styles.manualSecret}>{enrollment.secret}</Text>
+              {showManualKey ? (
+                <Text selectable style={styles.manualSecret}>{enrollment.secret}</Text>
+              ) : (
+                <PrimaryButton label="Show manual key" onPress={() => setShowManualKey(true)} variant="outline" />
+              )}
             </>
           ) : (
             <>
