@@ -9,6 +9,7 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { loadCustomerAccount, type CustomerAccountSnapshot } from '@/lib/customer-account';
 import {
   CUSTOMER_AUTH,
+  EMAIL_CODE_RESEND_COOLDOWN_SECONDS,
   requestPasswordlessEmailCode,
   signOutCustomer,
   verifyPasswordlessEmailCode,
@@ -25,6 +26,7 @@ export default function AccountScreen() {
   const [codeError, setCodeError] = useState('');
   const [notice, setNotice] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+  const [resendSeconds, setResendSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
   const [account, setAccount] = useState<CustomerAccountSnapshot | null>(null);
   const [accountError, setAccountError] = useState('');
@@ -46,7 +48,16 @@ export default function AccountScreen() {
     return () => { active = false; };
   }, [auth.status]);
 
+  useEffect(() => {
+    if (resendSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setResendSeconds((current) => Math.max(0, current - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendSeconds]);
+
   const beginSignIn = async () => {
+    if (busy || resendSeconds > 0) return;
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
       setEmailError('Enter a valid email address.');
       setNotice('');
@@ -63,6 +74,7 @@ export default function AccountScreen() {
     try {
       await requestPasswordlessEmailCode(email);
       setCodeSent(true);
+      setResendSeconds(EMAIL_CODE_RESEND_COOLDOWN_SECONDS);
       setNotice('If this email belongs to an approved PSI account, a six-digit sign-in code will arrive shortly. Enter it below within 10 minutes.');
     } catch {
       setNotice('A sign-in code could not be requested. Customer registration may still be closed, or the email service may be temporarily unavailable.');
@@ -81,6 +93,7 @@ export default function AccountScreen() {
     setNotice('');
     try {
       await verifyPasswordlessEmailCode(email, code);
+      setCode('');
       setNotice('Secure sign-in complete. Your account is loading.');
     } catch {
       setCodeError('That code could not be verified. Check the code, request a new one, or try again before it expires.');
@@ -95,7 +108,10 @@ export default function AccountScreen() {
       await signOutCustomer();
       setCode('');
       setCodeSent(false);
+      setResendSeconds(0);
       setEmail('');
+      setAccount(null);
+      setAccountError('');
       setNotice('Signed out securely on this device.');
     } catch {
       setNotice('The local sign-out could not be completed. Close the app and try again.');
@@ -145,6 +161,8 @@ export default function AccountScreen() {
             Passwords are not collected or stored here. {CUSTOMER_AUTH.enabled ? `Six-digit codes provide access to approved customer accounts in this controlled build. New account registration is ${CUSTOMER_AUTH.registrationEnabled ? 'open only for this approved onboarding window' : 'closed'}.` : 'Six-digit email codes activate only in PSI-controlled builds.'} Customers see only their own records; MFA-authenticated PSI staff use a separate workshop portal.
           </Text>
         </View>
+
+        {auth.error ? <Text accessibilityRole="alert" style={styles.errorText}>{auth.error}</Text> : null}
 
         {CUSTOMER_AUTH.enabled && auth.status === 'signed_in' ? (
           <View accessibilityLabel="Secure customer account summary" style={[styles.dashboardPreview, compact && styles.cardCompact]}>
@@ -208,6 +226,7 @@ export default function AccountScreen() {
                 setEmail(value);
                 setEmailError('');
                 setCodeSent(false);
+                setResendSeconds(0);
                 setCode('');
                 setCodeError('');
                 setNotice('');
@@ -240,7 +259,12 @@ export default function AccountScreen() {
           {CUSTOMER_AUTH.enabled && codeSent ? (
             <>
               <PrimaryButton label="Verify and sign in" loading={busy} onPress={() => void verifyCode()} />
-              <PrimaryButton label="Request a new code" disabled={busy} onPress={() => void beginSignIn()} variant="outline" />
+              <PrimaryButton
+                label={resendSeconds > 0 ? `Request a new code in ${resendSeconds}s` : 'Request a new code'}
+                disabled={busy || resendSeconds > 0}
+                onPress={() => void beginSignIn()}
+                variant="outline"
+              />
             </>
           ) : (
             <PrimaryButton label={CUSTOMER_AUTH.enabled ? 'Email my sign-in code' : 'Check sign-in readiness'} loading={busy} onPress={() => void beginSignIn()} />

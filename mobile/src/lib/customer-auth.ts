@@ -1,5 +1,7 @@
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
 
+export const EMAIL_CODE_RESEND_COOLDOWN_SECONDS = 60;
+
 export const CUSTOMER_AUTH = {
   provider: 'supabase',
   method: 'passwordless_email_code',
@@ -36,6 +38,7 @@ export async function verifyPasswordlessEmailCode(email: string, token: string) 
   });
 
   if (error) throw error;
+  if (!data.session) throw new Error('CUSTOMER_SESSION_NOT_CREATED');
   return data.session;
 }
 

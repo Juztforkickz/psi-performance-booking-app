@@ -51,15 +51,31 @@ Completed acceptance checks:
 Remaining private-QA gates:
 
 1. Test the implemented code-entry, secure-session and profile/vehicle adapter
-   on controlled native iPhone and Android builds.
-2. Test expiry, replay prevention, resend throttling, logout, recovery and
-   cross-account isolation on real iPhone and Android devices.
-3. Keep registration closed in the private QA build; create any additional pilot
+   on controlled native iPhone and Android builds. Record the build ID, device,
+   operating-system version and test identity for each run.
+2. On each platform, request one code and confirm the client shows a 60-second
+   resend cooldown. Confirm Supabase still enforces its server-side rate limit
+   if a second client attempts to bypass the display cooldown.
+3. Confirm a valid six-digit code creates one customer session, an incorrect or
+   expired code fails without creating a session, and a successfully used code
+   cannot be replayed.
+4. Close and reopen the native app and confirm its protected session restores;
+   sign out and confirm the same device no longer reads account records. The web
+   QA session must clear on refresh because its tokens are deliberately held in
+   memory only.
+5. Confirm the approved customer can create/update only their own profile and
+   vehicles, cannot access a second controlled customer's records and cannot
+   obtain staff access. Re-run the rollback-only SQL isolation test after any
+   Auth, RLS or database-policy change.
+6. Confirm a staff identity remains unable to access workshop-wide records at
+   AAL1 and receives that access only after its enrolled MFA factor reaches
+   AAL2. Customer MFA remains out of scope for the first release.
+7. Keep registration closed in the private QA build; create any additional pilot
    identity through a separately approved onboarding window.
-4. The internal EAS `qa` profile sets Auth true, registration false and the
+8. The internal EAS `qa` profile sets Auth true, registration false and the
    booking API empty. The public GitHub Pages preview keeps both Auth and
    registration false.
-5. The app is linked to the owner-controlled Expo project
+9. The app is linked to the owner-controlled Expo project
    `@psi-performance/matt-psi`, and unauthenticated access to its internal
    distribution build pages is disabled.
 
