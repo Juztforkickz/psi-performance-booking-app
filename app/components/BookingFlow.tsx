@@ -1401,9 +1401,14 @@ function AppDownloadPromo() {
         <span><small>COMING TO</small>Google Play</span>
       </div>
 
-      <a className="app-portal-preview-link" href="/account#profile">
-        Explore the customer portal preview <span aria-hidden="true">→</span>
-      </a>
+      <div className="app-promo-actions">
+        <a className="app-launch-updates-link" href="mailto:info@psiperformance.com.au?subject=PSI%20App%20Launch%20Updates">
+          Join launch updates <span aria-hidden="true">→</span>
+        </a>
+        <a className="app-portal-preview-link" href="/account#profile">
+          Explore the portal preview
+        </a>
+      </div>
       <p className="app-no-install-note">No app or account required. Continue booking online beside this panel.</p>
     </aside>
   );
