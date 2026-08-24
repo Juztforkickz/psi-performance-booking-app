@@ -43,10 +43,15 @@ closed again.
   change this queue; AAL2 staff receive read-only status and the service role is
   the only writer.
 - `process-booking-integrations` is deployed with JWT verification and performs
-  another active-staff/AAL2 check. It contains no provider credentials and
-  blocks jobs truthfully until the required encrypted Edge Function secrets are
-  configured. Google Calendar work is queued only for the future trusted
+  another active-staff/AAL2 check. The Resend sending credential and Google
+  Calendar OAuth values are configured only as encrypted Edge Function secrets;
+  no provider credential is present in this repository or any Expo/public
+  variable. Google Calendar work is queued only for the future trusted
   `confirmed` transition. Payment remains intentionally unimplemented.
+- The Google OAuth app is in production mode with Matt as its only authorised
+  PSI user. Its sole scope is `calendar.events.owned`. Customers receive no
+  Google token, Calendar list or event feed, and the worker never invites a
+  customer to PSI's private workshop event.
 
 ## Database acceptance test
 
@@ -62,9 +67,11 @@ addresses.
 ## Still activation-gated
 
 Before customer onboarding is made generally available, PSI still needs to
-approve the production app release, complete real-device private-file QA,
-configure/test the Resend transactional and Google Calendar secrets, complete
-the deposit/payment webhook last, and approve the operational support process.
+approve the production app release, complete real-device private-file QA, run a
+controlled AAL2 end-to-end queue-delivery test for Resend and Google Calendar,
+decide whether the owner-only Google OAuth connection needs formal verification,
+complete the deposit/payment webhook last, and approve the operational support
+process.
 Database policies, private buckets, the MFA-gated portal and the fail-closed
 worker are present, but the public demo must not be treated as the production
 account portal.

@@ -30,3 +30,17 @@ events are all-day internal workshop records, use a deterministic event ID, do
 not invite the customer and are inserted only for a booking already moved to
 `confirmed` by the future trusted payment integration. Payment processing is
 not implemented by this function.
+
+## Provider activation
+
+On 25 August 2026 the required provider values were installed as encrypted
+Supabase Edge Function secrets. Resend uses a sending-only key restricted to
+`psiperformance.com.au`. Google Calendar uses the PSI-owned Cloud project,
+Matt's OAuth consent and only the `calendar.events.owned` scope. The durable
+refresh token has no testing-mode seven-day expiry field.
+
+This does not make Calendar data customer-visible. The customer client has no
+Google credential or Calendar-read endpoint. The worker creates no event for a
+pending or date-approved request and never adds the customer as an attendee.
+A controlled AAL2 queue-delivery acceptance run is still required before real
+customer onboarding.

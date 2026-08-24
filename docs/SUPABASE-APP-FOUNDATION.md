@@ -251,8 +251,9 @@ completion denial, the AAL2 Complete Service projection, immutable linked
 history and unrelated-customer isolation. General record editing/removal, PDF
 selection and staff management remain disabled pending separate review and
 acceptance tests. A provider-neutral email/Calendar queue and fail-closed worker
-are present, but actual provider delivery remains disabled pending credential
-setup and acceptance testing.
+are present. Server-only Resend and Google Calendar credentials are now
+installed as encrypted Edge Function secrets; controlled AAL2 queue-delivery
+acceptance is still required before real customer onboarding.
 
 The private route now includes the TOTP step-up flow needed to reach AAL2.
 Active allowlisted staff without a verified factor can create one in Supabase,
@@ -315,9 +316,9 @@ The current protected integration flow is:
    only from an active AAL2 staff session. Anonymous, customer and AAL1 access
    cannot read or mutate the queue.
 4. The worker uses Resend idempotency keys and does not store provider
-   credentials, recipients or message bodies in the queue. Until the encrypted
-   provider secrets exist, it records `blocked_configuration` and never claims
-   delivery.
+   credentials, recipients or message bodies in the queue. Provider values are
+   now encrypted Edge Function secrets. Missing or invalid configuration still
+   fails closed and never claims delivery.
 5. No pending or merely date-approved booking is written to Google Calendar.
    Only the future trusted payment-confirmed transition queues the customer/PSI
    confirmation emails and one internal Calendar event. The event is all-day,
@@ -325,11 +326,13 @@ The current protected integration flow is:
    invite the customer.
 
 Google Calendar OAuth tokens belong only in encrypted Edge Function secrets.
-They are not stored in customer tables, the mobile app or GitHub. The Calendar
-connection remains inactive until Matt completes Google consent, the four
-server-only Calendar values are configured and duplicate/cancellation/time-zone
-acceptance tests pass. Deposit/payment implementation is deliberately left for
-the final integration stage.
+They are not stored in customer tables, the mobile app or GitHub. Matt's
+server-side consent is active with only the `calendar.events.owned` scope and a
+durable refresh token. Customers cannot list or read Matt's Calendar and are
+never invited to the private PSI event. Duplicate/cancellation/time-zone and
+full queue-delivery acceptance tests still need to pass before customer launch.
+Deposit/payment implementation is deliberately left for the final integration
+stage.
 
 ## Current Free-plan position
 
