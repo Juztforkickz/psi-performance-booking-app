@@ -207,6 +207,17 @@ existing RLS policies. The public build renders only an unavailable notice.
 Publishing, edits, file access, Calendar actions and staff management remain
 disabled pending separate review and acceptance tests.
 
+The private route now includes the TOTP step-up flow needed to reach AAL2.
+Active allowlisted staff without a verified factor can create one in Supabase,
+scan its one-time QR code on web or use the native authenticator URI/manual key,
+and verify the current six-digit code. Existing verified TOTP factors are
+challenged directly. The setup QR, URI and secret are held only in React memory,
+are never logged or written to repository/app storage, and disappear when the
+route closes or verification succeeds. Supabase promotes the verified session
+to AAL2 and signs out that user's other sessions. PSI must document a controlled
+lost-device recovery process and add factor-management/replacement UX before
+staff access is treated as production-ready.
+
 The Supabase secret/service-role key must exist only in trusted server or Edge
 Function configuration. It must never be placed in Expo, Netlify client code,
 GitHub or browser storage.

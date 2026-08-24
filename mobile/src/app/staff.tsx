@@ -1,18 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { PrimaryButton } from '@/components/ui';
+import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import {
+  beginStaffTotpEnrollment,
   loadStaffPortalAccess,
   type StaffPortalAccess,
   type StaffPortalSnapshot,
+  type StaffTotpEnrollment,
+  verifyStaffTotp,
 } from '@/lib/staff-portal';
 
 type LoadState =
@@ -33,6 +36,7 @@ export default function StaffPortalScreen() {
   const auth = useCustomerAuth();
   const { horizontalPadding } = useResponsiveLayout();
   const [loadState, setLoadState] = useState<LoadState>({ access: null, status: 'loading', userId: null });
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
   useEffect(() => {
     if (!CUSTOMER_AUTH.enabled || auth.status !== 'signed_in') return;
@@ -49,7 +53,7 @@ export default function StaffPortalScreen() {
     return () => {
       active = false;
     };
-  }, [auth.status, auth.user?.id]);
+  }, [auth.status, auth.user?.id, refreshNonce]);
 
   if (!CUSTOMER_AUTH.enabled) {
     return (
@@ -83,9 +87,9 @@ export default function StaffPortalScreen() {
   }
   if (access.kind === 'mfa_required') {
     return (
-      <PortalState
-        copy="Your PSI staff identity is active, but workshop-wide access requires a verified authenticator factor at AAL2. No customer records were loaded."
-        title="Authenticator verification required"
+      <StaffMfaGate
+        access={access}
+        onVerified={() => setRefreshNonce((current) => current + 1)}
       />
     );
   }
@@ -96,6 +100,119 @@ export default function StaffPortalScreen() {
       role={access.staff.role}
       snapshot={access.snapshot}
     />
+  );
+}
+
+function StaffMfaGate({
+  access,
+  onVerified,
+}: {
+  access: Extract<StaffPortalAccess, { kind: 'mfa_required' }>;
+  onVerified: () => void;
+}) {
+  const router = useRouter();
+  const { horizontalPadding } = useResponsiveLayout();
+  const [busy, setBusy] = useState(false);
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [enrollment, setEnrollment] = useState<StaffTotpEnrollment | null>(null);
+  const verifiedFactor = access.verifiedTotpFactors[0];
+
+  const beginEnrollment = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      setEnrollment(await beginStaffTotpEnrollment());
+      setCode('');
+    } catch {
+      setError('Authenticator setup could not be started. No workshop records were loaded.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verify = async () => {
+    const factorId = enrollment?.factorId ?? verifiedFactor?.id;
+    if (!factorId || !/^\d{6}$/.test(code.replace(/\s/gu, ''))) {
+      setError('Enter the current six-digit code from your authenticator app.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      await verifyStaffTotp(factorId, code);
+      setCode('');
+      setEnrollment(null);
+      onVerified();
+    } catch {
+      setError('That authenticator code could not be verified. Wait for a fresh code and try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const qrUri = enrollment ? `data:image/svg+xml;utf8,${encodeURIComponent(enrollment.qrCode)}` : '';
+  return (
+    <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
+      <ScrollView contentContainerStyle={[styles.mfaScroll, { paddingHorizontal: horizontalPadding }]} keyboardShouldPersistTaps="handled">
+        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}>
+          <Text style={styles.backText}>← Back</Text>
+        </Pressable>
+        <Ionicons color={colors.gold} name="shield-checkmark" size={42} />
+        <Text style={styles.stateTitle}>Authenticator verification required</Text>
+        <Text style={styles.stateCopy}>
+          Your PSI staff identity is active. A separate authenticator code is required before any workshop-wide customer records can load.
+        </Text>
+
+        <View style={styles.mfaCard}>
+          {verifiedFactor ? (
+            <>
+              <Text style={styles.mfaKicker}>Registered authenticator</Text>
+              <Text style={styles.mfaTitle}>{verifiedFactor.friendlyName}</Text>
+              <Text style={styles.mfaCopy}>Open the authenticator app already linked to this PSI staff account and enter its current code.</Text>
+            </>
+          ) : enrollment ? (
+            <>
+              <Text style={styles.mfaKicker}>Private staff setup</Text>
+              <Text style={styles.mfaTitle}>Connect an authenticator app</Text>
+              <Text style={styles.mfaCopy}>Scan this QR code from Google Authenticator, Microsoft Authenticator, 1Password or another TOTP app. Do not photograph or share this setup key.</Text>
+              {Platform.OS === 'web' ? <View style={styles.qrFrame}><Image accessibilityLabel="PSI staff authenticator QR code" source={{ uri: qrUri }} style={styles.qrImage} /></View> : null}
+              {Platform.OS !== 'web' ? <PrimaryButton label="Open authenticator app" onPress={() => void Linking.openURL(enrollment.uri)} variant="outline" /> : null}
+              <Text style={styles.manualLabel}>Manual setup key</Text>
+              <Text selectable style={styles.manualSecret}>{enrollment.secret}</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.mfaKicker}>Private staff setup</Text>
+              <Text style={styles.mfaTitle}>Protect workshop access</Text>
+              <Text style={styles.mfaCopy}>Set up a time-based authenticator before opening customer-wide records. The setup secret is shown once and is never stored by this app.</Text>
+              <PrimaryButton label="Set up authenticator" loading={busy} onPress={() => void beginEnrollment()} />
+            </>
+          )}
+
+          {verifiedFactor || enrollment ? (
+            <Field error={error} hint="The code changes approximately every 30 seconds" label="Six-digit authenticator code">
+              <FormInput
+                autoComplete="one-time-code"
+                error={error}
+                keyboardType="number-pad"
+                maxLength={6}
+                onChangeText={(value) => {
+                  setCode(value.replace(/\D/gu, ''));
+                  setError('');
+                }}
+                placeholder="000000"
+                value={code}
+              />
+            </Field>
+          ) : null}
+          {error && !verifiedFactor && !enrollment ? <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text> : null}
+          {verifiedFactor || enrollment ? <PrimaryButton label="Verify and open staff portal" loading={busy} onPress={() => void verify()} /> : null}
+        </View>
+        <Text style={styles.footer}>NO CUSTOMER RECORDS LOAD BEFORE AAL2 · SETUP DETAILS STAY IN MEMORY ONLY</Text>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -241,6 +358,16 @@ const styles = StyleSheet.create({
   state: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingVertical: spacing.xxl },
   stateTitle: { color: colors.white, fontSize: 27, fontWeight: '900', textAlign: 'center' },
   stateCopy: { color: colors.muted, fontSize: 15, lineHeight: 23, maxWidth: 520, textAlign: 'center' },
+  mfaScroll: { alignItems: 'center', alignSelf: 'center', width: '100%', maxWidth: 620, paddingBottom: spacing.xxl, paddingTop: spacing.md },
+  mfaCard: { ...mobileFrame, alignSelf: 'stretch', backgroundColor: colors.panel, gap: spacing.md, marginTop: spacing.lg, padding: spacing.lg },
+  mfaKicker: { color: colors.gold, fontSize: 11, fontWeight: '900', letterSpacing: 1.4, textTransform: 'uppercase' },
+  mfaTitle: { color: colors.white, fontSize: 22, fontWeight: '900' },
+  mfaCopy: { color: colors.muted, fontSize: 14, lineHeight: 21 },
+  qrFrame: { alignItems: 'center', alignSelf: 'center', backgroundColor: colors.white, borderColor: colors.gold, borderWidth: 3, justifyContent: 'center', padding: spacing.sm },
+  qrImage: { height: 220, width: 220 },
+  manualLabel: { color: colors.muted, fontSize: 11, fontWeight: '900', letterSpacing: 1.1, textTransform: 'uppercase' },
+  manualSecret: { backgroundColor: colors.ink, borderColor: colors.line, borderWidth: 1, color: colors.white, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 13, letterSpacing: 1.2, padding: spacing.md, textAlign: 'center' },
+  errorText: { color: colors.danger, fontSize: 13, lineHeight: 19 },
   scroll: { alignSelf: 'center', width: '100%', maxWidth: 880, paddingBottom: spacing.xxl, paddingTop: spacing.md },
   back: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
   backText: { color: colors.white, fontSize: 15, fontWeight: '800' },
