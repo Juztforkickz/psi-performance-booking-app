@@ -161,7 +161,7 @@ function StaffMfaGate({
     }
   };
 
-  const qrUri = enrollment?.qrCode ?? '';
+  const qrUri = enrollment ? normalizeQrCodeUri(enrollment.qrCode) : '';
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <ScrollView contentContainerStyle={[styles.mfaScroll, { paddingHorizontal: horizontalPadding }]} keyboardShouldPersistTaps="handled">
@@ -227,6 +227,17 @@ function StaffMfaGate({
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+function normalizeQrCodeUri(qrCode: string) {
+  const svgDataPrefix = 'data:image/svg+xml;utf-8,';
+  if (qrCode.startsWith(svgDataPrefix)) {
+    return `${svgDataPrefix}${encodeURIComponent(qrCode.slice(svgDataPrefix.length))}`;
+  }
+  if (qrCode.trimStart().startsWith('<svg')) {
+    return `${svgDataPrefix}${encodeURIComponent(qrCode)}`;
+  }
+  return qrCode;
 }
 
 function PortalState({
