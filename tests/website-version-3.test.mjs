@@ -55,3 +55,17 @@ test("the Shopify Version 3 handoff is self-contained, enquiry-only and responsi
     assert.match(liquid, new RegExp(`Plan - ${area}`, "u"));
   }
 });
+
+test("the Shopify global theme layer carries the approved PSI palette across shared components", async () => {
+  const styles = await read("shopify/psi-global-brand-system.css");
+
+  for (const colour of ["#65cff8", "#155d78", "#dbe3e7", "#8f999e", "#050505"]) {
+    assert.match(styles, new RegExp(colour, "iu"));
+  }
+
+  for (const selector of [".header-wrapper", ".button", ".card", ".field__input", ".pagination__item--current", ".footer"]) {
+    assert.match(styles, new RegExp(selector.replaceAll(".", "\\."), "u"));
+  }
+
+  assert.doesNotMatch(styles, /yellow|#ffd700|#ffcc00|#f5c400/iu);
+});

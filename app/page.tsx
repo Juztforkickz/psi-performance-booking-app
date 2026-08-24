@@ -22,7 +22,7 @@ export default function Home() {
           <a href="#top" aria-current="page">Home</a>
           <a href="https://psiperformance.com.au/collections/latest-arrivals" target="_blank" rel="noreferrer">Shop Now</a>
           <a href="https://psiperformance.com.au/pages/coding" target="_blank" rel="noreferrer">Tuning &amp; Coding</a>
-          <a href="https://psiperformance.com.au/pages/contact" target="_blank" rel="noreferrer">Contact</a>
+          <a href="https://psiperformance.com.au/#booking-panel">Contact</a>
         </nav>
 
         <a className="website-logo" href="#top" aria-label="PSI Performance home">

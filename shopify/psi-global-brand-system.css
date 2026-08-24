@@ -1,0 +1,16 @@
+/* PSI Performance global blue/silver theme */
+:root{--psi-blue:#65cff8;--psi-deep:#155d78;--psi-silver:#dbe3e7;--psi-steel:#8f999e;--psi-black:#050505}
+body,.gradient{background-color:var(--psi-black)}
+.header-wrapper{border-bottom:1px solid #394247;box-shadow:0 1px 0 #65cff82e}
+.header__menu-item:hover,.header__active-menu-item,.header__icon:hover,.list-menu__item:hover{color:var(--psi-blue)!important}
+.title-wrapper-with-link,.main-page-title,.collection-hero__title{border-left:3px solid var(--psi-blue);padding-left:16px}
+.button,.shopify-challenge__button,.customer button{border:1px solid var(--psi-silver);background:linear-gradient(135deg,#fff,var(--psi-silver));color:#050505;box-shadow:none}
+.button:hover,.customer button:hover{border-color:var(--psi-blue);box-shadow:0 0 0 2px #65cff838}
+.card,.product__media,.facets-container,.field:after,.select:after{border-color:#475157}
+.card-wrapper:hover .card{box-shadow:0 0 0 1px var(--psi-blue),0 14px 34px #00000052}
+.price,.price-item,.badge{color:var(--psi-blue)}
+.field__input:focus,.select__select:focus,.customer .field input:focus{box-shadow:0 0 0 2px #65cff840}
+.pagination__item--current,.pagination__item:hover,.underlined-link:hover{color:var(--psi-blue)}
+.footer{border-top:2px solid var(--psi-blue)!important;background:linear-gradient(180deg,#0b0d0e,#020202)}
+.footer a:hover{color:var(--psi-blue)!important}
+@media(max-width:749px){.title-wrapper-with-link,.main-page-title,.collection-hero__title{padding-left:12px}}
