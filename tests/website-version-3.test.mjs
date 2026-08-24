@@ -60,9 +60,10 @@ test("the Shopify Version 3 handoff is self-contained, enquiry-only and responsi
 });
 
 test("the Shopify global theme layer carries the approved PSI palette across shared components", async () => {
-  const [styles, globalScript] = await Promise.all([
+  const [styles, globalScript, versionSix] = await Promise.all([
     read("shopify/psi-global-brand-system.css"),
     read("shopify/psi-website-version-5-global.js"),
+    read("shopify/psi-website-version-6-global.js"),
   ]);
 
   for (const colour of ["#65cff8", "#155d78", "#dbe3e7", "#8f999e", "#050505"]) {
@@ -81,6 +82,14 @@ test("the Shopify global theme layer carries the approved PSI palette across sha
   assert.match(globalScript, /Book an Appointment/u);
   assert.match(globalScript, /bookingPanel[\s\S]*upgrade-item-link[\s\S]*replaceWith/u);
   assert.match(globalScript, /#psi-estimator #page-title\{color:#fff!important/u);
+  assert.match(versionSix, /body \.gradient\{background:var\(--gradient-background\)!important\}/u);
+  assert.match(versionSix, /main \.main-page-title[\s\S]*color:#f7f9fa!important/u);
+  assert.match(versionSix, /--marquee-duration:22s!important/u);
+  assert.match(versionSix, /Brands We Service|brands we service/u);
+  assert.match(versionSix, /\/pages\/power-estimator/u);
+  assert.match(versionSix, /Real feedback from customers/u);
+  assert.match(versionSix, /psi-v6-brand-grid/u);
+  assert.doesNotMatch(versionSix, /yellow|#ffd700|#ffcc00|#f5c400/iu);
   assert.doesNotMatch(styles, /yellow|#ffd700|#ffcc00|#f5c400/iu);
   assert.doesNotMatch(globalScript, /yellow|#ffd700|#ffcc00|#f5c400/iu);
 });
