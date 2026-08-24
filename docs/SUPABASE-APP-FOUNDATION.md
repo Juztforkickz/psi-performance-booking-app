@@ -215,9 +215,17 @@ and verify the current six-digit code. Existing verified TOTP factors are
 challenged directly. The setup QR, URI and secret are held only in React memory,
 are never logged or written to repository/app storage, and disappear when the
 route closes or verification succeeds. Supabase promotes the verified session
-to AAL2 and signs out that user's other sessions. PSI must document a controlled
-lost-device recovery process and add factor-management/replacement UX before
-staff access is treated as production-ready.
+to AAL2 and signs out that user's other sessions.
+
+The AAL2-only `/staff-security` route now lists verified TOTP devices and allows
+Matt to add a separate backup authenticator. A verified factor can be removed
+only while at least one other verified factor remains; the client refreshes the
+session immediately afterward and routes back through the staff gate. The app
+cannot remove the last factor and contains no administrator credential or
+recovery bypass. Final-factor loss follows the controlled owner runbook in
+[`STAFF-MFA-RECOVERY.md`](STAFF-MFA-RECOVERY.md). Production readiness still
+requires a witnessed recovery drill and secure offline storage for the
+Supabase organization owner's recovery method.
 
 The root Auth provider treats Supabase Auth events as newer than its initial
 session read, preventing a delayed signed-out result from replacing a completed

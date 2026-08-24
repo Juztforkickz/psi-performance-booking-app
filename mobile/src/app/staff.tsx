@@ -111,6 +111,7 @@ export default function StaffPortalScreen() {
       horizontalPadding={horizontalPadding}
       role={access.staff.role}
       snapshot={access.snapshot}
+      verifiedTotpFactors={access.verifiedTotpFactors}
     />
   );
 }
@@ -277,10 +278,12 @@ function StaffWorkspace({
   horizontalPadding,
   role,
   snapshot,
+  verifiedTotpFactors,
 }: {
   horizontalPadding: number;
   role: 'owner' | 'staff';
   snapshot: StaffPortalSnapshot;
+  verifiedTotpFactors: Extract<StaffPortalAccess, { kind: 'ready' }>['verifiedTotpFactors'];
 }) {
   const router = useRouter();
   const activeBookings = snapshot.bookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
@@ -306,6 +309,18 @@ function StaffWorkspace({
             <Text style={styles.securityTitle}>MFA verified · {role === 'owner' ? 'Owner access' : 'Staff access'}</Text>
             <Text style={styles.securityCopy}>Publishing, record changes, file access and staff management remain disabled in this foundation stage.</Text>
           </View>
+        </View>
+
+        <View style={styles.securityManagement}>
+          <View style={styles.securityManagementHeading}>
+            <View style={styles.flex}>
+              <Text style={styles.securityTitle}>Authenticator security</Text>
+              <Text style={styles.securityCopy}>{verifiedTotpFactors.length} verified authenticator{verifiedTotpFactors.length === 1 ? '' : 's'} connected.</Text>
+            </View>
+            <Ionicons color={colors.gold} name="key" size={22} />
+          </View>
+          {verifiedTotpFactors.length === 1 ? <Text style={styles.securityWarning}>Add a backup authenticator before replacing or retiring this device.</Text> : null}
+          <PrimaryButton label="Manage authenticators" onPress={() => router.push('/staff-security')} variant="outline" />
         </View>
 
         <View style={styles.metrics}>
@@ -406,6 +421,9 @@ const styles = StyleSheet.create({
   securityBanner: { ...mobileFrame, backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg, padding: spacing.md },
   securityTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
   securityCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 4 },
+  securityManagement: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.md },
+  securityManagementHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  securityWarning: { color: colors.cream, fontSize: 11, lineHeight: 17 },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
   metric: { ...mobileFrame, backgroundColor: colors.panelRaised, flexGrow: 1, minWidth: 120, padding: spacing.md },
   metricValue: { color: colors.gold, fontSize: 28, fontWeight: '900' },
