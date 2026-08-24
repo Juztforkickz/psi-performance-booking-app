@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   Pressable,
   ScrollView,
@@ -15,9 +16,13 @@ import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { VehiclePhotoPicker } from '@/components/vehicle-photo-picker';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { useCustomerAccount } from '@/lib/customer-account-context';
+import { CUSTOMER_AUTH } from '@/lib/customer-auth';
+import { useCustomerAuth } from '@/lib/customer-auth-context';
 import {
   CUSTOMER_PREVIEW,
   getLatestVerifiedDynoResult,
+  type PreviewVehicle,
 } from '@/lib/customer-preview';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 
@@ -31,19 +36,90 @@ type MaintenanceDraft = {
 };
 
 export default function GarageScreen() {
+  const auth = useCustomerAuth();
+  const { account, error, status } = useCustomerAccount();
+  const secureAccountActive = CUSTOMER_AUTH.enabled && auth.status === 'signed_in';
+
+  if (CUSTOMER_AUTH.enabled && auth.status === 'loading') {
+    return <GarageAccountState copy="Restoring your protected customer session…" loading title="Opening secure garage" />;
+  }
+
+  if (secureAccountActive && status === 'loading') {
+    return <GarageAccountState copy="Loading vehicles owned by your authenticated account…" loading title="Opening secure garage" />;
+  }
+
+  if (secureAccountActive && (status === 'error' || !account)) {
+    return <GarageAccountState copy={error || 'Your private vehicle records could not be loaded.'} title="Garage unavailable" />;
+  }
+
+  const secureVehicles = secureAccountActive
+    ? (account?.vehicles ?? []).map((vehicle): PreviewVehicle => ({
+      id: vehicle.id,
+      isPrimary: vehicle.is_primary,
+      lastVisit: null,
+      make: vehicle.make,
+      model: vehicle.model,
+      nextDue: null,
+      odometerKm: vehicle.odometer_km,
+      registration: vehicle.registration,
+      vinLastFour: vehicle.vin_last_four,
+      year: vehicle.year,
+    }))
+    : null;
+
+  if (secureVehicles && secureVehicles.length === 0) {
+    return <GarageAccountState actionLabel="Add your first vehicle" copy="Your secure account is active, but it does not have a vehicle yet." title="Your garage is ready" />;
+  }
+
+  return <GarageContent secureVehicles={secureVehicles} />;
+}
+
+function GarageAccountState({
+  actionLabel,
+  copy,
+  loading = false,
+  title,
+}: {
+  actionLabel?: string;
+  copy: string;
+  loading?: boolean;
+  title: string;
+}) {
+  const router = useRouter();
+  const { horizontalPadding } = useResponsiveLayout();
+
+  return (
+    <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
+      <View style={[styles.accountState, { paddingHorizontal: horizontalPadding }]}>
+        {loading ? <ActivityIndicator color={colors.gold} size="large" /> : <Ionicons color={colors.gold} name="car-sport" size={38} />}
+        <Text style={styles.accountStateTitle}>{title}</Text>
+        <Text style={styles.accountStateCopy}>{copy}</Text>
+        {actionLabel ? <PrimaryButton label={actionLabel} onPress={() => router.push('/account/sign-up')} /> : null}
+        {!loading ? <PrimaryButton label="Open account" onPress={() => router.push('/account')} variant="outline" /> : null}
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVehicle[] | null }) {
   const router = useRouter();
   const { section } = useLocalSearchParams<{ section?: string }>();
   const { compact, horizontalPadding, largeText, tablet } = useResponsiveLayout();
   const {
     prepareBookingVehicle,
-    selectedVehicleId,
-    selectVehicle,
+    prepareBookingVehicleRecord,
+    selectedVehicleId: previewSelectedVehicleId,
+    selectVehicle: selectPreviewVehicle,
     setVehiclePhoto,
     updateVehicleMaintenancePreview,
     vehicleMaintenance,
     vehiclePhotos,
-    vehicles,
+    vehicles: previewVehicles,
   } = useCustomerPreview();
+
+  const vehicles = secureVehicles ?? previewVehicles;
+  const [secureSelectedVehicleId, setSecureSelectedVehicleId] = useState(() => secureVehicles?.find((vehicle) => vehicle.isPrimary)?.id ?? secureVehicles?.[0]?.id ?? '');
+  const selectedVehicleId = secureVehicles ? secureSelectedVehicleId : previewSelectedVehicleId;
 
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0];
   const selectedPhoto = vehiclePhotos[selectedVehicle.id] ?? null;
@@ -66,10 +142,8 @@ export default function GarageScreen() {
   const [maintenanceError, setMaintenanceError] = useState('');
   const [maintenanceNotice, setMaintenanceNotice] = useState('');
 
-  const selectGarageVehicle = (vehicleId: string) => {
-    const vehicle = vehicles.find((candidate) => candidate.id === vehicleId);
-    if (!vehicle) return;
-    const nextMaintenance = vehicleMaintenance[vehicleId] ?? {
+  const resetMaintenanceDraft = (vehicle: PreviewVehicle) => {
+    const nextMaintenance = vehicleMaintenance[vehicle.id] ?? {
       customerLastServiceDate: null,
       customerNextCheckInDate: null,
       odometerKm: vehicle.odometerKm,
@@ -79,16 +153,24 @@ export default function GarageScreen() {
       customerNextCheckInDate: nextMaintenance.customerNextCheckInDate ?? '',
       odometerKm: nextMaintenance.odometerKm?.toString() ?? '',
     });
+  };
+
+  const selectGarageVehicle = (vehicleId: string) => {
+    const vehicle = vehicles.find((candidate) => candidate.id === vehicleId);
+    if (!vehicle) return;
+    resetMaintenanceDraft(vehicle);
     setMaintenanceOpen(false);
     setMaintenanceError('');
     setMaintenanceNotice('');
-    selectVehicle(vehicleId);
+    if (secureVehicles) setSecureSelectedVehicleId(vehicleId);
+    else selectPreviewVehicle(vehicleId);
   };
 
   const heroSource = selectedPhoto ? { uri: selectedPhoto.uri } : GARAGE_IMAGE;
 
   const openBookingForVehicle = (type: 'service' | 'dyno') => {
-    prepareBookingVehicle(selectedVehicle.id);
+    if (secureVehicles) prepareBookingVehicleRecord(selectedVehicle);
+    else prepareBookingVehicle(selectedVehicle.id);
     router.push({ pathname: '/booking', params: { type } });
   };
 
@@ -122,7 +204,7 @@ export default function GarageScreen() {
       >
         <View style={styles.header}>
           <View style={styles.headerCopy}>
-            <Text style={styles.eyebrow}>Customer preview</Text>
+            <Text style={styles.eyebrow}>{secureVehicles ? 'Secure customer garage' : 'Customer preview'}</Text>
             <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact]}>My Garage</Text>
           </View>
           <Pressable
@@ -136,15 +218,17 @@ export default function GarageScreen() {
         </View>
 
         <View accessibilityRole="alert" style={styles.previewNotice}>
-          <Text style={styles.previewNoticeTitle}>Preview vehicle data</Text>
+          <Text style={styles.previewNoticeTitle}>{secureVehicles ? 'Private account vehicles' : 'Preview vehicle data'}</Text>
           <Text style={styles.previewNoticeCopy}>
-            This garage is not connected to PSI records. Details and photos stay only in this open app preview and clear when it reloads or closes.
+            {secureVehicles
+              ? 'This vehicle list is loaded from your authenticated private account. Photos and maintenance edits on this screen remain local to this open session and are not uploaded or saved yet.'
+              : 'This garage is not connected to PSI records. Details and photos stay only in this open app preview and clear when it reloads or closes.'}
           </Text>
         </View>
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>Your vehicles</Text>
-          <Text style={styles.sectionMeta}>{vehicles.length} preview vehicles</Text>
+          <Text style={styles.sectionMeta}>{vehicles.length} {secureVehicles ? 'account' : 'preview'} vehicles</Text>
         </View>
         <ScrollView
           accessibilityRole="radiogroup"
@@ -180,13 +264,13 @@ export default function GarageScreen() {
             );
           })}
           <Pressable
-            accessibilityLabel="Set up a vehicle in the account preview"
+            accessibilityLabel={secureVehicles ? 'Add or update an account vehicle' : 'Set up a vehicle in the account preview'}
             accessibilityRole="button"
             onPress={() => router.push('/account/sign-up')}
             style={({ pressed }) => [styles.addVehicle, pressed && styles.pressed]}
           >
             <Ionicons color={colors.gold} name="add" size={24} />
-            <Text style={styles.addVehicleText}>Set up preview vehicle</Text>
+            <Text style={styles.addVehicleText}>{secureVehicles ? 'Add account vehicle' : 'Set up preview vehicle'}</Text>
           </Pressable>
         </ScrollView>
 
@@ -227,7 +311,7 @@ export default function GarageScreen() {
             <View style={styles.maintenanceHeadingCopy}>
               <Text style={styles.primaryLabel}>Vehicle upkeep</Text>
               <Text style={styles.maintenanceTitle}>Maintenance details</Text>
-              <Text style={styles.bodyCopy}>Update the customer odometer and personal service reminders for this preview vehicle.</Text>
+              <Text style={styles.bodyCopy}>Update the customer odometer and personal service reminders for this {secureVehicles ? 'open session' : 'preview vehicle'}.</Text>
             </View>
             <Ionicons color={colors.gold} name="create-outline" size={24} />
           </View>
@@ -260,7 +344,7 @@ export default function GarageScreen() {
             </View>
           )}
           {maintenanceNotice ? <Text accessibilityRole="alert" style={styles.maintenanceNotice}>{maintenanceNotice}</Text> : null}
-          <Text style={styles.maintenanceExpiry}>Preview only · changes clear when the app preview reloads or closes.</Text>
+          <Text style={styles.maintenanceExpiry}>Local only · these edits clear when the app reloads or closes.</Text>
         </View>
 
         {dynoFirst ? <DynoResultCard result={dynoResult} vehicleLabel={vehicleLabel} /> : null}
@@ -314,7 +398,7 @@ export default function GarageScreen() {
         <View style={styles.actions}>
           <PrimaryButton label="Book service for this vehicle" onPress={() => openBookingForVehicle('service')} />
           <PrimaryButton label="Book dyno for this vehicle" onPress={() => openBookingForVehicle('dyno')} variant="outline" />
-          <PrimaryButton label="Preview account setup" onPress={() => router.push('/account/sign-up')} variant="outline" />
+          <PrimaryButton label={secureVehicles ? 'Manage account vehicles' : 'Preview account setup'} onPress={() => router.push('/account/sign-up')} variant="outline" />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -410,6 +494,9 @@ function isIsoDate(value: string) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.ink },
+  accountState: { flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', gap: spacing.md },
+  accountStateTitle: { color: colors.white, fontSize: 24, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
+  accountStateCopy: { maxWidth: 420, color: colors.muted, fontSize: 13, lineHeight: 20, textAlign: 'center' },
   scroll: { width: '100%', maxWidth: 980, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   header: { minHeight: 68, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   headerCopy: { flex: 1, gap: spacing.xs },

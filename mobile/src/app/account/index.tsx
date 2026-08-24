@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import { loadCustomerAccount, type CustomerAccountSnapshot } from '@/lib/customer-account';
+import { useCustomerAccount } from '@/lib/customer-account-context';
 import {
   CUSTOMER_AUTH,
   EMAIL_CODE_RESEND_COOLDOWN_SECONDS,
@@ -20,6 +20,7 @@ export default function AccountScreen() {
   const router = useRouter();
   const { compact, horizontalPadding, short } = useResponsiveLayout();
   const auth = useCustomerAuth();
+  const { account, error: accountError, status: accountStatus } = useCustomerAccount();
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -28,26 +29,6 @@ export default function AccountScreen() {
   const [codeSent, setCodeSent] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [account, setAccount] = useState<CustomerAccountSnapshot | null>(null);
-  const [accountError, setAccountError] = useState('');
-
-  useEffect(() => {
-    if (auth.status !== 'signed_in') return;
-
-    let active = true;
-    void loadCustomerAccount()
-      .then((snapshot) => {
-        if (!active) return;
-        setAccount(snapshot);
-        setAccountError('');
-      })
-      .catch(() => {
-        if (!active) return;
-        setAccountError('Your secure session is active, but the account record could not be loaded. Please try again.');
-      });
-    return () => { active = false; };
-  }, [auth.status]);
-
   useEffect(() => {
     if (resendSeconds <= 0) return;
     const timer = setInterval(() => {
@@ -110,8 +91,6 @@ export default function AccountScreen() {
       setCodeSent(false);
       setResendSeconds(0);
       setEmail('');
-      setAccount(null);
-      setAccountError('');
       setNotice('Signed out securely on this device.');
     } catch {
       setNotice('The local sign-out could not be completed. Close the app and try again.');
@@ -173,7 +152,7 @@ export default function AccountScreen() {
             <Text style={styles.dashboardTitle}>{account?.profile?.first_name ? `Welcome, ${account.profile.first_name}.` : 'Your PSI account.'}</Text>
             <Text style={styles.dashboardCopy}>{auth.user?.email}</Text>
             {accountError ? <Text accessibilityRole="alert" style={styles.errorText}>{accountError}</Text> : null}
-            {!account && !accountError ? <Text style={styles.dashboardCopy}>Loading your private account…</Text> : null}
+            {accountStatus === 'loading' ? <Text style={styles.dashboardCopy}>Loading your private account…</Text> : null}
             {account ? (
               <View style={styles.dashboardGrid}>
                 <AccountFeature index="01" title="Profile" copy={account.profile ? 'Verified account profile connected.' : 'Complete your profile to continue.'} />

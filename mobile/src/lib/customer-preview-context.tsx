@@ -51,6 +51,7 @@ type CustomerPreviewContextValue = {
   ephemeralAccount: EphemeralAccountPreview | null;
   pendingBookingVehicle: PreviewVehicle | null;
   prepareBookingVehicle: (vehicleId: string) => void;
+  prepareBookingVehicleRecord: (vehicle: PreviewVehicle) => void;
   selectedVehicleId: string;
   selectVehicle: (vehicleId: string) => void;
   setVehiclePhoto: (vehicleId: string, photo: TemporaryVehiclePhoto | null) => void;
@@ -70,7 +71,7 @@ const EPHEMERAL_VEHICLE_ID = 'vehicle-local-account-preview';
 export function CustomerPreviewProvider({ children }: PropsWithChildren) {
   const [ephemeralAccount, setEphemeralAccount] = useState<EphemeralAccountPreview | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>(CUSTOMER_PREVIEW.selectedVehicleId);
-  const [pendingBookingVehicleId, setPendingBookingVehicleId] = useState<string | null>(null);
+  const [pendingBookingVehicle, setPendingBookingVehicle] = useState<PreviewVehicle | null>(null);
   const [vehicleMaintenance, setVehicleMaintenance] = useState<Record<string, VehicleMaintenancePreview>>({});
   const [vehiclePhotos, setVehiclePhotos] = useState<Record<string, TemporaryVehiclePhoto | null>>({});
   const vehiclePhotosRef = useRef(vehiclePhotos);
@@ -84,10 +85,6 @@ export function CustomerPreviewProvider({ children }: PropsWithChildren) {
       : CUSTOMER_PREVIEW.vehicles,
     [ephemeralAccount],
   );
-
-  const pendingBookingVehicle = pendingBookingVehicleId
-    ? vehicles.find((vehicle) => vehicle.id === pendingBookingVehicleId) ?? null
-    : null;
 
   useEffect(() => {
     vehiclePhotosRef.current = vehiclePhotos;
@@ -111,12 +108,11 @@ export function CustomerPreviewProvider({ children }: PropsWithChildren) {
     vehicleId: string,
     maintenance: Omit<VehicleMaintenancePreview, 'updatedLocally'>,
   ) => {
-    if (!vehicles.some((vehicle) => vehicle.id === vehicleId)) return;
     setVehicleMaintenance((current) => ({
       ...current,
       [vehicleId]: { ...maintenance, updatedLocally: true },
     }));
-  }, [vehicles]);
+  }, []);
 
   const stageAccountPreview = useCallback((input: StageAccountInput) => {
     const vehicle: PreviewVehicle = {
@@ -165,13 +161,18 @@ export function CustomerPreviewProvider({ children }: PropsWithChildren) {
   }, [vehicles]);
 
   const prepareBookingVehicle = useCallback((vehicleId: string) => {
-    if (!vehicles.some((vehicle) => vehicle.id === vehicleId)) return;
-    setSelectedVehicleId(vehicleId);
-    setPendingBookingVehicleId(vehicleId);
+    const vehicle = vehicles.find((candidate) => candidate.id === vehicleId);
+    if (!vehicle) return;
+    setSelectedVehicleId(vehicle.id);
+    setPendingBookingVehicle(vehicle);
   }, [vehicles]);
 
+  const prepareBookingVehicleRecord = useCallback((vehicle: PreviewVehicle) => {
+    setPendingBookingVehicle(vehicle);
+  }, []);
+
   const clearPendingBookingVehicle = useCallback(() => {
-    setPendingBookingVehicleId(null);
+    setPendingBookingVehicle(null);
   }, []);
 
   const value = useMemo<CustomerPreviewContextValue>(() => ({
@@ -179,6 +180,7 @@ export function CustomerPreviewProvider({ children }: PropsWithChildren) {
     ephemeralAccount,
     pendingBookingVehicle,
     prepareBookingVehicle,
+    prepareBookingVehicleRecord,
     selectedVehicleId,
     selectVehicle,
     setVehiclePhoto,
@@ -192,6 +194,7 @@ export function CustomerPreviewProvider({ children }: PropsWithChildren) {
     ephemeralAccount,
     pendingBookingVehicle,
     prepareBookingVehicle,
+    prepareBookingVehicleRecord,
     selectVehicle,
     selectedVehicleId,
     setVehiclePhoto,

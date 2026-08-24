@@ -17,6 +17,7 @@ import { type LocalVehiclePhoto, VehiclePhotoPicker } from '@/components/vehicle
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { saveCustomerProfile, saveCustomerVehicle } from '@/lib/customer-account';
+import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
@@ -49,6 +50,7 @@ type AccountErrors = Partial<Record<keyof AccountDraft, string>>;
 export default function SignUpScreen() {
   const router = useRouter();
   const auth = useCustomerAuth();
+  const { refreshAccount } = useCustomerAccount();
   const { stageAccountPreview } = useCustomerPreview();
   const { compact, horizontalPadding, short, useFieldColumns: wide } = useResponsiveLayout();
   const [form, setForm] = useState(EMPTY_ACCOUNT);
@@ -120,6 +122,7 @@ export default function SignUpScreen() {
           registration: form.registration,
           year,
         });
+        refreshAccount();
         setNotice(`Your profile and vehicle details were saved to your private Supabase account.${vehiclePhoto ? ' The selected vehicle photo remains local to this open app session and was not uploaded.' : ''}`);
       } catch {
         setNotice('Your profile could not be saved. Nothing was uploaded. Check the secure session and try again.');
