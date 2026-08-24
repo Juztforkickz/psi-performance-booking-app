@@ -5,6 +5,7 @@ import { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, Sty
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
+import { StaffRecordPublisher } from '@/components/staff-record-publisher';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
@@ -301,13 +302,13 @@ function StaffWorkspace({
         </Pressable>
         <Text style={styles.eyebrow}>PSI PRIVATE WORKSPACE</Text>
         <Text style={styles.title}>Workshop portal</Text>
-        <Text style={styles.lead}>A read-only operational view for approved PSI staff. Customer-wide access is protected by the staff allowlist, verified MFA and database row-level policies.</Text>
+        <Text style={styles.lead}>A protected operational workspace for approved PSI staff. Customer-wide access and controlled publishing are protected by the staff allowlist, verified MFA and database row-level policies.</Text>
 
         <View style={styles.securityBanner}>
           <Ionicons color={colors.success} name="shield-checkmark" size={22} />
           <View style={styles.flex}>
             <Text style={styles.securityTitle}>MFA verified · {role === 'owner' ? 'Owner access' : 'Staff access'}</Text>
-            <Text style={styles.securityCopy}>Publishing, record changes, file access and staff management remain disabled in this foundation stage.</Text>
+            <Text style={styles.securityCopy}>Controlled PSI record publishing is enabled in this private QA build. Calendar actions, customer registration and staff management remain disabled.</Text>
           </View>
         </View>
 
@@ -328,6 +329,9 @@ function StaffWorkspace({
           <Metric label="Vehicles" value={snapshot.vehicles.length} />
           <Metric label="Active requests" value={activeBookings.length} />
         </View>
+
+        <SectionHeading copy="Create customer-visible PSI records only after checking the selected customer and vehicle." title="Publish workshop records" />
+        <StaffRecordPublisher snapshot={snapshot} />
 
         <SectionHeading copy="Recent requests visible through the existing MFA-gated staff policies." title="Booking queue" />
         {activeBookings.length === 0 ? <EmptyState>No active booking requests are currently shown.</EmptyState> : activeBookings.slice(0, 12).map((booking) => {
@@ -368,7 +372,7 @@ function StaffWorkspace({
             </View>
           );
         })}
-        <Text style={styles.footer}>PRIVATE QA FOUNDATION · NO STAFF WRITES · NO FILE ACCESS · NO CALENDAR ACTIONS</Text>
+        <Text style={styles.footer}>PRIVATE QA · AAL2 STAFF PUBLISHING · PRIVATE IMAGE ATTACHMENTS · NO CALENDAR ACTIONS</Text>
       </ScrollView>
     </SafeAreaView>
   );

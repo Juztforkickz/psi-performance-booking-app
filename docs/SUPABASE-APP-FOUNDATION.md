@@ -201,17 +201,38 @@ The first portal should provide:
 - private attachment access; and
 - an audit trail plus owner-only staff access management.
 
-The first client foundation for that portal now exists at the Expo route
+The private portal exists at the Expo route
 `/staff`. It is deliberately unlinked from customer navigation and available
 only when Auth is enabled in a controlled QA build. The route first verifies the
 current Auth user through the `staff_members` table's own-user RLS policy, then
 checks the current authenticator assurance level. No public privileged bootstrap
 function is exposed. It does not issue workshop-wide queries until an
-active allowlisted staff identity has reached AAL2. At AAL2, its initial view is
-read-only: active booking requests plus customer and vehicle lookup through the
-existing RLS policies. The public build renders only an unavailable notice.
-Publishing, edits, file access, Calendar actions and staff management remain
-disabled pending separate review and acceptance tests.
+active allowlisted staff identity has reached AAL2. At AAL2 it loads active
+booking requests plus customer and vehicle lookup through the existing RLS
+policies. It also exposes a controlled publisher for PSI repair history,
+recommended work, verified hub-dyno results and AUD invoices. Every publish
+requires an explicit customer/vehicle confirmation and rechecks both AAL2 and
+active staff status immediately before writing. The public build renders only an
+unavailable notice.
+
+Optional dyno-graph and invoice images are limited to JPG, PNG or WebP under
+6 MB for the first reliable standard-upload workflow. They use a unique object
+path beginning with the owning customer's UUID inside the private
+`vehicle-documents` bucket. Matching `vehicle_files` metadata must reference the
+same customer, vehicle and PSI record. If the record insert fails, the client
+attempts to remove the unused object and stops with a private-Storage warning if
+cleanup fails. If metadata creation fails, the valid PSI record is kept without
+claiming an attachment and cleanup success or failure is reported to staff. Customers
+receive only RLS-scoped metadata and a short-lived signed URL on demand. No
+service-role key is present in the client.
+
+The publishing policies require `record_source = 'psi_record'` or
+`'psi_verified'`, verify that vehicle ownership matches the selected customer,
+and reject cross-customer attachment paths. The rollback-only acceptance test
+proves AAL1 denial, AAL2 staff publishing, customer visibility and unrelated-
+customer isolation. Record editing/removal, PDF selection, Complete Service,
+Calendar actions and staff management remain disabled pending separate review
+and acceptance tests.
 
 The private route now includes the TOTP step-up flow needed to reach AAL2.
 Active allowlisted staff without a verified factor can create one in Supabase,
