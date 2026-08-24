@@ -47,11 +47,11 @@ export default function Home() {
       <section className="website-transition" aria-label="PSI workshop promise">
         <div>
           <p>Service · Dyno Tuning · Performance</p>
-          <h2>Your car. Your project. Our attention.</h2>
+          <h2>Your Car. Your Project. Built Together.</h2>
+          <p className="website-transition-copy">
+            Send the workshop the right details in one clear enquiry. PSI will review the work, check the schedule and contact you to confirm the next step.
+          </p>
         </div>
-        <p>
-          Send the workshop the right details in one clear enquiry. PSI will review the work, check the schedule and contact you to confirm the next step.
-        </p>
       </section>
 
       <BookingFlow />
