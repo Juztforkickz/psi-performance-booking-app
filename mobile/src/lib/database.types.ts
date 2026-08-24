@@ -4,6 +4,47 @@ export type Database = {
   };
   public: {
     Tables: {
+      booking_requests: {
+        Row: {
+          archived_at: string | null;
+          booking_type: 'dyno' | 'service';
+          created_at: string;
+          created_by: string;
+          currency: 'AUD';
+          customer_id: string;
+          deposit_amount_cents: number | null;
+          id: string;
+          preferred_date: string | null;
+          request_notes: string | null;
+          state: 'cancelled' | 'completed' | 'confirmed' | 'date_approved' | 'date_proposed' | 'pending_staff_review';
+          updated_at: string;
+          vehicle_id: string;
+        };
+        Insert: {
+          archived_at?: string | null;
+          booking_type: 'dyno' | 'service';
+          created_at?: string;
+          created_by: string;
+          currency?: 'AUD';
+          customer_id: string;
+          deposit_amount_cents?: number | null;
+          id?: string;
+          preferred_date?: string | null;
+          request_notes?: string | null;
+          state?: 'cancelled' | 'completed' | 'confirmed' | 'date_approved' | 'date_proposed' | 'pending_staff_review';
+          updated_at?: string;
+          vehicle_id: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          deposit_amount_cents?: number | null;
+          preferred_date?: string | null;
+          request_notes?: string | null;
+          state?: 'cancelled' | 'completed' | 'confirmed' | 'date_approved' | 'date_proposed' | 'pending_staff_review';
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       customer_profiles: {
         Row: {
           account_state: string;
@@ -281,6 +322,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      staff_members: {
+        Row: {
+          activated_at: string | null;
+          created_at: string;
+          email: string;
+          id: string;
+          invited_at: string;
+          role: 'owner' | 'staff';
+          status: 'active' | 'disabled' | 'pending';
+          updated_at: string;
+          user_id: string | null;
+        };
+        Insert: {
+          activated_at?: string | null;
+          created_at?: string;
+          email: string;
+          id?: string;
+          invited_at?: string;
+          role: 'owner' | 'staff';
+          status?: 'active' | 'disabled' | 'pending';
+          updated_at?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          activated_at?: string | null;
+          email?: string;
+          role?: 'owner' | 'staff';
+          status?: 'active' | 'disabled' | 'pending';
+          updated_at?: string;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       vehicle_service_summary: {
@@ -305,9 +379,11 @@ export type Database = {
 
 export type CustomerProfileRow = Database['public']['Tables']['customer_profiles']['Row'];
 export type CustomerVehicleRow = Database['public']['Tables']['customer_vehicles']['Row'];
+export type BookingRequestRow = Database['public']['Tables']['booking_requests']['Row'];
 export type DynoRecordRow = Database['public']['Tables']['dyno_records']['Row'];
 export type InvoiceRow = Database['public']['Tables']['invoices']['Row'];
 export type OdometerReadingRow = Database['public']['Tables']['odometer_readings']['Row'];
 export type RecommendedWorkRow = Database['public']['Tables']['recommended_work']['Row'];
 export type RepairRecordRow = Database['public']['Tables']['repair_records']['Row'];
+export type StaffMemberRow = Database['public']['Tables']['staff_members']['Row'];
 export type VehicleServiceSummaryRow = Database['public']['Views']['vehicle_service_summary']['Row'];

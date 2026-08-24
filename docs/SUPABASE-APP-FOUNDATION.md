@@ -196,6 +196,17 @@ The first portal should provide:
 - private attachment access; and
 - an audit trail plus owner-only staff access management.
 
+The first client foundation for that portal now exists at the Expo route
+`/staff`. It is deliberately unlinked from customer navigation and available
+only when Auth is enabled in a controlled QA build. The route first verifies the
+current Auth user against their own `staff_members` row, then checks the current
+authenticator assurance level. It does not issue workshop-wide queries until an
+active allowlisted staff identity has reached AAL2. At AAL2, its initial view is
+read-only: active booking requests plus customer and vehicle lookup through the
+existing RLS policies. The public build renders only an unavailable notice.
+Publishing, edits, file access, Calendar actions and staff management remain
+disabled pending separate review and acceptance tests.
+
 The Supabase secret/service-role key must exist only in trusted server or Edge
 Function configuration. It must never be placed in Expo, Netlify client code,
 GitHub or browser storage.

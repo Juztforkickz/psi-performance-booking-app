@@ -1,0 +1,273 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { PrimaryButton } from '@/components/ui';
+import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { CUSTOMER_AUTH } from '@/lib/customer-auth';
+import { useCustomerAuth } from '@/lib/customer-auth-context';
+import {
+  loadStaffPortalAccess,
+  type StaffPortalAccess,
+  type StaffPortalSnapshot,
+} from '@/lib/staff-portal';
+
+type LoadState =
+  | { access: null; status: 'error' | 'loading'; userId: string | null }
+  | { access: StaffPortalAccess; status: 'ready'; userId: string };
+
+const BOOKING_STATUS_LABELS: Record<StaffPortalSnapshot['bookings'][number]['state'], string> = {
+  cancelled: 'Cancelled',
+  completed: 'Completed',
+  confirmed: 'Confirmed',
+  date_approved: 'Date approved',
+  date_proposed: 'Date proposed',
+  pending_staff_review: 'Pending review',
+};
+
+export default function StaffPortalScreen() {
+  const router = useRouter();
+  const auth = useCustomerAuth();
+  const { horizontalPadding } = useResponsiveLayout();
+  const [loadState, setLoadState] = useState<LoadState>({ access: null, status: 'loading', userId: null });
+
+  useEffect(() => {
+    if (!CUSTOMER_AUTH.enabled || auth.status !== 'signed_in') return;
+    let active = true;
+    const userId = auth.user?.id;
+    if (!userId) return;
+    void loadStaffPortalAccess()
+      .then((access) => {
+        if (active) setLoadState({ access, status: 'ready', userId });
+      })
+      .catch(() => {
+        if (active) setLoadState({ access: null, status: 'error', userId });
+      });
+    return () => {
+      active = false;
+    };
+  }, [auth.status, auth.user?.id]);
+
+  if (!CUSTOMER_AUTH.enabled) {
+    return (
+      <PortalState
+        copy="The PSI staff portal is unavailable in the public preview. No workshop or customer records are loaded."
+        title="Private staff workspace"
+      />
+    );
+  }
+  if (auth.status === 'loading') return <PortalState copy="Restoring the protected session…" loading title="Checking staff access" />;
+  if (auth.status !== 'signed_in') {
+    return (
+      <PortalState
+        actionLabel="Open secure sign in"
+        copy="Sign in with an approved PSI staff email before this private workspace can check staff access."
+        onAction={() => router.push('/account')}
+        title="Staff sign in required"
+      />
+    );
+  }
+  if (loadState.status === 'loading' || loadState.userId !== auth.user?.id) return <PortalState copy="Checking the staff allowlist and MFA level…" loading title="Checking staff access" />;
+  if (loadState.status === 'error') {
+    return <PortalState copy="Staff access could not be verified. No workshop records were loaded." title="Staff portal unavailable" />;
+  }
+  const access = loadState.access;
+  if (!access) {
+    return <PortalState copy="Staff access could not be verified. No workshop records were loaded." title="Staff portal unavailable" />;
+  }
+  if (access.kind === 'access_denied') {
+    return <PortalState copy="This account is not an active PSI staff identity. No workshop records were loaded." title="Access denied" />;
+  }
+  if (access.kind === 'mfa_required') {
+    return (
+      <PortalState
+        copy="Your PSI staff identity is active, but workshop-wide access requires a verified authenticator factor at AAL2. No customer records were loaded."
+        title="Authenticator verification required"
+      />
+    );
+  }
+
+  return (
+    <StaffWorkspace
+      horizontalPadding={horizontalPadding}
+      role={access.staff.role}
+      snapshot={access.snapshot}
+    />
+  );
+}
+
+function PortalState({
+  actionLabel,
+  copy,
+  loading = false,
+  onAction,
+  title,
+}: {
+  actionLabel?: string;
+  copy: string;
+  loading?: boolean;
+  onAction?: () => void;
+  title: string;
+}) {
+  const router = useRouter();
+  const { horizontalPadding } = useResponsiveLayout();
+  return (
+    <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
+      <View style={[styles.state, { paddingHorizontal: horizontalPadding }]}>
+        {loading ? <ActivityIndicator color={colors.gold} size="large" /> : <Ionicons color={colors.gold} name="shield-checkmark" size={42} />}
+        <Text style={styles.stateTitle}>{title}</Text>
+        <Text style={styles.stateCopy}>{copy}</Text>
+        {actionLabel && onAction ? <PrimaryButton label={actionLabel} onPress={onAction} /> : null}
+        {!loading ? <PrimaryButton label="Back" onPress={() => router.back()} variant="outline" /> : null}
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function StaffWorkspace({
+  horizontalPadding,
+  role,
+  snapshot,
+}: {
+  horizontalPadding: number;
+  role: 'owner' | 'staff';
+  snapshot: StaffPortalSnapshot;
+}) {
+  const router = useRouter();
+  const activeBookings = snapshot.bookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
+  const vehiclesByCustomer = useMemo(() => {
+    const grouped = new Map<string, StaffPortalSnapshot['vehicles']>();
+    snapshot.vehicles.forEach((vehicle) => grouped.set(vehicle.customer_id, [...(grouped.get(vehicle.customer_id) ?? []), vehicle]));
+    return grouped;
+  }, [snapshot.vehicles]);
+
+  return (
+    <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]} showsVerticalScrollIndicator={false}>
+        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}>
+          <Text style={styles.backText}>← Back</Text>
+        </Pressable>
+        <Text style={styles.eyebrow}>PSI PRIVATE WORKSPACE</Text>
+        <Text style={styles.title}>Workshop portal</Text>
+        <Text style={styles.lead}>A read-only operational view for approved PSI staff. Customer-wide access is protected by the staff allowlist, verified MFA and database row-level policies.</Text>
+
+        <View style={styles.securityBanner}>
+          <Ionicons color={colors.success} name="shield-checkmark" size={22} />
+          <View style={styles.flex}>
+            <Text style={styles.securityTitle}>MFA verified · {role === 'owner' ? 'Owner access' : 'Staff access'}</Text>
+            <Text style={styles.securityCopy}>Publishing, record changes, file access and staff management remain disabled in this foundation stage.</Text>
+          </View>
+        </View>
+
+        <View style={styles.metrics}>
+          <Metric label="Customers" value={snapshot.customers.length} />
+          <Metric label="Vehicles" value={snapshot.vehicles.length} />
+          <Metric label="Active requests" value={activeBookings.length} />
+        </View>
+
+        <SectionHeading copy="Recent requests visible through the existing MFA-gated staff policies." title="Booking queue" />
+        {activeBookings.length === 0 ? <EmptyState>No active booking requests are currently shown.</EmptyState> : activeBookings.slice(0, 12).map((booking) => {
+          const vehicle = snapshot.vehicles.find((item) => item.id === booking.vehicle_id);
+          const customer = snapshot.customers.find((item) => item.user_id === booking.customer_id);
+          return (
+            <View key={booking.id} style={styles.card}>
+              <View style={styles.cardHeading}>
+                <Text style={styles.cardTitle}>{booking.booking_type === 'dyno' ? 'Dyno tuning' : 'Service & report'}</Text>
+                <Text style={styles.badge}>{BOOKING_STATUS_LABELS[booking.state]}</Text>
+              </View>
+              <Text style={styles.cardPrimary}>{customerName(customer)}</Text>
+              <Text style={styles.cardCopy}>{vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable'}</Text>
+              <Text style={styles.cardMeta}>{booking.preferred_date ? `Preferred ${formatDate(booking.preferred_date)}` : 'Customer is flexible on date'}</Text>
+            </View>
+          );
+        })}
+
+        <SectionHeading copy="Customer contact and vehicle ownership remain read-only in this stage." title="Customer and vehicle lookup" />
+        {snapshot.customers.length === 0 ? <EmptyState>No active customer accounts are currently shown.</EmptyState> : snapshot.customers.map((customer) => {
+          const vehicles = vehiclesByCustomer.get(customer.user_id) ?? [];
+          return (
+            <View key={customer.user_id} style={styles.card}>
+              <Text style={styles.cardTitle}>{customerName(customer)}</Text>
+              <Text style={styles.cardCopy}>{customer.email}</Text>
+              {customer.mobile ? <Text style={styles.cardCopy}>{customer.mobile}</Text> : null}
+              <View style={styles.vehicleList}>
+                {vehicles.length === 0 ? <Text style={styles.cardMeta}>No active vehicles.</Text> : vehicles.map((vehicle) => (
+                  <View key={vehicle.id} style={styles.vehicleRow}>
+                    <Ionicons color={colors.gold} name="car-sport" size={18} />
+                    <View style={styles.flex}>
+                      <Text style={styles.vehicleTitle}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
+                      <Text style={styles.cardMeta}>{vehicle.registration}{vehicle.is_primary ? ' · Primary vehicle' : ''}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          );
+        })}
+        <Text style={styles.footer}>PRIVATE QA FOUNDATION · NO STAFF WRITES · NO FILE ACCESS · NO CALENDAR ACTIONS</Text>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return <View style={styles.metric}><Text style={styles.metricValue}>{value}</Text><Text style={styles.metricLabel}>{label}</Text></View>;
+}
+
+function SectionHeading({ copy, title }: { copy: string; title: string }) {
+  return <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionCopy}>{copy}</Text></View>;
+}
+
+function EmptyState({ children }: { children: string }) {
+  return <View style={styles.empty}><Text style={styles.emptyText}>{children}</Text></View>;
+}
+
+function customerName(customer: StaffPortalSnapshot['customers'][number] | undefined) {
+  if (!customer) return 'Customer record unavailable';
+  return [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.email;
+}
+
+function formatDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split('-');
+  return `${day}/${month}/${year}`;
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.ink },
+  flex: { flex: 1 },
+  state: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingVertical: spacing.xxl },
+  stateTitle: { color: colors.white, fontSize: 27, fontWeight: '900', textAlign: 'center' },
+  stateCopy: { color: colors.muted, fontSize: 15, lineHeight: 23, maxWidth: 520, textAlign: 'center' },
+  scroll: { alignSelf: 'center', width: '100%', maxWidth: 880, paddingBottom: spacing.xxl, paddingTop: spacing.md },
+  back: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
+  backText: { color: colors.white, fontSize: 15, fontWeight: '800' },
+  eyebrow: { color: colors.gold, fontSize: 12, fontWeight: '900', letterSpacing: 1.7, marginTop: spacing.md },
+  title: { color: colors.white, fontSize: 38, fontWeight: '900', letterSpacing: -1.2, marginTop: spacing.xs },
+  lead: { color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: spacing.sm, maxWidth: 680 },
+  securityBanner: { ...mobileFrame, backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg, padding: spacing.md },
+  securityTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
+  securityCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 4 },
+  metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  metric: { ...mobileFrame, backgroundColor: colors.panelRaised, flexGrow: 1, minWidth: 120, padding: spacing.md },
+  metricValue: { color: colors.gold, fontSize: 28, fontWeight: '900' },
+  metricLabel: { color: colors.white, fontSize: 12, fontWeight: '800', marginTop: 2, textTransform: 'uppercase' },
+  sectionHeading: { marginBottom: spacing.sm, marginTop: spacing.xl },
+  sectionTitle: { color: colors.white, fontSize: 23, fontWeight: '900' },
+  sectionCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 3 },
+  card: { ...mobileFrame, backgroundColor: colors.panel, marginBottom: spacing.sm, padding: spacing.md },
+  cardHeading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
+  cardTitle: { color: colors.white, flex: 1, fontSize: 17, fontWeight: '900' },
+  cardPrimary: { color: colors.white, fontSize: 15, fontWeight: '800', marginTop: spacing.sm },
+  cardCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 2 },
+  cardMeta: { color: colors.gold, fontSize: 12, fontWeight: '800', marginTop: spacing.xs },
+  badge: { borderColor: colors.goldDark, borderWidth: 1, color: colors.gold, fontSize: 10, fontWeight: '900', paddingHorizontal: 8, paddingVertical: 5, textTransform: 'uppercase' },
+  vehicleList: { gap: spacing.sm, marginTop: spacing.md },
+  vehicleRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.sm },
+  vehicleTitle: { color: colors.white, fontSize: 14, fontWeight: '800' },
+  empty: { ...mobileFrame, backgroundColor: colors.panel, padding: spacing.lg },
+  emptyText: { color: colors.muted, fontSize: 14, textAlign: 'center' },
+  footer: { color: colors.mutedDark, fontSize: 10, fontWeight: '900', letterSpacing: 1.1, lineHeight: 16, marginTop: spacing.xl, textAlign: 'center' },
+});
