@@ -38,3 +38,20 @@ test("Version 3 carries every app Plan Builder area and planning dropdown into t
   assert.match(builder, /mailto:info@psiperformance\.com\.au/u);
   assert.match(builder, /It is an enquiry, not a quote or booking\./u);
 });
+
+test("the Shopify Version 3 handoff is self-contained, enquiry-only and responsive", async () => {
+  const liquid = await read("shopify/psi-website-version-3-section.liquid");
+
+  assert.match(liquid, /id="booking-panel"/u);
+  assert.match(liquid, /\{% form 'contact'/u);
+  assert.match(liquid, /data-psi-kind="service"/u);
+  assert.match(liquid, /data-psi-kind="dyno"/u);
+  assert.match(liquid, /data-psi-kind="plan"/u);
+  assert.match(liquid, /PSI App · Coming Soon/u);
+  assert.match(liquid, /@media\(max-width:760px\)/u);
+  assert.doesNotMatch(liquid, /Payright|deposit|\$\d/iu);
+
+  for (const area of ["Engine", "Suspension", "Exhaust", "Intake", "Repairs", "Interior", "Programming", "Other"]) {
+    assert.match(liquid, new RegExp(`Plan - ${area}`, "u"));
+  }
+});
