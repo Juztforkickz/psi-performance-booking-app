@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ import { useCustomerAuth } from '@/lib/customer-auth-context';
 
 export default function AccountScreen() {
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const { compact, horizontalPadding, short } = useResponsiveLayout();
   const auth = useCustomerAuth();
   const { account, error: accountError, status: accountStatus } = useCustomerAccount();
@@ -29,6 +30,12 @@ export default function AccountScreen() {
   const [codeSent, setCodeSent] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
+  const secureReturnTo = (Array.isArray(returnTo) ? returnTo[0] : returnTo) === '/staff' ? '/staff' : null;
+
+  useEffect(() => {
+    if (auth.status === 'signed_in' && secureReturnTo) router.replace(secureReturnTo);
+  }, [auth.status, router, secureReturnTo]);
+
   useEffect(() => {
     if (resendSeconds <= 0) return;
     const timer = setInterval(() => {
@@ -192,7 +199,7 @@ export default function AccountScreen() {
         {auth.status !== 'signed_in' ? <View style={[styles.card, compact && styles.cardCompact]}>
           <Text style={styles.cardTitle}>Sign in with email</Text>
           <Text style={styles.cardCopy}>
-            The production experience will send a secure six-digit sign-in code. No reusable password is required.
+            The production experience will send a secure six-digit sign-in code. No reusable password is required.{secureReturnTo ? ' After verification, you will return to the protected PSI staff workspace.' : ''}
           </Text>
           <Field error={emailError} label="Email">
             <FormInput

@@ -38,6 +38,11 @@ export default function StaffPortalScreen() {
   const [loadState, setLoadState] = useState<LoadState>({ access: null, status: 'loading', userId: null });
   const [refreshNonce, setRefreshNonce] = useState(0);
 
+  const refreshStaffAccess = () => {
+    setLoadState({ access: null, status: 'loading', userId: auth.user?.id ?? null });
+    setRefreshNonce((current) => current + 1);
+  };
+
   useEffect(() => {
     if (!CUSTOMER_AUTH.enabled || auth.status !== 'signed_in') return;
     let active = true;
@@ -69,7 +74,7 @@ export default function StaffPortalScreen() {
       <PortalState
         actionLabel="Open secure sign in"
         copy="Sign in with an approved PSI staff email before this private workspace can check staff access."
-        onAction={() => router.push('/account')}
+        onAction={() => router.push({ pathname: '/account', params: { returnTo: '/staff' } })}
         title="Staff sign in required"
       />
     );
@@ -80,7 +85,7 @@ export default function StaffPortalScreen() {
       <PortalState
         actionLabel="Try again"
         copy="Staff access could not be verified. No workshop records were loaded."
-        onAction={() => setRefreshNonce((current) => current + 1)}
+        onAction={refreshStaffAccess}
         title="Staff portal unavailable"
       />
     );
@@ -96,7 +101,7 @@ export default function StaffPortalScreen() {
     return (
       <StaffMfaGate
         access={access}
-        onVerified={() => setRefreshNonce((current) => current + 1)}
+        onVerified={refreshStaffAccess}
       />
     );
   }
