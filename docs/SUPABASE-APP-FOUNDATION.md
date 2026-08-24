@@ -146,8 +146,13 @@ separately from the latest customer odometer, and adds a changed customer
 odometer as an append-only `customer_entry` row. The client rejects a lower
 reading and never presents a
 customer reading as PSI verified; database RLS remains the ownership authority.
-Personal last-service/next-check-in reminders and vehicle photos remain local to
-the open session. Garage can hand the selected owned vehicle into the existing
+Personal last-service/next-check-in reminders remain local to the open session.
+In the authenticated QA build, a customer-selected vehicle photo is uploaded
+under the customer's UUID in the private `vehicle-photos` bucket, recorded as
+customer-owned metadata and displayed through a short-lived signed URL. Image
+type, size, vehicle ownership and creator ownership are checked before the app
+replaces or removes it; authorised AAL2 PSI staff may view it for workshop use.
+Garage can hand the selected owned vehicle into the existing
 booking form; the verified Auth email and owned profile name/mobile also prefill
 the customer step. The account editor
 loads the existing profile and primary vehicle before accepting changes, and an
@@ -172,8 +177,9 @@ RLS boundary. When a PSI invoice or dyno attachment exists, Storage must
 authorize that exact private object before issuing a 60-second signed URL.
 Images open in the app and PDFs open through the device browser; the URL is held
 only in screen memory. The app does not list a bucket, expose a public object URL
-or use a service-role key. File and record uploads remain disabled, and all Add
-forms and selected images remain session-local preview tools. The public GitHub
+or use a service-role key. Customer Vehicle Reports Add forms and their selected
+invoice/dyno images remain session-local preview tools. AAL2 PSI staff
+publishing to private `vehicle-documents` is enabled separately. The public GitHub
 Pages build continues to render only synthetic Stage 1 data with Auth disabled.
 
 All customer tables use Row Level Security. Data API grants are also explicitly
@@ -186,9 +192,10 @@ protection, a paid password feature that is not used by this passwordless app.
 
 ## PSI portal
 
-PSI still needs its own staff portal. It will use the same Supabase project, but
-with a separate staff interface and MFA-gated policies—not a shared customer
-password or service-role key in the browser.
+PSI now has its first private staff portal in the same Supabase project, using a
+separate staff interface and MFA-gated policies—not a shared customer password
+or service-role key in the browser. Production hardening and operational QA are
+still required.
 
 The first portal should provide:
 
@@ -242,8 +249,10 @@ proves AAL1 denial, AAL2 staff publishing, customer visibility and unrelated-
 customer isolation. The expanded rollback test also proves customer and AAL1
 completion denial, the AAL2 Complete Service projection, immutable linked
 history and unrelated-customer isolation. General record editing/removal, PDF
-selection, Calendar actions and staff management remain disabled pending
-separate review and acceptance tests.
+selection and staff management remain disabled pending separate review and
+acceptance tests. A provider-neutral email/Calendar queue and fail-closed worker
+are present, but actual provider delivery remains disabled pending credential
+setup and acceptance testing.
 
 The private route now includes the TOTP step-up flow needed to reach AAL2.
 Active allowlisted staff without a verified factor can create one in Supabase,
@@ -296,22 +305,31 @@ transition is reserved for a later trusted server integration after verified
 payment. The customer's private Bookings tab reads only their RLS-scoped queue
 and approved dates; it never exposes PSI workshop availability.
 
-The remaining server integration flow is:
+The current protected integration flow is:
 
-1. Customer submits a request from an approved authenticated QA account.
-2. PSI receives an email notification; the initial operational recipient is
-   `matt@psiperformance.com.au`.
-3. A server-side integration creates a clearly labelled `[PENDING]` event on
-   the Google Calendar owned by `matt@psiperformance.com.au`.
-4. PSI approves/proposes the date in the MFA-protected staff portal or contacts
-   the customer. This database step is active in controlled QA.
-5. Approval updates the database and calendar event, then sends the customer a
-   confirmation email.
+1. Customer submits a request from an approved authenticated QA account. The
+   database queues one PSI and one customer request-received email job.
+2. PSI approves/proposes the date in the MFA-protected staff portal or cancels
+   with an audit note. The database queues the matching customer email job.
+3. Matt can inspect the job and audit feeds and invoke the authenticated worker
+   only from an active AAL2 staff session. Anonymous, customer and AAL1 access
+   cannot read or mutate the queue.
+4. The worker uses Resend idempotency keys and does not store provider
+   credentials, recipients or message bodies in the queue. Until the encrypted
+   provider secrets exist, it records `blocked_configuration` and never claims
+   delivery.
+5. No pending or merely date-approved booking is written to Google Calendar.
+   Only the future trusted payment-confirmed transition queues the customer/PSI
+   confirmation emails and one internal Calendar event. The event is all-day,
+   clearly labelled `[CONFIRMED]`, deterministic for retry safety and does not
+   invite the customer.
 
-Google Calendar OAuth tokens belong only in encrypted server-side secrets. They
-are not stored in customer tables or the mobile app. The calendar connection is
-not active until Matt completes Google consent and the approval/update workflow
-is tested for duplicates, cancellation and time-zone handling.
+Google Calendar OAuth tokens belong only in encrypted Edge Function secrets.
+They are not stored in customer tables, the mobile app or GitHub. The Calendar
+connection remains inactive until Matt completes Google consent, the four
+server-only Calendar values are configured and duplicate/cancellation/time-zone
+acceptance tests pass. Deposit/payment implementation is deliberately left for
+the final integration stage.
 
 ## Current Free-plan position
 

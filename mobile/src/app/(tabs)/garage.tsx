@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -21,11 +21,19 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import {
+  createCustomerVehiclePhotoSignedUrl,
+  newestCustomerVehiclePhoto,
+  removeCustomerVehiclePhoto,
+  uploadCustomerVehiclePhoto,
+} from '@/lib/customer-private-files';
+import {
   CUSTOMER_PREVIEW,
   getLatestVerifiedDynoResult,
   type PreviewVehicle,
 } from '@/lib/customer-preview';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
+import type { VehicleFileRow } from '@/lib/database.types';
+import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 
 const GARAGE_IMAGE = require('../../../assets/images/dashboard/tile-my-garage.jpg');
 const REPORT_IMAGE = require('../../../assets/images/dashboard/tile-vehicle-reports.jpg');
@@ -77,7 +85,7 @@ export default function GarageScreen() {
     return <GarageAccountState actionLabel="Add your first vehicle" copy="Your secure account is active, but it does not have a vehicle yet." title="Your garage is ready" />;
   }
 
-  return <GarageContent secureVehicles={secureVehicles} />;
+  return <GarageContent secureVehicleFiles={secureAccountActive ? account?.vehicleFiles ?? [] : null} secureVehicles={secureVehicles} />;
 }
 
 function GarageAccountState({
@@ -107,7 +115,13 @@ function GarageAccountState({
   );
 }
 
-function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVehicle[] | null }) {
+function GarageContent({
+  secureVehicleFiles,
+  secureVehicles,
+}: {
+  secureVehicleFiles: readonly VehicleFileRow[] | null;
+  secureVehicles: readonly PreviewVehicle[] | null;
+}) {
   const router = useRouter();
   const { refreshAccount } = useCustomerAccount();
   const { section } = useLocalSearchParams<{ section?: string }>();
@@ -126,10 +140,27 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
 
   const vehicles = secureVehicles ?? previewVehicles;
   const [secureSelectedVehicleId, setSecureSelectedVehicleId] = useState(() => secureVehicles?.find((vehicle) => vehicle.isPrimary)?.id ?? secureVehicles?.[0]?.id ?? '');
+  const [securePhotoFiles, setSecurePhotoFiles] = useState<Record<string, VehicleFileRow | null>>({});
+  const [securePhotoUris, setSecurePhotoUris] = useState<Record<string, string | null>>({});
+  const [photoNotice, setPhotoNotice] = useState('');
+  const [photoSaving, setPhotoSaving] = useState(false);
   const selectedVehicleId = secureVehicles ? secureSelectedVehicleId : previewSelectedVehicleId;
 
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0];
-  const selectedPhoto = vehiclePhotos[selectedVehicle.id] ?? null;
+  const hasPhotoOverride = Object.prototype.hasOwnProperty.call(securePhotoFiles, selectedVehicle.id);
+  const selectedSecurePhotoFile = hasPhotoOverride
+    ? securePhotoFiles[selectedVehicle.id]
+    : newestCustomerVehiclePhoto(secureVehicleFiles ?? [], selectedVehicle.id);
+  const securePhotoUri = securePhotoUris[selectedVehicle.id] ?? null;
+  const selectedPhoto = secureVehicles
+    ? securePhotoUri ? {
+      fileSize: selectedSecurePhotoFile?.file_size_bytes ?? null,
+      height: 0,
+      mimeType: selectedSecurePhotoFile?.mime_type ?? null,
+      uri: securePhotoUri,
+      width: 0,
+    } : null
+    : vehiclePhotos[selectedVehicle.id] ?? null;
   const dynoResult = getLatestVerifiedDynoResult(selectedVehicle.id);
   const buildPlan = CUSTOMER_PREVIEW.buildPlans.find((plan) => plan.vehicleId === selectedVehicle.id);
   const vehicleLabel = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;
@@ -155,6 +186,54 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
   const [maintenanceError, setMaintenanceError] = useState('');
   const [maintenanceNotice, setMaintenanceNotice] = useState('');
   const [maintenanceSaving, setMaintenanceSaving] = useState(false);
+
+  useEffect(() => {
+    if (!secureVehicles || !selectedSecurePhotoFile || securePhotoUris[selectedVehicle.id]) return;
+    let active = true;
+    createCustomerVehiclePhotoSignedUrl(selectedSecurePhotoFile)
+      .then((uri) => {
+        if (active) setSecurePhotoUris((current) => ({ ...current, [selectedVehicle.id]: uri }));
+      })
+      .catch(() => {
+        if (active) setPhotoNotice('Your private vehicle photo could not be opened. Refresh the account or try again.');
+      });
+    return () => { active = false; };
+  }, [securePhotoUris, secureVehicles, selectedSecurePhotoFile, selectedVehicle.id]);
+
+  const changeVehiclePhoto = async (photo: Parameters<typeof setVehiclePhoto>[1]) => {
+    if (!secureVehicles) {
+      setVehiclePhoto(selectedVehicle.id, photo);
+      return;
+    }
+
+    setPhotoSaving(true);
+    setPhotoNotice('');
+    const previousUri = securePhotoUris[selectedVehicle.id] ?? null;
+    try {
+      if (!photo) {
+        if (!selectedSecurePhotoFile) return;
+        const result = await removeCustomerVehiclePhoto(selectedSecurePhotoFile);
+        setSecurePhotoFiles((current) => ({ ...current, [selectedVehicle.id]: null }));
+        setSecurePhotoUris((current) => ({ ...current, [selectedVehicle.id]: null }));
+        setPhotoNotice(result.storageRemoved
+          ? 'Your customer-added vehicle photo was removed from the private account.'
+          : 'The photo was removed from your account view. PSI must clean up the remaining private file.');
+      } else {
+        setSecurePhotoUris((current) => ({ ...current, [selectedVehicle.id]: photo.uri }));
+        const result = await uploadCustomerVehiclePhoto(selectedVehicle.id, photo);
+        setSecurePhotoFiles((current) => ({ ...current, [selectedVehicle.id]: result.file }));
+        setSecurePhotoUris((current) => ({ ...current, [selectedVehicle.id]: result.signedUrl }));
+        setPhotoNotice(result.cleanupWarning ?? 'Your vehicle photo was saved privately to this account.');
+      }
+      refreshAccount();
+    } catch {
+      setSecurePhotoUris((current) => ({ ...current, [selectedVehicle.id]: previousUri }));
+      setPhotoNotice('The private photo was not changed. Choose a JPEG, PNG or WebP image under 8 MB and try again.');
+    } finally {
+      if (photo) releaseLocalVehiclePhoto(photo);
+      setPhotoSaving(false);
+    }
+  };
 
   const resetMaintenanceDraft = (vehicle: PreviewVehicle) => {
     const local = vehicleMaintenance[vehicle.id];
@@ -256,7 +335,7 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
           <Text style={styles.previewNoticeTitle}>{secureVehicles ? 'Private account vehicles' : 'Preview vehicle data'}</Text>
           <Text style={styles.previewNoticeCopy}>
             {secureVehicles
-              ? 'Vehicles, PSI service dates and customer odometer readings load from your authenticated private account. Photos and personal reminder dates remain local to this open session.'
+              ? 'Vehicles, PSI service dates, customer odometer readings and customer vehicle photos load from your authenticated private account. Personal reminder dates remain local to this open session.'
               : 'This garage is not connected to PSI records. Details and photos stay only in this open app preview and clear when it reloads or closes.'}
           </Text>
         </View>
@@ -388,10 +467,13 @@ function GarageContent({ secureVehicles }: { secureVehicles: readonly PreviewVeh
 
         <View style={styles.photoSection}>
           <VehiclePhotoPicker
-            onChange={(photo) => setVehiclePhoto(selectedVehicle.id, photo)}
+            onChange={(photo) => void changeVehiclePhoto(photo)}
+            saving={photoSaving}
+            storageMode={secureVehicles ? 'private_account' : 'local_preview'}
             value={selectedPhoto}
             vehicleLabel={vehicleLabel}
           />
+          {photoNotice ? <Text accessibilityRole="alert" style={styles.maintenanceNotice}>{photoNotice}</Text> : null}
         </View>
 
         {!dynoFirst ? <DynoResultCard result={dynoResult} vehicleLabel={vehicleLabel} /> : null}

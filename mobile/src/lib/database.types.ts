@@ -4,6 +4,42 @@ export type Database = {
   };
   public: {
     Tables: {
+      audit_events: {
+        Row: {
+          action: 'delete' | 'insert' | 'update';
+          actor_kind: 'customer' | 'staff' | 'system';
+          actor_user_id: string | null;
+          customer_id: string | null;
+          id: number;
+          occurred_at: string;
+          record_id: string;
+          table_name: string;
+        };
+        Insert: Record<never, never>;
+        Update: Record<never, never>;
+        Relationships: [];
+      };
+      booking_integration_jobs: {
+        Row: {
+          attempt_count: number;
+          available_at: string;
+          booking_request_id: string;
+          completed_at: string | null;
+          created_at: string;
+          customer_id: string;
+          dedupe_key: string;
+          id: string;
+          job_kind: 'notify_customer_booking_confirmed' | 'notify_customer_cancelled' | 'notify_customer_date_approved' | 'notify_customer_date_proposed' | 'notify_customer_request_received' | 'notify_psi_booking_confirmed' | 'notify_psi_request_received' | 'sync_google_calendar_confirmed';
+          last_attempt_at: string | null;
+          last_error_code: string | null;
+          provider_reference: string | null;
+          status: 'blocked_configuration' | 'cancelled' | 'failed' | 'pending' | 'processing' | 'succeeded';
+          updated_at: string;
+        };
+        Insert: Record<never, never>;
+        Update: Record<never, never>;
+        Relationships: [];
+      };
       booking_requests: {
         Row: {
           archived_at: string | null;
@@ -471,6 +507,8 @@ export type Database = {
 };
 
 export type CustomerProfileRow = Database['public']['Tables']['customer_profiles']['Row'];
+export type AuditEventRow = Database['public']['Tables']['audit_events']['Row'];
+export type BookingIntegrationJobRow = Database['public']['Tables']['booking_integration_jobs']['Row'];
 export type CustomerVehicleRow = Database['public']['Tables']['customer_vehicles']['Row'];
 export type BookingRequestRow = Database['public']['Tables']['booking_requests']['Row'];
 export type DynoRecordRow = Database['public']['Tables']['dyno_records']['Row'];

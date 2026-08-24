@@ -17,6 +17,8 @@ export type { LocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 export type VehiclePhotoPickerProps = {
   disabled?: boolean;
   onChange: (photo: LocalVehiclePhoto | null) => void;
+  saving?: boolean;
+  storageMode?: 'local_preview' | 'private_account';
   value: LocalVehiclePhoto | null;
   vehicleLabel?: string;
 };
@@ -24,6 +26,8 @@ export type VehiclePhotoPickerProps = {
 export function VehiclePhotoPicker({
   disabled = false,
   onChange,
+  saving = false,
+  storageMode = 'local_preview',
   value,
   vehicleLabel = 'your vehicle',
 }: VehiclePhotoPickerProps) {
@@ -31,7 +35,7 @@ export function VehiclePhotoPicker({
   const [error, setError] = useState('');
 
   const choosePhoto = async () => {
-    if (busy || disabled) return;
+    if (busy || saving || disabled) return;
 
     setBusy(true);
     setError('');
@@ -56,7 +60,9 @@ export function VehiclePhotoPicker({
       }
 
       const nextPhoto = {
+        fileSize: asset.fileSize ?? null,
         height: asset.height,
+        mimeType: asset.mimeType ?? null,
         uri: asset.uri,
         width: asset.width,
       };
@@ -104,16 +110,16 @@ export function VehiclePhotoPicker({
         <Pressable
           accessibilityLabel={value ? `Replace photo of ${vehicleLabel}` : `Choose a photo of ${vehicleLabel}`}
           accessibilityRole="button"
-          accessibilityState={{ busy, disabled: busy || disabled }}
-          disabled={busy || disabled}
+          accessibilityState={{ busy: busy || saving, disabled: busy || saving || disabled }}
+          disabled={busy || saving || disabled}
           onPress={() => void choosePhoto()}
           style={({ pressed }) => [
             styles.primaryAction,
             pressed && styles.pressed,
-            (busy || disabled) && styles.actionDisabled,
+            (busy || saving || disabled) && styles.actionDisabled,
           ]}
         >
-          {busy ? (
+          {busy || saving ? (
             <ActivityIndicator color={colors.ink} />
           ) : (
             <Text maxFontSizeMultiplier={1.6} style={styles.primaryActionText}>
@@ -126,12 +132,12 @@ export function VehiclePhotoPicker({
           <Pressable
             accessibilityLabel={`Remove photo of ${vehicleLabel}`}
             accessibilityRole="button"
-            disabled={disabled}
+            disabled={disabled || saving}
             onPress={removePhoto}
             style={({ pressed }) => [
               styles.secondaryAction,
               pressed && styles.pressed,
-              disabled && styles.actionDisabled,
+              (disabled || saving) && styles.actionDisabled,
             ]}
           >
             <Text maxFontSizeMultiplier={1.6} style={styles.secondaryActionText}>Remove</Text>
@@ -139,10 +145,12 @@ export function VehiclePhotoPicker({
         ) : null}
       </View>
 
-      <View accessibilityLabel="Local preview only. The selected photo is not uploaded to PSI or added to an account." style={styles.notice}>
-        <Text maxFontSizeMultiplier={2} style={styles.noticeTitle}>Local preview only</Text>
+      <View accessibilityLabel={storageMode === 'private_account' ? 'Private account photo storage.' : 'Local preview only. The selected photo is not uploaded to PSI or added to an account.'} style={styles.notice}>
+        <Text maxFontSizeMultiplier={2} style={styles.noticeTitle}>{storageMode === 'private_account' ? 'Private account storage' : 'Local preview only'}</Text>
         <Text maxFontSizeMultiplier={2} style={styles.noticeCopy}>
-          This preview keeps only a temporary local reference. It is not uploaded to PSI or saved to an account. It clears when the app preview reloads or closes; your device and system photo picker manage any local copies or cache.
+          {storageMode === 'private_account'
+            ? 'Choosing a photo saves it to your private PSI account. Only this authenticated customer account and authorised PSI staff can view it. Replacing or removing it never changes PSI workshop records.'
+            : 'This preview keeps only a temporary local reference. It is not uploaded to PSI or saved to an account. It clears when the app preview reloads or closes; your device and system photo picker manage any local copies or cache.'}
         </Text>
       </View>
     </View>

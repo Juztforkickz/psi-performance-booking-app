@@ -30,6 +30,24 @@ customer can see its own profile but cannot see PSI staff or unrelated records.
 The test session was signed out after verification and registration was checked
 closed again.
 
+## Private files and booking integrations
+
+- Customer vehicle photos now use the private `vehicle-photos` bucket in the
+  Auth-enabled QA build. The object path begins with the authenticated customer
+  UUID, matching metadata is RLS-scoped, and the app displays a short-lived
+  signed URL rather than a public object URL.
+- PSI invoice and dyno images remain in the private `vehicle-documents` bucket
+  and are published only from the AAL2 staff workspace.
+- Booking changes create durable, deduplicated rows in
+  `booking_integration_jobs`. Customers and anonymous clients cannot read or
+  change this queue; AAL2 staff receive read-only status and the service role is
+  the only writer.
+- `process-booking-integrations` is deployed with JWT verification and performs
+  another active-staff/AAL2 check. It contains no provider credentials and
+  blocks jobs truthfully until the required encrypted Edge Function secrets are
+  configured. Google Calendar work is queued only for the future trusted
+  `confirmed` transition. Payment remains intentionally unimplemented.
+
 ## Database acceptance test
 
 Run `tests/customer_account_rls.sql` with a privileged database test connection.
@@ -44,7 +62,9 @@ addresses.
 ## Still activation-gated
 
 Before customer onboarding is made generally available, PSI still needs to
-approve the production app release, staff MFA/AAL2 workflow, private file
-storage UI, workshop portal, Google Calendar service and operational support
-process. Database policies and private buckets are present, but the public demo
-must not be treated as the production account portal.
+approve the production app release, complete real-device private-file QA,
+configure/test the Resend transactional and Google Calendar secrets, complete
+the deposit/payment webhook last, and approve the operational support process.
+Database policies, private buckets, the MFA-gated portal and the fail-closed
+worker are present, but the public demo must not be treated as the production
+account portal.

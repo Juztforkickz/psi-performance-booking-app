@@ -16,7 +16,8 @@ begin
     or has_table_privilege('anon', 'public.booking_requests', 'insert')
     or has_table_privilege('anon', 'public.service_completions', 'select')
     or has_table_privilege('anon', 'public.invoices', 'select')
-    or has_table_privilege('anon', 'public.vehicle_files', 'select') then
+    or has_table_privilege('anon', 'public.vehicle_files', 'select')
+    or has_table_privilege('anon', 'public.booking_integration_jobs', 'select') then
     raise exception 'RLS test failed: anon has a business-table privilege';
   end if;
 
@@ -405,6 +406,10 @@ begin
   if (select count(*) from public.audit_events where customer_id = '11111111-1111-4111-8111-111111111111') <> 0 then
     raise exception 'RLS test failed: customer B can see customer A audit history';
   end if;
+
+  if (select count(*) from public.booking_integration_jobs) <> 0 then
+    raise exception 'RLS test failed: a customer can view internal integration jobs';
+  end if;
 end;
 $$;
 
@@ -425,6 +430,10 @@ begin
 
   if (select count(*) from public.customer_profiles) <> 0 then
     raise exception 'RLS test failed: AAL1 staff can view customer profiles';
+  end if;
+
+  if (select count(*) from public.booking_integration_jobs) <> 0 then
+    raise exception 'RLS test failed: AAL1 staff can view booking integration jobs';
   end if;
 
   update public.booking_requests
@@ -482,6 +491,10 @@ do $$
 begin
   if not (select private.is_active_staff()) then
     raise exception 'RLS test failed: active AAL2 staff cannot access workshop records';
+  end if;
+
+  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc') <> 2 then
+    raise exception 'RLS test failed: new booking did not create two deduplicated notification jobs';
   end if;
 
   insert into public.repair_records (
@@ -576,11 +589,16 @@ begin
     raise exception 'RLS test failed: AAL2 date approval did not derive the protected AUD deposit and reviewer';
   end if;
 
+  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc') <> 3 then
+    raise exception 'RLS test failed: date approval did not queue one customer notification';
+  end if;
+
   perform set_config(
     'request.jwt.claims',
     '{"sub":"33333333-3333-4333-8333-333333333333","email":"rls-staff@example.invalid","role":"service_role","aal":"aal2"}',
     true
   );
+
   update public.booking_requests
   set state = 'confirmed'
   where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
@@ -589,6 +607,10 @@ begin
     '{"sub":"33333333-3333-4333-8333-333333333333","email":"rls-staff@example.invalid","role":"authenticated","aal":"aal2"}',
     true
   );
+
+  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc') <> 6 then
+    raise exception 'RLS test failed: trusted confirmation did not queue customer, PSI and Calendar jobs';
+  end if;
 
   insert into public.service_completions (
     id,

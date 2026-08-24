@@ -24,6 +24,7 @@ import {
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
+import { uploadCustomerVehiclePhoto } from '@/lib/customer-private-files';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 
@@ -155,8 +156,9 @@ function AccountDetailsForm({ initialAccount }: { initialAccount: CustomerAccoun
           lastName: form.lastName,
           mobile: form.mobile,
         });
+        let savedVehicle = initialVehicle;
         if (canEditVehicle) {
-          const savedVehicle = await saveCustomerVehicle({
+          savedVehicle = await saveCustomerVehicle({
             make: form.vehicleMake,
             model: form.vehicleModel,
             registration: form.registration,
@@ -164,8 +166,19 @@ function AccountDetailsForm({ initialAccount }: { initialAccount: CustomerAccoun
           }, editingVehicleId ?? undefined);
           setEditingVehicleId(savedVehicle.id);
         }
+        let photoNotice = '';
+        if (vehiclePhoto && savedVehicle && canEditVehicle) {
+          try {
+            const result = await uploadCustomerVehiclePhoto(savedVehicle.id, vehiclePhoto);
+            photoNotice = result.cleanupWarning
+              ? ` Your vehicle photo was saved privately. ${result.cleanupWarning}`
+              : ' Your vehicle photo was saved privately to your account.';
+          } catch {
+            photoNotice = ' Your profile and vehicle were saved, but the selected photo was not uploaded. Choose a JPEG, PNG or WebP image under 8 MB and try again.';
+          }
+        }
         refreshAccount();
-        setNotice(`${canEditVehicle ? 'Your profile and vehicle details were' : 'Your profile was'} saved to your private Supabase account.${canEditVehicle ? '' : ' This PSI-created vehicle remains read-only and was not changed.'}${vehiclePhoto ? ' The selected vehicle photo remains local to this open app session and was not uploaded.' : ''}`);
+        setNotice(`${canEditVehicle ? 'Your profile and vehicle details were' : 'Your profile was'} saved to your private Supabase account.${canEditVehicle ? '' : ' This PSI-created vehicle remains read-only and was not changed.'}${photoNotice}`);
       } catch {
         setNotice('Your profile could not be saved. Nothing was uploaded. Check the secure session and try again.');
       } finally {
@@ -228,7 +241,7 @@ function AccountDetailsForm({ initialAccount }: { initialAccount: CustomerAccoun
           <View style={[styles.securityCard, compact && styles.cardCompact]}>
             <Text style={styles.securityTitle}>{CUSTOMER_AUTH.enabled ? 'Private account boundary' : 'No data leaves this preview'}</Text>
             <Text style={styles.securityCopy}>
-              {CUSTOMER_AUTH.enabled ? 'Profile and vehicle details save only after a verified sign-in and remain protected by row-level ownership. Vehicle photos are still local-only and are not uploaded.' : 'Until managed authentication is connected, this preview keeps values only in app memory and discards them when the preview reloads or closes.'}
+              {CUSTOMER_AUTH.enabled ? 'Profile, vehicle details and an optional vehicle photo save only after verified sign-in. The photo stays in a private bucket protected by customer ownership rules and remains visible to authorised PSI staff.' : 'Until managed authentication is connected, this preview keeps values only in app memory and discards them when the preview reloads or closes.'}
             </Text>
           </View>
 
@@ -308,6 +321,8 @@ function AccountDetailsForm({ initialAccount }: { initialAccount: CustomerAccoun
                 });
                 setNotice('');
               }}
+              saving={saving}
+              storageMode={CUSTOMER_AUTH.enabled ? 'private_account' : 'local_preview'}
               value={vehiclePhoto}
               vehicleLabel={[form.vehicleYear, form.vehicleMake, form.vehicleModel].filter(Boolean).join(' ') || 'your primary vehicle'}
             />

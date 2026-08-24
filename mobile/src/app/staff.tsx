@@ -14,7 +14,10 @@ import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import {
   beginStaffTotpEnrollment,
+  loadStaffVehiclePhotoUrls,
   loadStaffPortalAccess,
+  processBookingIntegrationJobs,
+  type BookingIntegrationRunResult,
   type StaffPortalAccess,
   type StaffPortalSnapshot,
   type StaffTotpEnrollment,
@@ -32,6 +35,17 @@ const BOOKING_STATUS_LABELS: Record<StaffPortalSnapshot['bookings'][number]['sta
   date_approved: 'Date approved',
   date_proposed: 'Date proposed',
   pending_staff_review: 'Pending review',
+};
+
+const INTEGRATION_JOB_LABELS: Record<StaffPortalSnapshot['integrationJobs'][number]['job_kind'], string> = {
+  notify_customer_booking_confirmed: 'Email customer · booking confirmed',
+  notify_customer_cancelled: 'Email customer · request cancelled',
+  notify_customer_date_approved: 'Email customer · date approved',
+  notify_customer_date_proposed: 'Email customer · alternative date',
+  notify_customer_request_received: 'Email customer · request received',
+  notify_psi_booking_confirmed: 'Email PSI · booking confirmed',
+  notify_psi_request_received: 'Email PSI · new request',
+  sync_google_calendar_confirmed: 'Google Calendar · confirmed booking',
 };
 
 export default function StaffPortalScreen() {
@@ -292,12 +306,44 @@ function StaffWorkspace({
   verifiedTotpFactors: Extract<StaffPortalAccess, { kind: 'ready' }>['verifiedTotpFactors'];
 }) {
   const router = useRouter();
+  const [integrationBusy, setIntegrationBusy] = useState(false);
+  const [integrationResult, setIntegrationResult] = useState<BookingIntegrationRunResult | null>(null);
+  const [integrationError, setIntegrationError] = useState('');
+  const [vehiclePhotoUris, setVehiclePhotoUris] = useState<Record<string, string>>({});
   const activeBookings = snapshot.bookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
+  const waitingIntegrationJobs = snapshot.integrationJobs.filter((job) => ['blocked_configuration', 'failed', 'pending'].includes(job.status));
   const vehiclesByCustomer = useMemo(() => {
     const grouped = new Map<string, StaffPortalSnapshot['vehicles']>();
     snapshot.vehicles.forEach((vehicle) => grouped.set(vehicle.customer_id, [...(grouped.get(vehicle.customer_id) ?? []), vehicle]));
     return grouped;
   }, [snapshot.vehicles]);
+
+  useEffect(() => {
+    let active = true;
+    void loadStaffVehiclePhotoUrls(snapshot.vehicleFiles)
+      .then((urls) => {
+        if (active) setVehiclePhotoUris(urls);
+      })
+      .catch(() => {
+        if (active) setVehiclePhotoUris({});
+      });
+    return () => { active = false; };
+  }, [snapshot.vehicleFiles]);
+
+  const processIntegrationQueue = async () => {
+    if (integrationBusy) return;
+    setIntegrationBusy(true);
+    setIntegrationError('');
+    try {
+      const result = await processBookingIntegrationJobs();
+      setIntegrationResult(result);
+      onRefresh();
+    } catch {
+      setIntegrationError('The protected worker could not be reached. Nothing was sent and no Calendar event was created.');
+    } finally {
+      setIntegrationBusy(false);
+    }
+  };
 
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
@@ -313,7 +359,7 @@ function StaffWorkspace({
           <Ionicons color={colors.success} name="shield-checkmark" size={22} />
           <View style={styles.flex}>
             <Text style={styles.securityTitle}>MFA verified · {role === 'owner' ? 'Owner access' : 'Staff access'}</Text>
-            <Text style={styles.securityCopy}>Booking review, controlled PSI record publishing and protected Complete Service are enabled in this private QA build. Payment, email, Calendar actions, customer registration and staff management remain disabled.</Text>
+            <Text style={styles.securityCopy}>Booking review, controlled PSI record publishing, private customer photos and protected Complete Service are enabled in this private QA build. Email and Calendar jobs are recorded once; provider delivery, payments, customer registration and staff management remain disabled.</Text>
           </View>
         </View>
 
@@ -333,6 +379,7 @@ function StaffWorkspace({
           <Metric label="Customers" value={snapshot.customers.length} />
           <Metric label="Vehicles" value={snapshot.vehicles.length} />
           <Metric label="Active requests" value={activeBookings.length} />
+          <Metric label="Integration queue" value={waitingIntegrationJobs.length} />
         </View>
 
         <SectionHeading copy="Create customer-visible PSI records only after checking the selected customer and vehicle." title="Publish workshop records" />
@@ -366,6 +413,41 @@ function StaffWorkspace({
           );
         })}
 
+        <SectionHeading copy="Provider-neutral jobs are recorded once for audit and retry safety. Pending means queued only—it does not claim an email was sent or a Calendar event created." title="Email & Calendar queue" />
+        <View style={styles.integrationControls}>
+          <Text style={styles.securityCopy}>Only Matt&apos;s current AAL2 staff session can start this worker. It remains blocked until the private Resend and Google credentials are configured.</Text>
+          <PrimaryButton label="Check email & Calendar queue" loading={integrationBusy} onPress={() => void processIntegrationQueue()} variant="outline" />
+          {integrationResult ? (
+            <Text accessibilityLiveRegion="polite" style={styles.contextLine}>
+              Processed {integrationResult.processed} · Email {integrationResult.readiness.emailConfigured ? 'ready' : 'not configured'} · Calendar {integrationResult.readiness.calendarConfigured ? 'ready' : 'not configured'} · Payments intentionally off
+            </Text>
+          ) : null}
+          {integrationError ? <Text accessibilityRole="alert" style={styles.integrationError}>{integrationError}</Text> : null}
+        </View>
+        {snapshot.integrationJobs.length === 0 ? <EmptyState>No booking integration jobs are currently queued.</EmptyState> : snapshot.integrationJobs.slice(0, 16).map((job) => (
+          <View key={job.id} style={styles.card}>
+            <View style={styles.cardHeading}>
+              <Text style={styles.cardTitle}>{INTEGRATION_JOB_LABELS[job.job_kind]}</Text>
+              <Text style={styles.badge}>{humanize(job.status)}</Text>
+            </View>
+            <Text style={styles.cardMeta}>Booking · {job.booking_request_id.slice(0, 8).toUpperCase()}</Text>
+            <Text style={styles.cardCopy}>Queued {formatDateTime(job.created_at)} · Attempts {job.attempt_count}</Text>
+            {job.last_error_code ? <Text style={styles.integrationError}>Provider status · {humanize(job.last_error_code)}</Text> : null}
+            {job.provider_reference ? <Text style={styles.contextLine}>Provider reference recorded</Text> : null}
+          </View>
+        ))}
+
+        <SectionHeading copy="Recent protected database activity. This feed records who changed customer, vehicle, booking, workshop record and integration-job data." title="Audit history" />
+        {snapshot.auditEvents.length === 0 ? <EmptyState>No audit events are currently shown.</EmptyState> : snapshot.auditEvents.slice(0, 16).map((event) => (
+          <View key={event.id} style={styles.auditRow}>
+            <Ionicons color={event.actor_kind === 'staff' ? colors.gold : colors.muted} name={event.actor_kind === 'staff' ? 'shield-checkmark' : event.actor_kind === 'customer' ? 'person' : 'cog'} size={18} />
+            <View style={styles.flex}>
+              <Text style={styles.auditTitle}>{humanize(event.table_name)} · {humanize(event.action)}</Text>
+              <Text style={styles.contextLine}>{humanize(event.actor_kind)} · {formatDateTime(event.occurred_at)}</Text>
+            </View>
+          </View>
+        ))}
+
         <SectionHeading copy="Customer contact and vehicle ownership remain read-only in this stage." title="Customer and vehicle lookup" />
         {snapshot.customers.length === 0 ? <EmptyState>No active customer accounts are currently shown.</EmptyState> : snapshot.customers.map((customer) => {
           const vehicles = vehiclesByCustomer.get(customer.user_id) ?? [];
@@ -377,7 +459,9 @@ function StaffWorkspace({
               <View style={styles.vehicleList}>
                 {vehicles.length === 0 ? <Text style={styles.cardMeta}>No active vehicles.</Text> : vehicles.map((vehicle) => (
                   <View key={vehicle.id} style={styles.vehicleRow}>
-                    <Ionicons color={colors.gold} name="car-sport" size={18} />
+                    {vehiclePhotoUris[vehicle.id] ? (
+                      <Image accessibilityLabel={`Private customer photo of ${vehicle.year} ${vehicle.make} ${vehicle.model}`} source={{ uri: vehiclePhotoUris[vehicle.id] }} style={styles.vehiclePhoto} />
+                    ) : <Ionicons color={colors.gold} name="car-sport" size={18} />}
                     <View style={styles.flex}>
                       <Text style={styles.vehicleTitle}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
                       <Text style={styles.cardMeta}>{vehicle.registration}{vehicle.is_primary ? ' · Primary vehicle' : ''}</Text>
@@ -388,7 +472,7 @@ function StaffWorkspace({
             </View>
           );
         })}
-        <Text style={styles.footer}>PRIVATE QA · AAL2 BOOKING REVIEW · PROTECTED SERVICE COMPLETION · NO PAYMENT, EMAIL OR CALENDAR ACTIONS</Text>
+        <Text style={styles.footer}>PRIVATE QA · AAL2 BOOKING REVIEW · PRIVATE STORAGE · AUDITED EMAIL/CALENDAR QUEUE · NO PAYMENT OR PROVIDER DELIVERY</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -414,6 +498,17 @@ function customerName(customer: StaffPortalSnapshot['customers'][number] | undef
 function formatDate(value: string) {
   const [year, month, day] = value.slice(0, 10).split('-');
   return `${day}/${month}/${year}`;
+}
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString('en-AU', {
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    month: 'short',
+    timeZone: 'Australia/Melbourne',
+    year: 'numeric',
+  });
 }
 
 function bookingContextLines(context: Record<string, unknown>) {
@@ -482,10 +577,15 @@ const styles = StyleSheet.create({
   cardMeta: { color: colors.gold, fontSize: 12, fontWeight: '800', marginTop: spacing.xs },
   staffNote: { color: colors.cream, fontSize: 12, fontWeight: '800', lineHeight: 18, marginTop: spacing.xs },
   contextLine: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 2 },
+  integrationError: { color: colors.danger, fontSize: 11, fontWeight: '800', lineHeight: 17, marginTop: spacing.xs },
+  integrationControls: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.sm, marginBottom: spacing.sm, padding: spacing.md },
   badge: { borderColor: colors.goldDark, borderWidth: 1, color: colors.gold, fontSize: 10, fontWeight: '900', paddingHorizontal: 8, paddingVertical: 5, textTransform: 'uppercase' },
   vehicleList: { gap: spacing.sm, marginTop: spacing.md },
   vehicleRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.sm },
   vehicleTitle: { color: colors.white, fontSize: 14, fontWeight: '800' },
+  vehiclePhoto: { backgroundColor: colors.ink, borderColor: colors.line, borderWidth: 1, height: 54, resizeMode: 'contain', width: 76 },
+  auditRow: { ...mobileFrame, alignItems: 'center', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xs, padding: spacing.sm },
+  auditTitle: { color: colors.white, fontSize: 12, fontWeight: '900' },
   empty: { ...mobileFrame, backgroundColor: colors.panel, padding: spacing.lg },
   emptyText: { color: colors.muted, fontSize: 14, textAlign: 'center' },
   footer: { color: colors.mutedDark, fontSize: 10, fontWeight: '900', letterSpacing: 1.1, lineHeight: 16, marginTop: spacing.xl, textAlign: 'center' },

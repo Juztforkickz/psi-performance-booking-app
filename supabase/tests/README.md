@@ -18,6 +18,11 @@ using two reserved customer identities and one reserved staff identity. It verif
   dates, and staff cannot promote a date-approved request to paid/confirmed;
 - only the trusted server role can perform the future payment-confirmed
   transition;
+- booking creation and review changes create the expected deduplicated
+  notification jobs, while anonymous customers and AAL1 staff cannot read the
+  provider queue;
+- only the trusted future `confirmed` transition creates customer/PSI
+  confirmation jobs and the Google Calendar job;
 - service completion automatically closes the booking and projects immutable
   PSI repair, odometer and next-check-in history; and
 - each customer can read only the PSI records and service history published to

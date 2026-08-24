@@ -1,8 +1,11 @@
 import type {
+  AuditEventRow,
+  BookingIntegrationJobRow,
   BookingRequestRow,
   CustomerProfileRow,
   CustomerVehicleRow,
   StaffMemberRow,
+  VehicleFileRow,
 } from '@/lib/database.types';
 import { getSupabaseClient } from '@/lib/supabase';
 
@@ -37,9 +40,27 @@ export type StaffBookingReviewInput = {
 };
 
 export type StaffPortalSnapshot = {
+  auditEvents: AuditEventRow[];
   bookings: BookingRequestRow[];
   customers: CustomerProfileRow[];
+  integrationJobs: BookingIntegrationJobRow[];
+  vehicleFiles: VehicleFileRow[];
   vehicles: CustomerVehicleRow[];
+};
+
+export type BookingIntegrationRunResult = {
+  processed: number;
+  readiness: {
+    calendarConfigured: boolean;
+    emailConfigured: boolean;
+    paymentsConfigured: false;
+  };
+  results: {
+    errorCode?: string;
+    jobId: string;
+    kind: BookingIntegrationJobRow['job_kind'];
+    status: 'blocked_configuration' | 'failed' | 'skipped' | 'succeeded';
+  }[];
 };
 
 export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
@@ -70,12 +91,20 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     };
   }
 
-  const [customersResult, vehiclesResult, bookingsResult] = await Promise.all([
+  const [customersResult, vehiclesResult, bookingsResult, integrationJobsResult, auditEventsResult, vehicleFilesResult] = await Promise.all([
     supabase.from('customer_profiles').select('*').eq('account_state', 'active').order('last_name').order('first_name'),
     supabase.from('customer_vehicles').select('*').is('archived_at', null).order('updated_at', { ascending: false }),
     supabase.from('booking_requests').select('*').is('archived_at', null).order('created_at', { ascending: false }).limit(50),
+    supabase.from('booking_integration_jobs').select('*').order('created_at', { ascending: false }).limit(50),
+    supabase.from('audit_events').select('*').order('occurred_at', { ascending: false }).limit(50),
+    supabase.from('vehicle_files').select('*').eq('file_kind', 'vehicle_photo').is('archived_at', null).order('created_at', { ascending: false }).limit(100),
   ]);
-  const firstError = customersResult.error ?? vehiclesResult.error ?? bookingsResult.error;
+  const firstError = customersResult.error
+    ?? vehiclesResult.error
+    ?? bookingsResult.error
+    ?? integrationJobsResult.error
+    ?? auditEventsResult.error
+    ?? vehicleFilesResult.error;
   if (firstError) throw firstError;
 
   return {
@@ -83,8 +112,11 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     staff,
     verifiedTotpFactors,
     snapshot: {
+      auditEvents: auditEventsResult.data ?? [],
       bookings: bookingsResult.data ?? [],
       customers: customersResult.data ?? [],
+      integrationJobs: integrationJobsResult.data ?? [],
+      vehicleFiles: vehicleFilesResult.data ?? [],
       vehicles: vehiclesResult.data ?? [],
     },
   };
@@ -137,6 +169,45 @@ export async function reviewBookingRequest(input: StaffBookingReviewInput) {
     .single();
   if (error) throw error;
   return data;
+}
+
+export async function processBookingIntegrationJobs(limit = 10): Promise<BookingIntegrationRunResult> {
+  const supabase = getSupabaseClient();
+  const access = await loadStaffMfaSecurityAccess();
+  if (access.kind !== 'ready') throw new Error('STAFF_AAL2_REQUIRED');
+
+  const { data, error } = await supabase.functions.invoke<BookingIntegrationRunResult>('process-booking-integrations', {
+    body: { limit: Math.min(10, Math.max(1, Math.trunc(limit))) },
+  });
+  if (error) throw error;
+  if (!data || typeof data.processed !== 'number' || !data.readiness) throw new Error('INTEGRATION_WORKER_RESPONSE_INVALID');
+  return data;
+}
+
+export async function loadStaffVehiclePhotoUrls(files: readonly VehicleFileRow[]) {
+  const supabase = getSupabaseClient();
+  const access = await loadStaffMfaSecurityAccess();
+  if (access.kind !== 'ready') throw new Error('STAFF_AAL2_REQUIRED');
+
+  const newestByVehicle = new Map<string, VehicleFileRow>();
+  files.forEach((file) => {
+    if (
+      !newestByVehicle.has(file.vehicle_id)
+      && file.bucket_id === 'vehicle-photos'
+      && file.file_kind === 'vehicle_photo'
+      && file.archived_at === null
+      && file.object_path.startsWith(`${file.customer_id}/`)
+    ) {
+      newestByVehicle.set(file.vehicle_id, file);
+    }
+  });
+
+  const signedEntries = await Promise.all([...newestByVehicle.entries()].map(async ([vehicleId, file]) => {
+    const { data, error } = await supabase.storage.from('vehicle-photos').createSignedUrl(file.object_path, 10 * 60);
+    if (error) return null;
+    return [vehicleId, data.signedUrl] as const;
+  }));
+  return Object.fromEntries(signedEntries.filter((entry): entry is readonly [string, string] => entry !== null));
 }
 
 export async function beginStaffTotpEnrollment(friendlyName = 'PSI Performance staff'): Promise<StaffTotpEnrollment> {
