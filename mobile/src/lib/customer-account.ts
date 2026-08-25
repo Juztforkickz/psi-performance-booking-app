@@ -40,7 +40,7 @@ async function getVerifiedCustomer() {
 export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
   const supabase = getSupabaseClient();
   const user = await getVerifiedCustomer();
-  const [profileResult, vehiclesResult, serviceSummariesResult, bookingsResult, vehicleFilesResult] = await Promise.all([
+  const readAccount = () => Promise.all([
     supabase
       .from('customer_profiles')
       .select('*')
@@ -71,6 +71,14 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
       .is('archived_at', null)
       .order('created_at', { ascending: false }),
   ]);
+
+  let results = await readAccount();
+  if (results.some((result) => result.status === 401)) {
+    const { data, error } = await supabase.auth.getSession();
+    if (!error && data.session) results = await readAccount();
+  }
+
+  const [profileResult, vehiclesResult, serviceSummariesResult, bookingsResult, vehicleFilesResult] = results;
 
   if (profileResult.error) throw profileResult.error;
   if (vehiclesResult.error) throw vehiclesResult.error;
