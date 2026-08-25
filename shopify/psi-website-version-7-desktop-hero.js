@@ -32,15 +32,20 @@
     max-width:100%!important;
     overflow:visible!important;
   }
+  .slideshow .banner__heading .psi-v9-heading-line{
+    display:block!important;
+    white-space:nowrap!important;
+  }
   #Slide-template--16238529609857__slideshow_aNgmgx-1 .slideshow__text.banner__box{
-    width:36rem!important;
-    min-width:36rem!important;
-    max-width:36rem!important;
-    padding:3rem 2.6rem!important;
-    margin-left:-1.2rem!important;
+    width:40rem!important;
+    min-width:40rem!important;
+    max-width:40rem!important;
+    min-height:37rem!important;
+    padding:3.4rem 3rem!important;
+    margin-left:-4rem!important;
   }
   #Slide-template--16238529609857__slideshow_aNgmgx-1 .banner__heading{
-    font-size:2.8rem!important;
+    font-size:1.9rem!important;
     line-height:1.12!important;
   }
   #Slide-template--16238529609857__slideshow_aNgmgx-3 .slideshow__text.banner__box{
@@ -56,7 +61,44 @@
     font-size:1.6rem!important;
     line-height:1.35!important;
   }
+  #Slide-template--16238529609857__slideshow_aNgmgx-3 .banner__heading{
+    font-size:3.2rem!important;
+    line-height:1.18!important;
+  }
 }
 `;
   document.head.appendChild(style);
+
+  const headingLines = [
+    {
+      selector: "#Slide-template--16238529609857__slideshow_aNgmgx-1 .banner__heading",
+      lines: ["Performance Services,", "Maintenance & Repairs"],
+    },
+    {
+      selector: "#Slide-template--16238529609857__slideshow_aNgmgx-3 .banner__heading",
+      lines: ["Performance", "Tuning & Coding"],
+    },
+  ];
+
+  const formatHeadings = () => {
+    headingLines.forEach(({ selector, lines }) => {
+      const heading = document.querySelector(selector);
+      if (!heading || heading.dataset.psiV9Formatted === "true") return;
+
+      const content = [];
+      lines.forEach((line, index) => {
+        const span = document.createElement("span");
+        span.className = "psi-v9-heading-line";
+        span.textContent = line;
+        content.push(span);
+        if (index < lines.length - 1) content.push(document.createTextNode(" "));
+      });
+
+      heading.replaceChildren(...content);
+      heading.dataset.psiV9Formatted = "true";
+    });
+  };
+
+  formatHeadings();
+  document.addEventListener("shopify:section:load", formatHeadings);
 })();
