@@ -47,5 +47,16 @@ customer app. Before external onboarding, PSI must acceptance-test the complete
 owner procedure with a synthetic account and approve the final retention
 schedule and customer response wording.
 
-This operational note supports implementation review; it is not legal advice.
+On 25 August 2026, the ordered database deletion path was exercised against the
+existing non-staff `QATEST1` identity inside a rollback-only transaction. The
+test created and reviewed a request, removed the synthetic Auth identity and all
+matching public UUID references, asserted that none remained, then rolled back.
+Post-test checks confirmed the two QA Auth identities, the QATEST1 vehicle and
+zero deletion requests remained unchanged. There were no Storage objects to
+exercise. The repeatable test is `../supabase/tests/account-deletion-acceptance.sql`.
 
+Before external onboarding, repeat the test with a disposable signed-in native
+account and one private test image so the Storage API removal, Auth Admin call,
+session expiry/revocation and customer confirmation email are also proven.
+
+This operational note supports implementation review; it is not legal advice.

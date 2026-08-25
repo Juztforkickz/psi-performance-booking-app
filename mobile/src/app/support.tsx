@@ -31,8 +31,9 @@ export default function SupportScreen() {
 
         <View style={styles.card}>
           <Text style={styles.heading}>Account deletion</Text>
-          <Text style={styles.copy}>Sign in, open Account and select Request account deletion. PSI normally completes verified requests within 30 days and confirms completion. You can cancel while the request still shows Request received.</Text>
+          <Text style={styles.copy}>Sign in, open Account and select Request account deletion. If you no longer have access to the app, use the public deletion page to email a request from your account address. PSI normally completes verified requests within 30 days and confirms completion.</Text>
           <PrimaryButton label="Open Account" onPress={() => router.push('/account')} variant="outline" />
+          <PrimaryButton label="Account deletion information" onPress={() => router.push('/delete-account')} variant="outline" />
         </View>
 
         <View style={styles.card}>

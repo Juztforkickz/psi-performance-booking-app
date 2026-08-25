@@ -61,6 +61,7 @@ export default function PrivacyScreen() {
             <Text style={styles.copy}>{section.copy}</Text>
           </View>
         ))}
+        <PrimaryButton label="Request account deletion" onPress={() => router.push('/delete-account')} variant="outline" />
         <Text style={styles.updated}>LAST UPDATED · 25 AUGUST 2026</Text>
       </ScrollView>
     </SafeAreaView>

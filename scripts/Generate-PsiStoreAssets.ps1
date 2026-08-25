@@ -53,6 +53,20 @@ function Save-Png([System.Drawing.Bitmap]$Bitmap, [string]$Path) {
     Move-Item -Force -LiteralPath $temporary -Destination $Path
 }
 
+function Save-Jpeg([System.Drawing.Bitmap]$Bitmap, [string]$Path, [long]$Quality = 95) {
+    $directory = Split-Path -Parent $Path
+    New-Item -ItemType Directory -Force -Path $directory | Out-Null
+    $temporary = "$Path.tmp.jpg"
+    $codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object MimeType -eq 'image/jpeg'
+    $parameters = [System.Drawing.Imaging.EncoderParameters]::new(1)
+    try {
+        $parameters.Param[0] = [System.Drawing.Imaging.EncoderParameter]::new([System.Drawing.Imaging.Encoder]::Quality, $Quality)
+        $Bitmap.Save($temporary, $codec, $parameters)
+        Move-Item -Force -LiteralPath $temporary -Destination $Path
+    }
+    finally { $parameters.Dispose() }
+}
+
 function Draw-Crop(
     [System.Drawing.Graphics]$Graphics,
     [System.Drawing.Bitmap]$Source,
@@ -92,6 +106,41 @@ function Resize-Png([string]$SourcePath, [string]$DestinationPath, [int]$Width, 
             }
             finally { $graphics.Dispose() }
             Save-Png $output $DestinationPath
+        }
+        finally { $output.Dispose() }
+    }
+    finally { $source.Dispose() }
+}
+
+function Resize-Jpeg([string]$SourcePath, [string]$DestinationPath, [int]$Width, [int]$Height) {
+    $source = Open-Bitmap $SourcePath
+    try {
+        $output = New-Canvas $Width $Height ([System.Drawing.Color]::FromArgb(255, 5, 5, 5))
+        try {
+            $graphics = [System.Drawing.Graphics]::FromImage($output)
+            try { Set-Quality $graphics; $graphics.DrawImage($source, 0, 0, $Width, $Height) }
+            finally { $graphics.Dispose() }
+            Save-Jpeg $output $DestinationPath
+        }
+        finally { $output.Dispose() }
+    }
+    finally { $source.Dispose() }
+}
+
+function Resize-Contain-Jpeg([string]$SourcePath, [string]$DestinationPath, [int]$Width, [int]$Height) {
+    $source = Open-Bitmap $SourcePath
+    try {
+        $output = New-Canvas $Width $Height ([System.Drawing.Color]::FromArgb(255, 5, 5, 5))
+        try {
+            $scale = [Math]::Min($Width / $source.Width, $Height / $source.Height)
+            $drawWidth = [int][Math]::Round($source.Width * $scale)
+            $drawHeight = [int][Math]::Round($source.Height * $scale)
+            $left = [int](($Width - $drawWidth) / 2)
+            $top = [int](($Height - $drawHeight) / 2)
+            $graphics = [System.Drawing.Graphics]::FromImage($output)
+            try { Set-Quality $graphics; $graphics.DrawImage($source, $left, $top, $drawWidth, $drawHeight) }
+            finally { $graphics.Dispose() }
+            Save-Jpeg $output $DestinationPath
         }
         finally { $output.Dispose() }
     }
@@ -223,11 +272,15 @@ finally { $brand.Dispose() }
 
 $screenshotsRoot = Join-Path $packRoot 'screenshots'
 $storeScreenshotsRoot = Join-Path $screenshotsRoot 'store-1290x2796'
+$googleScreenshotsRoot = Join-Path $screenshotsRoot 'store-google-1080x1920'
 if (Test-Path -LiteralPath $screenshotsRoot) {
     New-Item -ItemType Directory -Force -Path $storeScreenshotsRoot | Out-Null
+    New-Item -ItemType Directory -Force -Path $googleScreenshotsRoot | Out-Null
     Get-ChildItem -LiteralPath $screenshotsRoot -File -Filter '*-480x1040.png' | ForEach-Object {
-        $destinationName = $_.Name.Replace('-480x1040.png', '-1290x2796.png')
-        Resize-Png $_.FullName (Join-Path $storeScreenshotsRoot $destinationName) 1290 2796
+        $appleName = $_.Name.Replace('-480x1040.png', '-1290x2796.jpg')
+        $googleName = $_.Name.Replace('-480x1040.png', '-1080x1920.jpg')
+        Resize-Jpeg $_.FullName (Join-Path $storeScreenshotsRoot $appleName) 1290 2796
+        Resize-Contain-Jpeg $_.FullName (Join-Path $googleScreenshotsRoot $googleName) 1080 1920
     }
 }
 

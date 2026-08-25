@@ -38,6 +38,13 @@ The signed internal Android QA APK build `be1e5a7d-96f1-4fe3-8a44-0bbe400fd4ab` 
 
 The exact owner deletion procedure is in `ACCOUNT-DELETION.md`. The consolidated launch gates are in `FINAL-RELEASE-CHECKLIST.md`.
 
+The rollback-only QATEST1 database deletion acceptance, Free Plan capacity and
+recovery review, guarded backup script, external deletion route and store
+disclosure draft were completed on 25 August 2026. Signed-native deletion with a
+private Storage object, a restored backup rehearsal and final store-owner/legal
+approval remain outstanding. See `SUPABASE-BACKUP-RECOVERY.md` and
+`STORE-RELEASE-PACKAGE.md`.
+
 ## Deliberately last
 
 Select the deposit provider, confirm PSI legal/GST/refund wording, implement and verify its signed webhook, and only then test the trusted payment-confirmed transition that creates the internal Google Calendar event. No manual client or staff action may mark a deposit paid.

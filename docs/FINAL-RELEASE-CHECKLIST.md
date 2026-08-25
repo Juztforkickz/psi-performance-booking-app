@@ -17,20 +17,26 @@ Status: controlled QA, 25 August 2026. Payments are deliberately last.
 
 ## Required before inviting external customers
 
-- [ ] Acceptance-test account deletion end to end with a synthetic identity and
-  approve PSI's retention schedule and deletion-response template.
+- [x] Exercise the ordered database deletion path against QATEST1 in a
+  rollback-only transaction and confirm the synthetic account remains intact.
+- [ ] Complete signed-native deletion acceptance with a disposable account and
+  private test image; approve PSI's retention schedule and response template.
 - [ ] Complete two-customer isolation, expired/replayed email-code, sign-out and
   private-file regression tests on signed native builds.
 - [ ] Complete iPhone notification permission, sound, badge and deep-link tests
   after PSI's Apple Developer organisation enrolment is approved.
 - [ ] Complete equivalent Android testing on a supported borrowed or dedicated
   test device before Google Play release.
-- [ ] Confirm Supabase backup, capacity, incident response and owner access
-  recovery arrangements.
+- [x] Record current Supabase plan, region and capacity; add a guarded encrypted
+  logical-backup procedure for controlled QA.
+- [ ] Upgrade before external onboarding, confirm scheduled backup retention and
+  complete a separate-environment restore rehearsal.
 - [ ] Reconfirm every Trusted Partner listing, logo and public contact detail
   with that business.
-- [ ] Approve App Store and Google Play privacy disclosures, screenshots,
-  support URL and final legal entity details.
+- [x] Prepare App Store/Google Play disclosure drafts, public support/privacy/
+  deletion URLs and validate the existing Apple-size screenshot pack.
+- [ ] Approve final disclosures and recapture screenshots from the signed release
+  build after confirming legal entity details.
 - [ ] Run final date-proposal, approval, cancellation, duplicate-worker and
   Melbourne-time-boundary booking tests.
 
@@ -45,4 +51,3 @@ Status: controlled QA, 25 August 2026. Payments are deliberately last.
 
 No public store release or general customer onboarding is approved until every
 applicable item above is completed and recorded with evidence.
-
