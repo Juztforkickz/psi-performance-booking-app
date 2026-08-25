@@ -116,7 +116,7 @@ const customerName = (context: BookingContext) =>
   [context.customer.first_name, context.customer.last_name].filter(Boolean).join(" ") || "PSI customer";
 
 const bookingLabel = (context: BookingContext) =>
-  context.booking.booking_type === "dyno" ? "Dyno tuning" : "Service & workshop";
+  context.booking.booking_type === "dyno" ? "Dyno tuning" : "Service & Workshop";
 
 const isJobStillApplicable = (job: IntegrationJob, context: BookingContext) => {
   switch (job.job_kind) {
@@ -152,7 +152,7 @@ const buildEmail = (job: IntegrationJob, context: BookingContext) => {
 
   switch (job.job_kind) {
     case "notify_psi_request_received":
-      subject = `New ${booking.toLowerCase()} request · ${context.vehicle.registration}`;
+      subject = `New ${booking} request · ${context.vehicle.registration}`;
       heading = "New private booking request";
       message = `A customer booking request is ready for review. Preferred date: ${preferredDate}.`;
       break;
@@ -177,7 +177,7 @@ const buildEmail = (job: IntegrationJob, context: BookingContext) => {
       message = "This booking request has been cancelled. Contact PSI if you would like to arrange another date.";
       break;
     case "notify_psi_booking_confirmed":
-      subject = `Confirmed ${booking.toLowerCase()} · ${context.vehicle.registration}`;
+      subject = `Confirmed ${booking} · ${context.vehicle.registration}`;
       heading = "Booking confirmed";
       message = `${customerName(context)} is confirmed for ${approvedDate}.`;
       break;
@@ -190,7 +190,7 @@ const buildEmail = (job: IntegrationJob, context: BookingContext) => {
       throw new Error("unsupported_email_job");
   }
 
-  const text = `Hi ${greeting},\n\n${message}\n\n${common}\n\nPSI Performance\n43 Rimfire Drive, Hallam VIC 3803\n(03) 9796 2256`;
+  const text = `Hi ${greeting},\n\n${message}\n\n${common}\n\nPSI Performance\n21 Exchange Drive, Pakenham VIC 3810\n0433431781`;
   const html = `
     <div style="background:#0a0a0a;color:#f5f5f5;font-family:Arial,sans-serif;padding:28px">
       <div style="max-width:620px;margin:auto;border:1px solid #40382a;background:#151515;padding:26px">
@@ -203,7 +203,7 @@ const buildEmail = (job: IntegrationJob, context: BookingContext) => {
           ${escapeHtml(vehicle)}<br>
           <span style="color:#aaa">Reference ${escapeHtml(context.booking.id)}</span>
         </div>
-        <p style="color:#aaa;font-size:12px;margin-top:24px">PSI Performance · 43 Rimfire Drive, Hallam VIC 3803 · (03) 9796 2256</p>
+        <p style="color:#aaa;font-size:12px;margin-top:24px">PSI Performance · 21 Exchange Drive, Pakenham VIC 3810 · 0433431781</p>
       </div>
     </div>`;
 

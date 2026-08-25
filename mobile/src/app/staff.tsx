@@ -359,7 +359,7 @@ function StaffWorkspace({
           <Ionicons color={colors.success} name="shield-checkmark" size={22} />
           <View style={styles.flex}>
             <Text style={styles.securityTitle}>MFA verified · {role === 'owner' ? 'Owner access' : 'Staff access'}</Text>
-            <Text style={styles.securityCopy}>Booking review, controlled PSI record publishing, private customer photos and protected Complete Service are enabled in this private QA build. Email and Calendar jobs are recorded once; provider delivery, payments, customer registration and staff management remain disabled.</Text>
+            <Text style={styles.securityCopy}>Booking review, controlled PSI record publishing, private customer photos and protected Complete Service are enabled in this private QA build. Email and Calendar integrations are active; provider delivery, payments, customer registration and staff management remain disabled.</Text>
           </View>
         </View>
 
@@ -415,7 +415,7 @@ function StaffWorkspace({
 
         <SectionHeading copy="Provider-neutral jobs are recorded once for audit and retry safety. Pending means queued only—it does not claim an email was sent or a Calendar event created." title="Email & Calendar queue" />
         <View style={styles.integrationControls}>
-          <Text style={styles.securityCopy}>Only Matt&apos;s current AAL2 staff session can start this worker. It remains blocked until the private Resend and Google credentials are configured.</Text>
+          <Text style={styles.securityCopy}>Only Matt&apos;s current AAL2 staff session can start this worker. Resend and Google Calendar credentials are configured as private provider secrets for this QA flow.</Text>
           <PrimaryButton label="Check email & Calendar queue" loading={integrationBusy} onPress={() => void processIntegrationQueue()} variant="outline" />
           {integrationResult ? (
             <Text accessibilityLiveRegion="polite" style={styles.contextLine}>
