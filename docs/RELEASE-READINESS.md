@@ -10,6 +10,8 @@ Status: controlled QA, 25 August 2026. Payments remain deliberately deferred.
 - Resend transactional email is active through encrypted Edge Function secrets. Google Calendar credentials are server-only and the customer cannot list or read PSI calendar contents.
 - Public GitHub Pages remains a submission-disabled synthetic demo. The EAS QA build is protected by Expo authentication and uses a separate Auth-enabled environment.
 - Native push infrastructure supports opt-in permission, sounds, badge counts and safe deep links. Remote iPhone acceptance still requires an Apple-signed build.
+- Customers can initiate or cancel their own deletion request. Matt can review the queue only after AAL2 verification; completion remains a controlled owner procedure and is never represented as automatic.
+- Customer-facing privacy, support and conservative approval-first booking terms are available inside the app.
 
 ## Live synthetic acceptance evidence
 
@@ -30,9 +32,11 @@ The signed internal Android QA APK build `be1e5a7d-96f1-4fe3-8a44-0bbe400fd4ab` 
 3. Verify notification opt-in, foreground/background sound, app-icon badge changes and Booking/Staff deep links on signed native builds.
 4. Run controlled two-customer isolation and staff AAL1/AAL2 regression checks after every Auth, RLS or policy change.
 5. Exercise date proposal, date approval and cancellation emails, including duplicate-worker and Melbourne-time boundary checks. Do not move any request to paid or confirmed state.
-6. Approve privacy, retention, deletion, support and incident-recovery procedures. Decide on Supabase backup/capacity before real customer records are invited.
+6. Acceptance-test the documented account-deletion completion procedure with a synthetic identity, approve the retention schedule and decide on Supabase backup/capacity before real customer records are invited.
 7. Reconfirm every Trusted Partner listing and logo with that business, and approve app-store privacy disclosures, screenshots and customer-facing terms.
 8. Obtain PSI-owned Apple Developer and Google Play Console memberships before signed store testing and release.
+
+The exact owner deletion procedure is in `ACCOUNT-DELETION.md`. The consolidated launch gates are in `FINAL-RELEASE-CHECKLIST.md`.
 
 ## Deliberately last
 

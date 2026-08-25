@@ -4,6 +4,31 @@ export type Database = {
   };
   public: {
     Tables: {
+      account_deletion_requests: {
+        Row: {
+          completed_at: string | null;
+          requested_at: string;
+          staff_note: string | null;
+          status: 'completed' | 'in_review' | 'requested';
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          requested_at?: string;
+          staff_note?: string | null;
+          status?: 'completed' | 'in_review' | 'requested';
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          staff_note?: string | null;
+          status?: 'completed' | 'in_review' | 'requested';
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       audit_events: {
         Row: {
           action: 'delete' | 'insert' | 'update';
@@ -593,6 +618,7 @@ export type Database = {
   };
 };
 
+export type AccountDeletionRequestRow = Database['public']['Tables']['account_deletion_requests']['Row'];
 export type CustomerProfileRow = Database['public']['Tables']['customer_profiles']['Row'];
 export type AuditEventRow = Database['public']['Tables']['audit_events']['Row'];
 export type BookingIntegrationJobRow = Database['public']['Tables']['booking_integration_jobs']['Row'];

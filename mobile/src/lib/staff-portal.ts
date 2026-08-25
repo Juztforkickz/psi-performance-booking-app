@@ -1,4 +1,5 @@
 import type {
+  AccountDeletionRequestRow,
   AuditEventRow,
   BookingIntegrationJobRow,
   BookingRequestRow,
@@ -42,6 +43,7 @@ export type StaffBookingReviewInput = {
 };
 
 export type StaffPortalSnapshot = {
+  accountDeletionRequests: AccountDeletionRequestRow[];
   auditEvents: AuditEventRow[];
   bookings: BookingRequestRow[];
   customers: CustomerProfileRow[];
@@ -93,20 +95,22 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     };
   }
 
-  const [customersResult, vehiclesResult, bookingsResult, integrationJobsResult, auditEventsResult, vehicleFilesResult] = await Promise.all([
+  const [customersResult, vehiclesResult, bookingsResult, integrationJobsResult, auditEventsResult, vehicleFilesResult, accountDeletionRequestsResult] = await Promise.all([
     supabase.from('customer_profiles').select('*').eq('account_state', 'active').order('last_name').order('first_name'),
     supabase.from('customer_vehicles').select('*').is('archived_at', null).order('updated_at', { ascending: false }),
     supabase.from('booking_requests').select('*').is('archived_at', null).order('created_at', { ascending: false }).limit(50),
     supabase.from('booking_integration_jobs').select('*').order('created_at', { ascending: false }).limit(50),
     supabase.from('audit_events').select('*').order('occurred_at', { ascending: false }).limit(50),
     supabase.from('vehicle_files').select('*').eq('file_kind', 'vehicle_photo').is('archived_at', null).order('created_at', { ascending: false }).limit(100),
+    supabase.from('account_deletion_requests').select('*').order('requested_at', { ascending: true }),
   ]);
   const firstError = customersResult.error
     ?? vehiclesResult.error
     ?? bookingsResult.error
     ?? integrationJobsResult.error
     ?? auditEventsResult.error
-    ?? vehicleFilesResult.error;
+    ?? vehicleFilesResult.error
+    ?? accountDeletionRequestsResult.error;
   if (firstError) throw firstError;
 
   return {
@@ -114,6 +118,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     staff,
     verifiedTotpFactors,
     snapshot: {
+      accountDeletionRequests: accountDeletionRequestsResult.data ?? [],
       auditEvents: auditEventsResult.data ?? [],
       bookings: bookingsResult.data ?? [],
       customers: customersResult.data ?? [],

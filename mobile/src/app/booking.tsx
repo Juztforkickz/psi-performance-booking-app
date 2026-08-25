@@ -706,7 +706,9 @@ function BookingScreenContent({
                 update={update}
               />
             ) : null}
-            {step === 5 ? <ReviewStep errors={errors} form={form} update={update} /> : null}
+            {step === 5 ? (
+              <ReviewStep errors={errors} form={form} onOpenPrivacy={() => router.push('/privacy')} update={update} />
+            ) : null}
 
             <View style={[styles.actions, wideFields && step > 1 && styles.actionsWide]}>
               {step > 1 ? (
@@ -1606,10 +1608,12 @@ function DateStep({
 function ReviewStep({
   form,
   errors,
+  onOpenPrivacy,
   update,
 }: {
   form: BookingFormState;
   errors: BookingErrors;
+  onOpenPrivacy: () => void;
   update: UpdateBooking;
 }) {
   const { compact, largeText, width } = useResponsiveLayout();
@@ -1619,7 +1623,7 @@ function ReviewStep({
   const depositAmountCents = depositAmountForBookingType(form.bookingType);
   const depositDisplay = depositAmountCents === null ? 'Not selected' : displayMoney(depositAmountCents);
   const preferenceDisplay = form.appointmentPreferenceMode === 'flexible' ? 'I’m flexible' : displayDate(form.preferredDate);
-  const depositTermsCopy = `I understand PSI will review my request before confirming a date or sending the ${depositDisplay} deposit link. Once paid, the deposit is ordinarily non-refundable because PSI allocates technicians, hoist or dyno capacity and workshop planning to my vehicle.`;
+  const depositTermsCopy = `I understand PSI will review my request before confirming a date or sending the ${depositDisplay} deposit link. If I later move or cancel an approved booking, any amount retained will be limited to PSI's reasonable costs and reserved workshop capacity, with the balance refunded where applicable. My Australian Consumer Law rights are not limited.`;
   const arrivalLabel = ARRIVAL_OPTIONS.find((option) => option.value === form.arrivalArrangement)?.label ?? 'Not selected';
   const tuning = form.tuningDetails;
   const transmissionSetups = tuning.transmissionType === 'manual' ? MANUAL_SETUP_OPTIONS : AUTOMATIC_SETUP_OPTIONS;
@@ -1714,17 +1718,17 @@ function ReviewStep({
         </Text>
       </View>
 
-      <View accessibilityLabel="Owner-review booking and deposit policy" style={styles.policyCard}>
-        <Text style={styles.policyKicker}>Owner-review policy draft · not yet public</Text>
+      <View accessibilityLabel="Booking and deposit terms" style={styles.policyCard}>
+        <Text style={styles.policyKicker}>PSI booking terms</Text>
         <Text style={styles.policyTitle}>Booking and deposit policy</Text>
         <Text style={styles.policyCopy}>
-          Once PSI confirms your date, we send a secure link for the {depositDisplay} deposit. Once paid, the deposit ordinarily cannot be refunded because PSI reserves technician time, hoist or dyno capacity and workshop planning for your vehicle.
+          Sending this request does not reserve a date and no payment is taken. Once PSI approves a date, PSI may send a secure link for the {depositDisplay} deposit. The booking becomes confirmed only after the payment provider verifies that deposit.
         </Text>
         <Text style={styles.policyCopy}>
-          If PSI needs to move your booking, we will work with you to reschedule and keep the deposit attached to the agreed replacement date, or provide a refund or another remedy where required. Nothing in this policy limits rights that cannot be excluded under the Australian Consumer Law.
+          Contact PSI as soon as possible if you need to cancel or move an approved booking. PSI may apply a paid deposit only toward reasonable costs already incurred or workshop capacity reasonably reserved for that booking, and will refund any remaining amount. If PSI needs to cancel, you may accept a replacement date or receive a refund of the unused deposit.
         </Text>
         <Text style={styles.policyFine}>
-          Before launch, PSI will finalise cancellation notice, no-show, exceptional-circumstance, transfer and expiry terms.
+          No term limits rights or remedies that cannot be excluded under the Australian Consumer Law. PSI will explain any proposed deduction before processing it and consider exceptional circumstances fairly.
         </Text>
       </View>
 
@@ -1768,7 +1772,7 @@ function ReviewStep({
           </Text>
         </Pressable>
         {errors.consent ? <Text style={styles.error}>{errors.consent}</Text> : null}
-        <Pressable accessibilityRole="link" hitSlop={10} onPress={() => void Linking.openURL(contact.privacy)}>
+        <Pressable accessibilityRole="link" hitSlop={10} onPress={onOpenPrivacy}>
           <Text style={styles.privacyLink}>Read the privacy policy ↗</Text>
         </Pressable>
       </View>

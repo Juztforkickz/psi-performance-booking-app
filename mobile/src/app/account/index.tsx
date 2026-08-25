@@ -6,6 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import {
+  cancelOwnAccountDeletionRequest,
+  loadOwnAccountDeletionRequest,
+  requestOwnAccountDeletion,
+} from '@/lib/account-deletion';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import {
   CUSTOMER_AUTH,
@@ -16,6 +21,7 @@ import {
 } from '@/lib/customer-auth';
 import { unregisterCurrentPushDevice } from '@/lib/notifications';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
+import type { AccountDeletionRequestRow } from '@/lib/database.types';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -31,6 +37,11 @@ export default function AccountScreen() {
   const [codeSent, setCodeSent] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [deletionBusy, setDeletionBusy] = useState(false);
+  const [deletionConfirmVisible, setDeletionConfirmVisible] = useState(false);
+  const [deletionError, setDeletionError] = useState('');
+  const [deletionRequest, setDeletionRequest] = useState<AccountDeletionRequestRow | null>(null);
+  const authenticatedUserId = auth.user?.id;
   const secureReturnTo = (Array.isArray(returnTo) ? returnTo[0] : returnTo) === '/staff' ? '/staff' : null;
 
   useEffect(() => {
@@ -44,6 +55,19 @@ export default function AccountScreen() {
     }, 1000);
     return () => clearInterval(timer);
   }, [resendSeconds]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (auth.status !== 'signed_in' || !authenticatedUserId) return;
+    void loadOwnAccountDeletionRequest()
+      .then((request) => {
+        if (!cancelled) setDeletionRequest(request);
+      })
+      .catch(() => {
+        if (!cancelled) setDeletionError('Account-deletion status could not be loaded. Your account has not been changed.');
+      });
+    return () => { cancelled = true; };
+  }, [auth.status, authenticatedUserId]);
 
   const beginSignIn = async () => {
     if (busy || resendSeconds > 0) return;
@@ -105,6 +129,35 @@ export default function AccountScreen() {
       setNotice('The local sign-out could not be completed. Close the app and try again.');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const submitDeletionRequest = async () => {
+    if (!auth.user || deletionBusy) return;
+    setDeletionBusy(true);
+    setDeletionError('');
+    try {
+      const request = await requestOwnAccountDeletion(auth.user.id);
+      setDeletionRequest(request);
+      setDeletionConfirmVisible(false);
+    } catch {
+      setDeletionError('The deletion request could not be recorded. Nothing was deleted. Please try again or contact PSI support.');
+    } finally {
+      setDeletionBusy(false);
+    }
+  };
+
+  const cancelDeletionRequest = async () => {
+    if (!auth.user || deletionBusy || deletionRequest?.status !== 'requested') return;
+    setDeletionBusy(true);
+    setDeletionError('');
+    try {
+      await cancelOwnAccountDeletionRequest(auth.user.id);
+      setDeletionRequest(null);
+    } catch {
+      setDeletionError('The pending request could not be cancelled. Please contact PSI support before the review is completed.');
+    } finally {
+      setDeletionBusy(false);
     }
   };
 
@@ -267,6 +320,39 @@ export default function AccountScreen() {
           <PrimaryButton label={account ? 'Edit account details →' : CUSTOMER_AUTH.registrationEnabled ? 'Set up approved account →' : 'Preview account setup →'} onPress={() => router.push('/account/sign-up')} variant="outline" />
         </View>
 
+        {CUSTOMER_AUTH.enabled && auth.status === 'signed_in' ? (
+          <View accessibilityLabel="Account deletion controls" style={[styles.deletionCard, compact && styles.cardCompact]}>
+            <Text style={styles.deletionKicker}>Privacy & account control</Text>
+            <Text style={styles.deletionTitle}>Delete your PSI account</Text>
+            {deletionRequest ? (
+              <>
+                <Text style={styles.deletionStatus}>{deletionRequest.status === 'requested' ? 'REQUEST RECEIVED' : deletionRequest.status === 'in_review' ? 'DELETION IN REVIEW' : 'DELETION COMPLETED'}</Text>
+                <Text style={styles.deletionCopy}>
+                  Requested {formatAccountDate(deletionRequest.requested_at)}. PSI will normally complete verified deletion requests within 30 days. Customer profile data, login access and customer-uploaded files will be removed; records PSI must lawfully retain for workshop, accounting, dispute or safety purposes will be limited and protected or de-identified where appropriate.
+                </Text>
+                {deletionRequest.status === 'requested' ? <PrimaryButton label="Cancel pending deletion request" loading={deletionBusy} onPress={() => void cancelDeletionRequest()} variant="outline" /> : null}
+              </>
+            ) : deletionConfirmVisible ? (
+              <View style={styles.deletionConfirm}>
+                <Text style={styles.deletionWarning}>This requests deletion of your entire customer account—not merely this device’s session. PSI will verify and process it within 30 days. You can cancel while the request is still pending.</Text>
+                <PrimaryButton label="Confirm account deletion request" loading={deletionBusy} onPress={() => void submitDeletionRequest()} />
+                <PrimaryButton label="Keep my account" disabled={deletionBusy} onPress={() => setDeletionConfirmVisible(false)} variant="outline" />
+              </View>
+            ) : (
+              <>
+                <Text style={styles.deletionCopy}>Initiate deletion inside the app. PSI will confirm the request and remove account data that is not legally required to be retained. This does not affect Australian Consumer Law rights or valid workshop records that PSI must keep.</Text>
+                <PrimaryButton label="Request account deletion" onPress={() => setDeletionConfirmVisible(true)} variant="outline" />
+              </>
+            )}
+            {deletionError ? <Text accessibilityRole="alert" style={styles.errorText}>{deletionError}</Text> : null}
+          </View>
+        ) : null}
+
+        <View style={styles.legalLinks}>
+          <PrimaryButton label="Privacy & data handling" onPress={() => router.push('/privacy')} variant="outline" />
+          <PrimaryButton label="Support & account help" onPress={() => router.push('/support')} variant="outline" />
+        </View>
+
         <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={({ pressed }) => [styles.guestLink, pressed && styles.pressed]}>
           <Text style={styles.guestLinkText}>Continue without an account</Text>
           <Text maxFontSizeMultiplier={1.3} style={styles.guestArrow}>→</Text>
@@ -360,8 +446,20 @@ const styles = StyleSheet.create({
   createCopy: { gap: spacing.xs },
   createTitle: { color: colors.white, fontSize: 16, fontWeight: '900' },
   createText: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  deletionCard: { ...mobileFrame, gap: spacing.md, marginTop: spacing.lg, backgroundColor: colors.panel, padding: spacing.lg },
+  deletionKicker: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.1, textTransform: 'uppercase' },
+  deletionTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
+  deletionStatus: { alignSelf: 'flex-start', color: colors.ink, fontSize: 9, fontWeight: '900', backgroundColor: colors.gold, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
+  deletionCopy: { color: colors.muted, fontSize: 11, lineHeight: 18 },
+  deletionConfirm: { gap: spacing.md, borderColor: colors.goldDark, borderWidth: 1, backgroundColor: colors.inkSoft, padding: spacing.md },
+  deletionWarning: { color: colors.cream, fontSize: 11, fontWeight: '700', lineHeight: 18 },
+  legalLinks: { gap: spacing.sm, marginTop: spacing.lg },
   guestLink: { ...mobileFrame, minHeight: 66, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   guestLinkText: { flex: 1, minWidth: 0, color: colors.white, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   guestArrow: { color: colors.gold, fontSize: 21 },
   pressed: { opacity: 0.72 },
 });
+
+function formatAccountDate(value: string) {
+  return new Date(value).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', timeZone: 'Australia/Melbourne', year: 'numeric' });
+}

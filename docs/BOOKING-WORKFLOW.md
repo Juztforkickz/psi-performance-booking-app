@@ -82,16 +82,16 @@ explicit PSI/manual decision.
 The guide price is not a final quote. PSI confirms scope and any additional
 costs before work outside the agreed scope proceeds.
 
-## Deposit wording for owner review
+## Booking and deposit wording for owner review
 
-> Once PSI has reviewed and confirmed your booking date, we will send a secure
-> link for the applicable deposit. Once paid, the deposit ordinarily cannot be
-> refunded because PSI reserves technician time, hoist or dyno capacity and
-> workshop planning for your vehicle. If PSI needs to move your booking, we
-> will work with you to reschedule and keep the deposit attached to the agreed
-> replacement date, or provide another remedy where required. Nothing in this
-> policy limits rights that cannot be excluded under the Australian Consumer
-> Law.
+> Sending a request does not reserve a date and no payment is taken. PSI will
+> review workshop capacity, approve or propose a date and explain any deposit
+> before sending a secure payment link. If you need to move or cancel an
+> approved booking, contact PSI as soon as possible. Any amount retained from a
+> deposit will be limited to PSI's reasonable costs and reserved workshop
+> capacity, with the balance refunded where applicable. If PSI cancels, it will
+> offer a suitable reschedule or refund. Nothing in this policy limits rights
+> that cannot be excluded under the Australian Consumer Law.
 
 This wording must receive owner/legal sign-off before public launch. The final
 policy should also define customer cancellation notice, no-shows, serious
@@ -109,15 +109,12 @@ The provider-ready account model is intended to keep:
 - the next confirmed booking; and
 - communication/reminder preferences.
 
-No public account registration is enabled until managed identity, account
-recovery, email verification, privacy/retention and per-customer data access are
-tested. The accepted direction is passwordless email-link access, with
-registration disabled during owner review and invite-only for the first
-controlled test group. The identity provider will own verification and session
-security; PSI's D1 records will never contain passwords or sign-in tokens.
-Account activation is a reviewed provider integration, not an environment-only
-switch. The current status endpoint is non-personal, and all profile reads and
-writes fail closed with `CUSTOMER_ACCOUNTS_DISABLED`.
+Public registration remains disabled. The controlled QA build uses Supabase
+passwordless six-digit email codes for approved existing accounts, with
+customer-owned RLS records and Matt-only AAL2 workshop access. Customers can
+initiate and cancel an account-deletion request in the app; Matt's controlled
+completion procedure is documented in `ACCOUNT-DELETION.md`. The separate root
+web account endpoints remain fail-closed with `CUSTOMER_ACCOUNTS_DISABLED`.
 
 Provider identities must be linked by a verified, namespaced stable subject,
 never by matching an email, registration or VIN. Web and native may share the

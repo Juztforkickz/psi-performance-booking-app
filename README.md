@@ -57,17 +57,19 @@ The OpenAI Sites web demo uses `PSI_PUBLIC_DEMO_MODE=true` as a second, server-s
 - Confirm the consumer guide prices of $423.50 including GST for Service & Report and $649 including GST for Dyno Tuning, the booking-type deposit amounts, workshop hours and contact details with PSI.
 - Select and configure the live deposit provider; register and verify its signed webhook before accepting customer traffic.
 - Confirm the legal entity name, ABN, GST registration, deposit GST treatment and cancellation/refund wording before issuing anything labelled a tax invoice.
-- Select managed identity that supports passwordless email on web and native, then complete the invite-only activation gates in `docs/CUSTOMER-ACCOUNTS.md`; do not enable account writes beforehand.
+- Acceptance-test the selected Supabase passwordless identity and customer-owned account controls on signed native builds; keep public registration closed until PSI approves onboarding.
 - Authorise server-side, least-privilege access to PSI's chosen Google Calendar. Calendar contents must never be returned to customers.
 - Reconfirm Resend domain authentication, delivery monitoring and sender access before opening general customer onboarding.
 - Connect a stable booking domain, ideally `book.psiperformance.com.au`.
 - Put `PSI_ADMIN_KEY` in the team password manager and assign responsibility for monitoring `/admin`.
-- Update the privacy policy for account, booking, payment, retention and mobile disclosures.
+- Approve the in-app privacy, support, retention and account-deletion procedure before inviting external customers.
 - Test real requests with workshop staff before promoting the link.
 - Complete TestFlight and Google Play internal testing before public store release.
 
 The complete owner-review journey, date rules, deposit wording, account history and reminder behavior are recorded in [`docs/BOOKING-WORKFLOW.md`](docs/BOOKING-WORKFLOW.md).
 
 Current controlled-QA evidence and the remaining non-payment/store gates are tracked in [`docs/RELEASE-READINESS.md`](docs/RELEASE-READINESS.md).
+
+The operational account-deletion procedure and final launch gates are tracked in [`docs/ACCOUNT-DELETION.md`](docs/ACCOUNT-DELETION.md) and [`docs/FINAL-RELEASE-CHECKLIST.md`](docs/FINAL-RELEASE-CHECKLIST.md).
 
 Source and brand provenance is recorded in [`docs/CONTENT-SOURCES.md`](docs/CONTENT-SOURCES.md). Brand-use status and the formal registration handoff are recorded in [`TRADEMARKS.md`](TRADEMARKS.md). This private repository is not an open-source distribution; see [`LICENSE`](LICENSE).

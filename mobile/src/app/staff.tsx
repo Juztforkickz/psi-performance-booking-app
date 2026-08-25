@@ -379,8 +379,24 @@ function StaffWorkspace({
           <Metric label="Customers" value={snapshot.customers.length} />
           <Metric label="Vehicles" value={snapshot.vehicles.length} />
           <Metric label="Active requests" value={activeBookings.length} />
-          <Metric label="Integration queue" value={waitingIntegrationJobs.length} />
+          <Metric label="Deletion requests" value={snapshot.accountDeletionRequests.filter((request) => request.status !== 'completed').length} />
         </View>
+
+        <SectionHeading copy="Customer-initiated requests are visible only to Matt after MFA. Complete the documented storage, retained-record and Auth cleanup before recording completion." title="Account deletion queue" />
+        {snapshot.accountDeletionRequests.length === 0 ? <EmptyState>No account deletion requests are currently shown.</EmptyState> : snapshot.accountDeletionRequests.map((request) => {
+          const customer = snapshot.customers.find((item) => item.user_id === request.user_id);
+          return (
+            <View key={request.user_id} style={styles.card}>
+              <View style={styles.cardHeading}>
+                <Text style={styles.cardTitle}>{customerName(customer)}</Text>
+                <Text style={styles.badge}>{humanize(request.status)}</Text>
+              </View>
+              <Text style={styles.cardCopy}>{customer?.email ?? 'Customer profile pending privacy review'}</Text>
+              <Text style={styles.cardMeta}>Requested {formatDateTime(request.requested_at)} · Target completion within 30 days</Text>
+              <Text style={styles.contextLine}>Owner procedure required · remove customer uploads and login access; retain or de-identify only records PSI must keep.</Text>
+            </View>
+          );
+        })}
 
         <SectionHeading copy="Create customer-visible PSI records only after checking the selected customer and vehicle." title="Publish workshop records" />
         <StaffRecordPublisher snapshot={snapshot} />
@@ -416,6 +432,7 @@ function StaffWorkspace({
         <SectionHeading copy="Provider-neutral jobs are recorded once for audit and retry safety. Pending means queued only—it does not claim an email was sent or a Calendar event created." title="Email & Calendar queue" />
         <View style={styles.integrationControls}>
           <Text style={styles.securityCopy}>Only Matt&apos;s current AAL2 staff session can start this worker. Resend and Google Calendar credentials are configured as private provider secrets for this QA flow.</Text>
+          <Text style={styles.contextLine}>Waiting integration jobs · {waitingIntegrationJobs.length}</Text>
           <PrimaryButton label="Check email & Calendar queue" loading={integrationBusy} onPress={() => void processIntegrationQueue()} variant="outline" />
           {integrationResult ? (
             <Text accessibilityLiveRegion="polite" style={styles.contextLine}>
