@@ -43,8 +43,8 @@ Status: controlled QA, 25 August 2026. Payments are deliberately last.
   build after confirming legal entity details.
 - [ ] Run final date-proposal, approval, cancellation, duplicate-worker and
   Melbourne-time-boundary booking tests.
-  The rollback-only database portion passed on 26 August 2026. Deploy the
-  reviewed Melbourne-date migration, then repeat provider email/Calendar worker
+  The rollback-only database portion passed on 26 August 2026 and the reviewed
+  Melbourne-date migration is active. Repeat provider email/Calendar worker
   acceptance before marking this complete.
 
 ## Deliberately last: payments

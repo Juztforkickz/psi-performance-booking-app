@@ -1,3 +1,4 @@
+-- Applied to the connected QA project as migration 20260825222326.
 -- PSI operates in Melbourne. PostgreSQL remains on UTC, so current_date can be
 -- one calendar day behind the workshop between local midnight and 10/11am.
 -- Keep the database timezone unchanged and make the booking boundary explicit.

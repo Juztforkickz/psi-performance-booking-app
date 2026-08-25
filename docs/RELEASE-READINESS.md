@@ -51,9 +51,10 @@ date proposal, approval, cancellation and integration-job deduplication. The
 test also found that PostgreSQL's UTC `current_date` can trail PSI's Melbourne
 calendar date after local midnight. A migration and permanent regression test
 now use an explicit `Australia/Melbourne` boundary and passed together inside a
-single rolled-back transaction. The migration is committed for review but is
-not active in the connected Supabase project until explicitly approved and
-applied.
+single rolled-back transaction. Migration
+`20260825222326_use_melbourne_booking_date_boundary` was then explicitly
+approved, applied to the connected Sydney Supabase project and re-tested
+successfully. No synthetic fixtures remained after the test.
 
 ## Deliberately last
 
