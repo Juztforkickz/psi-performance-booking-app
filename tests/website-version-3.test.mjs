@@ -92,8 +92,10 @@ test("the Shopify global theme layer carries the approved PSI palette across sha
   assert.match(versionSix, /psi-v6-brand-grid/u);
   assert.doesNotMatch(versionSix, /yellow|#ffd700|#ffcc00|#f5c400/iu);
   assert.match(versionSeven, /@media\(min-width:750px\)/u);
-  assert.match(versionSeven, /max-width:54\.5rem!important/u);
-  assert.match(versionSeven, /padding:4rem 3\.5rem!important/u);
+  assert.match(versionSeven, /psi-website-version-9-desktop-hero/u);
+  assert.match(versionSeven, /border-left:4px solid #65cef8!important/u);
+  assert.match(versionSeven, /slideshow_aNgmgx-1[\s\S]*max-width:36rem!important/u);
+  assert.match(versionSeven, /slideshow_aNgmgx-3[\s\S]*height:38\.1rem!important/u);
   assert.doesNotMatch(versionSeven, /max-width:749px|@media\(max-width/u);
   assert.doesNotMatch(styles, /yellow|#ffd700|#ffcc00|#f5c400/iu);
   assert.doesNotMatch(globalScript, /yellow|#ffd700|#ffcc00|#f5c400/iu);
