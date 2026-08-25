@@ -94,8 +94,8 @@ test("the Shopify global theme layer carries the approved PSI palette across sha
   assert.match(versionSeven, /@media\(min-width:750px\)/u);
   assert.match(versionSeven, /psi-website-version-9-desktop-hero/u);
   assert.match(versionSeven, /border-left:4px solid #65cef8!important/u);
-  assert.match(versionSeven, /slideshow_aNgmgx-1[\s\S]*max-width:40rem!important/u);
-  assert.match(versionSeven, /slideshow_aNgmgx-3[\s\S]*max-width:49rem!important[\s\S]*height:37rem!important/u);
+  assert.match(versionSeven, /slideshow_aNgmgx-1[\s\S]*max-width:78rem!important[\s\S]*font-size:4rem!important/u);
+  assert.match(versionSeven, /slideshow_aNgmgx-3[\s\S]*max-width:55rem!important[\s\S]*height:37rem!important[\s\S]*font-size:4rem!important/u);
   assert.match(versionSeven, /lines: \["Performance Services,", "Maintenance & Repairs"\]/u);
   assert.match(versionSeven, /lines: \["Performance", "Tuning & Coding"\]/u);
   assert.match(versionSeven, /psi-v9-heading-line/u);
