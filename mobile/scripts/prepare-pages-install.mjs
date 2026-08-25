@@ -8,7 +8,8 @@ const repositoryDirectory = resolve(mobileDirectory, '..');
 const distDirectory = join(mobileDirectory, 'dist');
 
 const rawBasePath = process.env.GITHUB_PAGES_BASE_PATH || '/psi-performance-booking-app';
-const basePath = `/${rawBasePath.split('/').filter(Boolean).join('/')}`;
+const basePathSegments = rawBasePath.split('/').filter(Boolean);
+const basePath = basePathSegments.length ? `/${basePathSegments.join('/')}` : '';
 const assetUrl = (fileName) => `${basePath}/${fileName}`;
 
 const installHead = `<!-- PSI_INSTALL_METADATA_START -->
