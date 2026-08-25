@@ -40,14 +40,21 @@
     width:78rem!important;
     min-width:78rem!important;
     max-width:78rem!important;
-    min-height:37rem!important;
-    padding:3.4rem 3rem!important;
+    min-height:29rem!important;
+    padding:2.2rem 2.8rem 2rem 2.2rem!important;
     margin-left:0!important;
-    margin-top:-1.2rem!important;
+    margin-top:-6rem!important;
   }
   #Slide-template--16238529609857__slideshow_aNgmgx-1 .banner__heading{
     font-size:4rem!important;
     line-height:1.12!important;
+    transform:translateX(-0.25rem)!important;
+  }
+  #Slide-template--16238529609857__slideshow_aNgmgx-1 .banner__text{
+    transform:translateY(-0.4rem)!important;
+  }
+  #Slide-template--16238529609857__slideshow_aNgmgx-1 .banner__buttons{
+    transform:translateY(-0.6rem)!important;
   }
   #Slide-template--16238529609857__slideshow_aNgmgx-3 .slideshow__text.banner__box{
     width:55rem!important;
