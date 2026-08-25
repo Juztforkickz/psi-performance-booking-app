@@ -23,6 +23,10 @@ Status: controlled QA, 25 August 2026. Payments are deliberately last.
   private test image; approve PSI's retention schedule and response template.
 - [ ] Complete two-customer isolation, expired/replayed email-code, sign-out and
   private-file regression tests on signed native builds.
+- [x] Re-run the rollback-only database boundary suite for two isolated
+  customers, private file metadata, AAL1/AAL2 staff separation and protected
+  booking transitions on 26 August 2026. Signed-native Auth/file tests remain
+  required above.
 - [ ] Complete iPhone notification permission, sound, badge and deep-link tests
   after PSI's Apple Developer organisation enrolment is approved.
 - [ ] Complete equivalent Android testing on a supported borrowed or dedicated
@@ -39,6 +43,9 @@ Status: controlled QA, 25 August 2026. Payments are deliberately last.
   build after confirming legal entity details.
 - [ ] Run final date-proposal, approval, cancellation, duplicate-worker and
   Melbourne-time-boundary booking tests.
+  The rollback-only database portion passed on 26 August 2026. Deploy the
+  reviewed Melbourne-date migration, then repeat provider email/Calendar worker
+  acceptance before marking this complete.
 
 ## Deliberately last: payments
 

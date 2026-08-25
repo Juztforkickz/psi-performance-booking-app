@@ -130,6 +130,30 @@ insert into public.booking_requests (
   '11111111-1111-4111-8111-111111111111'
 );
 
+insert into public.booking_requests (
+  id,
+  client_request_id,
+  customer_id,
+  vehicle_id,
+  booking_type,
+  preferred_date,
+  request_notes,
+  state,
+  currency,
+  created_by
+) values (
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccd',
+  'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeef',
+  '11111111-1111-4111-8111-111111111111',
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  'service',
+  current_date,
+  'Synthetic proposal and cancellation acceptance fixture.',
+  'pending_staff_review',
+  'AUD',
+  '11111111-1111-4111-8111-111111111111'
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"22222222-2222-4222-8222-222222222222","email":"rls-customer-b@example.invalid","role":"authenticated","aal":"aal1"}',
@@ -488,6 +512,10 @@ select set_config(
 select set_config('request.jwt.claim.sub', '33333333-3333-4333-8333-333333333333', true);
 
 do $$
+declare
+  melbourne_today date := (now() at time zone 'Australia/Melbourne')::date;
+  workshop_date date := (now() at time zone 'Australia/Melbourne')::date
+    + (8 - extract(isodow from (now() at time zone 'Australia/Melbourne')::date)::integer);
 begin
   if not (select private.is_active_staff()) then
     raise exception 'RLS test failed: active AAL2 staff cannot access workshop records';
@@ -495,6 +523,43 @@ begin
 
   if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc') <> 2 then
     raise exception 'RLS test failed: new booking did not create two deduplicated notification jobs';
+  end if;
+
+  begin
+    update public.booking_requests
+    set state = 'date_proposed', approved_date = melbourne_today - 1
+    where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    raise exception 'RLS test failed: a past Melbourne workshop date was accepted';
+  exception
+    when others then
+      if sqlerrm not like '%A workshop booking date cannot be in the past%' then
+        raise;
+      end if;
+  end;
+
+  update public.booking_requests
+  set
+    state = 'date_proposed',
+    approved_date = workshop_date,
+    staff_note = 'Synthetic alternative workshop date.'
+  where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+
+  if (select count(*) from public.booking_requests where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' and state = 'date_proposed' and approved_date = workshop_date and deposit_amount_cents is null) <> 1 then
+    raise exception 'RLS test failed: proposed date state or protected deposit boundary is incorrect';
+  end if;
+  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc') <> 3 then
+    raise exception 'RLS test failed: date proposal did not queue exactly one customer notification';
+  end if;
+
+  update public.booking_requests
+  set
+    state = 'date_proposed',
+    approved_date = workshop_date,
+    staff_note = 'Synthetic alternative workshop date.'
+  where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+
+  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc') <> 3 then
+    raise exception 'RLS test failed: replaying the same proposal duplicated a provider job';
   end if;
 
   insert into public.repair_records (
@@ -581,7 +646,7 @@ begin
   update public.booking_requests
   set
     state = 'date_approved',
-    approved_date = current_date,
+    approved_date = workshop_date,
     staff_note = 'Synthetic approved workshop date.'
   where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 
@@ -589,8 +654,38 @@ begin
     raise exception 'RLS test failed: AAL2 date approval did not derive the protected AUD deposit and reviewer';
   end if;
 
-  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc') <> 3 then
+  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc') <> 4 then
     raise exception 'RLS test failed: date approval did not queue one customer notification';
+  end if;
+
+  update public.booking_requests
+  set
+    state = 'date_proposed',
+    approved_date = workshop_date,
+    staff_note = 'Synthetic alternative date before cancellation.'
+  where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd';
+
+  update public.booking_requests
+  set
+    state = 'cancelled',
+    approved_date = null,
+    staff_note = 'Synthetic cancellation acceptance reason.'
+  where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd';
+
+  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd') <> 4
+    or (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd' and job_kind = 'notify_customer_cancelled') <> 1 then
+    raise exception 'RLS test failed: proposal/cancellation jobs were missing or duplicated';
+  end if;
+
+  update public.booking_requests
+  set
+    state = 'cancelled',
+    approved_date = null,
+    staff_note = 'Synthetic cancellation acceptance reason.'
+  where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd';
+
+  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd') <> 4 then
+    raise exception 'RLS test failed: replaying cancellation duplicated a provider job';
   end if;
 
   perform set_config(
@@ -608,7 +703,7 @@ begin
     true
   );
 
-  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc') <> 6 then
+  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc') <> 7 then
     raise exception 'RLS test failed: trusted confirmation did not queue customer, PSI and Calendar jobs';
   end if;
 

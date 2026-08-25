@@ -45,6 +45,16 @@ private Storage object, a restored backup rehearsal and final store-owner/legal
 approval remain outstanding. See `SUPABASE-BACKUP-RECOVERY.md` and
 `STORE-RELEASE-PACKAGE.md`.
 
+On 26 August 2026, the expanded rollback-only database acceptance passed for
+two-customer isolation, private file metadata, staff AAL1/AAL2 separation,
+date proposal, approval, cancellation and integration-job deduplication. The
+test also found that PostgreSQL's UTC `current_date` can trail PSI's Melbourne
+calendar date after local midnight. A migration and permanent regression test
+now use an explicit `Australia/Melbourne` boundary and passed together inside a
+single rolled-back transaction. The migration is committed for review but is
+not active in the connected Supabase project until explicitly approved and
+applied.
+
 ## Deliberately last
 
 Select the deposit provider, confirm PSI legal/GST/refund wording, implement and verify its signed webhook, and only then test the trusted payment-confirmed transition that creates the internal Google Calendar event. No manual client or staff action may mark a deposit paid.

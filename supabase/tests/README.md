@@ -16,6 +16,10 @@ using two reserved customer identities and one reserved staff identity. It verif
   vehicles they own;
 - AAL1 staff cannot review requests, AAL2 staff can approve/propose valid PSI
   dates, and staff cannot promote a date-approved request to paid/confirmed;
+- Melbourne-local past dates are rejected even while PostgreSQL remains on UTC,
+  and replaying an identical proposal or cancellation does not duplicate jobs;
+- a proposal can be cancelled with exactly one customer cancellation job while
+  the protected AUD deposit remains absent until date approval;
 - only the trusted server role can perform the future payment-confirmed
   transition;
 - booking creation and review changes create the expected deduplicated
