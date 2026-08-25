@@ -43,7 +43,7 @@
     min-height:29rem!important;
     padding:2.2rem 2.8rem 2rem 2.2rem!important;
     margin-left:0!important;
-    margin-top:-6rem!important;
+    margin-top:-3.6rem!important;
   }
   #Slide-template--16238529609857__slideshow_aNgmgx-1 .banner__heading{
     font-size:4rem!important;
