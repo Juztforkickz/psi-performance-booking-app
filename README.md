@@ -68,4 +68,6 @@ The OpenAI Sites web demo uses `PSI_PUBLIC_DEMO_MODE=true` as a second, server-s
 
 The complete owner-review journey, date rules, deposit wording, account history and reminder behavior are recorded in [`docs/BOOKING-WORKFLOW.md`](docs/BOOKING-WORKFLOW.md).
 
+Current controlled-QA evidence and the remaining non-payment/store gates are tracked in [`docs/RELEASE-READINESS.md`](docs/RELEASE-READINESS.md).
+
 Source and brand provenance is recorded in [`docs/CONTENT-SOURCES.md`](docs/CONTENT-SOURCES.md). Brand-use status and the formal registration handoff are recorded in [`TRADEMARKS.md`](TRADEMARKS.md). This private repository is not an open-source distribution; see [`LICENSE`](LICENSE).
