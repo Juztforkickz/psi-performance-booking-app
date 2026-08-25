@@ -50,6 +50,14 @@
           "resizeMode": "contain"
         }
       ],
+      [
+        "expo-notifications",
+        {
+          "color": "#D9B35B",
+          "defaultChannel": "psi-bookings",
+          "enableBackgroundRemoteNotifications": false
+        }
+      ],
       "expo-secure-store"
     ],
     "experiments": {

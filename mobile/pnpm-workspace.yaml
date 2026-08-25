@@ -1,4 +1,9 @@
 allowBuilds:
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@expo/image-utils@0.11.5'
+  - '@expo/require-utils@57.0.5'
+  - expo-constants@57.0.14
+  - expo-notifications@57.0.14
 onlyBuiltDependencies:
   - unrs-resolver

@@ -107,6 +107,21 @@ and authenticated worker are present, but provider delivery, customer
 registration, staff management, general record editing and PDF publishing
 remain disabled.
 
+Authenticated builds now include a protected notification centre for booking
+requests and PSI status changes. Database triggers create deduplicated,
+customer-scoped events and a private delivery queue. Customers can read and
+mark only their own events; Matt's new-request alerts remain behind the active
+staff allowlist and AAL2 portal. Email delivery remains a separate fallback.
+On an installed native build, a signed-in user must deliberately choose
+**Enable device notifications** before the app requests operating-system
+permission and registers an Expo push token. Banners, default sound, safe
+Booking/Staff deep links and app-icon badge counts are supported. Disabled or
+unregistered devices retain the in-app notification centre and email updates.
+The web/PWA preview cannot provide Expo native push alerts, and iPhone remote
+push QA/release still requires Apple signing through an Apple Developer Program
+membership. No push token, service credential or other secret is compiled into
+the public web build.
+
 The internal `qa` profile also enables a separate authenticated booking gate.
 An approved signed-in customer can submit one idempotent pending request for an
 active vehicle already owned by their RLS-scoped account. Contact and vehicle

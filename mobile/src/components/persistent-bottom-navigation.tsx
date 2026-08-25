@@ -5,6 +5,7 @@ import { Keyboard, Platform, Pressable, StyleSheet, Text, View } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useThemePreference } from '@/lib/theme-preference';
+import { useNotifications } from '@/lib/notifications';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -64,6 +65,7 @@ export function PersistentBottomNavigation() {
   const pathname = usePathname();
   const router = useRouter();
   const { theme } = useThemePreference();
+  const { unreadCount } = useNotifications();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   useEffect(() => {
@@ -105,6 +107,11 @@ export function PersistentBottomNavigation() {
                 name={selected ? item.activeIcon : item.inactiveIcon}
                 size={21}
               />
+              {item.href === '/alerts' && unreadCount > 0 ? (
+                <View accessibilityLabel={`${unreadCount} unread notifications`} style={[styles.notificationBadge, { backgroundColor: theme.accent }]}>
+                  <Text style={[styles.notificationBadgeText, { color: theme.textInverse }]}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                </View>
+              ) : null}
               <Text
                 adjustsFontSizeToFit
                 maxFontSizeMultiplier={1.25}
@@ -144,6 +151,7 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   navigationItem: {
+    position: 'relative',
     minWidth: 0,
     minHeight: 62,
     flex: 1,
@@ -153,6 +161,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 4,
   },
+  notificationBadge: { position: 'absolute', right: 8, top: 2, minWidth: 17, height: 17, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
+  notificationBadgeText: { fontSize: 8, fontWeight: '900' },
   label: {
     width: '100%',
     fontSize: 9,

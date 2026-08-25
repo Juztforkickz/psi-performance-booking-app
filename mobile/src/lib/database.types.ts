@@ -264,6 +264,93 @@ export type Database = {
         };
         Relationships: [];
       };
+      notification_events: {
+        Row: {
+          body: string;
+          booking_request_id: string | null;
+          created_at: string;
+          deep_link: '/bookings' | '/staff';
+          id: string;
+          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'new_booking_request';
+          read_at: string | null;
+          recipient_user_id: string;
+          source_event_key: string;
+          title: string;
+        };
+        Insert: Record<never, never>;
+        Update: { read_at?: string | null };
+        Relationships: [];
+      };
+      notification_preferences: {
+        Row: {
+          booking_reminders_enabled: boolean;
+          booking_updates_enabled: boolean;
+          created_at: string;
+          sound_enabled: boolean;
+          updated_at: string;
+          user_id: string;
+          workshop_alerts_enabled: boolean;
+        };
+        Insert: {
+          booking_reminders_enabled?: boolean;
+          booking_updates_enabled?: boolean;
+          sound_enabled?: boolean;
+          updated_at?: string;
+          user_id: string;
+          workshop_alerts_enabled?: boolean;
+        };
+        Update: {
+          booking_reminders_enabled?: boolean;
+          booking_updates_enabled?: boolean;
+          sound_enabled?: boolean;
+          updated_at?: string;
+          workshop_alerts_enabled?: boolean;
+        };
+        Relationships: [];
+      };
+      push_devices: {
+        Row: {
+          created_at: string;
+          enabled: boolean;
+          expo_push_token: string;
+          id: string;
+          last_seen_at: string;
+          platform: 'android' | 'ios';
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          enabled?: boolean;
+          expo_push_token: string;
+          id?: string;
+          last_seen_at?: string;
+          platform: 'android' | 'ios';
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: { enabled?: boolean; last_seen_at?: string; updated_at?: string };
+        Relationships: [];
+      };
+      push_notification_jobs: {
+        Row: {
+          attempt_count: number;
+          available_at: string;
+          booking_request_id: string | null;
+          completed_at: string | null;
+          created_at: string;
+          event_id: string;
+          id: string;
+          last_attempt_at: string | null;
+          last_error_code: string | null;
+          provider_ticket_id: string | null;
+          recipient_user_id: string;
+          status: 'cancelled' | 'failed' | 'pending' | 'processing' | 'succeeded';
+          updated_at: string;
+        };
+        Insert: Record<never, never>;
+        Update: Record<never, never>;
+        Relationships: [];
+      };
       odometer_readings: {
         Row: {
           created_at: string;
@@ -513,6 +600,8 @@ export type CustomerVehicleRow = Database['public']['Tables']['customer_vehicles
 export type BookingRequestRow = Database['public']['Tables']['booking_requests']['Row'];
 export type DynoRecordRow = Database['public']['Tables']['dyno_records']['Row'];
 export type InvoiceRow = Database['public']['Tables']['invoices']['Row'];
+export type NotificationEventRow = Database['public']['Tables']['notification_events']['Row'];
+export type NotificationPreferenceRow = Database['public']['Tables']['notification_preferences']['Row'];
 export type OdometerReadingRow = Database['public']['Tables']['odometer_readings']['Row'];
 export type RecommendedWorkRow = Database['public']['Tables']['recommended_work']['Row'];
 export type RepairRecordRow = Database['public']['Tables']['repair_records']['Row'];

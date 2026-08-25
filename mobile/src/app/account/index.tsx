@@ -14,6 +14,7 @@ import {
   signOutCustomer,
   verifyPasswordlessEmailCode,
 } from '@/lib/customer-auth';
+import { unregisterCurrentPushDevice } from '@/lib/notifications';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 
 export default function AccountScreen() {
@@ -93,6 +94,7 @@ export default function AccountScreen() {
   const signOut = async () => {
     setBusy(true);
     try {
+      await unregisterCurrentPushDevice().catch(() => undefined);
       await signOutCustomer();
       setCode('');
       setCodeSent(false);

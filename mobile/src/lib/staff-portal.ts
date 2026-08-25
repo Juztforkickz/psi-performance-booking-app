@@ -8,6 +8,7 @@ import type {
   VehicleFileRow,
 } from '@/lib/database.types';
 import { getSupabaseClient } from '@/lib/supabase';
+import { dispatchBookingPushNotifications } from '@/lib/notifications';
 
 export type StaffPortalAccess =
   | { kind: 'access_denied' }
@@ -168,6 +169,7 @@ export async function reviewBookingRequest(input: StaffBookingReviewInput) {
     .select('*')
     .single();
   if (error) throw error;
+  await dispatchBookingPushNotifications(data.id).catch(() => undefined);
   return data;
 }
 

@@ -10,6 +10,7 @@ import { colors } from '@/constants/brand';
 import { CustomerAccountProvider } from '@/lib/customer-account-context';
 import { CustomerAuthProvider } from '@/lib/customer-auth-context';
 import { CustomerPreviewProvider } from '@/lib/customer-preview-context';
+import { NotificationProvider } from '@/lib/notifications';
 import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme-preference';
 import { startSupabaseAuthLifecycle } from '@/lib/supabase';
 
@@ -34,21 +35,23 @@ function ThemeAwareRootShell() {
     <ThemeProvider value={shellTheme}>
       <CustomerAuthProvider>
         <CustomerAccountProvider>
-          <CustomerPreviewProvider>
-            <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
-            <View style={styles.shell}>
-              <View style={styles.content}>
-                <Stack
-                  screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor: theme.inkSoft },
-                    animation: 'slide_from_right',
-                  }}
-                />
+          <NotificationProvider>
+            <CustomerPreviewProvider>
+              <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
+              <View style={styles.shell}>
+                <View style={styles.content}>
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      contentStyle: { backgroundColor: theme.inkSoft },
+                      animation: 'slide_from_right',
+                    }}
+                  />
+                </View>
+                <PersistentBottomNavigation />
               </View>
-              <PersistentBottomNavigation />
-            </View>
-          </CustomerPreviewProvider>
+            </CustomerPreviewProvider>
+          </NotificationProvider>
         </CustomerAccountProvider>
       </CustomerAuthProvider>
     </ThemeProvider>

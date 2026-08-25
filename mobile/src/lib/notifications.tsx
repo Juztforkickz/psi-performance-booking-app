@@ -1,0 +1,185 @@
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import * as SecureStore from 'expo-secure-store';
+import { useRouter } from 'expo-router';
+import {
+  createContext,
+  type PropsWithChildren,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { Platform } from 'react-native';
+
+import { useCustomerAuth } from '@/lib/customer-auth-context';
+import type { NotificationEventRow, NotificationPreferenceRow } from '@/lib/database.types';
+import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
+
+type PushStatus = 'disabled' | 'not_enabled' | 'ready' | 'unsupported';
+type NotificationContextValue = {
+  enablePush: () => Promise<void>;
+  events: NotificationEventRow[];
+  markAllRead: () => Promise<void>;
+  markRead: (id: string) => Promise<void>;
+  preferences: NotificationPreferenceRow | null;
+  pushStatus: PushStatus;
+  refresh: () => Promise<void>;
+  setPreference: (key: PreferenceKey, value: boolean) => Promise<void>;
+  unreadCount: number;
+};
+type PreferenceKey = 'booking_reminders_enabled' | 'booking_updates_enabled' | 'sound_enabled' | 'workshop_alerts_enabled';
+
+const NotificationContext = createContext<NotificationContextValue | null>(null);
+let registeredToken = '';
+const PUSH_TOKEN_STORAGE_KEY = 'psi-notifications:expo-push-token';
+
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }),
+  });
+}
+
+export function NotificationProvider({ children }: PropsWithChildren) {
+  const auth = useCustomerAuth();
+  const router = useRouter();
+  const [events, setEvents] = useState<NotificationEventRow[]>([]);
+  const [preferences, setPreferences] = useState<NotificationPreferenceRow | null>(null);
+  const [pushStatus, setPushStatus] = useState<PushStatus>(Platform.OS === 'web' ? 'unsupported' : 'not_enabled');
+
+  const refresh = useCallback(async () => {
+    if (auth.status !== 'signed_in' || !auth.user || !SUPABASE_CONNECTION.authEnabled) {
+      setEvents([]);
+      setPreferences(null);
+      return;
+    }
+    const supabase = getSupabaseClient();
+    const [eventResult, preferenceResult] = await Promise.all([
+      supabase.from('notification_events').select('*').order('created_at', { ascending: false }).limit(50),
+      supabase.from('notification_preferences').select('*').eq('user_id', auth.user.id).maybeSingle(),
+    ]);
+    if (eventResult.error) throw eventResult.error;
+    if (preferenceResult.error) throw preferenceResult.error;
+    let preference = preferenceResult.data;
+    if (!preference) {
+      const created = await supabase.from('notification_preferences').insert({ user_id: auth.user.id }).select('*').single();
+      if (created.error) throw created.error;
+      preference = created.data;
+    }
+    setEvents(eventResult.data ?? []);
+    setPreferences(preference);
+  }, [auth.status, auth.user]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => { void refresh().catch(() => undefined); }, 0);
+    return () => clearTimeout(timer);
+  }, [refresh, auth.sessionRevision]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' || auth.status !== 'signed_in') return;
+    void SecureStore.getItemAsync(PUSH_TOKEN_STORAGE_KEY).then((token) => {
+      if (token) {
+        registeredToken = token;
+        setPushStatus('ready');
+      }
+    });
+  }, [auth.status]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const received = Notifications.addNotificationReceivedListener(() => { void refresh(); });
+    const responded = Notifications.addNotificationResponseReceivedListener((response) => {
+      const url = response.notification.request.content.data?.url;
+      if (url === '/bookings' || url === '/staff') router.push(url);
+      void refresh();
+    });
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      const url = response?.notification.request.content.data?.url;
+      if (url === '/bookings' || url === '/staff') router.push(url);
+    });
+    return () => { received.remove(); responded.remove(); };
+  }, [refresh, router]);
+
+  const unreadCount = useMemo(() => events.filter((event) => !event.read_at).length, [events]);
+  useEffect(() => {
+    if (Platform.OS !== 'web') void Notifications.setBadgeCountAsync(unreadCount).catch(() => undefined);
+  }, [unreadCount]);
+
+  const enablePush = useCallback(async () => {
+    if (Platform.OS === 'web' || !Device.isDevice) {
+      setPushStatus('unsupported');
+      throw new Error('NATIVE_DEVICE_REQUIRED');
+    }
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('psi-bookings', {
+        name: 'PSI bookings', importance: Notifications.AndroidImportance.HIGH, vibrationPattern: [0, 250, 250, 250], lightColor: '#D9B35B', sound: 'default',
+      });
+    }
+    const existing = await Notifications.getPermissionsAsync();
+    const permission = existing.status === 'granted' ? existing : await Notifications.requestPermissionsAsync();
+    if (permission.status !== 'granted') throw new Error('NOTIFICATION_PERMISSION_DENIED');
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+    if (!projectId) throw new Error('EAS_PROJECT_ID_MISSING');
+    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    const { error } = await getSupabaseClient().functions.invoke('process-push-notifications', {
+      body: { action: 'register_device', expoPushToken: token, platform: Platform.OS },
+    });
+    if (error) throw error;
+    registeredToken = token;
+    await SecureStore.setItemAsync(PUSH_TOKEN_STORAGE_KEY, token);
+    setPushStatus('ready');
+  }, []);
+
+  const setPreference = useCallback(async (key: PreferenceKey, value: boolean) => {
+    if (!auth.user) throw new Error('SIGN_IN_REQUIRED');
+    const update = key === 'booking_updates_enabled' ? { booking_updates_enabled: value }
+      : key === 'booking_reminders_enabled' ? { booking_reminders_enabled: value }
+        : key === 'workshop_alerts_enabled' ? { workshop_alerts_enabled: value }
+          : { sound_enabled: value };
+    const { data, error } = await getSupabaseClient().from('notification_preferences').update({ ...update, updated_at: new Date().toISOString() }).eq('user_id', auth.user.id).select('*').single();
+    if (error) throw error;
+    setPreferences(data);
+  }, [auth.user]);
+
+  const markRead = useCallback(async (id: string) => {
+    const { error } = await getSupabaseClient().from('notification_events').update({ read_at: new Date().toISOString() }).eq('id', id);
+    if (error) throw error;
+    setEvents((current) => current.map((event) => event.id === id ? { ...event, read_at: new Date().toISOString() } : event));
+  }, []);
+
+  const markAllRead = useCallback(async () => {
+    const unreadIds = events.filter((event) => !event.read_at).map((event) => event.id);
+    if (!unreadIds.length) return;
+    const now = new Date().toISOString();
+    const { error } = await getSupabaseClient().from('notification_events').update({ read_at: now }).in('id', unreadIds);
+    if (error) throw error;
+    setEvents((current) => current.map((event) => ({ ...event, read_at: event.read_at ?? now })));
+  }, [events]);
+
+  const value = useMemo<NotificationContextValue>(() => ({ enablePush, events, markAllRead, markRead, preferences, pushStatus, refresh, setPreference, unreadCount }), [enablePush, events, markAllRead, markRead, preferences, pushStatus, refresh, setPreference, unreadCount]);
+  return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
+}
+
+export function useNotifications() {
+  const value = useContext(NotificationContext);
+  if (!value) throw new Error('useNotifications must be used inside NotificationProvider');
+  return value;
+}
+
+export async function dispatchBookingPushNotifications(bookingId: string) {
+  if (!SUPABASE_CONNECTION.authEnabled) return;
+  await getSupabaseClient().functions.invoke('process-push-notifications', { body: { action: 'dispatch', bookingId } });
+}
+
+export async function unregisterCurrentPushDevice() {
+  if (Platform.OS !== 'web' && !registeredToken) registeredToken = await SecureStore.getItemAsync(PUSH_TOKEN_STORAGE_KEY) ?? '';
+  if (!registeredToken || !SUPABASE_CONNECTION.authEnabled) return;
+  try {
+    await getSupabaseClient().functions.invoke('process-push-notifications', { body: { action: 'unregister_device', expoPushToken: registeredToken } });
+  } finally {
+    if (Platform.OS !== 'web') await SecureStore.deleteItemAsync(PUSH_TOKEN_STORAGE_KEY);
+    registeredToken = '';
+  }
+}

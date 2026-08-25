@@ -1,5 +1,6 @@
 import type { Database } from '@/lib/database.types';
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
+import { dispatchBookingPushNotifications } from '@/lib/notifications';
 
 export type BookingType = 'service' | 'dyno';
 export type AppointmentPreferenceMode = 'specific' | 'flexible';
@@ -446,6 +447,8 @@ async function createAuthenticatedBookingRequest(
     booking = existingResult.data;
   }
   if (!booking) throw new Error('PSI could not verify that the request was stored. No success is being claimed.');
+
+  await dispatchBookingPushNotifications(booking.id).catch(() => undefined);
 
   return {
     reference: `PSI-${booking.id.slice(0, 8).toUpperCase()}`,

@@ -52,6 +52,14 @@ closed again.
   PSI user. Its sole scope is `calendar.events.owned`. Customers receive no
   Google token, Calendar list or event feed, and the worker never invites a
   customer to PSI's private workshop event.
+- Booking inserts and trusted status changes also create protected rows in
+  `notification_events` and `push_notification_jobs`. The customer owns the
+  in-app event view; the delivery queue remains private and service-role
+  controlled. `process-push-notifications` is JWT-protected, validates booking
+  ownership or active AAL2 staff access before dispatch, and sends only generic
+  booking messages through Expo's push service. Device tokens are private,
+  revocable and automatically disabled when Expo reports an unregistered
+  device. Native push requires explicit permission; email remains independent.
 
 ## Database acceptance test
 

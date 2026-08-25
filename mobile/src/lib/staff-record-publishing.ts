@@ -9,6 +9,7 @@ import type {
   ServiceCompletionRow,
 } from '@/lib/database.types';
 import { getSupabaseClient } from '@/lib/supabase';
+import { dispatchBookingPushNotifications } from '@/lib/notifications';
 
 const PRIVATE_DOCUMENT_BUCKET = 'vehicle-documents' as const;
 const MAX_STANDARD_UPLOAD_BYTES = 6 * 1024 * 1024;
@@ -100,6 +101,7 @@ export async function completePsiService(input: ServiceCompletionPublishInput): 
   };
   const { data, error } = await getSupabaseClient().from('service_completions').insert(payload).select('*').single();
   if (error) throw error;
+  await dispatchBookingPushNotifications(input.bookingId).catch(() => undefined);
   return data;
 }
 

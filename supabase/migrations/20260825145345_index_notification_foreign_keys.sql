@@ -1,0 +1,3 @@
+create index notification_events_booking_idx on public.notification_events (booking_request_id);
+create index push_notification_jobs_booking_idx on public.push_notification_jobs (booking_request_id);
+create index push_notification_jobs_recipient_idx on public.push_notification_jobs (recipient_user_id);
