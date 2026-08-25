@@ -7,6 +7,7 @@ import type {
   StaffMemberRow,
   VehicleFileRow,
 } from '@/lib/database.types';
+import { dispatchBookingIntegrationNotifications } from '@/lib/booking-integrations';
 import { getSupabaseClient } from '@/lib/supabase';
 import { dispatchBookingPushNotifications } from '@/lib/notifications';
 
@@ -169,7 +170,10 @@ export async function reviewBookingRequest(input: StaffBookingReviewInput) {
     .select('*')
     .single();
   if (error) throw error;
-  await dispatchBookingPushNotifications(data.id).catch(() => undefined);
+  await Promise.allSettled([
+    dispatchBookingIntegrationNotifications(data.id),
+    dispatchBookingPushNotifications(data.id),
+  ]);
   return data;
 }
 

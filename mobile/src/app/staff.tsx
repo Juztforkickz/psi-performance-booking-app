@@ -359,7 +359,7 @@ function StaffWorkspace({
           <Ionicons color={colors.success} name="shield-checkmark" size={22} />
           <View style={styles.flex}>
             <Text style={styles.securityTitle}>MFA verified · {role === 'owner' ? 'Owner access' : 'Staff access'}</Text>
-            <Text style={styles.securityCopy}>Booking review, controlled PSI record publishing, private customer photos and protected Complete Service are enabled in this private QA build. Email and Calendar integrations are active; provider delivery, payments, customer registration and staff management remain disabled.</Text>
+            <Text style={styles.securityCopy}>Booking review, controlled PSI record publishing, private customer photos and protected Complete Service are enabled in this private QA build. Email delivery is active. Google Calendar is connected server-side but remains limited to later payment-confirmed bookings. Payments, customer registration and staff management remain disabled.</Text>
           </View>
         </View>
 

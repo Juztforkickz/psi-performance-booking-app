@@ -38,6 +38,10 @@ const authStorage = await readFile(
   new URL("../mobile/src/lib/supabase-auth-storage.ts", import.meta.url),
   "utf8",
 );
+const integrationWorker = await readFile(
+  new URL("../supabase/functions/process-booking-integrations/index.ts", import.meta.url),
+  "utf8",
+);
 
 test("Supabase customer data and file access remain RLS-protected", () => {
   for (const table of [
@@ -102,4 +106,12 @@ test("completed PSI services are linked, immutable and source-separated", () => 
   assert.match(protectedServiceHistory, /create view public\.vehicle_service_summary[\s\S]*security_invoker = true/u);
   assert.doesNotMatch(protectedServiceHistory, /grant[\s\S]{0,80}(update|delete)[\s\S]{0,80}service_completions/iu);
   assert.match(combinedServicePolicies, /customers or staff can add source-bound odometer readings/u);
+});
+
+test("booking email dispatch is booking-scoped for customers and AAL2-gated for staff", () => {
+  assert.match(integrationWorker, /if \(!bookingId && !isAal2Staff\)/u);
+  assert.match(integrationWorker, /\.eq\("id", bookingId\)[\s\S]*\.eq\("customer_id", userData\.user\.id\)/u);
+  assert.match(integrationWorker, /notify_psi_request_received[\s\S]*notify_customer_request_received/u);
+  assert.match(integrationWorker, /if \(!isAal2Staff\)[\s\S]*jobsQuery = jobsQuery\.in\("job_kind"/u);
+  assert.doesNotMatch(integrationWorker, /body\.(?:recipient|subject|message|calendarId)/u);
 });

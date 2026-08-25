@@ -42,8 +42,10 @@ closed again.
   `booking_integration_jobs`. Customers and anonymous clients cannot read or
   change this queue; AAL2 staff receive read-only status and the service role is
   the only writer.
-- `process-booking-integrations` is deployed with JWT verification and performs
-  another active-staff/AAL2 check. The Resend sending credential and Google
+- `process-booking-integrations` is deployed with JWT verification. A customer
+  may dispatch only request-received email jobs for a booking it owns; all
+  booking status work and the full retry queue require another active-staff/AAL2
+  check. The Resend sending credential and Google
   Calendar OAuth values are configured only as encrypted Edge Function secrets;
   no provider credential is present in this repository or any Expo/public
   variable. Google Calendar work is queued only for the future trusted
@@ -76,7 +78,8 @@ addresses.
 
 Before customer onboarding is made generally available, PSI still needs to
 approve the production app release, complete real-device private-file QA, run a
-controlled AAL2 end-to-end queue-delivery test for Resend and Google Calendar,
+controlled end-to-end booking-specific email and AAL2 retry test, verify the
+future payment-confirmed Google Calendar path after payments exist,
 decide whether the owner-only Google OAuth connection needs formal verification,
 complete the deposit/payment webhook last, and approve the operational support
 process.

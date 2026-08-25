@@ -60,6 +60,11 @@ type ProcessResult = {
   errorCode?: string;
 };
 
+type WorkerRequest = {
+  bookingId?: unknown;
+  limit?: unknown;
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -86,6 +91,9 @@ const cleanErrorCode = (value: unknown, fallback = "provider_error") => {
   const cleaned = raw.toLowerCase().replace(/[^a-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "");
   return (cleaned || fallback).slice(0, 160);
 };
+
+const isUuid = (value: unknown): value is string =>
+  typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
 
 const escapeHtml = (value: string | null | undefined) =>
   (value ?? "")
@@ -425,44 +433,63 @@ Deno.serve(async (request) => {
   const { data: userData, error: userError } = await userClient.auth.getUser(accessToken);
   if (userError || !userData.user) return json({ error: "invalid_session" }, 401);
 
-  const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(accessToken);
-  if (
-    claimsError ||
-    !claimsData?.claims ||
-    claimsData.claims.sub !== userData.user.id ||
-    claimsData.claims.aal !== "aal2"
-  ) {
-    return json({ error: "aal2_staff_access_required" }, 403);
-  }
-
-  const { data: staff, error: staffError } = await userClient
-    .from("staff_members")
-    .select("id, role, status")
-    .eq("user_id", userData.user.id)
-    .eq("status", "active")
-    .maybeSingle();
-  if (staffError || !staff) return json({ error: "aal2_staff_access_required" }, 403);
-
-  let body: { limit?: unknown } = {};
+  let body: WorkerRequest = {};
   try {
     body = await request.json();
   } catch {
     body = {};
   }
+  if (body.bookingId !== undefined && !isUuid(body.bookingId)) return json({ error: "invalid_booking_id" }, 400);
+  const bookingId = body.bookingId ?? null;
   const requestedLimit = typeof body.limit === "number" && Number.isFinite(body.limit) ? Math.trunc(body.limit) : 10;
   const limit = Math.min(10, Math.max(1, requestedLimit));
+
+  const [{ data: claimsData }, { data: staff, error: staffError }] = await Promise.all([
+    userClient.auth.getClaims(accessToken),
+    userClient
+      .from("staff_members")
+      .select("id, role, status")
+      .eq("user_id", userData.user.id)
+      .eq("status", "active")
+      .maybeSingle(),
+  ]);
+  const isAal2Staff = Boolean(
+    !staffError &&
+    staff &&
+    claimsData?.claims?.sub === userData.user.id &&
+    claimsData.claims.aal === "aal2",
+  );
+
+  if (!bookingId && !isAal2Staff) return json({ error: "aal2_staff_access_required" }, 403);
+  if (bookingId && !isAal2Staff) {
+    const { data: ownedBooking, error: ownedBookingError } = await userClient
+      .from("booking_requests")
+      .select("id")
+      .eq("id", bookingId)
+      .eq("customer_id", userData.user.id)
+      .maybeSingle();
+    if (ownedBookingError || !ownedBooking) return json({ error: "booking_access_denied" }, 403);
+  }
+
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { data: jobs, error: jobsError } = await admin
+  let jobsQuery = admin
     .from("booking_integration_jobs")
     .select("id, booking_request_id, customer_id, job_kind, status, dedupe_key, attempt_count")
     .in("status", ["pending", "failed", "blocked_configuration"])
     .lte("available_at", new Date().toISOString())
     .lt("attempt_count", 20)
-    .order("created_at", { ascending: true })
-    .limit(limit);
+    .order("created_at", { ascending: true });
+  if (bookingId) jobsQuery = jobsQuery.eq("booking_request_id", bookingId);
+  if (!isAal2Staff) {
+    jobsQuery = jobsQuery.in("job_kind", [
+      "notify_psi_request_received",
+      "notify_customer_request_received",
+    ]);
+  }
+  const { data: jobs, error: jobsError } = await jobsQuery.limit(limit);
   if (jobsError) return json({ error: "integration_queue_unavailable" }, 500);
 
   const results: ProcessResult[] = [];

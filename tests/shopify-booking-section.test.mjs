@@ -9,7 +9,7 @@ test("keeps the future Shopify handoff neutral and self-contained", async () => 
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /className="header-booking-cta" href="#booking-panel"/u);
+  assert.match(page, /className="website-hero-button" href="#booking-panel"/u);
   assert.match(flow, /const chooseBookingType = \(bookingType: BookingType\)/u);
   assert.match(flow, /\(\["service", "dyno"\] as const\)\.map/u);
   assert.match(flow, /className="type-card"/u);

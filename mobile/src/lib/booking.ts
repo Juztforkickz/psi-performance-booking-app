@@ -1,4 +1,5 @@
 import type { Database } from '@/lib/database.types';
+import { dispatchBookingIntegrationNotifications } from '@/lib/booking-integrations';
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
 import { dispatchBookingPushNotifications } from '@/lib/notifications';
 
@@ -448,13 +449,16 @@ async function createAuthenticatedBookingRequest(
   }
   if (!booking) throw new Error('PSI could not verify that the request was stored. No success is being claimed.');
 
-  await dispatchBookingPushNotifications(booking.id).catch(() => undefined);
+  await Promise.allSettled([
+    dispatchBookingIntegrationNotifications(booking.id),
+    dispatchBookingPushNotifications(booking.id),
+  ]);
 
   return {
     reference: `PSI-${booking.id.slice(0, 8).toUpperCase()}`,
     state: 'pending_staff_review',
     paymentRequiredNow: false,
-    message: 'Your request is saved in your private PSI account for workshop review. No payment, confirmed date, email or calendar event has been created yet.',
+    message: 'Your request is saved in your private PSI account for workshop review. Email and app updates are handled separately. No payment, confirmed date or calendar event has been created yet.',
   };
 }
 

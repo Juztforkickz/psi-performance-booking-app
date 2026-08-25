@@ -26,6 +26,7 @@ import {
   useHomeShortcutPreferences,
 } from '@/lib/home-shortcut-preferences';
 import { PUBLIC_DEMO } from '@/lib/public-demo';
+import { SUPABASE_CONNECTION } from '@/lib/supabase';
 import { useThemePreference } from '@/lib/theme-preference';
 
 const DASHBOARD_TILES = {
@@ -69,6 +70,7 @@ export default function CustomerHomeScreen() {
   const [shortcutChooserOpen, setShortcutChooserOpen] = useState(false);
   const { resetShortcuts, shortcutIds, toggleShortcut } = useHomeShortcutPreferences();
   const threeColumns = tablet && width >= 780 && !largeText;
+  const privateQa = SUPABASE_CONNECTION.authEnabled;
 
   const openBooking = (type: 'service' | 'dyno') => {
     setBookingChooserOpen(false);
@@ -172,10 +174,12 @@ export default function CustomerHomeScreen() {
           ]}
         >
           <Text style={[styles.demoTitle, { color: activeTheme === 'dark' ? colors.ink : theme.textInverse }]}>
-            {PUBLIC_DEMO.label}
+            {privateQa ? 'PRIVATE QA' : PUBLIC_DEMO.label}
           </Text>
           <Text style={[styles.demoCopy, { color: activeTheme === 'dark' ? '#464646' : '#5E5A55' }]}>
-            Explore the new customer-app direction. Accounts, photos, alerts and submissions remain preview-only.
+            {privateQa
+              ? 'Approved accounts can use protected QA records and booking requests. Public registration and payments remain disabled.'
+              : 'Explore the new customer-app direction. Accounts, photos, alerts and submissions remain preview-only.'}
           </Text>
         </View>
 

@@ -36,6 +36,7 @@ export function CustomerAccountProvider({ children }: PropsWithChildren) {
   const auth = useCustomerAuth();
   const authStatus = auth.status;
   const authUserId = auth.user?.id;
+  const authSessionRevision = auth.sessionRevision;
   const [loadedState, setLoadedState] = useState<LoadedAccountState | null>(null);
   const [refreshIndex, setRefreshIndex] = useState(0);
 
@@ -67,7 +68,7 @@ export function CustomerAccountProvider({ children }: PropsWithChildren) {
     return () => {
       active = false;
     };
-  }, [authStatus, authUserId, refreshIndex]);
+  }, [authSessionRevision, authStatus, authUserId, refreshIndex]);
 
   const value = useMemo<CustomerAccountContextValue>(() => {
     if (auth.status !== 'signed_in' || !auth.user) {

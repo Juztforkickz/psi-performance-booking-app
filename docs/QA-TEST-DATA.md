@@ -49,7 +49,7 @@ Also test each stock, modified, unknown, automatic/manual and dropdown choice. W
 10. Confirm the customer-facing date remains requested or proposed until PSI staff approve it, and remains unconfirmed until deposit verification. Calendar contents and other customers' details must never be exposed.
 11. Confirm clients send booking policy `psi-booking-v1`, never send an amount or currency, and the server records deposit policy `psi-deposit-v3`. Staff checkout and payment verification must fail closed if the request, checkout or provider amount/currency differs from the canonical booking type.
 
-The app cannot honestly pass the provider-delivery portions of steps 8–9 until test-mode payment, transactional email and server-side Google Calendar credentials are connected. A manually created calendar invitation or manually sent email is useful only as a provider-delivery check; it is not proof that the app integration works.
+Controlled QA can now test transactional request/status email delivery through the real booking outbox. It cannot honestly pass the payment-confirmed or Google Calendar portions of steps 8–9 until test-mode payment exists and creates the trusted confirmed transition. A manually created calendar invitation or manually sent email is useful only as a provider check; it is not proof that the app integration works.
 
 ## Email and receipt checks after providers are connected
 

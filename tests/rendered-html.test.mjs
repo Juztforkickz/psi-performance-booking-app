@@ -29,41 +29,33 @@ test("server-renders the PSI booking experience", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /Book your car \| PSI Performance/i);
+  assert.match(html, /PSI Performance Garage \| Booking preview/i);
   assert.match(html, /Public demo/i);
   assert.match(html, /Booking submissions are disabled/i);
   assert.match(html, /What are you booking in for\?/);
   assert.match(html, /Service &amp; Report/);
   assert.match(html, /Dyno Tuning/);
-  assert.match(html, /\$100 AUD(?:<!-- -->)? for Service/);
-  assert.match(html, /\$300 AUD(?:<!-- -->)? for Dyno Tuning/);
-  assert.match(html, /\$423\.50 AUD including GST/);
-  assert.match(html, /\$649 AUD including GST/);
-  assert.match(html, /Service &amp; Report from \$423\.50 incl\. GST/);
-  assert.match(html, /Dyno Tuning from \$649 incl\. GST/);
   assert.match(html, /Let’s get you sorted\./);
   assert.match(html, /0433 431 781/);
   assert.match(html, /info@psiperformance\.com\.au/);
   assert.match(html, /21 Exchange Drive/);
   assert.match(html, /psiperformancegarage/);
-  assert.match(html, /psi-contact-qr\.png/);
-  assert.match(html, /PSI Performance™ · All rights reserved/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
-test("keeps the booking UI and starter cleanup in source", async () => {
-  const [page, flow, openingPanel, legacyRoute, layout, packageJson, serviceWorker] = await Promise.all([
+test("keeps the booking UI and website preview cleanup in source", async () => {
+  const [page, flow, legacyRoute, layout, packageJson, serviceWorker] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/BookingFlow.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/components/OpeningBookingPanel.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/api/v1/bookings/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../public/sw.js", import.meta.url), "utf8"),
   ]);
 
-  assert.match(page, /<OpeningBookingPanel \/>/);
   assert.match(page, /<BookingFlow \/>/);
+  assert.match(page, /className="website-hero-button" href="#booking-panel"/u);
+  assert.doesNotMatch(page, /<OpeningBookingPanel \/>/);
   assert.match(flow, /fetch\("\/api\/v1\/booking-requests"/);
   assert.match(flow, /PUBLIC_DEMO_CONFIG\.submissionsDisabled/);
   assert.match(flow, /Demo only · Submission disabled/);
@@ -80,9 +72,6 @@ test("keeps the booking UI and starter cleanup in source", async () => {
   assert.match(flow, /Camshaft code or specifications/);
   assert.match(flow, /pending|not confirmed/i);
   assert.doesNotMatch(flow, /fetch\("\/api\/v1\/bookings"/);
-  assert.match(openingPanel, /Buy Some Parts/);
-  assert.match(openingPanel, /Choose Service, Dyno or Parts/);
-  assert.doesNotMatch(openingPanel, /optionLabel:[^\n]*—/);
   assert.match(legacyRoute, /APPROVAL_REQUIRED/);
   assert.match(layout, /PSI Performance Booking/);
   assert.match(serviceWorker, /psi-contact-qr\.png/);
@@ -115,23 +104,17 @@ test("sizes the mobile calendar from the usable layout container", async () => {
   assert.ok(narrowCalendarWidth(305) <= 305);
 });
 
-test("keeps the web Why PSI media responsive and the mobile dashboard artwork contained", async () => {
+test("keeps the current web hero responsive and the mobile dashboard artwork contained", async () => {
   const [styles, page, mobilePage] = await Promise.all([
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../mobile/src/app/(tabs)/index.tsx", import.meta.url), "utf8"),
   ]);
 
-  assert.match(styles, /\.why-section\s*{[^}]*grid-template-columns:\s*1fr;[^}]*min-height:\s*0;/s);
-  assert.match(styles, /\.why-image\s*{[^}]*aspect-ratio:\s*1744 \/ 901;[^}]*overflow:\s*hidden;/s);
-  assert.match(styles, /\.why-image img\s*{[^}]*object-fit:\s*cover;/s);
-  assert.match(styles, /\.why-copy\s*{[^}]*container-type:\s*inline-size;/s);
-  assert.match(styles, /\.why-copy\s*{[^}]*grid-template-columns:\s*minmax\(0, 0\.82fr\) minmax\(0, 1\.18fr\)/s);
-  assert.match(styles, /\.why-copy h2\s*{[^}]*max-width:\s*100%;[^}]*overflow-wrap:\s*anywhere;[^}]*min\(5\.5vw, 12cqi\)/s);
-  assert.match(styles, /\.testimonial-grid\s*{[^}]*grid-auto-flow:\s*column;[^}]*overflow-x:\s*auto;[^}]*scroll-snap-type:\s*x mandatory;/s);
-  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.why-image\s*{[^}]*aspect-ratio:\s*1744 \/ 901;[\s\S]*\.testimonial-grid\s*{[^}]*grid-auto-columns:\s*min\(84vw, 360px\)/s);
-  assert.match(page, /<picture className="why-image">[\s\S]*src="\/psi-gtsr-porsche-clean\.jpg"[\s\S]*loading="lazy"/s);
-  assert.doesNotMatch(page, /psi-gtsr-porsche-mobile-clean\.jpg/u);
+  assert.match(styles, /\.website-hero\s*{[^}]*min-height:\s*min\(760px, calc\(100svh - 156px\)\)[^}]*background-image:\s*url\("\/psi-hero\.jpg"\)/s);
+  assert.match(styles, /\.website-hero::before\s*{[^}]*background:[\s\S]*linear-gradient/s);
+  assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.website-hero\s*{[^}]*min-height:\s*610px[^}]*background-image:\s*url\("\/psi-hero-mobile\.jpg"\)/s);
+  assert.match(page, /<section className="website-hero"/u);
   assert.match(mobilePage, /accessibilityLabel="PSI Performance Holden GTSR and Porsche outside the workshop"[\s\S]*resizeMode="contain"[\s\S]*source=\{require\('\.\.\/\.\.\/\.\.\/assets\/images\/psi-gtsr-porsche-clean\.jpg'\)\}/s);
   assert.match(mobilePage, /source=\{require\('\.\.\/\.\.\/\.\.\/assets\/images\/psi-gtsr-porsche-clean\.jpg'\)\}[\s\S]*source=\{require\('\.\.\/\.\.\/\.\.\/assets\/images\/psi-logo\.png'\)\}[\s\S]*style=\{styles\.standardShedLogo\}/s);
   assert.match(mobilePage, /standardImageFrame:\s*\{[^}]*aspectRatio:\s*1746 \/ 901[^}]*overflow:\s*'hidden'/s);

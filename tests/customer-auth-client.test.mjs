@@ -9,6 +9,7 @@ const [
   setupScreen,
   authClient,
   authContext,
+  accountContext,
   accountAdapter,
   authStorage,
   supabaseClient,
@@ -20,6 +21,7 @@ const [
   read('../mobile/src/app/account/sign-up.tsx'),
   read('../mobile/src/lib/customer-auth.ts'),
   read('../mobile/src/lib/customer-auth-context.tsx'),
+  read('../mobile/src/lib/customer-account-context.tsx'),
   read('../mobile/src/lib/customer-account.ts'),
   read('../mobile/src/lib/supabase-auth-storage.ts'),
   read('../mobile/src/lib/supabase.ts'),
@@ -39,6 +41,8 @@ test('email-code UI and session lifecycle remain activation-gated', () => {
   assert.match(authClient, /type: 'email'/u);
   assert.match(authContext, /onAuthStateChange/u);
   assert.match(authContext, /auth\.getUser\(\)/u);
+  assert.match(accountContext, /authSessionRevision = auth\.sessionRevision/u);
+  assert.match(accountContext, /\[authSessionRevision, authStatus, authUserId, refreshIndex\]/u);
 });
 
 test('authenticated account adapter binds all rows to the verified user', () => {
@@ -74,7 +78,9 @@ test('private QA profile enables existing-account auth without registration or b
   assert.equal(eas.build.preview.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED, 'false');
 });
 
-test('profile setup never uploads the selected vehicle photo', () => {
-  assert.match(setupScreen, /Vehicle photos are still local-only and are not uploaded/u);
-  assert.doesNotMatch(setupScreen, /storage\.from|\.upload\(|fetch\(/u);
+test('profile setup keeps account photos private and public-preview photos local', () => {
+  assert.match(setupScreen, /uploadCustomerVehiclePhoto/u);
+  assert.match(setupScreen, /storageMode=\{CUSTOMER_AUTH\.enabled \? 'private_account' : 'local_preview'\}/u);
+  assert.match(setupScreen, /private bucket protected by customer ownership rules/u);
+  assert.doesNotMatch(setupScreen, /service_role|sb_secret_|getPublicUrl/u);
 });

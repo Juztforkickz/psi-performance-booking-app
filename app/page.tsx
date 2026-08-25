@@ -76,11 +76,12 @@ export default function Home() {
         <Image src="/psi-logo.png" alt="PSI Performance Garage" width={236} height={92} />
         <div>
           <strong>PSI Performance Garage</strong>
-          <span>21 Exchange Drive, Pakenham VIC 3810</span>
+          <a href="https://maps.google.com/?q=21+Exchange+Drive+Pakenham+VIC+3810" target="_blank" rel="noreferrer">21 Exchange Drive, Pakenham VIC 3810</a>
           <a href="tel:+61433431781">0433 431 781</a>
           <a href="mailto:info@psiperformance.com.au">info@psiperformance.com.au</a>
         </div>
         <nav aria-label="Social links">
+          <a href="https://psiperformance.com.au/policies/privacy-policy" target="_blank" rel="noreferrer">Privacy</a>
           <a href="https://www.facebook.com/psiperformancegarage/" target="_blank" rel="noreferrer">Facebook</a>
           <a href="https://www.instagram.com/psiperformancegarage/" target="_blank" rel="noreferrer">Instagram</a>
           <a href="https://www.youtube.com/channel/UCkJaKfpjPlHOuwOMH0xBIJQ" target="_blank" rel="noreferrer">YouTube</a>

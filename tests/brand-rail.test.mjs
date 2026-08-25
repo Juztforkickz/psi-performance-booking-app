@@ -32,7 +32,7 @@ test("uses the same official PSI brand artwork in web and native", async () => {
   }
 });
 
-test("renders a seamless accessible web marquee at the bottom of the customer page", async () => {
+test("keeps the optional accessible web marquee assets ready without adding it to the current website concept", async () => {
   const [component, page, styles, serviceWorker, trademarkNotice] = await Promise.all([
     readFile(new URL("../app/components/BrandMarquee.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
@@ -47,17 +47,14 @@ test("renders a seamless accessible web marquee at the bottom of the customer pa
     assert.match(serviceWorker, new RegExp(`/brands/${escapeRegExp(filename)}`, "u"));
   }
 
-  assert.ok(
-    page.indexOf("<BrandMarquee />") < page.indexOf('<footer className="site-footer">'),
-    "brand rail must sit immediately above the final footer",
-  );
+  assert.doesNotMatch(page, /<BrandMarquee \/>/u);
   assert.match(component, /<BrandList\s*\/>[\s\S]*<BrandList duplicate\s*\/>/u);
   assert.match(component, /aria-hidden=\{duplicate \|\| undefined\}/u);
   assert.match(component, /\s+unoptimized\s+/u);
   assert.match(component, /className="brand-marquee-name"/u);
   assert.match(component, /fit: "wordmark"/u);
   assert.match(component, /No affiliation or endorsement is implied/u);
-  assert.match(page, /className="header-booking-cta" href="#booking-panel"/u);
+  assert.match(page, /className="website-hero-button" href="#booking-panel"/u);
   assert.doesNotMatch(page, /website-booking/u);
   assert.match(styles, /animation:\s*brand-marquee-scroll\s+54s\s+linear\s+infinite/u);
   assert.match(styles, /\.brand-marquee-logo-wordmark\s*\{[^}]*--brand-logo-scale:\s*2\.12/u);

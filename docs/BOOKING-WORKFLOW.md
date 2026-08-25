@@ -3,8 +3,9 @@
 Status: owner-review specification. No payment provider is connected and the
 public preview cannot send booking email or create Google Calendar events. The
 separate controlled QA profile uses Supabase Auth for approved pilot accounts
-and has a protected, provider-neutral integration queue. Its Edge Function
-fails closed until PSI deliberately configures private email/Calendar secrets.
+and has a protected integration queue. Resend email delivery and a
+least-privilege Google Calendar connection are configured only as encrypted
+Edge Function secrets; Calendar events remain payment-confirmed only.
 
 ## Public demo boundary
 
@@ -23,8 +24,9 @@ request path for approved pilot accounts only. It stores an idempotent pending
 request for an owned vehicle, exposes it through the MFA-protected PSI queue and
 shows its state in that customer's private Bookings tab. AAL2 staff can approve
 or propose a valid date, or cancel with an audit note. Each relevant change
-creates a deduplicated email job, but provider delivery remains blocked until
-private Resend credentials are configured. Staff cannot move a date-approved
+creates a deduplicated email job and invokes the booking-scoped worker. A
+customer can dispatch only request-received emails for its own booking, while
+staff status work and global retry remain AAL2-only. Staff cannot move a date-approved
 request to `confirmed`; that transition remains reserved for the future signed
 payment integration, and only that later transition can queue Google Calendar.
 

@@ -286,10 +286,11 @@ The Supabase secret/service-role key must exist only in trusted server or Edge
 Function configuration. It must never be placed in Expo, Netlify client code,
 GitHub or browser storage.
 
-## Email-only booking workflow and Google Calendar
+## Booking notifications and Google Calendar
 
-Initial outbound notifications are email only. SMS and push notifications are
-not enabled.
+Controlled QA uses transactional email plus protected in-app notifications.
+Installed native builds can also register for Expo push after the user grants
+permission. SMS is not enabled.
 
 The controlled QA build now connects approved authenticated customer accounts
 directly to the RLS-protected Supabase booking queue. Each request is tied to an
@@ -312,9 +313,11 @@ The current protected integration flow is:
    database queues one PSI and one customer request-received email job.
 2. PSI approves/proposes the date in the MFA-protected staff portal or cancels
    with an audit note. The database queues the matching customer email job.
-3. Matt can inspect the job and audit feeds and invoke the authenticated worker
-   only from an active AAL2 staff session. Anonymous, customer and AAL1 access
-   cannot read or mutate the queue.
+3. The app invokes the worker for that booking after submission or staff review.
+   A customer session can process only the two request-received email jobs for
+   a booking it owns. An active AAL2 Matt session can process status-email jobs
+   for the reviewed booking and can also invoke the full retry queue. Anonymous
+   access cannot dispatch work, and customers cannot read or mutate the queue.
 4. The worker uses Resend idempotency keys and does not store provider
    credentials, recipients or message bodies in the queue. Provider values are
    now encrypted Edge Function secrets. Missing or invalid configuration still
@@ -325,7 +328,8 @@ The current protected integration flow is:
    clearly labelled `[CONFIRMED]`, deterministic for retry safety and does not
    invite the customer.
 
-Google Calendar OAuth tokens belong only in encrypted Edge Function secrets.
+Resend and Google Calendar provider credentials belong only in encrypted Edge
+Function secrets. Booking-specific email delivery is active in controlled QA.
 They are not stored in customer tables, the mobile app or GitHub. Matt's
 server-side consent is active with only the `calendar.events.owned` scope and a
 durable refresh token. Customers cannot list or read Matt's Calendar and are

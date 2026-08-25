@@ -1,11 +1,18 @@
 # Booking integration worker
 
 `process-booking-integrations` is a JWT-protected Supabase Edge Function for the
-private PSI staff portal. It processes durable `booking_integration_jobs` rows
+private PSI app and staff portal. It processes durable `booking_integration_jobs` rows
 with provider idempotency and never accepts customer-supplied recipients,
 Calendar IDs or message bodies.
 
-The function performs all of these checks before using the service role:
+For a booking-scoped customer request, the function verifies a valid Supabase
+session and confirms through RLS that the booking belongs to that customer. It
+then permits only `notify_psi_request_received` and
+`notify_customer_request_received`. A customer cannot select recipients,
+message content, other bookings or other job kinds.
+
+Full queue access and staff-side booking status work perform all of these checks
+before using the service role:
 
 1. a valid Supabase user session;
 2. Authenticator Assurance Level 2 from the validated access-token claims; and
