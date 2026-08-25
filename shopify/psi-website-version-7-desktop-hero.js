@@ -37,14 +37,18 @@
     min-width:36rem!important;
     max-width:36rem!important;
     padding:3rem 2.6rem!important;
+    margin-left:-1.2rem!important;
   }
   #Slide-template--16238529609857__slideshow_aNgmgx-1 .banner__heading{
-    font-size:3.2rem!important;
+    font-size:2.8rem!important;
     line-height:1.12!important;
   }
   #Slide-template--16238529609857__slideshow_aNgmgx-3 .slideshow__text.banner__box{
-    height:38.1rem!important;
-    min-height:38.1rem!important;
+    width:49rem!important;
+    min-width:49rem!important;
+    max-width:49rem!important;
+    height:37rem!important;
+    min-height:37rem!important;
     padding-top:2.8rem!important;
     padding-bottom:2.8rem!important;
   }
