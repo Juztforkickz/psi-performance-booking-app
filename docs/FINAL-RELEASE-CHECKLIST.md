@@ -41,13 +41,14 @@ Status: controlled QA, 25 August 2026. Payments are deliberately last.
   deletion URLs and validate the existing Apple-size screenshot pack.
 - [ ] Approve final disclosures and recapture screenshots from the signed release
   build after confirming legal entity details.
-- [ ] Close the final booking lifecycle data-cleanliness item.
+- [x] Close the final booking lifecycle data-cleanliness item.
   The rollback-only database boundary suite passed on 26 August 2026, the
   reviewed Melbourne-date migration is active, and live synthetic proposal,
   approval and cancellation emails each completed exactly once. Immediate
   worker replays created no duplicates and no Calendar job or event appeared.
-  Apply and verify the separately prepared cancelled-deposit cleanup migration
-  only after Matt's explicit approval, then mark this item complete.
+  Matt explicitly approved the cancelled-deposit cleanup migration; it is now
+  active and live verification confirmed the cancelled QA request has no
+  expected deposit, Calendar job or Calendar event.
 
 ## Deliberately last: payments
 

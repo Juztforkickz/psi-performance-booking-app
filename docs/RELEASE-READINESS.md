@@ -67,11 +67,11 @@ returned successfully and the signed-out refresh token was rejected.
 
 That acceptance exposed one narrow data-cleanliness issue: cancelling a
 date-approved request retained its expected (unpaid) deposit amount. Migration
-`20260826000443_clear_cancelled_booking_deposit` and its regression test are
-prepared and passed together inside a rolled-back transaction, but the
-migration has not been applied to the connected Supabase project. Until Matt
-explicitly approves that live migration, the cancelled synthetic QATEST1 row
-still carries the non-payment expectation value; no payment was taken.
+`20260826001835_clear_cancelled_booking_deposit` and its regression test passed
+together inside a rolled-back transaction before the migration was explicitly
+approved and applied to the connected Supabase project. Live verification then
+confirmed that the cancelled synthetic QATEST1 request has no expected deposit,
+no Calendar job and no Calendar event. No payment was taken.
 
 Public-source checks reconfirmed the listed details for Elite Autobody, Race
 Wires Auto Electrics, Elite Car Detailing Studio, Raceline Motorsport Racewear
