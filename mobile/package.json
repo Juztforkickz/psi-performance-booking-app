@@ -9,8 +9,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "export:web": "expo export --platform web --clear",
-    "export:web:hosting": "expo export --platform web --clear && node scripts/cache-bust-web-export.mjs",
+    "export:web:hosting": "expo export --platform web --clear && node scripts/cache-bust-web-export.mjs && node scripts/prepare-web-install.mjs",
     "cache-bust:web-export": "node scripts/cache-bust-web-export.mjs",
+    "prepare:web-install": "node scripts/prepare-web-install.mjs",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit"
   },
