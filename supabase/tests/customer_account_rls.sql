@@ -667,14 +667,13 @@ begin
 
   update public.booking_requests
   set
-    state = 'cancelled',
-    approved_date = null,
-    staff_note = 'Synthetic cancellation acceptance reason.'
+    state = 'date_approved',
+    approved_date = workshop_date,
+    staff_note = 'Synthetic approved date before cancellation.'
   where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd';
 
-  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd') <> 4
-    or (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd' and job_kind = 'notify_customer_cancelled') <> 1 then
-    raise exception 'RLS test failed: proposal/cancellation jobs were missing or duplicated';
+  if (select deposit_amount_cents from public.booking_requests where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd') <> 10000 then
+    raise exception 'RLS test failed: approved synthetic service did not derive the expected deposit';
   end if;
 
   update public.booking_requests
@@ -684,7 +683,23 @@ begin
     staff_note = 'Synthetic cancellation acceptance reason.'
   where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd';
 
-  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd') <> 4 then
+  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd') <> 5
+    or (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd' and job_kind = 'notify_customer_cancelled') <> 1 then
+    raise exception 'RLS test failed: proposal/cancellation jobs were missing or duplicated';
+  end if;
+
+  if (select deposit_amount_cents from public.booking_requests where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd') is not null then
+    raise exception 'RLS test failed: cancelled unpaid booking retained an expected deposit amount';
+  end if;
+
+  update public.booking_requests
+  set
+    state = 'cancelled',
+    approved_date = null,
+    staff_note = 'Synthetic cancellation acceptance reason.'
+  where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd';
+
+  if (select count(*) from public.booking_integration_jobs where booking_request_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccd') <> 5 then
     raise exception 'RLS test failed: replaying cancellation duplicated a provider job';
   end if;
 

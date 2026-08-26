@@ -56,6 +56,30 @@ single rolled-back transaction. Migration
 approved, applied to the connected Sydney Supabase project and re-tested
 successfully. No synthetic fixtures remained after the test.
 
+Also on 26 August 2026, the live synthetic `QATEST1` request completed the
+non-payment lifecycle through date proposal, date approval and cancellation.
+The customer proposal, approval and cancellation emails each completed once;
+an immediate worker replay processed zero additional jobs. The request ended
+cancelled with five successful integration jobs, five notification events and
+five push jobs. No Google Calendar job or event was created, and payments
+remained unconfigured. A consumed email code was rejected on replay, sign-out
+returned successfully and the signed-out refresh token was rejected.
+
+That acceptance exposed one narrow data-cleanliness issue: cancelling a
+date-approved request retained its expected (unpaid) deposit amount. Migration
+`20260826000443_clear_cancelled_booking_deposit` and its regression test are
+prepared and passed together inside a rolled-back transaction, but the
+migration has not been applied to the connected Supabase project. Until Matt
+explicitly approves that live migration, the cancelled synthetic QATEST1 row
+still carries the non-payment expectation value; no payment was taken.
+
+Public-source checks reconfirmed the listed details for Elite Autobody, Race
+Wires Auto Electrics, Elite Car Detailing Studio, Raceline Motorsport Racewear
+and EyeCandy Motorsports. Luxe Automotive Interiors' supplied address and
+phone are corroborated by its public business listing. Dark Side of the Film
+and KNG TOW still require direct business confirmation, and all partner logos
+and referral consent remain launch checklist items.
+
 ## Deliberately last
 
 Select the deposit provider, confirm PSI legal/GST/refund wording, implement and verify its signed webhook, and only then test the trusted payment-confirmed transition that creates the internal Google Calendar event. No manual client or staff action may mark a deposit paid.
