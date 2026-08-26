@@ -153,7 +153,7 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
   return (
     <View style={styles.publisher}>
       <View style={styles.notice}>
-        <Ionicons color={colors.gold} name="shield-checkmark" size={22} />
+        <Ionicons color={colors.accent} name="shield-checkmark" size={22} />
         <View style={styles.flex}>
           <Text style={styles.noticeTitle}>Controlled PSI publishing</Text>
           <Text style={styles.muted}>Every publish is an authenticated AAL2 workshop write. Customers can read PSI records but cannot mark their own entries as PSI verified.</Text>
@@ -200,7 +200,7 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
             onPress={() => selectRecordType(option.value)}
             style={[styles.recordChoice, recordType === option.value && styles.selectedChoice]}
           >
-            <Ionicons color={recordType === option.value ? colors.ink : colors.gold} name={option.icon} size={21} />
+            <Ionicons color={recordType === option.value ? colors.ink : colors.accent} name={option.icon} size={21} />
             <Text style={[styles.recordChoiceText, recordType === option.value && styles.selectedChoiceText]}>{option.label}</Text>
           </Pressable>
         ))}
@@ -333,15 +333,15 @@ const styles = StyleSheet.create({
   notice: { ...mobileFrame, alignItems: 'flex-start', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.md, padding: spacing.md },
   noticeTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
   muted: { color: colors.muted, fontSize: 13, lineHeight: 19 },
-  label: { color: colors.gold, fontSize: 11, fontWeight: '900', letterSpacing: 1.2, marginTop: spacing.sm, textTransform: 'uppercase' },
-  smallLabel: { color: colors.cream, fontSize: 13, fontWeight: '800' },
+  label: { color: colors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 1.2, marginTop: spacing.sm, textTransform: 'uppercase' },
+  smallLabel: { color: colors.silver, fontSize: 13, fontWeight: '800' },
   choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   choice: { ...mobileFrame, backgroundColor: colors.inkSoft, flexGrow: 1, minWidth: 210, padding: spacing.md },
   choiceTitle: { color: colors.white, fontSize: 14, fontWeight: '900' },
   choiceSub: { color: colors.muted, fontSize: 11, marginTop: 3 },
-  selectedChoice: { backgroundColor: colors.gold, borderColor: colors.gold },
+  selectedChoice: { backgroundColor: colors.accent, borderColor: colors.accent },
   selectedChoiceText: { color: colors.ink },
-  selectedChoiceSub: { color: '#4A360A' },
+  selectedChoiceSub: { color: '#0C3444' },
   recordGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   recordChoice: { ...mobileFrame, alignItems: 'center', backgroundColor: colors.inkSoft, flexDirection: 'row', flexGrow: 1, gap: spacing.sm, minHeight: 54, minWidth: 180, padding: spacing.sm },
   recordChoiceText: { color: colors.white, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
@@ -358,12 +358,12 @@ const styles = StyleSheet.create({
   review: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.md, padding: spacing.md },
   reviewTitle: { color: colors.white, fontSize: 18, fontWeight: '900' },
   confirmRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
-  checkbox: { alignItems: 'center', borderColor: colors.gold, borderWidth: 2, height: 24, justifyContent: 'center', width: 24 },
-  checkboxChecked: { backgroundColor: colors.gold },
-  confirmText: { color: colors.cream, flex: 1, fontSize: 12, lineHeight: 18 },
+  checkbox: { alignItems: 'center', borderColor: colors.accent, borderWidth: 2, height: 24, justifyContent: 'center', width: 24 },
+  checkboxChecked: { backgroundColor: colors.accent },
+  confirmText: { color: colors.silver, flex: 1, fontSize: 12, lineHeight: 18 },
   feedback: { color: colors.success, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   feedbackError: { color: colors.danger },
-  feedbackWarning: { color: colors.gold },
+  feedbackWarning: { color: colors.accent },
   empty: { ...mobileFrame, backgroundColor: colors.panel, gap: spacing.sm, padding: spacing.lg },
   emptyTitle: { color: colors.white, fontSize: 16, fontWeight: '900' },
 });

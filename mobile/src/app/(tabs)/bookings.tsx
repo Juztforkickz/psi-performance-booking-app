@@ -84,7 +84,7 @@ export default function BookingsScreen() {
         </View>
         {privateAccountMode ? (
           <Pressable accessibilityRole="button" onPress={refreshAccount} style={({ pressed }) => [styles.refreshButton, pressed && styles.pressed]}>
-            <Ionicons color={colors.gold} name="refresh" size={17} />
+            <Ionicons color={colors.accent} name="refresh" size={17} />
             <Text style={styles.refreshText}>Refresh private bookings</Text>
           </Pressable>
         ) : null}
@@ -96,7 +96,7 @@ export default function BookingsScreen() {
                 <Text style={styles.calendarKicker}>Private visit calendar</Text>
                 <Text style={styles.calendarTitle}>Approved PSI dates</Text>
               </View>
-              <Ionicons color={colors.gold} name="calendar-clear-outline" size={24} />
+              <Ionicons color={colors.accent} name="calendar-clear-outline" size={24} />
             </View>
             {calendarBookings.length === 0 ? (
               <Text style={styles.calendarNote}>No approved or confirmed workshop dates are currently shown. Requested dates remain preferences until PSI approves them.</Text>
@@ -118,7 +118,7 @@ export default function BookingsScreen() {
               <Text style={styles.calendarKicker}>Example month</Text>
               <Text style={styles.calendarTitle}>September 2026</Text>
             </View>
-            <Ionicons color={colors.gold} name="calendar-clear-outline" size={24} />
+            <Ionicons color={colors.accent} name="calendar-clear-outline" size={24} />
           </View>
           <View style={styles.weekRow}>
             {WEEKDAYS.map((day, index) => <Text key={`${day}-${index}`} style={styles.weekday}>{day}</Text>)}
@@ -156,7 +156,7 @@ export default function BookingsScreen() {
         </View>
 
         <View style={styles.callout}>
-          <Ionicons color={colors.gold} name="time-outline" size={28} />
+          <Ionicons color={colors.accent} name="time-outline" size={28} />
           <View style={styles.calloutCopy}>
             <Text style={styles.calloutTitle}>Planning a future visit?</Text>
             <Text style={styles.bodyCopy}>Choose the type of work and your preferred date. PSI reviews the request before confirming a time or deposit.</Text>
@@ -235,7 +235,7 @@ function BookingCard({ booking }: { booking: BookingDisplay }) {
   return (
     <View style={styles.bookingCard}>
       <View style={[styles.bookingIcon, confirmed && styles.bookingIconActive]}>
-        <Ionicons color={confirmed ? colors.ink : colors.gold} name={icon} size={24} />
+        <Ionicons color={confirmed ? colors.ink : colors.accent} name={icon} size={24} />
       </View>
       <View style={styles.bookingCopy}>
         <View style={styles.bookingTopline}>
@@ -317,7 +317,7 @@ function BookingChoice({
 }) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.bookingChoice, pressed && styles.pressed]}>
-      <Ionicons color={colors.gold} name={icon} size={28} />
+      <Ionicons color={colors.accent} name={icon} size={28} />
       <Text style={styles.bookingChoiceText}>{label}</Text>
       <Ionicons color={colors.white} name="arrow-forward" size={20} />
     </Pressable>
@@ -341,52 +341,52 @@ const styles = StyleSheet.create({
   scroll: { width: '100%', maxWidth: 880, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   header: { minHeight: 68, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   headerCopy: { flex: 1, gap: spacing.xs },
-  eyebrow: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
+  eyebrow: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
   title: { color: colors.white, fontSize: 39, fontWeight: '900', letterSpacing: -1.5, lineHeight: 41, textTransform: 'uppercase' },
   titleCompact: { fontSize: 33, lineHeight: 35 },
-  countBadge: { ...mobileFrame, minWidth: 64, alignItems: 'center', backgroundColor: colors.cream, padding: spacing.sm },
+  countBadge: { ...mobileFrame, minWidth: 64, alignItems: 'center', backgroundColor: colors.silver, padding: spacing.sm },
   countNumber: { color: colors.ink, fontSize: 21, fontWeight: '900', lineHeight: 23 },
   countLabel: { color: colors.ink, fontSize: 8, fontWeight: '900', textTransform: 'uppercase' },
-  previewNotice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.cream, padding: spacing.md },
+  previewNotice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.silver, padding: spacing.md },
   previewNoticeTitle: { color: colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   previewNoticeCopy: { color: '#464646', fontSize: 11, lineHeight: 17 },
   refreshButton: { alignItems: 'center', alignSelf: 'flex-start', flexDirection: 'row', gap: spacing.xs, paddingVertical: spacing.xs },
-  refreshText: { color: colors.gold, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  refreshText: { color: colors.accent, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   calendarCard: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.panel, padding: spacing.md },
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   calendarHeadingCopy: { gap: 2 },
-  calendarKicker: { color: colors.gold, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
+  calendarKicker: { color: colors.accent, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   calendarTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
   weekRow: { flexDirection: 'row' },
   weekday: { width: '14.2857%', color: colors.muted, fontSize: 9, fontWeight: '900', textAlign: 'center' },
   daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   dayCell: { width: '14.2857%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, backgroundColor: colors.inkSoft },
   dayCellEmpty: { borderColor: 'transparent', backgroundColor: 'transparent' },
-  dayCellBooked: { borderWidth: 3, borderColor: colors.white, backgroundColor: colors.cream },
-  dayText: { color: colors.cream, fontSize: 11, fontWeight: '800' },
+  dayCellBooked: { borderWidth: 3, borderColor: colors.white, backgroundColor: colors.silver },
+  dayText: { color: colors.silver, fontSize: 11, fontWeight: '800' },
   dayTextBooked: { color: colors.ink, fontWeight: '900' },
-  dayDot: { position: 'absolute', bottom: 5, width: 5, height: 5, borderRadius: 3, backgroundColor: colors.goldDark },
+  dayDot: { position: 'absolute', bottom: 5, width: 5, height: 5, borderRadius: 3, backgroundColor: colors.accentDark },
   calendarLegend: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   privateCalendarRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.sm },
   privateCalendarCopy: { flex: 1, gap: 2 },
-  legendMark: { width: 11, height: 11, borderRadius: 2, backgroundColor: colors.cream },
-  legendText: { color: colors.cream, fontSize: 10, fontWeight: '700' },
+  legendMark: { width: 11, height: 11, borderRadius: 2, backgroundColor: colors.silver },
+  legendText: { color: colors.silver, fontSize: 10, fontWeight: '700' },
   calendarNote: { color: colors.mutedDark, fontSize: 10, lineHeight: 15 },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.sm },
   sectionTitle: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
-  sectionAction: { color: colors.gold, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  sectionAction: { color: colors.accent, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   sectionMeta: { color: colors.muted, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   bookingList: { gap: spacing.sm },
   bookingCard: { ...mobileFrame, minHeight: 118, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.panel, padding: spacing.md },
   bookingIcon: { ...mobileFrame, width: 48, height: 48, flexShrink: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
-  bookingIconActive: { backgroundColor: colors.cream },
+  bookingIconActive: { backgroundColor: colors.silver },
   bookingCopy: { flex: 1, minWidth: 0, gap: 3 },
   bookingTopline: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: spacing.xs },
-  bookingStatus: { color: colors.gold, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
+  bookingStatus: { color: colors.accent, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   bookingRef: { color: colors.mutedDark, fontSize: 8, fontWeight: '800' },
   bookingTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
   bodyCopy: { color: colors.muted, fontSize: 11, lineHeight: 17 },
-  bookingDate: { color: colors.cream, fontSize: 10, fontWeight: '800' },
+  bookingDate: { color: colors.silver, fontSize: 10, fontWeight: '800' },
   bookingStaffNote: { color: colors.muted, fontSize: 10, lineHeight: 15, marginTop: 2 },
   emptyBooking: { ...mobileFrame, backgroundColor: colors.panel, padding: spacing.md },
   callout: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.lg },

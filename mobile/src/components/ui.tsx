@@ -38,7 +38,7 @@ export function PrimaryButton({
   onPress,
   disabled = false,
   loading = false,
-  variant = 'gold',
+  variant = 'accent',
   tone: toneOverride,
   style,
 }: {
@@ -46,7 +46,7 @@ export function PrimaryButton({
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
-  variant?: 'gold' | 'light' | 'outline';
+  variant?: 'accent' | 'light' | 'outline';
   tone?: UiTone;
   style?: ViewStyle;
 }) {
@@ -65,7 +65,7 @@ export function PrimaryButton({
         styles.button,
         variant === 'light' && styles.buttonLight,
         variant === 'outline' && styles.buttonOutline,
-        bookingTone && variant === 'gold' && styles.buttonBooking,
+        bookingTone && variant === 'accent' && styles.buttonBooking,
         pressed && styles.buttonPressed,
         (disabled || loading) && styles.buttonDisabled,
         style,
@@ -128,7 +128,7 @@ export function FormInput({ error, style, accessibilityLabel, ...props }: TextIn
       autoCorrect={false}
       maxFontSizeMultiplier={2}
       placeholderTextColor={bookingTone ? bookingColors.placeholder : colors.mutedDark}
-      selectionColor={bookingTone ? bookingColors.accent : colors.gold}
+      selectionColor={bookingTone ? bookingColors.accent : colors.accent}
       style={[
         styles.input,
         bookingTone && styles.inputBooking,
@@ -227,14 +227,14 @@ export function ChoiceCard({
 
 const styles = StyleSheet.create({
   eyebrow: {
-    color: colors.gold,
+    color: colors.accent,
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 2.2,
     textTransform: 'uppercase',
   },
   eyebrowDark: {
-    color: colors.goldDark,
+    color: colors.accentDark,
   },
   eyebrowBooking: {
     color: bookingColors.accent,
@@ -247,10 +247,10 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     ...mobileFrame,
     borderRadius: 3,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.accent,
   },
   buttonLight: {
-    backgroundColor: colors.cream,
+    backgroundColor: colors.silver,
   },
   buttonOutline: {
     backgroundColor: 'transparent',
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     flexShrink: 1,
-    color: colors.cream,
+    color: colors.silver,
     fontSize: 13,
     fontWeight: '800',
   },
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   },
   choiceSelected: {
     borderColor: mobileFrame.borderColor,
-    backgroundColor: colors.gold,
+    backgroundColor: colors.accent,
   },
   choiceBooking: {
     borderColor: mobileFrame.borderColor,
@@ -363,7 +363,7 @@ const styles = StyleSheet.create({
   choiceIndex: {
     alignSelf: 'flex-start',
     flexShrink: 0,
-    color: colors.gold,
+    color: colors.accent,
     fontSize: 11,
     fontWeight: '900',
   },
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   choiceDetailSelected: {
-    color: '#44330E',
+    color: '#0C3444',
   },
   choiceDetailBooking: {
     color: bookingColors.textSecondary,

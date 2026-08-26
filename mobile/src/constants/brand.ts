@@ -4,21 +4,21 @@ export const colors = {
   panel: '#171717',
   panelRaised: '#202020',
   line: 'rgba(255, 255, 255, 0.18)',
-  lineLight: '#D8D3C9',
-  cream: '#F3F0E8',
+  lineLight: '#DBE3E7',
+  silver: '#DBE3E7',
   white: '#FFFFFF',
-  muted: '#A7A49D',
-  mutedDark: '#68655F',
-  gold: '#D9B35B',
-  goldDark: '#8B641B',
+  muted: '#AAB1B5',
+  mutedDark: '#555D61',
+  accent: '#65CFF8',
+  accentDark: '#155D78',
   danger: '#FF9F91',
   success: '#82D6A0',
 } as const;
 
 /**
- * The public web booking surfaces deliberately replace the PSI gold signal
- * with a restrained silver/white system. Keep this scoped to booking UI so the
- * broader workshop brand, parts and editorial surfaces retain their gold.
+ * Booking surfaces mirror the current PSI website: ice blue for interaction
+ * and focus, deep petrol for supporting contrast, and silver for primary
+ * actions. The wider mobile app uses the same palette through `colors`.
  */
 export const bookingColors = {
   background: '#000000',
@@ -26,19 +26,19 @@ export const bookingColors = {
   surface: '#0D0D0D',
   surfaceAlt: '#111111',
   text: '#FFFFFF',
-  textSecondary: '#AAA9A5',
-  textMuted: '#85847F',
-  placeholder: '#666560',
-  label: '#D1D0CC',
+  textSecondary: '#B9C0C4',
+  textMuted: '#9CA4A8',
+  placeholder: '#8F999E',
+  label: '#DBE3E7',
   border: 'rgba(255, 255, 255, 0.18)',
   borderStrong: 'rgba(255, 255, 255, 0.42)',
-  inputBorder: '#E0E0E0',
-  ghostBorder: '#4C4B47',
-  accent: '#F2F2F2',
-  accentBright: '#FFFFFF',
-  accentDark: '#A8A8A8',
+  inputBorder: '#DBE3E7',
+  ghostBorder: '#495055',
+  accent: '#65CFF8',
+  accentBright: '#DBE3E7',
+  accentDark: '#155D78',
   accentText: '#050505',
-  selectedSecondary: '#464646',
+  selectedSecondary: '#0C3444',
   error: '#FF9F91',
   errorSurface: 'rgba(180, 35, 24, 0.12)',
   errorText: '#FFD7D1',
@@ -47,7 +47,7 @@ export const bookingColors = {
 /** One consistent frame for every rectangular mobile surface and control. */
 export const mobileFrame = {
   borderWidth: 3,
-  borderColor: colors.white,
+  borderColor: colors.silver,
 } as const;
 
 export const contact = {

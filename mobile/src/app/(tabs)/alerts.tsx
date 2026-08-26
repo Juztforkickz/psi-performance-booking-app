@@ -212,7 +212,7 @@ export default function AlertsScreen() {
 
         {privateMode && signedIn ? (
           <View style={styles.howItWorks}>
-            <Ionicons color={colors.gold} name="phone-portrait-outline" size={30} />
+            <Ionicons color={colors.accent} name="phone-portrait-outline" size={30} />
             <View style={styles.howItWorksCopy}>
               <Text style={styles.howItWorksTitle}>Device alerts</Text>
               <Text style={styles.bodyCopy}>{notifications.pushStatus === 'ready'
@@ -232,7 +232,7 @@ export default function AlertsScreen() {
         ) : null}
 
         <View style={styles.howItWorks}>
-          <Ionicons color={colors.gold} name="shield-checkmark-outline" size={30} />
+          <Ionicons color={colors.accent} name="shield-checkmark-outline" size={30} />
           <View style={styles.howItWorksCopy}>
             <Text style={styles.howItWorksTitle}>Controlled by the customer</Text>
             <Text style={styles.bodyCopy}>
@@ -277,7 +277,7 @@ function AlertCard({
       style={({ pressed }) => [styles.alertCard, !read && styles.alertCardUnread, pressed && styles.pressed]}
     >
       <View style={[styles.alertIcon, !read && styles.alertIconUnread]}>
-        <Ionicons color={!read ? colors.ink : colors.gold} name={icon} size={23} />
+        <Ionicons color={!read ? colors.ink : colors.accent} name={icon} size={23} />
       </View>
       <View style={styles.alertCopy}>
         <View style={styles.alertTopline}>
@@ -302,7 +302,7 @@ function SecureAlertCard({ event, onPress }: { event: NotificationEventRow; onPr
       style={({ pressed }) => [styles.alertCard, !read && styles.alertCardUnread, pressed && styles.pressed]}
     >
       <View style={[styles.alertIcon, !read && styles.alertIconUnread]}>
-        <Ionicons color={!read ? colors.ink : colors.gold} name={icon} size={23} />
+        <Ionicons color={!read ? colors.ink : colors.accent} name={icon} size={23} />
       </View>
       <View style={styles.alertCopy}>
         <View style={styles.alertTopline}>
@@ -340,7 +340,7 @@ function PreferenceRow({
       onPress={onPress}
       style={({ pressed }) => [styles.preference, last && styles.preferenceLast, pressed && styles.pressed]}
     >
-      <Ionicons color={colors.gold} name={icon} size={23} />
+      <Ionicons color={colors.accent} name={icon} size={23} />
       <View style={styles.preferenceCopy}>
         <Text style={styles.preferenceTitle}>{label}</Text>
         <Text style={styles.preferenceText}>{copy}</Text>
@@ -357,17 +357,17 @@ const styles = StyleSheet.create({
   scroll: { width: '100%', maxWidth: 880, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   header: { minHeight: 68, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   headerCopy: { flex: 1, gap: spacing.xs },
-  eyebrow: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
+  eyebrow: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
   title: { color: colors.white, fontSize: 39, fontWeight: '900', letterSpacing: -1.5, lineHeight: 41, textTransform: 'uppercase' },
   titleCompact: { fontSize: 33, lineHeight: 35 },
-  countBadge: { ...mobileFrame, minWidth: 62, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: colors.cream, padding: spacing.sm },
+  countBadge: { ...mobileFrame, minWidth: 62, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: colors.silver, padding: spacing.sm },
   countNumber: { color: colors.ink, fontSize: 18, fontWeight: '900' },
-  previewNotice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.cream, padding: spacing.md },
+  previewNotice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.silver, padding: spacing.md },
   previewNoticeTitle: { color: colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   previewNoticeCopy: { color: '#464646', fontSize: 11, lineHeight: 17 },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.sm },
   sectionTitle: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
-  sectionAction: { color: colors.gold, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
+  sectionAction: { color: colors.accent, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   sectionMeta: { color: colors.muted, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   themePanel: { ...mobileFrame, gap: spacing.sm, backgroundColor: colors.panel, paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.line },
   themeModeControls: { flexDirection: 'row', gap: spacing.xs },
@@ -384,11 +384,11 @@ const styles = StyleSheet.create({
   alertCard: { ...mobileFrame, minHeight: 116, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, backgroundColor: colors.panel, padding: spacing.md },
   alertCardUnread: { backgroundColor: colors.inkSoft },
   alertIcon: { ...mobileFrame, width: 48, height: 48, flexShrink: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
-  alertIconUnread: { backgroundColor: colors.cream },
+  alertIconUnread: { backgroundColor: colors.silver },
   alertCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
   alertTopline: { minHeight: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  alertType: { color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: .6, textTransform: 'uppercase' },
-  unreadDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.gold },
+  alertType: { color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: .6, textTransform: 'uppercase' },
+  unreadDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.accent },
   readLabel: { color: colors.mutedDark, fontSize: 8, fontWeight: '900', textTransform: 'uppercase' },
   alertTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
   bodyCopy: { color: colors.muted, fontSize: 11, lineHeight: 17 },
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
   preferenceTitle: { color: colors.white, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
   preferenceText: { color: colors.muted, fontSize: 10, lineHeight: 15 },
   switchTrack: { width: 46, height: 28, flexShrink: 0, justifyContent: 'center', borderWidth: 2, borderColor: colors.white, borderRadius: 14, backgroundColor: colors.ink, padding: 2 },
-  switchTrackEnabled: { backgroundColor: colors.cream },
+  switchTrackEnabled: { backgroundColor: colors.silver },
   switchThumb: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.muted },
   switchThumbEnabled: { alignSelf: 'flex-end', backgroundColor: colors.ink },
   howItWorks: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.lg },
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   howItWorksTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
   openBookings: { ...mobileFrame, minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.ink, padding: spacing.md },
   openBookingsText: { color: colors.white, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  notificationFeedback: { color: colors.cream, fontSize: 10, fontWeight: '700', lineHeight: 16 },
+  notificationFeedback: { color: colors.silver, fontSize: 10, fontWeight: '700', lineHeight: 16 },
   pressed: { opacity: .72 },
 });
 

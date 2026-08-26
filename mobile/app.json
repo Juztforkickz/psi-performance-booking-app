@@ -56,7 +56,7 @@
       [
         "expo-notifications",
         {
-          "color": "#D9B35B",
+          "color": "#65CFF8",
           "defaultChannel": "psi-bookings",
           "enableBackgroundRemoteNotifications": false
         }

@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   emptyMark: {
-    color: colors.gold,
+    color: colors.accent,
     fontSize: 34,
     fontWeight: '300',
     lineHeight: 38,
@@ -256,12 +256,12 @@ const styles = StyleSheet.create({
   notice: {
     gap: spacing.xs,
     borderLeftWidth: 3,
-    borderLeftColor: colors.gold,
+    borderLeftColor: colors.accent,
     backgroundColor: colors.panel,
     padding: spacing.md,
   },
   noticeTitle: {
-    color: colors.gold,
+    color: colors.accent,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 1,

@@ -51,7 +51,7 @@ export default function SupportScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.ink },
   scroll: { width: '100%', maxWidth: 680, alignSelf: 'center', gap: spacing.md, paddingTop: spacing.lg, paddingBottom: 72 },
-  eyebrow: { marginTop: spacing.lg, color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
+  eyebrow: { marginTop: spacing.lg, color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
   title: { color: colors.white, fontSize: 34, fontWeight: '900', letterSpacing: -1.2, lineHeight: 38, textTransform: 'uppercase' },
   lead: { color: colors.muted, fontSize: 14, lineHeight: 22 },
   card: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.panel, padding: spacing.lg },

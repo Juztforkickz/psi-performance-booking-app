@@ -71,13 +71,13 @@ export default function PrivacyScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.ink },
   scroll: { width: '100%', maxWidth: 680, alignSelf: 'center', gap: spacing.md, paddingTop: spacing.lg, paddingBottom: 72 },
-  eyebrow: { marginTop: spacing.lg, color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
+  eyebrow: { marginTop: spacing.lg, color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.4 },
   title: { color: colors.white, fontSize: 34, fontWeight: '900', letterSpacing: -1.2, lineHeight: 38, textTransform: 'uppercase' },
   lead: { color: colors.muted, fontSize: 14, lineHeight: 22 },
-  notice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.panel, borderColor: colors.gold, padding: spacing.lg },
-  noticeTitle: { color: colors.gold, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  notice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.panel, borderColor: colors.accent, padding: spacing.lg },
+  noticeTitle: { color: colors.accent, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   card: { ...mobileFrame, gap: spacing.sm, backgroundColor: colors.panel, padding: spacing.lg },
   heading: { color: colors.white, fontSize: 16, fontWeight: '900', textTransform: 'uppercase' },
   copy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
-  updated: { marginTop: spacing.sm, color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1.1, textAlign: 'center' },
+  updated: { marginTop: spacing.sm, color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: 1.1, textAlign: 'center' },
 });

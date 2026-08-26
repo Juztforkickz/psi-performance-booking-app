@@ -16,6 +16,12 @@ The opening route is an illustrated PSI customer dashboard with a persistent fiv
 
 The preferred date is never presented as confirmed. Other customer bookings and PSI's Google Calendar remain private.
 
+The mobile visual system follows PSI's current website direction: carbon black
+and graphite foundations, ice blue `#65CFF8`, deep petrol `#155D78` and cool
+silver `#DBE3E7`. Active dashboard illustrations use matching blue/silver
+accents while red alerts and green success indicators retain their semantic
+meaning. The PSI launcher icon and wordmark remain black and white.
+
 Expo Router keeps `/`, `/garage`, `/bookings` and `/alerts` inside the customer tab navigator while one shared root-level bar remains visible across those screens and the stacked `/booking`, `/parts`, `/vehicle-reports`, `/account` and `/account/sign-up` journeys. The Vehicle Reports button opens its dedicated route directly, and the shared bar hides while the software keyboard is open so forms keep their usable screen space. Native deep links use the `psiperformance` scheme from `app.json`; universal HTTPS links should only be enabled after PSI controls the final production domain and publishes the required Apple/Android association files.
 
 Home's **Customise** control can add or remove any available dashboard tile from **Your shortcuts**. This is the only new persistent value in this feature: a versioned list of tile identifiers stored in device-local AsyncStorage. It contains no customer, vehicle, booking or partner-contact data, and at least one shortcut must remain selected. The fixed Workshop tiles remain available even when their matching shortcut is removed.

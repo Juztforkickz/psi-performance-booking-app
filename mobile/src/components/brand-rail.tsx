@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: colors.goldDark,
+    borderColor: colors.accentDark,
     backgroundColor: colors.inkSoft,
     paddingTop: spacing.xl,
     paddingBottom: spacing.xl,
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   kicker: {
-    color: colors.gold,
+    color: colors.accent,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 1.5,
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.panelRaised,
   },
   motionButtonText: {
-    color: colors.gold,
+    color: colors.accent,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.8,
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
     ...mobileFrame,
-    backgroundColor: '#F0EDE5',
+    backgroundColor: '#DBE3E7',
   },
   logoViewportCompact: {
     width: 128,
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     opacity: 0.98,
   },
   brandName: {
-    color: colors.gold,
+    color: colors.accent,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 1.05,

@@ -192,7 +192,7 @@ function StaffMfaGate({
         <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}>
           <Text style={styles.backText}>← Back</Text>
         </Pressable>
-        <Ionicons color={colors.gold} name="shield-checkmark" size={42} />
+        <Ionicons color={colors.accent} name="shield-checkmark" size={42} />
         <Text style={styles.stateTitle}>Authenticator verification required</Text>
         <Text style={styles.stateCopy}>
           Your PSI staff identity is active. A separate authenticator code is required before any workshop-wide customer records can load.
@@ -282,7 +282,7 @@ function PortalState({
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <View style={[styles.state, { paddingHorizontal: horizontalPadding }]}>
-        {loading ? <ActivityIndicator color={colors.gold} size="large" /> : <Ionicons color={colors.gold} name="shield-checkmark" size={42} />}
+        {loading ? <ActivityIndicator color={colors.accent} size="large" /> : <Ionicons color={colors.accent} name="shield-checkmark" size={42} />}
         <Text style={styles.stateTitle}>{title}</Text>
         <Text style={styles.stateCopy}>{copy}</Text>
         {actionLabel && onAction ? <PrimaryButton label={actionLabel} onPress={onAction} /> : null}
@@ -369,7 +369,7 @@ function StaffWorkspace({
               <Text style={styles.securityTitle}>Authenticator security</Text>
               <Text style={styles.securityCopy}>{verifiedTotpFactors.length} verified authenticator{verifiedTotpFactors.length === 1 ? '' : 's'} connected.</Text>
             </View>
-            <Ionicons color={colors.gold} name="key" size={22} />
+            <Ionicons color={colors.accent} name="key" size={22} />
           </View>
           {verifiedTotpFactors.length === 1 ? <Text style={styles.securityWarning}>Add a backup authenticator before replacing or retiring this device.</Text> : null}
           <PrimaryButton label="Manage authenticators" onPress={() => router.push('/staff-security')} variant="outline" />
@@ -457,7 +457,7 @@ function StaffWorkspace({
         <SectionHeading copy="Recent protected database activity. This feed records who changed customer, vehicle, booking, workshop record and integration-job data." title="Audit history" />
         {snapshot.auditEvents.length === 0 ? <EmptyState>No audit events are currently shown.</EmptyState> : snapshot.auditEvents.slice(0, 16).map((event) => (
           <View key={event.id} style={styles.auditRow}>
-            <Ionicons color={event.actor_kind === 'staff' ? colors.gold : colors.muted} name={event.actor_kind === 'staff' ? 'shield-checkmark' : event.actor_kind === 'customer' ? 'person' : 'cog'} size={18} />
+            <Ionicons color={event.actor_kind === 'staff' ? colors.accent : colors.muted} name={event.actor_kind === 'staff' ? 'shield-checkmark' : event.actor_kind === 'customer' ? 'person' : 'cog'} size={18} />
             <View style={styles.flex}>
               <Text style={styles.auditTitle}>{humanize(event.table_name)} · {humanize(event.action)}</Text>
               <Text style={styles.contextLine}>{humanize(event.actor_kind)} · {formatDateTime(event.occurred_at)}</Text>
@@ -478,7 +478,7 @@ function StaffWorkspace({
                   <View key={vehicle.id} style={styles.vehicleRow}>
                     {vehiclePhotoUris[vehicle.id] ? (
                       <Image accessibilityLabel={`Private customer photo of ${vehicle.year} ${vehicle.make} ${vehicle.model}`} source={{ uri: vehiclePhotoUris[vehicle.id] }} style={styles.vehiclePhoto} />
-                    ) : <Ionicons color={colors.gold} name="car-sport" size={18} />}
+                    ) : <Ionicons color={colors.accent} name="car-sport" size={18} />}
                     <View style={styles.flex}>
                       <Text style={styles.vehicleTitle}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
                       <Text style={styles.cardMeta}>{vehicle.registration}{vehicle.is_primary ? ' · Primary vehicle' : ''}</Text>
@@ -559,10 +559,10 @@ const styles = StyleSheet.create({
   stateCopy: { color: colors.muted, fontSize: 15, lineHeight: 23, maxWidth: 520, textAlign: 'center' },
   mfaScroll: { alignItems: 'center', alignSelf: 'center', width: '100%', maxWidth: 620, paddingBottom: spacing.xxl, paddingTop: spacing.md },
   mfaCard: { ...mobileFrame, alignSelf: 'stretch', backgroundColor: colors.panel, gap: spacing.md, marginTop: spacing.lg, padding: spacing.lg },
-  mfaKicker: { color: colors.gold, fontSize: 11, fontWeight: '900', letterSpacing: 1.4, textTransform: 'uppercase' },
+  mfaKicker: { color: colors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 1.4, textTransform: 'uppercase' },
   mfaTitle: { color: colors.white, fontSize: 22, fontWeight: '900' },
   mfaCopy: { color: colors.muted, fontSize: 14, lineHeight: 21 },
-  qrFrame: { alignItems: 'center', alignSelf: 'center', backgroundColor: colors.white, borderColor: colors.gold, borderWidth: 3, justifyContent: 'center', padding: spacing.sm },
+  qrFrame: { alignItems: 'center', alignSelf: 'center', backgroundColor: colors.white, borderColor: colors.accent, borderWidth: 3, justifyContent: 'center', padding: spacing.sm },
   qrImage: { height: 220, width: 220 },
   manualLabel: { color: colors.muted, fontSize: 11, fontWeight: '900', letterSpacing: 1.1, textTransform: 'uppercase' },
   manualSecret: { backgroundColor: colors.ink, borderColor: colors.line, borderWidth: 1, color: colors.white, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 13, letterSpacing: 1.2, padding: spacing.md, textAlign: 'center' },
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
   scroll: { alignSelf: 'center', width: '100%', maxWidth: 880, paddingBottom: spacing.xxl, paddingTop: spacing.md },
   back: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
   backText: { color: colors.white, fontSize: 15, fontWeight: '800' },
-  eyebrow: { color: colors.gold, fontSize: 12, fontWeight: '900', letterSpacing: 1.7, marginTop: spacing.md },
+  eyebrow: { color: colors.accent, fontSize: 12, fontWeight: '900', letterSpacing: 1.7, marginTop: spacing.md },
   title: { color: colors.white, fontSize: 38, fontWeight: '900', letterSpacing: -1.2, marginTop: spacing.xs },
   lead: { color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: spacing.sm, maxWidth: 680 },
   securityBanner: { ...mobileFrame, backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg, padding: spacing.md },
@@ -578,10 +578,10 @@ const styles = StyleSheet.create({
   securityCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 4 },
   securityManagement: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.md },
   securityManagementHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  securityWarning: { color: colors.cream, fontSize: 11, lineHeight: 17 },
+  securityWarning: { color: colors.silver, fontSize: 11, lineHeight: 17 },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
   metric: { ...mobileFrame, backgroundColor: colors.panelRaised, flexGrow: 1, minWidth: 120, padding: spacing.md },
-  metricValue: { color: colors.gold, fontSize: 28, fontWeight: '900' },
+  metricValue: { color: colors.accent, fontSize: 28, fontWeight: '900' },
   metricLabel: { color: colors.white, fontSize: 12, fontWeight: '800', marginTop: 2, textTransform: 'uppercase' },
   sectionHeading: { marginBottom: spacing.sm, marginTop: spacing.xl },
   sectionTitle: { color: colors.white, fontSize: 23, fontWeight: '900' },
@@ -591,12 +591,12 @@ const styles = StyleSheet.create({
   cardTitle: { color: colors.white, flex: 1, fontSize: 17, fontWeight: '900' },
   cardPrimary: { color: colors.white, fontSize: 15, fontWeight: '800', marginTop: spacing.sm },
   cardCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 2 },
-  cardMeta: { color: colors.gold, fontSize: 12, fontWeight: '800', marginTop: spacing.xs },
-  staffNote: { color: colors.cream, fontSize: 12, fontWeight: '800', lineHeight: 18, marginTop: spacing.xs },
+  cardMeta: { color: colors.accent, fontSize: 12, fontWeight: '800', marginTop: spacing.xs },
+  staffNote: { color: colors.silver, fontSize: 12, fontWeight: '800', lineHeight: 18, marginTop: spacing.xs },
   contextLine: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 2 },
   integrationError: { color: colors.danger, fontSize: 11, fontWeight: '800', lineHeight: 17, marginTop: spacing.xs },
   integrationControls: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.sm, marginBottom: spacing.sm, padding: spacing.md },
-  badge: { borderColor: colors.goldDark, borderWidth: 1, color: colors.gold, fontSize: 10, fontWeight: '900', paddingHorizontal: 8, paddingVertical: 5, textTransform: 'uppercase' },
+  badge: { borderColor: colors.accentDark, borderWidth: 1, color: colors.accent, fontSize: 10, fontWeight: '900', paddingHorizontal: 8, paddingVertical: 5, textTransform: 'uppercase' },
   vehicleList: { gap: spacing.sm, marginTop: spacing.md },
   vehicleRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.sm },
   vehicleTitle: { color: colors.white, fontSize: 14, fontWeight: '800' },

@@ -77,6 +77,30 @@ The eight square identity badges under `mobile/assets/images/partners/` were pre
 
 Prompt direction: premium, realistic automotive product illustration on carbon-black and graphite studio backgrounds, restrained champagne-gold accents, generous lower label space, and avoidance of embedded text, people, watermarks, racing clichés and unrelated branding. The hub-dyno image received a focused refinement pass so its engineering setup communicates the requested rear-wheel-off, hub-connected configuration. These statements describe the generation instructions and visual review, not a guarantee that AI output is source-free or legally cleared.
 
+On **26 August 2026**, the owner directed the mobile app to adopt the blue and
+silver visual system already established on PSI's current website. The eight
+active dashboard tiles received focused built-in ImageGen edit passes. Each
+prompt treated the existing tile as the edit target, replaced only deliberate
+gold, yellow, bronze, brass or champagne styling with ice blue `#65CFF8`, deep
+petrol `#155D78` and brushed silver `#DBE3E7`, and required the original subject,
+geometry, black/graphite setting, camera, lighting and text-free composition to
+remain intact. Red notification lighting and green diagnostic success marks
+were retained as semantic colours. The garage tile keeps its small natural amber
+side marker while changing the former yellow performance-caliper treatment.
+The former active files remain in the repository for provenance, but the mobile
+app now references these optimized 960×1200 JPEGs:
+
+| Active blue/silver tile | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `tile-alerts-blue-silver.jpg` | 106,006 | `BD78231039F5419F3D5F28FE07409917EA124272FF035A955A884021472713DF` |
+| `tile-book-ahead-blue-silver.jpg` | 140,541 | `73C91BEDAA49B3076E92CFA58942F18E94D64FFE45B6DF9C09351452745D4D9F` |
+| `tile-hub-dyno-blue-silver.jpg` | 143,594 | `D1215B01F9F70FC48811366D67D0CDAE84FCCCE4B0FD0088A25FF4E0763F51EE` |
+| `tile-my-bookings-blue-silver.jpg` | 121,667 | `43B582D8C5E9AFB0445697B4067805D76AADF523490C866AA5F1079A949CBD5E` |
+| `tile-my-garage-blue-silver.jpg` | 138,065 | `A6D24A69A0A8A9D5204DF1FD3D4F3674856CE347B4FCC863152F19010C86C4DE` |
+| `tile-plan-build-blue-silver.jpg` | 227,079 | `A5802FD0593DC327696F415D69C8396FFEB36F77C7E7ED573C85BFB4E8DBA318` |
+| `tile-trusted-partners-blue-silver.jpg` | 195,193 | `F760F314706A62B652044F5D13DF31A02792D564951028F67526C7C3A15A2084` |
+| `tile-vehicle-reports-blue-silver.jpg` | 136,504 | `51BAFE0E308DB1C88B5A678AE1E9C3283A25D8A06A2A2E7EAD152025FDBA0AFB` |
+
 ### Scrolling brand-rail assets
 
 The manufacturer and tuning-platform marks used by PSI's scrolling homepage banner were retrieved from PSI Performance's official Shopify CDN on **21 August 2026**. The app keeps the sharp 300 px transparent PNG renditions under `public/brands/`, with byte-identical native-app copies under `mobile/assets/images/brands/`. Every imported file is 300×300 px, 32-bit ARGB and contains transparent pixels.
@@ -100,16 +124,16 @@ These third-party marks are used nominatively to identify vehicle manufacturers 
 
 ## Product brand system
 
-The web booking experience, staff queue and native mobile app use one restrained, high-end performance system:
+The current PSI website and native mobile app use one restrained, high-end performance system:
 
 - official white PSI Performance Garage wordmark on carbon black;
-- carbon black `#050505`, graphite `#111111` and warm ivory `#F3F0E8` surfaces;
-- champagne gold `#D9B35B` with a restrained metallic highlight for key actions;
+- carbon black `#050505`, graphite `#111111` and cool silver `#DBE3E7` surfaces;
+- ice blue `#65CFF8` for primary interaction, with deep petrol `#155D78` for supporting contrast;
 - PSI's Ethnocentric display face for major web headings, paired with a clean system sans serif for readable form content;
 - PSI workshop and vehicle photography with controlled dark overlays, fine rules and compact technical labels;
 - square PSI-branded PWA, iOS and Android icons.
 
-The direction intentionally avoids flames, chequered flags, speed streaks and generic racing graphics. The performance character comes from the real cars, PSI's wordmark, precise typography and measured use of metallic gold.
+The direction intentionally avoids flames, chequered flags, speed streaks and generic racing graphics. The performance character comes from the real cars, PSI's wordmark, precise typography and measured use of ice blue and brushed silver.
 
 ### App-store identity pack
 

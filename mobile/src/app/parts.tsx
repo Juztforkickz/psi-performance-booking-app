@@ -174,7 +174,7 @@ export default function PlanBuildScreen() {
           onPress={() => router.back()}
           style={({ pressed }) => [styles.back, pressed && styles.pressed]}
         >
-          <Ionicons color={colors.gold} name="arrow-back" size={22} />
+          <Ionicons color={colors.accent} name="arrow-back" size={22} />
           <Text maxFontSizeMultiplier={2} style={styles.backText}>Back</Text>
         </Pressable>
         <Image
@@ -194,7 +194,7 @@ export default function PlanBuildScreen() {
             <Image
               accessibilityLabel="Illustrated engine, turbo and staged vehicle build plan"
               resizeMode="contain"
-              source={require('../../assets/images/dashboard/tile-plan-build.jpg')}
+              source={require('../../assets/images/dashboard/tile-plan-build-blue-silver.jpg')}
               style={[styles.fillImage, styles.heroImage]}
             />
           </View>
@@ -255,7 +255,7 @@ export default function PlanBuildScreen() {
                   ]}
                 >
                   <View style={[styles.areaIcon, selected && styles.areaIconSelected]}>
-                    <Ionicons color={selected ? colors.ink : colors.gold} name={AREA_ICONS[area.id]} size={22} />
+                    <Ionicons color={selected ? colors.ink : colors.accent} name={AREA_ICONS[area.id]} size={22} />
                   </View>
                   <View style={styles.areaCopy}>
                     <Text style={[styles.areaTitle, selected && styles.areaTextSelected]}>{area.label}</Text>
@@ -278,7 +278,7 @@ export default function PlanBuildScreen() {
                 return (
                   <View key={area.id} style={styles.areaDetailCard}>
                     <View style={styles.areaDetailHeading}>
-                      <Ionicons color={colors.gold} name={AREA_ICONS[area.id]} size={20} />
+                      <Ionicons color={colors.accent} name={AREA_ICONS[area.id]} size={20} />
                       <Text style={styles.areaDetailTitle}>{area.label}</Text>
                     </View>
                     <PlanBuildSelect
@@ -308,7 +308,7 @@ export default function PlanBuildScreen() {
             </View>
           ) : (
             <View style={styles.emptySelection}>
-              <Ionicons color={colors.gold} name="arrow-up-outline" size={20} />
+              <Ionicons color={colors.accent} name="arrow-up-outline" size={20} />
               <Text style={styles.emptySelectionText}>Choose at least one area to start shaping your brief.</Text>
             </View>
           )}
@@ -402,7 +402,7 @@ export default function PlanBuildScreen() {
           />
           <Text selectable style={styles.briefPreview}>{brief}</Text>
           <View accessibilityRole="alert" style={styles.handoffNotice}>
-            <Ionicons color={colors.gold} name="shield-checkmark-outline" size={22} />
+            <Ionicons color={colors.accent} name="shield-checkmark-outline" size={22} />
             <Text style={styles.handoffNoticeText}>
               Nothing has been sent. If you tap Send in the external app, this becomes a real message to PSI; the demo itself does not send or store it. For social messages, copy the selectable brief above first.
             </Text>
@@ -490,7 +490,7 @@ export default function PlanBuildScreen() {
 
         <View style={styles.storeCard}>
           <View style={styles.storeHeading}>
-            <Ionicons color={colors.gold} name="bag-handle-outline" size={26} />
+            <Ionicons color={colors.accent} name="bag-handle-outline" size={26} />
             <View style={styles.storeHeadingCopy}>
               <Text style={styles.storeKicker}>Official PSI website</Text>
               <Text style={styles.storeTitle}>Parts & gift cards</Text>
@@ -547,7 +547,7 @@ function HandoffAction({
         <Text style={styles.handoffLabel}>{label}</Text>
         <Text numberOfLines={1} style={styles.handoffDetail}>{detail}</Text>
       </View>
-      <Ionicons color={colors.gold} name="open-outline" size={20} />
+      <Ionicons color={colors.accent} name="open-outline" size={20} />
     </Pressable>
   );
 }
@@ -591,61 +591,61 @@ const styles = StyleSheet.create({
   heroImage: {},
   fillImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
   heroCopy: { flex: 1, justifyContent: 'center', gap: spacing.md, padding: spacing.lg },
-  eyebrow: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
+  eyebrow: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
   title: { color: colors.white, fontSize: 38, fontWeight: '900', letterSpacing: -1.7, lineHeight: 40, textTransform: 'uppercase' },
   titleCompact: { fontSize: 32, lineHeight: 35 },
   lead: { color: colors.muted, fontSize: 13, lineHeight: 21 },
-  previewNotice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.cream, padding: spacing.md },
+  previewNotice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.silver, padding: spacing.md },
   previewNoticeTitle: { color: colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   previewNoticeCopy: { color: '#464646', fontSize: 11, lineHeight: 17 },
   examplePlan: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
-  examplePlanKicker: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
+  examplePlanKicker: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   examplePlanNote: { maxWidth: 720, color: colors.muted, fontSize: 10, lineHeight: 16 },
   planHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.sm },
   planHeadingCopy: { flex: 1, gap: spacing.xs },
-  planKicker: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
+  planKicker: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
   planTitle: { color: colors.white, fontSize: 22, fontWeight: '900', lineHeight: 27, textTransform: 'uppercase' },
-  planBadge: { ...mobileFrame, backgroundColor: colors.cream, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
+  planBadge: { ...mobileFrame, backgroundColor: colors.silver, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   planBadgeText: { color: colors.ink, fontSize: 8, fontWeight: '900', textTransform: 'uppercase' },
-  planObjective: { maxWidth: 740, color: colors.cream, fontSize: 14, lineHeight: 22 },
+  planObjective: { maxWidth: 740, color: colors.silver, fontSize: 14, lineHeight: 22 },
   stageList: { gap: spacing.sm },
   stageCard: { ...mobileFrame, minHeight: 118, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, backgroundColor: colors.panel, padding: spacing.md },
   stageCardCurrent: { backgroundColor: colors.inkSoft },
   stageNumber: { ...mobileFrame, width: 46, height: 46, flexShrink: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
-  stageNumberActive: { backgroundColor: colors.cream },
-  stageNumberText: { color: colors.gold, fontSize: 10, fontWeight: '900' },
+  stageNumberActive: { backgroundColor: colors.silver },
+  stageNumberText: { color: colors.accent, fontSize: 10, fontWeight: '900' },
   stageNumberTextActive: { color: colors.ink },
   stageCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
   stageTopline: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.sm },
   stageTitle: { flex: 1, color: colors.white, fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
   stageStatus: { color: colors.muted, fontSize: 8, fontWeight: '900', textTransform: 'uppercase' },
-  stageStatusCurrent: { color: colors.gold },
+  stageStatusCurrent: { color: colors.accent },
   bodyCopy: { color: colors.muted, fontSize: 11, lineHeight: 17 },
   builderCard: { ...mobileFrame, gap: spacing.lg, backgroundColor: colors.panel, padding: spacing.lg },
   builderHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
-  builderNumber: { ...mobileFrame, width: 46, height: 46, flexShrink: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.cream },
+  builderNumber: { ...mobileFrame, width: 46, height: 46, flexShrink: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.silver },
   builderNumberText: { color: colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: .5 },
   builderHeadingCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
   builderTitle: { color: colors.white, fontSize: 19, fontWeight: '900', lineHeight: 23, textTransform: 'uppercase' },
   vehicleBrief: { ...mobileFrame, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.ink, padding: spacing.md },
-  vehicleBriefIcon: { width: 46, height: 46, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 23, backgroundColor: colors.cream },
+  vehicleBriefIcon: { width: 46, height: 46, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 23, backgroundColor: colors.silver },
   vehicleBriefCopy: { flex: 1, minWidth: 0, gap: 3 },
-  vehicleBriefLabel: { color: colors.gold, fontSize: 8, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
+  vehicleBriefLabel: { color: colors.accent, fontSize: 8, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
   vehicleBriefTitle: { color: colors.white, fontSize: 15, fontWeight: '900', lineHeight: 19, textTransform: 'uppercase' },
   vehicleBriefMeta: { color: colors.muted, fontSize: 10, lineHeight: 15 },
   areaGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   areaCard: { ...mobileFrame, position: 'relative', width: '100%', minHeight: 132, gap: spacing.sm, backgroundColor: colors.ink, padding: spacing.md },
   areaCardTwoColumn: { width: '47%', flexGrow: 1 },
-  areaCardSelected: { backgroundColor: colors.cream },
+  areaCardSelected: { backgroundColor: colors.silver },
   areaIcon: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, borderRadius: 21, backgroundColor: colors.inkSoft },
   areaIconSelected: { borderColor: colors.ink, backgroundColor: colors.white },
   areaCopy: { flex: 1, gap: 3 },
   areaTitle: { color: colors.white, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
   areaTextSelected: { color: colors.ink },
   areaDetail: { color: colors.muted, fontSize: 9, lineHeight: 14 },
-  areaDetailSelected: { color: '#57534C' },
+  areaDetailSelected: { color: '#555D61' },
   areaCheck: { position: 'absolute', top: spacing.sm, right: spacing.sm, width: 24, height: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.white },
-  areaCheckSelected: { borderColor: colors.ink, backgroundColor: colors.gold },
+  areaCheckSelected: { borderColor: colors.ink, backgroundColor: colors.accent },
   areaDetailsList: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
   areaDetailCard: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.md },
   areaDetailHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
@@ -656,23 +656,23 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 124, paddingTop: spacing.md },
   smallTextArea: { minHeight: 92, paddingTop: spacing.md },
   actionPanel: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.lg },
-  briefPreview: { ...mobileFrame, color: colors.cream, backgroundColor: colors.ink, fontSize: 11, lineHeight: 18, padding: spacing.md },
-  handoffNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, borderLeftWidth: 3, borderLeftColor: colors.gold, backgroundColor: 'rgba(217,179,91,.08)', padding: spacing.md },
-  handoffNoticeText: { flex: 1, minWidth: 0, color: colors.cream, fontSize: 10, lineHeight: 16 },
+  briefPreview: { ...mobileFrame, color: colors.silver, backgroundColor: colors.ink, fontSize: 11, lineHeight: 18, padding: spacing.md },
+  handoffNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, borderLeftWidth: 3, borderLeftColor: colors.accent, backgroundColor: 'rgba(101,207,248,.08)', padding: spacing.md },
+  handoffNoticeText: { flex: 1, minWidth: 0, color: colors.silver, fontSize: 10, lineHeight: 16 },
   handoffActions: { gap: spacing.sm },
   handoffAction: { ...mobileFrame, minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.ink, padding: spacing.sm },
   handoffActionDisabled: { opacity: .38 },
-  handoffIcon: { width: 44, height: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.cream },
+  handoffIcon: { width: 44, height: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.silver },
   handoffCopy: { flex: 1, minWidth: 0, gap: 3 },
   handoffLabel: { color: colors.white, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   handoffDetail: { color: colors.muted, fontSize: 9 },
-  actionHint: { color: colors.gold, fontSize: 10, fontWeight: '800', textAlign: 'center' },
-  handoffStatus: { ...mobileFrame, color: colors.cream, backgroundColor: colors.panel, fontSize: 10, lineHeight: 16, padding: spacing.md },
+  actionHint: { color: colors.accent, fontSize: 10, fontWeight: '800', textAlign: 'center' },
+  handoffStatus: { ...mobileFrame, color: colors.silver, backgroundColor: colors.panel, fontSize: 10, lineHeight: 16, padding: spacing.md },
   planDisclaimer: { color: colors.muted, fontSize: 9, lineHeight: 15 },
   storeCard: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.panel, padding: spacing.lg },
   storeHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   storeHeadingCopy: { flex: 1, gap: 2 },
-  storeKicker: { color: colors.gold, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
+  storeKicker: { color: colors.accent, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   storeTitle: { color: colors.white, fontSize: 17, fontWeight: '900', textTransform: 'uppercase' },
   storeActions: { gap: spacing.sm },
   pressed: { opacity: .72 },

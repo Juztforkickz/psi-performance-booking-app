@@ -206,7 +206,7 @@ function StaffSecurityWorkspace({
         {factors.map((factor, index) => (
           <View key={factor.id} style={styles.factorCard}>
             <View style={styles.factorHeading}>
-              <View style={styles.factorIcon}><Ionicons color={colors.gold} name="phone-portrait-outline" size={21} /></View>
+              <View style={styles.factorIcon}><Ionicons color={colors.accent} name="phone-portrait-outline" size={21} /></View>
               <View style={styles.flex}>
                 <Text style={styles.factorTitle}>{factor.friendlyName}</Text>
                 <Text style={styles.factorMeta}>Verified device {index + 1} · added {formatMfaDate(factor.createdAt)}</Text>
@@ -264,7 +264,7 @@ function StaffSecurityWorkspace({
         )}
 
         <View style={styles.recoveryCard}>
-          <Ionicons color={colors.gold} name="lock-closed" size={24} />
+          <Ionicons color={colors.accent} name="lock-closed" size={24} />
           <View style={styles.flex}>
             <Text style={styles.recoveryTitle}>Lost every authenticator?</Text>
             <Text style={styles.recoveryCopy}>There is no in-app bypass. PSI must use the documented owner recovery procedure to verify the incident, revoke sessions and remove the lost factor through trusted Supabase administration before enrolling a replacement.</Text>
@@ -294,7 +294,7 @@ function SecurityState({
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <View style={[styles.state, { paddingHorizontal: horizontalPadding }]}>
-        {loading ? <ActivityIndicator color={colors.gold} size="large" /> : <Ionicons color={colors.gold} name="shield-checkmark" size={42} />}
+        {loading ? <ActivityIndicator color={colors.accent} size="large" /> : <Ionicons color={colors.accent} name="shield-checkmark" size={42} />}
         <Text style={styles.stateTitle}>{title}</Text>
         <Text style={styles.stateCopy}>{copy}</Text>
         {actionLabel && onAction ? <PrimaryButton label={actionLabel} onPress={onAction} /> : null}
@@ -323,13 +323,13 @@ const styles = StyleSheet.create({
   scroll: { alignSelf: 'center', width: '100%', maxWidth: 760, paddingBottom: spacing.xxl, paddingTop: spacing.md },
   back: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
   backText: { color: colors.white, fontSize: 15, fontWeight: '800' },
-  eyebrow: { color: colors.gold, fontSize: 12, fontWeight: '900', letterSpacing: 1.7, marginTop: spacing.md },
+  eyebrow: { color: colors.accent, fontSize: 12, fontWeight: '900', letterSpacing: 1.7, marginTop: spacing.md },
   title: { color: colors.white, fontSize: 38, fontWeight: '900', letterSpacing: -1.2, marginTop: spacing.xs },
   lead: { color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: spacing.sm, maxWidth: 680 },
   securityBanner: { ...mobileFrame, backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg, padding: spacing.md },
   securityTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
   securityCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 4 },
-  notice: { ...mobileFrame, backgroundColor: colors.inkSoft, color: colors.cream, fontSize: 13, lineHeight: 19, marginTop: spacing.md, padding: spacing.md },
+  notice: { ...mobileFrame, backgroundColor: colors.inkSoft, color: colors.silver, fontSize: 13, lineHeight: 19, marginTop: spacing.md, padding: spacing.md },
   error: { ...mobileFrame, backgroundColor: colors.inkSoft, color: colors.danger, fontSize: 13, lineHeight: 19, marginTop: spacing.md, padding: spacing.md },
   sectionTitle: { color: colors.white, fontSize: 23, fontWeight: '900', marginTop: spacing.xl },
   sectionCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginBottom: spacing.sm, marginTop: 3 },
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   factorIcon: { alignItems: 'center', backgroundColor: colors.inkSoft, borderColor: colors.line, borderWidth: 1, height: 42, justifyContent: 'center', width: 42 },
   factorTitle: { color: colors.white, fontSize: 16, fontWeight: '900' },
   factorMeta: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 2 },
-  lockedCopy: { color: colors.cream, fontSize: 12, lineHeight: 18 },
+  lockedCopy: { color: colors.silver, fontSize: 12, lineHeight: 18 },
   confirmCard: { backgroundColor: colors.inkSoft, borderColor: colors.line, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
   confirmTitle: { color: colors.white, fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
   confirmCopy: { color: colors.muted, fontSize: 12, lineHeight: 18 },
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   recoveryCard: { ...mobileFrame, backgroundColor: colors.inkSoft, flexDirection: 'row', gap: spacing.md, marginTop: spacing.xl, padding: spacing.md },
   recoveryTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
   recoveryCopy: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 3 },
-  footer: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.1, marginTop: spacing.xl, textAlign: 'center' },
+  footer: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.1, marginTop: spacing.xl, textAlign: 'center' },
   state: { alignItems: 'center', alignSelf: 'center', flex: 1, gap: spacing.md, justifyContent: 'center', maxWidth: 620, width: '100%' },
   stateTitle: { color: colors.white, fontSize: 25, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
   stateCopy: { color: colors.muted, fontSize: 15, lineHeight: 23, maxWidth: 520, textAlign: 'center' },

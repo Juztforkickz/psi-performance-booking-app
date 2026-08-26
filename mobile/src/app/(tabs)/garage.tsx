@@ -35,8 +35,8 @@ import { useCustomerPreview } from '@/lib/customer-preview-context';
 import type { VehicleFileRow } from '@/lib/database.types';
 import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 
-const GARAGE_IMAGE = require('../../../assets/images/dashboard/tile-my-garage.jpg');
-const REPORT_IMAGE = require('../../../assets/images/dashboard/tile-vehicle-reports.jpg');
+const GARAGE_IMAGE = require('../../../assets/images/dashboard/tile-my-garage-blue-silver.jpg');
+const REPORT_IMAGE = require('../../../assets/images/dashboard/tile-vehicle-reports-blue-silver.jpg');
 
 type MaintenanceDraft = {
   customerLastServiceDate: string;
@@ -105,7 +105,7 @@ function GarageAccountState({
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <View style={[styles.accountState, { paddingHorizontal: horizontalPadding }]}>
-        {loading ? <ActivityIndicator color={colors.gold} size="large" /> : <Ionicons color={colors.gold} name="car-sport" size={38} />}
+        {loading ? <ActivityIndicator color={colors.accent} size="large" /> : <Ionicons color={colors.accent} name="car-sport" size={38} />}
         <Text style={styles.accountStateTitle}>{title}</Text>
         <Text style={styles.accountStateCopy}>{copy}</Text>
         {actionLabel ? <PrimaryButton label={actionLabel} onPress={() => router.push('/account/sign-up')} /> : null}
@@ -365,7 +365,7 @@ function GarageContent({
                   pressed && styles.pressed,
                 ]}
               >
-                <Ionicons color={selected ? colors.ink : colors.gold} name="car-sport" size={22} />
+                <Ionicons color={selected ? colors.ink : colors.accent} name="car-sport" size={22} />
                 <View style={styles.vehicleChoiceCopy}>
                   <Text style={[styles.vehicleChoiceTitle, selected && styles.vehicleChoiceTextSelected]}>
                     {vehicle.make} {vehicle.model}
@@ -383,7 +383,7 @@ function GarageContent({
             onPress={() => router.push('/account/sign-up')}
             style={({ pressed }) => [styles.addVehicle, pressed && styles.pressed]}
           >
-            <Ionicons color={colors.gold} name="add" size={24} />
+            <Ionicons color={colors.accent} name="add" size={24} />
             <Text style={styles.addVehicleText}>{secureVehicles ? 'Manage primary vehicle' : 'Set up preview vehicle'}</Text>
           </Pressable>
         </ScrollView>
@@ -429,7 +429,7 @@ function GarageContent({
               <Text style={styles.maintenanceTitle}>Maintenance details</Text>
               <Text style={styles.bodyCopy}>{secureVehicles ? 'Add a private customer odometer reading and keep optional personal service reminders for this open session.' : 'Update the customer odometer and personal service reminders for this preview vehicle.'}</Text>
             </View>
-            <Ionicons color={colors.gold} name="create-outline" size={24} />
+            <Ionicons color={colors.accent} name="create-outline" size={24} />
           </View>
           <Text style={styles.maintenanceBoundary}>Customer-entered details stay separate from PSI workshop records. They cannot replace the protected Last PSI service or Next PSI check-in above.</Text>
           {maintenanceOpen ? (
@@ -487,7 +487,7 @@ function GarageContent({
             <Image
               accessibilityLabel="Illustrated engine and performance build plan"
               resizeMode="contain"
-              source={require('../../../assets/images/dashboard/tile-plan-build.jpg')}
+              source={require('../../../assets/images/dashboard/tile-plan-build-blue-silver.jpg')}
               style={[styles.fillImage, styles.planBuildImage]}
             />
           </View>
@@ -623,24 +623,24 @@ const styles = StyleSheet.create({
   scroll: { width: '100%', maxWidth: 980, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   header: { minHeight: 68, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   headerCopy: { flex: 1, gap: spacing.xs },
-  eyebrow: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
+  eyebrow: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
   title: { color: colors.white, fontSize: 39, fontWeight: '900', letterSpacing: -1.5, lineHeight: 41, textTransform: 'uppercase' },
   titleCompact: { fontSize: 33, lineHeight: 35 },
   accountButton: { ...mobileFrame, width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 23, backgroundColor: colors.white },
-  previewNotice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.cream, padding: spacing.md },
+  previewNotice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.silver, padding: spacing.md },
   previewNoticeTitle: { color: colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   previewNoticeCopy: { color: '#464646', fontSize: 11, lineHeight: 17 },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.sm },
   sectionTitle: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
-  sectionMeta: { color: colors.gold, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  sectionMeta: { color: colors.accent, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   vehicleSelector: { gap: spacing.sm, paddingRight: spacing.md },
   vehicleChoice: { ...mobileFrame, minWidth: 210, minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.panel, padding: spacing.md },
-  vehicleChoiceSelected: { backgroundColor: colors.cream },
+  vehicleChoiceSelected: { backgroundColor: colors.silver },
   vehicleChoiceCopy: { flex: 1, gap: 2 },
   vehicleChoiceTitle: { color: colors.white, fontSize: 12, fontWeight: '900' },
   vehicleChoiceTextSelected: { color: colors.ink },
   vehicleChoiceMeta: { color: colors.muted, fontSize: 10, textTransform: 'uppercase' },
-  vehicleChoiceMetaSelected: { color: '#57534C' },
+  vehicleChoiceMetaSelected: { color: '#555D61' },
   addVehicle: { ...mobileFrame, minWidth: 142, minHeight: 70, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: colors.ink, padding: spacing.md },
   addVehicleText: { color: colors.white, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   vehicleCard: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
@@ -649,26 +649,26 @@ const styles = StyleSheet.create({
   vehicleImageFrameWide: { width: '48%', aspectRatio: 1.1 },
   fillImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
   exampleImageLabel: { position: 'absolute', right: spacing.sm, bottom: spacing.sm, left: spacing.sm, backgroundColor: 'rgba(0,0,0,.84)', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
-  exampleImageLabelText: { color: colors.cream, fontSize: 8, fontWeight: '900', letterSpacing: .5, textAlign: 'center', textTransform: 'uppercase' },
+  exampleImageLabelText: { color: colors.silver, fontSize: 8, fontWeight: '900', letterSpacing: .5, textAlign: 'center', textTransform: 'uppercase' },
   vehicleDetails: { flex: 1, gap: spacing.md, padding: spacing.lg },
-  primaryLabel: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
+  primaryLabel: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   vehicleName: { color: colors.white, fontSize: 22, fontWeight: '900', lineHeight: 26, textTransform: 'uppercase' },
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   stat: { width: '47%', flexGrow: 1, minWidth: 125, gap: 3, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.sm },
   statLabel: { color: colors.muted, fontSize: 9, fontWeight: '800', letterSpacing: .5, textTransform: 'uppercase' },
   statValue: { color: colors.white, fontSize: 12, fontWeight: '800' },
-  localMaintenanceLabel: { color: colors.gold, fontSize: 9, fontWeight: '900', lineHeight: 14, textTransform: 'uppercase' },
+  localMaintenanceLabel: { color: colors.accent, fontSize: 9, fontWeight: '900', lineHeight: 14, textTransform: 'uppercase' },
   maintenanceCard: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.panel, padding: spacing.lg },
   maintenanceHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   maintenanceHeadingCopy: { flex: 1, gap: spacing.xs },
   maintenanceTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
-  maintenanceBoundary: { color: colors.cream, fontSize: 10, fontWeight: '800', lineHeight: 16 },
+  maintenanceBoundary: { color: colors.silver, fontSize: 10, fontWeight: '800', lineHeight: 16 },
   maintenanceForm: { gap: spacing.md },
   maintenanceDateGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   maintenanceDateField: { flex: 1, minWidth: 180 },
   maintenanceActions: { gap: spacing.sm },
   maintenanceError: { color: '#FF9F91', fontSize: 11, fontWeight: '800', lineHeight: 17 },
-  maintenanceNotice: { color: colors.cream, fontSize: 11, fontWeight: '800', lineHeight: 17 },
+  maintenanceNotice: { color: colors.silver, fontSize: 11, fontWeight: '800', lineHeight: 17 },
   maintenanceExpiry: { color: colors.mutedDark, fontSize: 9, lineHeight: 14 },
   photoSection: { ...mobileFrame, backgroundColor: colors.panel, padding: spacing.lg },
   dynoCard: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
@@ -679,16 +679,16 @@ const styles = StyleSheet.create({
   dynoHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   dynoHeadingCopy: { flex: 1, gap: spacing.xs },
   dynoTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
-  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 16, backgroundColor: colors.cream, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 16, backgroundColor: colors.silver, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   verifiedText: { color: colors.ink, fontSize: 9, fontWeight: '900' },
   resultGrid: { flexDirection: 'row', gap: spacing.sm },
   resultValue: { ...mobileFrame, flex: 1, minWidth: 0, gap: 2, backgroundColor: colors.ink, padding: spacing.md },
   resultLabel: { color: colors.muted, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   resultNumber: { color: colors.white, fontSize: 38, fontWeight: '900', letterSpacing: -1.5, lineHeight: 42 },
-  resultUnit: { color: colors.gold, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  resultUnit: { color: colors.accent, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   resultMeta: { gap: spacing.xs },
   bodyCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
-  readOnly: { color: colors.cream, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+  readOnly: { color: colors.silver, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
   emptyResult: { gap: spacing.xs, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md },
   emptyResultTitle: { color: colors.white, fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
   disclaimer: { color: colors.mutedDark, fontSize: 10, lineHeight: 16 },
@@ -702,7 +702,7 @@ const styles = StyleSheet.create({
   stageList: { gap: spacing.sm },
   stage: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   stageMark: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.mutedDark },
-  stageMarkCurrent: { backgroundColor: colors.gold },
+  stageMarkCurrent: { backgroundColor: colors.accent },
   stageCopy: { flex: 1, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.sm },
   stageTitle: { flex: 1, color: colors.white, fontSize: 11, fontWeight: '800' },
   stageStatus: { color: colors.muted, fontSize: 9, fontWeight: '800', textTransform: 'uppercase' },

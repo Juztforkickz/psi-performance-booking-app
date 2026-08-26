@@ -114,7 +114,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     }
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('psi-bookings', {
-        name: 'PSI bookings', importance: Notifications.AndroidImportance.HIGH, vibrationPattern: [0, 250, 250, 250], lightColor: '#D9B35B', sound: 'default',
+        name: 'PSI bookings', importance: Notifications.AndroidImportance.HIGH, vibrationPattern: [0, 250, 250, 250], lightColor: '#65CFF8', sound: 'default',
       });
     }
     const existing = await Notifications.getPermissionsAsync();

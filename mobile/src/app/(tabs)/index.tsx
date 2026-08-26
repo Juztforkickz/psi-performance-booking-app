@@ -30,14 +30,14 @@ import { SUPABASE_CONNECTION } from '@/lib/supabase';
 import { useThemePreference } from '@/lib/theme-preference';
 
 const DASHBOARD_TILES = {
-  garage: require('../../../assets/images/dashboard/tile-my-garage.jpg'),
-  bookings: require('../../../assets/images/dashboard/tile-my-bookings-v2.jpg'),
-  bookAhead: require('../../../assets/images/dashboard/tile-book-ahead.jpg'),
-  alerts: require('../../../assets/images/dashboard/tile-alerts.jpg'),
-  dyno: require('../../../assets/images/dashboard/tile-hub-dyno-v2.jpg'),
-  reports: require('../../../assets/images/dashboard/tile-vehicle-reports.jpg'),
-  planBuild: require('../../../assets/images/dashboard/tile-plan-build.jpg'),
-  trustedPartners: require('../../../assets/images/dashboard/tile-trusted-partners.jpg'),
+  garage: require('../../../assets/images/dashboard/tile-my-garage-blue-silver.jpg'),
+  bookings: require('../../../assets/images/dashboard/tile-my-bookings-blue-silver.jpg'),
+  bookAhead: require('../../../assets/images/dashboard/tile-book-ahead-blue-silver.jpg'),
+  alerts: require('../../../assets/images/dashboard/tile-alerts-blue-silver.jpg'),
+  dyno: require('../../../assets/images/dashboard/tile-hub-dyno-blue-silver.jpg'),
+  reports: require('../../../assets/images/dashboard/tile-vehicle-reports-blue-silver.jpg'),
+  planBuild: require('../../../assets/images/dashboard/tile-plan-build-blue-silver.jpg'),
+  trustedPartners: require('../../../assets/images/dashboard/tile-trusted-partners-blue-silver.jpg'),
 } as const;
 
 const HOME_TILE_LABELS: Readonly<Record<HomeTileId, string>> = {
@@ -170,13 +170,13 @@ export default function CustomerHomeScreen() {
           style={[
             styles.demoBanner,
             compact && styles.compactFrame,
-            { backgroundColor: activeTheme === 'dark' ? colors.cream : theme.surfaceRaised, borderColor: theme.frame },
+            { backgroundColor: activeTheme === 'dark' ? colors.silver : theme.surfaceRaised, borderColor: theme.frame },
           ]}
         >
           <Text style={[styles.demoTitle, { color: activeTheme === 'dark' ? colors.ink : theme.textInverse }]}>
             {privateQa ? 'PRIVATE QA' : PUBLIC_DEMO.label}
           </Text>
-          <Text style={[styles.demoCopy, { color: activeTheme === 'dark' ? '#464646' : '#5E5A55' }]}>
+          <Text style={[styles.demoCopy, { color: activeTheme === 'dark' ? '#464646' : '#555D61' }]}>
             {privateQa
               ? 'Approved accounts can use protected QA records and booking requests. Public registration and payments remain disabled.'
               : 'Explore the new customer-app direction. Accounts, photos, alerts and submissions remain preview-only.'}
@@ -210,7 +210,7 @@ export default function CustomerHomeScreen() {
         </View>
 
         <View style={styles.intro}>
-          <Text style={[styles.eyebrow, { color: activeTheme === 'dark' ? colors.gold : theme.accent }]}>
+          <Text style={[styles.eyebrow, { color: activeTheme === 'dark' ? colors.accent : theme.accent }]}>
             Good afternoon · Customer preview
           </Text>
           <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact, { color: theme.text }]}>Your PSI app.</Text>
@@ -376,7 +376,7 @@ export default function CustomerHomeScreen() {
             style={[
               styles.qrCard,
               compact && styles.qrCardCompact,
-              { borderColor: theme.frame, backgroundColor: activeTheme === 'dark' ? colors.cream : theme.surfaceRaised },
+              { borderColor: theme.frame, backgroundColor: activeTheme === 'dark' ? colors.silver : theme.surfaceRaised },
             ]}
           >
             <View style={styles.qrImageFrame}>
@@ -389,11 +389,9 @@ export default function CustomerHomeScreen() {
               />
             </View>
             <View style={styles.qrCopy}>
-              <Text style={[styles.qrKicker, { color: activeTheme === 'dark' ? colors.goldDark : '#4A3D2E' }]}>
-                Quick contact
-              </Text>
+              <Text style={styles.qrKicker}>Quick contact</Text>
               <Text style={[styles.qrTitle, { color: activeTheme === 'dark' ? colors.ink : theme.text }]}>Scan to save PSI contact</Text>
-              <Text style={[styles.qrDescription, { color: activeTheme === 'dark' ? '#57534C' : '#5D584F' }]}>
+              <Text style={styles.qrDescription}>
                 Phone, email, workshop address and website in one scan.
               </Text>
             </View>
@@ -667,7 +665,7 @@ function WorkshopFact({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.ink },
   scroll: { width: '100%', maxWidth: 1120, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
-  demoBanner: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.cream, padding: spacing.md },
+  demoBanner: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.silver, padding: spacing.md },
   compactFrame: { padding: spacing.sm },
   demoTitle: { color: colors.ink, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
   demoCopy: { color: '#464646', fontSize: 11, lineHeight: 17 },
@@ -676,13 +674,13 @@ const styles = StyleSheet.create({
   logoBright: { tintColor: colors.ink },
   accountButton: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.white, borderRadius: 23, backgroundColor: colors.white },
   intro: { gap: spacing.xs },
-  eyebrow: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.35, textTransform: 'uppercase' },
+  eyebrow: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.35, textTransform: 'uppercase' },
   title: { color: colors.white, fontSize: 43, fontWeight: '900', letterSpacing: -1.8, lineHeight: 45, textTransform: 'uppercase' },
   titleCompact: { fontSize: 35, letterSpacing: -1.2, lineHeight: 38 },
   lead: { maxWidth: 620, color: colors.muted, fontSize: 14, lineHeight: 21 },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.sm },
   sectionTitle: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .9, textTransform: 'uppercase' },
-  sectionHint: { color: colors.gold, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+  sectionHint: { color: colors.accent, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
   shortcutButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 2, paddingHorizontal: spacing.sm },
   shortcutButtonText: { fontSize: 9, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
   tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
@@ -694,34 +692,34 @@ const styles = StyleSheet.create({
   standardShedLogo: { position: 'absolute', top: '7%', left: '51%', width: '24%', height: '18%', opacity: .58 },
   promiseList: { paddingHorizontal: spacing.md },
   promise: { minHeight: 94, flexDirection: 'row', gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: spacing.md },
-  promiseIndex: { color: colors.gold, fontSize: 10, fontWeight: '900' },
+  promiseIndex: { color: colors.accent, fontSize: 10, fontWeight: '900' },
   promiseCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
   promiseTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
   promiseText: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   contactPanel: { ...mobileFrame, gap: spacing.sm, backgroundColor: colors.panel, padding: spacing.lg },
-  contactKicker: { color: colors.gold, fontSize: 10, fontWeight: '900', letterSpacing: 1.1, textTransform: 'uppercase' },
+  contactKicker: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.1, textTransform: 'uppercase' },
   contactTitle: { color: colors.white, fontSize: 20, fontWeight: '900', textTransform: 'uppercase' },
   workshopFacts: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   workshopFact: { minWidth: 180, flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.sm },
   workshopFactCopy: { flex: 1, minWidth: 0, gap: 2 },
-  workshopFactLabel: { color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
-  workshopFactValue: { color: colors.cream, fontSize: 11, lineHeight: 17 },
+  workshopFactLabel: { color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
+  workshopFactValue: { color: colors.silver, fontSize: 11, lineHeight: 17 },
   contactActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   contactAction: { minHeight: 50, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, ...mobileFrame, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
   contactIconCanvas: { width: 22, height: 22, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   contactActionText: { color: colors.white, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  qrCard: { ...mobileFrame, flexDirection: 'row', alignItems: 'center', gap: spacing.md, overflow: 'hidden', backgroundColor: colors.cream, padding: spacing.md },
+  qrCard: { ...mobileFrame, flexDirection: 'row', alignItems: 'center', gap: spacing.md, overflow: 'hidden', backgroundColor: colors.silver, padding: spacing.md },
   qrCardCompact: { alignItems: 'stretch', flexDirection: 'column' },
   qrImageFrame: { width: 118, aspectRatio: 1, flexShrink: 0, overflow: 'hidden', backgroundColor: colors.white },
   qrImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
   qrCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
-  qrKicker: { color: colors.goldDark, fontSize: 9, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
+  qrKicker: { color: colors.accentDark, fontSize: 9, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   qrTitle: { color: colors.ink, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
-  qrDescription: { color: '#57534C', fontSize: 10, lineHeight: 16 },
+  qrDescription: { color: '#555D61', fontSize: 10, lineHeight: 16 },
   footer: { minHeight: 64, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line },
   footerText: { color: colors.muted, fontSize: 10 },
   footerLinkTarget: { minHeight: 44, justifyContent: 'center' },
-  footerLink: { color: colors.gold, fontSize: 10, fontWeight: '900', textDecorationLine: 'underline', textTransform: 'uppercase' },
+  footerLink: { color: colors.accent, fontSize: 10, fontWeight: '900', textDecorationLine: 'underline', textTransform: 'uppercase' },
   modalSafeArea: { flex: 1, backgroundColor: 'rgba(0,0,0,.82)' },
   modalBackdrop: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md },
   modalSheet: { width: '100%', maxWidth: 560, gap: spacing.md, ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.lg },

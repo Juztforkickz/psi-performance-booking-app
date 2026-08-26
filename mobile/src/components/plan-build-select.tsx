@@ -42,7 +42,7 @@ export function PlanBuildSelect({
         <Text numberOfLines={2} style={[styles.triggerText, !selectedLabel && styles.placeholder]}>
           {selectedLabel ?? placeholder}
         </Text>
-        <Ionicons color={colors.gold} name="chevron-down" size={20} />
+        <Ionicons color={colors.accent} name="chevron-down" size={20} />
       </Pressable>
 
       <Modal
@@ -114,7 +114,7 @@ export function PlanBuildSelect({
 
 const styles = StyleSheet.create({
   field: { gap: spacing.xs },
-  label: { color: colors.cream, fontSize: 10, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
+  label: { color: colors.silver, fontSize: 10, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
   trigger: { ...mobileFrame, minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.ink, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   triggerText: { flex: 1, minWidth: 0, color: colors.white, fontSize: 13, fontWeight: '800', lineHeight: 18 },
   placeholder: { color: colors.muted },
@@ -123,12 +123,12 @@ const styles = StyleSheet.create({
   sheet: { ...mobileFrame, width: '100%', maxWidth: 620, maxHeight: '82%', alignSelf: 'center', backgroundColor: colors.inkSoft },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.line, padding: spacing.md },
   sheetHeadingCopy: { flex: 1, minWidth: 0, gap: 3 },
-  sheetKicker: { color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
+  sheetKicker: { color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   sheetTitle: { color: colors.white, fontSize: 17, fontWeight: '900', textTransform: 'uppercase' },
-  closeButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.cream },
+  closeButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: colors.silver },
   optionList: { gap: spacing.sm, padding: spacing.md, paddingBottom: spacing.xl },
   option: { ...mobileFrame, minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.panel, padding: spacing.md },
-  optionSelected: { backgroundColor: colors.cream },
+  optionSelected: { backgroundColor: colors.silver },
   optionText: { flex: 1, minWidth: 0, color: colors.white, fontSize: 13, fontWeight: '800', lineHeight: 18 },
   optionTextSelected: { color: colors.ink },
   radio: { width: 22, height: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.white, borderRadius: 11 },
