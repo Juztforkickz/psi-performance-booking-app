@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useState, type ComponentProps } from 'react';
 import {
+  Alert,
   Image,
   Linking,
   Pressable,
@@ -131,10 +132,35 @@ function PartnerCard({
 }) {
   const { theme } = useThemePreference();
   const actions: { icon: IoniconName; label: string; url: string }[] = [];
-  if (partner.phoneUrl) {
-    actions.push({ icon: 'call-outline', label: partner.secondaryPhoneUrl ? 'Call 1' : 'Call', url: partner.phoneUrl });
-  }
-  if (partner.secondaryPhoneUrl) actions.push({ icon: 'call-outline', label: 'Call 2', url: partner.secondaryPhoneUrl });
+  const handleCallPress = async () => {
+    if (!partner.phoneUrl) {
+      return;
+    }
+
+    if (!partner.secondaryPhoneUrl) {
+      await onOpenLink(partner.phoneUrl);
+      return;
+    }
+
+    Alert.alert(
+      `Call ${partner.businessName}`,
+      'Select a number to call.',
+      [
+        {
+          onPress: () => void onOpenLink(partner.phoneUrl ?? ''),
+          text: partner.phoneDisplay ?? 'Call 1',
+        },
+        {
+          onPress: () => void onOpenLink(partner.secondaryPhoneUrl ?? ''),
+          text: partner.secondaryPhoneDisplay ?? 'Call 2',
+        },
+        { style: 'cancel', text: 'Cancel' },
+      ],
+      { cancelable: true },
+    );
+  };
+
+  if (partner.phoneUrl) actions.push({ icon: 'call-outline', label: 'Call', url: partner.phoneUrl });
   if (partner.emailUrl) actions.push({ icon: 'mail-outline', label: 'Email', url: partner.emailUrl });
   if (partner.websiteUrl) actions.push({ icon: 'globe-outline', label: 'Website', url: partner.websiteUrl });
   if (partner.instagramUrl) actions.push({ icon: 'logo-instagram', label: 'Instagram', url: partner.instagramUrl });
@@ -177,7 +203,14 @@ function PartnerCard({
             accessibilityLabel={`${action.label} ${partner.businessName}`}
             accessibilityRole="link"
             key={action.label}
-            onPress={() => void onOpenLink(action.url)}
+            onPress={() => {
+              if (action.label === 'Call') {
+                void handleCallPress();
+                return;
+              }
+
+              void onOpenLink(action.url);
+            }}
             style={({ pressed }) => [
               styles.action,
               { backgroundColor: theme.surfaceRaised, borderColor: theme.frame },
