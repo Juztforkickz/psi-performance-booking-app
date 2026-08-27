@@ -26,8 +26,18 @@ const PARTNER_LOGOS: Readonly<Record<string, ImageSourcePropType>> = {
   'elite-autobody': require('../../assets/images/partners/elite-autobody.jpg'),
   'kng-tow': require('../../assets/images/partners/kng-tow.jpg'),
   'eye-candy': require('../../assets/images/partners/eye-candy.jpg'),
-  'luxe-interiors': require('../../assets/images/partners/luxe-interiors.jpg'),
+  'bnb-autohaus': require('../../assets/images/partners/bnb-autohaus.jpg'),
   'elite-detailing': require('../../assets/images/partners/elite-detailing.jpg'),
+};
+
+const PARTNER_LOGO_SCALES: Readonly<Record<string, number>> = {
+  'dark-side-film': 1.54,
+  'race-wires': 1.43,
+  'elite-autobody': 1.28,
+  'kng-tow': 1.5,
+  'eye-candy': 1.29,
+  'bnb-autohaus': 1.02,
+  'elite-detailing': 1.22,
 };
 
 export default function TrustedPartnersScreen() {
@@ -134,7 +144,10 @@ function PartnerCard({
             accessibilityLabel={`${partner.businessName} logo`}
             resizeMode="cover"
             source={logo}
-            style={[styles.logo, partner.id === 'kng-tow' && styles.kngTowLogo]}
+            style={[
+              styles.logo,
+              { transform: [{ scale: PARTNER_LOGO_SCALES[partner.id] ?? 1 }] },
+            ]}
           />
         </View>
         <View style={styles.partnerHeading}>
@@ -206,7 +219,6 @@ const styles = StyleSheet.create({
   partnerTopCompact: { alignItems: 'flex-start' },
   logoFrame: { width: 92, height: 92, flexShrink: 0, overflow: 'hidden', borderWidth: 2, borderRadius: 46, backgroundColor: colors.ink },
   logo: { width: '100%', height: '100%' },
-  kngTowLogo: { transform: [{ scale: 1.5 }] },
   partnerHeading: { flex: 1, minWidth: 0, gap: 3 },
   partnerIndex: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   category: { fontSize: 10, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },

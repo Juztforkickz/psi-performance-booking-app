@@ -33,7 +33,7 @@ The signed internal Android QA APK build `be1e5a7d-96f1-4fe3-8a44-0bbe400fd4ab` 
 4. Run controlled two-customer isolation and staff AAL1/AAL2 regression checks after every Auth, RLS or policy change.
 5. Exercise date proposal, date approval and cancellation emails, including duplicate-worker and Melbourne-time boundary checks. Do not move any request to paid or confirmed state.
 6. Acceptance-test the documented account-deletion completion procedure with a synthetic identity, approve the retention schedule and decide on Supabase backup/capacity before real customer records are invited.
-7. Reconfirm retained Trusted Partner contact details immediately before store submission, and approve final app-store privacy disclosures, signed-build screenshots and customer-facing terms. Partner listing and logo approval is complete for the seven retained businesses.
+7. Confirm the new BNB Autohaus listing and logo, reconfirm all retained Trusted Partner contact details immediately before store submission, and approve final app-store privacy disclosures, signed-build screenshots and customer-facing terms. Listing and logo approval remains complete for the six continuing businesses.
 8. Obtain PSI-owned Apple Developer and Google Play Console memberships before signed store testing and release.
 
 The exact owner deletion procedure is in `ACCOUNT-DELETION.md`. The consolidated launch gates are in `FINAL-RELEASE-CHECKLIST.md`.
@@ -75,10 +75,12 @@ no Calendar job and no Calendar event. No payment was taken.
 
 Public-source checks reconfirmed the listed details for Elite Autobody, Race
 Wires Auto Electrics, Elite Car Detailing Studio and EyeCandy Motorsports.
-Luxe Automotive Interiors' supplied address and phone are corroborated by its
-public business listing. On 27 August 2026, the PSI owner confirmed approval
-from all seven retained Trusted Partners for their listings and logos. Raceline
-Motorsport Racewear was removed because its approval was not available.
+On 27 August 2026, the PSI owner confirmed approval from the six continuing
+Trusted Partners for their listings and logos. Raceline Motorsport Racewear was
+removed because its approval was not available. BNB Autohaus then replaced Luxe
+Automotive Interiors at the owner's request; BNB's official website confirms
+the listed address, phone and email. Direct BNB confirmation remains outstanding
+before store submission.
 
 ## Deliberately last
 
