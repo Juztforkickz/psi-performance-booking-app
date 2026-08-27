@@ -25,7 +25,6 @@ const PARTNER_LOGOS: Readonly<Record<string, ImageSourcePropType>> = {
   'race-wires': require('../../assets/images/partners/race-wires.jpg'),
   'elite-autobody': require('../../assets/images/partners/elite-autobody.jpg'),
   'kng-tow': require('../../assets/images/partners/kng-tow.jpg'),
-  raceline: require('../../assets/images/partners/raceline.jpg'),
   'eye-candy': require('../../assets/images/partners/eye-candy.jpg'),
   'luxe-interiors': require('../../assets/images/partners/luxe-interiors.jpg'),
   'elite-detailing': require('../../assets/images/partners/elite-detailing.jpg'),
@@ -135,7 +134,7 @@ function PartnerCard({
             accessibilityLabel={`${partner.businessName} logo`}
             resizeMode="cover"
             source={logo}
-            style={styles.logo}
+            style={[styles.logo, partner.id === 'kng-tow' && styles.kngTowLogo]}
           />
         </View>
         <View style={styles.partnerHeading}>
@@ -207,6 +206,7 @@ const styles = StyleSheet.create({
   partnerTopCompact: { alignItems: 'flex-start' },
   logoFrame: { width: 92, height: 92, flexShrink: 0, overflow: 'hidden', borderWidth: 2, borderRadius: 46, backgroundColor: colors.ink },
   logo: { width: '100%', height: '100%' },
+  kngTowLogo: { transform: [{ scale: 1.5 }] },
   partnerHeading: { flex: 1, minWidth: 0, gap: 3 },
   partnerIndex: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   category: { fontSize: 10, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },

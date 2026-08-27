@@ -61,18 +61,6 @@ const PARTNERS: readonly TrustedPartner[] = [
     instagramUrl: 'https://www.instagram.com/kng_tow_haulage/',
   },
   {
-    id: 'raceline',
-    category: 'Motorsport Apparel',
-    businessName: 'Raceline Motorsport Racewear',
-    summary: 'Motorsport and karting racewear, helmets, safety equipment and custom race suits.',
-    phoneDisplay: '0428 887 223',
-    phoneUrl: 'tel:+61428887223',
-    email: 'sales@raceline-racewear.com.au',
-    emailUrl: 'mailto:sales@raceline-racewear.com.au',
-    websiteUrl: 'https://raceline-racewear.com.au/',
-    instagramUrl: 'https://www.instagram.com/racelinemr/',
-  },
-  {
     id: 'eye-candy',
     category: 'Vinyl Wrapping & PPF',
     businessName: 'EyeCandy Motorsports Melbourne',

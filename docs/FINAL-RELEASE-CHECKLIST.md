@@ -35,8 +35,11 @@ Status: controlled QA, 25 August 2026. Payments are deliberately last.
   logical-backup procedure for controlled QA.
 - [ ] Upgrade before external onboarding, confirm scheduled backup retention and
   complete a separate-environment restore rehearsal.
-- [ ] Reconfirm every Trusted Partner listing, logo and public contact detail
-  with that business.
+- [x] Confirm approval for every retained Trusted Partner listing and logo.
+  Owner confirmation was recorded on 27 August 2026; Raceline was removed
+  because its approval was not available.
+- [ ] Reconfirm each retained partner's public contact details immediately before
+  store submission.
 - [x] Prepare App Store/Google Play disclosure drafts, public support/privacy/
   deletion URLs and validate the existing Apple-size screenshot pack.
 - [ ] Approve final disclosures and recapture screenshots from the signed release
