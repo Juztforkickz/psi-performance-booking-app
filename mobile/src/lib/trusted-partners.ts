@@ -6,6 +6,8 @@ export type TrustedPartner = {
   emailUrl?: string;
   id: string;
   instagramUrl?: string;
+  secondaryPhoneDisplay?: string;
+  secondaryPhoneUrl?: string;
   phoneDisplay?: string;
   phoneUrl?: string;
   summary: string;
@@ -56,6 +58,8 @@ const PARTNERS: readonly TrustedPartner[] = [
     summary: 'Vehicle towing and transport for prestige, trade, machinery and breakdown work.',
     phoneDisplay: '0438 888 575',
     phoneUrl: 'tel:+61438888575',
+    secondaryPhoneDisplay: '0499 513 659',
+    secondaryPhoneUrl: 'tel:+61499513659',
     email: 'kngtowhaulage@gmail.com',
     emailUrl: 'mailto:kngtowhaulage@gmail.com',
     instagramUrl: 'https://www.instagram.com/kng_tow_haulage/',

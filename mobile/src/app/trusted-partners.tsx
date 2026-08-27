@@ -131,7 +131,10 @@ function PartnerCard({
 }) {
   const { theme } = useThemePreference();
   const actions: { icon: IoniconName; label: string; url: string }[] = [];
-  if (partner.phoneUrl) actions.push({ icon: 'call-outline', label: 'Call', url: partner.phoneUrl });
+  if (partner.phoneUrl) {
+    actions.push({ icon: 'call-outline', label: partner.secondaryPhoneUrl ? 'Call 1' : 'Call', url: partner.phoneUrl });
+  }
+  if (partner.secondaryPhoneUrl) actions.push({ icon: 'call-outline', label: 'Call 2', url: partner.secondaryPhoneUrl });
   if (partner.emailUrl) actions.push({ icon: 'mail-outline', label: 'Email', url: partner.emailUrl });
   if (partner.websiteUrl) actions.push({ icon: 'globe-outline', label: 'Website', url: partner.websiteUrl });
   if (partner.instagramUrl) actions.push({ icon: 'logo-instagram', label: 'Instagram', url: partner.instagramUrl });
@@ -162,6 +165,9 @@ function PartnerCard({
       <View style={[styles.details, { borderTopColor: theme.border }]}>
         {partner.address ? <PartnerDetail icon="location-outline" value={partner.address} /> : null}
         {partner.phoneDisplay ? <PartnerDetail icon="call-outline" value={partner.phoneDisplay} /> : null}
+        {partner.secondaryPhoneDisplay ? (
+          <PartnerDetail icon="call-outline" value={partner.secondaryPhoneDisplay} />
+        ) : null}
         {partner.email ? <PartnerDetail icon="mail-outline" value={partner.email} /> : null}
       </View>
 
