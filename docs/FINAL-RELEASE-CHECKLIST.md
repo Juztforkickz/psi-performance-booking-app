@@ -1,6 +1,6 @@
 # Final release checklist
 
-Status: controlled QA, 25 August 2026. Payments are deliberately last.
+Status: controlled QA, 29 August 2026. Payments are deliberately last.
 
 ## Ready in controlled QA
 
@@ -20,8 +20,11 @@ Status: controlled QA, 25 August 2026. Payments are deliberately last.
 - [x] Obtain an active D&B record for **PSI PERFORMANCE PTY LTD**. D-U-N-S
   status was confirmed on 29 August 2026; the identifier is intentionally not
   stored in the public repository.
-- [ ] Complete Apple Developer Program organisation enrolment through the Apple
-  Developer app and confirm the displayed seller name.
+- [x] Submit Apple Developer Program organisation enrolment through the Apple
+  Developer app. Apple review began on 29 August 2026; private enrolment and
+  D-U-N-S identifiers are intentionally excluded from the repository.
+- [ ] Receive Apple approval, pay/activate the membership and confirm the
+  displayed seller name is **PSI PERFORMANCE PTY LTD**.
 - [x] Exercise the ordered database deletion path against QATEST1 in a
   rollback-only transaction and confirm the synthetic account remains intact.
 - [ ] Complete signed-native deletion acceptance with a disposable account and
@@ -48,6 +51,10 @@ Status: controlled QA, 25 August 2026. Payments are deliberately last.
   store submission.
 - [x] Prepare App Store/Google Play disclosure drafts, public support/privacy/
   deletion URLs and validate the existing Apple-size screenshot pack.
+- [x] Scope the first Apple release to iPhone only. iPad remains disabled until
+  its own native layout, screenshot and acceptance pass is complete.
+- [x] Draft the current Apple age-rating, privacy, App Review login and listing
+  responses without storing review credentials in the repository.
 - [ ] Approve final disclosures and recapture screenshots from the signed release
   build after confirming legal entity details.
 - [x] Close the final booking lifecycle data-cleanliness item.

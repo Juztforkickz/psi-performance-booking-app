@@ -20,7 +20,7 @@ test('Home shortcuts expose every tile and persist only a device-local identifie
   assert.doesNotMatch(preferences, /fetch|EXPO_PUBLIC_API_BASE_URL|customer|booking draft|vehicleId/iu);
 });
 
-test('Trusted Partners is a public referral directory with eight shortest-first categories', async () => {
+test('Trusted Partners is a public referral directory with seven approved shortest-first categories', async () => {
   const [partners, screen] = await Promise.all([
     read('../mobile/src/lib/trusted-partners.ts'),
     read('../mobile/src/app/trusted-partners.tsx'),
@@ -30,14 +30,15 @@ test('Trusted Partners is a public referral directory with eight shortest-first 
     'Auto Electrical',
     'Paint & Bodywork',
     'Window Tinting',
-    'Motorsport Apparel',
     'Towing & Transport',
     'Vinyl Wrapping & PPF',
-    'Upholstery & Interior Work',
+    'Luxury Interiors & Customisation',
     'Detailing & Ceramic Coating',
   ];
   for (const category of categories) assert.match(partners, new RegExp(`category: '${category}'`, 'u'));
-  assert.equal((partners.match(/id: '/gu) ?? []).length, 8);
+  assert.equal((partners.match(/id: '/gu) ?? []).length, 7);
+  assert.doesNotMatch(partners, /raceline|Motorsport Apparel/iu);
+  assert.match(partners, /id: 'bnb-autohaus',[^]*businessName: 'BNB Autohaus'/u);
   assert.match(partners, /left\.category\.length - right\.category\.length/u);
   assert.match(partners, /id: 'dark-side-film',[\s\S]*phoneDisplay: '0426 246 001',[\s\S]*phoneUrl: 'tel:\+61426246001'/u);
   assert.match(partners, /id: 'eye-candy',[\s\S]*phoneDisplay: '0414 544 317',[\s\S]*phoneUrl: 'tel:\+61414544317'/u);

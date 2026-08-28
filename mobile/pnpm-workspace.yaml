@@ -3,7 +3,13 @@ allowBuilds:
 minimumReleaseAgeExclude:
   - '@expo/image-utils@0.11.5'
   - '@expo/require-utils@57.0.5'
-  - expo-constants@57.0.14
+  - expo-constants@57.0.14 || 57.0.16
   - expo-notifications@57.0.14
+  - '@expo/cli@57.0.20'
+  - '@expo/env@2.4.3'
+  - '@expo/fingerprint@0.20.11'
+  - '@expo/metro-config@57.0.12'
+  - expo-font@57.0.2
+  - expo@57.0.18
 onlyBuiltDependencies:
   - unrs-resolver

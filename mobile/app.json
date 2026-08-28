@@ -8,7 +8,7 @@
     "scheme": "psiperformance",
     "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.psiperformance.booking",
       "buildNumber": "1",
       "icon": "./assets/images/psi-app-icon-1024.png",

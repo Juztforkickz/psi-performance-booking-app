@@ -1,6 +1,6 @@
 # PSI Performance store release package
 
-Status: metadata and disclosure draft, 25 August 2026. Do not submit until the
+Status: metadata and disclosure draft, 29 August 2026. Do not submit until the
 signed release build and final owner/legal checks are complete.
 
 ## App identity
@@ -14,6 +14,7 @@ signed release build and final owner/legal checks are complete.
 - Workshop supplier wording: **Matthew Ebert trading as PSI Performance**
 - Primary category: **Business**
 - Secondary/category description: **Automotive customer and workshop services**
+- First Apple release devices: **iPhone only**
 - Price: **Free**
 - Paid digital products/subscriptions: **None**
 - Support email: `info@psiperformance.com.au`
@@ -50,6 +51,42 @@ search history, health, fitness, advertising data or payment-card details: the
 current release does not collect them. Review every SDK and the signed binary
 again before certifying the form.
 
+Recommended purpose selections in App Store Connect:
+
+- **App Functionality:** all listed categories;
+- **Account Management:** contact information, account identifier, vehicle and
+  workshop history;
+- **Developer Communications:** contact information and booking/request text;
+- **Fraud Prevention, Security and Compliance:** account identifier and opted-in
+  push-device registration; and
+- **Advertising, third-party advertising and analytics:** none.
+
+The release has no third-party advertising, IDFA use, cross-app tracking,
+contact-book access, precise location collection or payment-card collection.
+Supabase, Resend, Expo and Google Calendar are service providers used to operate
+the customer service; their final production terms and SDK behaviour must still
+be rechecked when the signed binary is uploaded.
+
+## Apple age-rating draft
+
+Use these conservative answers in the current App Store Connect questionnaire,
+then confirm the generated rating before submission:
+
+| Capability/content | Draft answer |
+| --- | --- |
+| Parental controls / age assurance | No |
+| User-generated content | Yes — private vehicle photos and customer-entered booking/build text |
+| Messaging or chat | No — there is no in-app person-to-person chat |
+| Advertising | No |
+| Unrestricted web access | No — only controlled external support/partner links |
+| Social media capabilities | No |
+| Mature, sexual, violent, horror, medical or drug content | None |
+| Gambling, contests or loot boxes | None |
+
+The private customer content answer is deliberately conservative even though
+customers cannot publish content to other customers. The expected result is a
+low age rating, but App Store Connect is the authority for the final result.
+
 ## Google Play Data safety draft
 
 - Data collected: **Yes**
@@ -78,6 +115,16 @@ for the final declaration even when an SDK supplies guidance.
 ## Listing copy
 
 **Apple subtitle:** Your PSI vehicle workspace
+
+**Apple promotional text:** Your secure PSI customer workspace for vehicles,
+bookings, workshop history, dyno results and future build planning.
+
+**Apple keywords:** PSI Performance,car service,dyno,vehicle,booking,workshop,build plan
+
+**Copyright:** © 2026 PSI PERFORMANCE PTY LTD
+
+**Release method:** Manually release this version after PSI completes the final
+signed-build acceptance pass.
 
 **Google short description:** Your PSI vehicle history, visits, reports and next plan in one place.
 
@@ -111,6 +158,12 @@ QA marketing drafts; recapture them from the final signed native build after
 iPhone/Android acceptance testing so store imagery exactly matches the submitted
 binary and recheck Play Console's then-current rules before upload.
 
+The first Apple release is explicitly iPhone-only in `mobile/app.json`.
+Therefore an iPad screenshot set is not required for this release. Do not enable
+iPad support until PSI has completed a separate native iPad layout, screenshot
+and acceptance pass. Upload the opaque JPEG copies, not the current Apple PNG
+drafts, because those PNG files contain an alpha channel.
+
 Draft captions:
 
 1. **YOUR PSI APP** — Your vehicles, visits and next plan in one place.
@@ -119,16 +172,41 @@ Draft captions:
 4. **BOOKINGS** — See upcoming and previous PSI workshop visits.
 5. **PLAN & BUILD** — Shape a staged conversation around your vehicle goals.
 
+## App Review access draft
+
+Create a dedicated synthetic customer account shortly before submission. Do not
+put its credentials, mailbox password or live email code in this repository.
+Enter the review email directly into App Store Connect and provide access to a
+dedicated review mailbox so Apple can retrieve a fresh one-time code. The
+customer account should remain active and contain only synthetic vehicle and
+workshop data.
+
+Suggested review notes (replace every bracketed field in App Store Connect):
+
+> This app uses passwordless email-code authentication. On the sign-in screen,
+> enter [DEDICATED REVIEW EMAIL], request a code, then retrieve the current
+> six-digit code from the dedicated review mailbox using the credentials
+> supplied in the App Review sign-in fields/notes. New public registration is
+> intentionally disabled; the review account is already active and does not
+> expire. It contains synthetic customer and vehicle information only. Staff
+> functions are not required to review the customer app and remain restricted
+> to PSI's owner with authenticator MFA. Booking requests enter PSI review and
+> do not take payment or create a confirmed appointment.
+
+Also complete the App Review contact name, monitored phone number in
+international format, and `info@psiperformance.com.au`. Test the supplied review
+mailbox from a clean device immediately before submission.
+
 ## Still requires owner action
 
-- Complete Apple organisation enrolment in the Apple Developer app and confirm
-  the displayed seller name. Web enrolment is unavailable for the signed-in
-  Apple Account; the active D&B record may take up to two business days to
-  propagate to Apple.
+- Wait for Apple to approve the organisation enrolment submitted on 29 August
+  2026, pay/activate the membership when invited, and confirm the displayed
+  seller name is **PSI PERFORMANCE PTY LTD**. Keep the enrolment identifier and
+  D-U-N-S number outside the public repository.
 - Create or verify the Google Play organisation/developer account.
-- Decide supported territories and final age-rating answers.
-- Supply store-review credentials for a dedicated synthetic account and explain
-  the email-code plus Matt-only staff separation in review notes.
+- Decide supported territories and confirm the drafted age-rating answers.
+- Create the dedicated synthetic App Review account/mailbox and enter its
+  credentials only in App Store Connect.
 - Reconfirm the legal entity/ABN, privacy wording and retention schedule with
   PSI's accountant or legal adviser.
 - Approve every screenshot, partner mark and manufacturer/platform mark before
