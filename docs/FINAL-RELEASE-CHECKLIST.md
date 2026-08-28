@@ -17,6 +17,11 @@ Status: controlled QA, 25 August 2026. Payments are deliberately last.
 
 ## Required before inviting external customers
 
+- [x] Obtain an active D&B record for **PSI PERFORMANCE PTY LTD**. D-U-N-S
+  status was confirmed on 29 August 2026; the identifier is intentionally not
+  stored in the public repository.
+- [ ] Complete Apple Developer Program organisation enrolment through the Apple
+  Developer app and confirm the displayed seller name.
 - [x] Exercise the ordered database deletion path against QATEST1 in a
   rollback-only transaction and confirm the synthetic account remains intact.
 - [ ] Complete signed-native deletion acceptance with a disposable account and

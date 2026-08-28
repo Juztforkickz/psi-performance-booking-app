@@ -8,6 +8,7 @@ signed release build and final owner/legal checks are complete.
 - App name: **PSI Performance**
 - Bundle/application ID: `com.psiperformance.booking`
 - Apple seller organisation requested: **PSI PERFORMANCE PTY LTD**
+- D-U-N-S status: **Active D&B record confirmed by the owner on 29 August 2026**
 - Company ACN: **175 164 626** — owner-confirmed; recheck against current ASIC documentation during enrolment
 - Company ABN: **98 175 164 626** — owner-confirmed; recheck against current ABR documentation during enrolment
 - Workshop supplier wording: **Matthew Ebert trading as PSI Performance**
@@ -120,7 +121,10 @@ Draft captions:
 
 ## Still requires owner action
 
-- Complete Apple organisation enrolment and confirm the displayed seller name.
+- Complete Apple organisation enrolment in the Apple Developer app and confirm
+  the displayed seller name. Web enrolment is unavailable for the signed-in
+  Apple Account; the active D&B record may take up to two business days to
+  propagate to Apple.
 - Create or verify the Google Play organisation/developer account.
 - Decide supported territories and final age-rating answers.
 - Supply store-review credentials for a dedicated synthetic account and explain

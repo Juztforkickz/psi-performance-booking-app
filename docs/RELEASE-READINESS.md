@@ -2,6 +2,13 @@
 
 Status: controlled QA, 25 August 2026. Payments remain deliberately deferred.
 
+On 29 August 2026, D&B confirmed an active D-U-N-S record for
+**PSI PERFORMANCE PTY LTD**. The identifier is intentionally not stored in the
+public repository. Apple organisation enrolment remains incomplete
+and must be continued through the Apple Developer app for the signed-in PSI
+Apple Account; Apple may require up to two business days to receive the new D&B
+record.
+
 ## Verified foundation
 
 - The Sydney Supabase project supplies passwordless email authentication, customer-owned records, private file buckets and row-level security.
@@ -34,7 +41,10 @@ The signed internal Android QA APK build `be1e5a7d-96f1-4fe3-8a44-0bbe400fd4ab` 
 5. Exercise date proposal, date approval and cancellation emails, including duplicate-worker and Melbourne-time boundary checks. Do not move any request to paid or confirmed state.
 6. Acceptance-test the documented account-deletion completion procedure with a synthetic identity, approve the retention schedule and decide on Supabase backup/capacity before real customer records are invited.
 7. Confirm the new BNB Autohaus listing and logo, reconfirm all retained Trusted Partner contact details immediately before store submission, and approve final app-store privacy disclosures, signed-build screenshots and customer-facing terms. Listing and logo approval remains complete for the six continuing businesses.
-8. Obtain PSI-owned Apple Developer and Google Play Console memberships before signed store testing and release.
+8. Complete the PSI-owned Apple Developer organisation enrolment and obtain the
+   Google Play Console membership before signed store testing and release. The
+   PSI D-U-N-S record is now active; Apple membership and its associated signing
+   access are not yet active.
 
 The exact owner deletion procedure is in `ACCOUNT-DELETION.md`. The consolidated launch gates are in `FINAL-RELEASE-CHECKLIST.md`.
 
