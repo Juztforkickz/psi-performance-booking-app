@@ -2,9 +2,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useState, type ComponentProps } from 'react';
 import {
-  Alert,
   Image,
   Linking,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -131,6 +131,7 @@ function PartnerCard({
   partner: TrustedPartner;
 }) {
   const { theme } = useThemePreference();
+  const [showPhonePicker, setShowPhonePicker] = useState(false);
   const actions: { icon: IoniconName; label: string; url: string }[] = [];
   const handleCallPress = async () => {
     if (!partner.phoneUrl) {
@@ -142,22 +143,12 @@ function PartnerCard({
       return;
     }
 
-    Alert.alert(
-      `Call ${partner.businessName}`,
-      'Select a number to call.',
-      [
-        {
-          onPress: () => void onOpenLink(partner.phoneUrl ?? ''),
-          text: partner.phoneDisplay ?? 'Call 1',
-        },
-        {
-          onPress: () => void onOpenLink(partner.secondaryPhoneUrl ?? ''),
-          text: partner.secondaryPhoneDisplay ?? 'Call 2',
-        },
-        { style: 'cancel', text: 'Cancel' },
-      ],
-      { cancelable: true },
-    );
+    setShowPhonePicker(true);
+  };
+
+  const callSelectedNumber = (url: string) => {
+    setShowPhonePicker(false);
+    void onOpenLink(url);
   };
 
   if (partner.phoneUrl) actions.push({ icon: 'call-outline', label: 'Call', url: partner.phoneUrl });
@@ -222,6 +213,67 @@ function PartnerCard({
           </Pressable>
         ))}
       </View>
+
+      <Modal
+        animationType="fade"
+        onRequestClose={() => setShowPhonePicker(false)}
+        transparent
+        visible={showPhonePicker}
+      >
+        <View style={styles.phonePickerBackdrop}>
+          <View
+            accessibilityLabel={`Select a number to call ${partner.businessName}`}
+            accessibilityRole="alert"
+            style={[styles.phonePicker, { backgroundColor: theme.surface, borderColor: theme.frame }]}
+          >
+            <Text style={[styles.phonePickerEyebrow, { color: theme.accent }]}>Select a number</Text>
+            <Text style={[styles.phonePickerTitle, { color: theme.text }]}>Call {partner.businessName}</Text>
+
+            <View style={styles.phonePickerActions}>
+              {partner.phoneUrl && partner.phoneDisplay ? (
+                <Pressable
+                  accessibilityLabel={`Call ${partner.phoneDisplay}`}
+                  accessibilityRole="button"
+                  onPress={() => callSelectedNumber(partner.phoneUrl ?? '')}
+                  style={({ pressed }) => [
+                    styles.phonePickerButton,
+                    { backgroundColor: theme.surfaceRaised, borderColor: theme.frame },
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Ionicons color={theme.accent} name="call-outline" size={20} />
+                  <Text style={[styles.phonePickerNumber, { color: theme.text }]}>{partner.phoneDisplay}</Text>
+                </Pressable>
+              ) : null}
+
+              {partner.secondaryPhoneUrl && partner.secondaryPhoneDisplay ? (
+                <Pressable
+                  accessibilityLabel={`Call ${partner.secondaryPhoneDisplay}`}
+                  accessibilityRole="button"
+                  onPress={() => callSelectedNumber(partner.secondaryPhoneUrl ?? '')}
+                  style={({ pressed }) => [
+                    styles.phonePickerButton,
+                    { backgroundColor: theme.surfaceRaised, borderColor: theme.frame },
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Ionicons color={theme.accent} name="call-outline" size={20} />
+                  <Text style={[styles.phonePickerNumber, { color: theme.text }]}>{partner.secondaryPhoneDisplay}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+
+            <Pressable
+              accessibilityLabel="Cancel calling"
+              accessibilityRole="button"
+              onPress={() => setShowPhonePicker(false)}
+              style={({ pressed }) => [styles.phonePickerCancel, pressed && styles.pressed]}
+            >
+              <Text style={[styles.phonePickerCancelText, { color: theme.textMuted }]}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -269,6 +321,15 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   action: { minWidth: 116, minHeight: 46, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, borderWidth: 2, paddingHorizontal: spacing.sm },
   actionText: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  phonePickerBackdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, .72)', padding: spacing.lg },
+  phonePicker: { ...mobileFrame, width: '100%', maxWidth: 420, gap: spacing.sm, borderWidth: 2, padding: spacing.lg },
+  phonePickerEyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 1.1, textTransform: 'uppercase' },
+  phonePickerTitle: { fontSize: 21, fontWeight: '900', lineHeight: 25, textTransform: 'uppercase' },
+  phonePickerActions: { gap: spacing.sm, paddingTop: spacing.xs },
+  phonePickerButton: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderWidth: 2, paddingHorizontal: spacing.md },
+  phonePickerNumber: { fontSize: 15, fontWeight: '900' },
+  phonePickerCancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  phonePickerCancelText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   footerNote: { fontSize: 10, lineHeight: 16, paddingBottom: spacing.md },
   pressed: { opacity: .72 },
 });
