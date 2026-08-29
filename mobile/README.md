@@ -176,3 +176,26 @@ One-time owner setup:
 6. Add the deployed `EXPO_PUBLIC_API_BASE_URL` only to a later reviewed production environment.
 
 Production still requires the deployed HTTPS API, payment provider and signed webhook, receipt/email workflow, explicitly authorised PSI calendar, single-owner staff authentication, managed customer identity, approved privacy/booking/deposit terms, and Apple/Google developer accounts.
+
+## Over-the-air updates
+
+Native builds use EAS Update with `runtimeVersion` tied to the app version. The
+three build profiles are isolated on separate channels:
+
+- `preview` for submission-disabled internal previews;
+- `qa` for signed authenticated device testing; and
+- `production` for a future App Store and Play Store release.
+
+Publish JavaScript, styling and bundled-asset changes to QA first from a clean,
+pushed checkpoint:
+
+```bash
+pnpm dlx eas-cli update --channel qa --environment preview --message "Describe the QA update"
+```
+
+Do not publish directly to `production`. After the exact checkpoint has passed
+signed-device acceptance, publish that same clean commit with the production
+environment. Native dependency, permission, app-icon, splash, signing and other
+native configuration changes require a new signed build rather than an OTA
+update. A newly installed build checks its own channel and compatible runtime;
+it cannot receive updates from either of the other channels.

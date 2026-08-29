@@ -3,6 +3,12 @@
     "name": "PSI",
     "slug": "matt-psi",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/e62e9cdf-867c-4eb7-b8c5-a2610f969286"
+    },
     "orientation": "default",
     "icon": "./assets/images/psi-app-icon-1024.png",
     "scheme": "psiperformance",
