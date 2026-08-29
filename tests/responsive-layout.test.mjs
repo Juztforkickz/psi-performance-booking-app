@@ -72,7 +72,7 @@ test("uses one native responsive contract across every customer screen", async (
   ]);
 
   assert.match(appConfig, /"orientation":\s*"default"/);
-  assert.match(appConfig, /"name":\s*"PSI Garage"/);
+  assert.match(appConfig, /"name":\s*"PSI"/);
   assert.match(appConfig, /"softwareKeyboardLayoutMode":\s*"resize"/);
   assert.match(hook, /useWindowDimensions\(\)/);
   assert.match(hook, /fontScale/);

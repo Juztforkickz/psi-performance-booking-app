@@ -138,13 +138,13 @@ The direction intentionally avoids flames, chequered flags, speed streaks and ge
 
 ### App-store identity pack
 
-On **23 August 2026**, the app-store identity pack under `artifacts/PSI APP/` was prepared from the approved PSI artwork. The launcher icon uses the PSI letterform alone on solid carbon black so it remains legible at small sizes; the `PERFORMANCE GARAGE` subtitle remains in the native splash and store feature artwork. The active Expo icon, Android adaptive foreground and splash configuration were updated from the same deterministic source artwork by `scripts/Generate-PsiStoreAssets.ps1`.
+On **23 August 2026**, the app-store identity pack under `artifacts/PSI APP/` was prepared from the approved PSI artwork. On **29 August 2026**, the launcher icon was refined with the built-in ImageGen editor from `mobile/assets/images/psi-brand-source-1024.png`: the PSI mark was retained, the lower wording was changed from `PERFORMANCE GARAGE` to the single word `PERFORMANCE`, and the result was centred inside launcher safe margins. The final output was resized to the required store, native and web icon dimensions and visually checked. The native splash remains unchanged.
 
 The Google Play feature-graphic background was generated with the built-in ImageGen tool from a text-only prompt requesting a generic black performance sedan in a dark premium workshop, with no text, people, logos, numberplate or manufacturer badge. The approved PSI logo and final tagline were composited locally afterward. The generated car/background is marketing artwork rather than PSI workshop photography and remains subject to owner and ordinary legal/store review.
 
 | File | Use | SHA-256 |
 | --- | --- | --- |
-| `psi-app-icon-1024.png` | Apple/native/web icon master | `36B36811C433C280A5EFEA69E200FB70633F9AA6E3F2D0CF21737A2F68737C9F` |
+| `psi-app-icon-1024.png` | Apple/native/web icon master | `2A66C816739F24B47729E793FC088D98A3AA062CB59D2B3342C6CF777740E920` |
 | `psi-splash-logo-1200x500.png` | Transparent approved PSI splash artwork | `07DB3AA50F70B71F9A5F3B93B496CA2FC708834420B827B05DA47CD9B2EDB300` |
 | `google-play-feature-graphic-1024x500.png` | Google Play marketing feature graphic | `8CFF4A0C2E6D2D67AAA0B238C9100BC1667F8E9115422DC39AC4B22472054C6C` |
 

@@ -21,7 +21,7 @@ const installHead = `<!-- PSI_INSTALL_METADATA_START -->
 <meta name="theme-color" content="#050505" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-<meta name="apple-mobile-web-app-title" content="PSI Performance" />
+<meta name="apple-mobile-web-app-title" content="PSI" />
 <link rel="apple-touch-icon" sizes="192x192" href="${assetUrl('psi-icon-192.png')}" />
 <link rel="icon" type="image/png" sizes="192x192" href="${assetUrl('psi-icon-192.png')}" />
 <link rel="icon" type="image/png" sizes="512x512" href="${assetUrl('psi-icon-512.png')}" />
