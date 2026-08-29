@@ -67,22 +67,39 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
     setImage(null);
   };
 
-  const chooseImage = async () => {
+  const chooseImageFromSource = async (source: 'camera' | 'library') => {
+    const requestPermission = source === 'camera'
+      ? ImagePicker.requestCameraPermissionsAsync
+      : ImagePicker.requestMediaLibraryPermissionsAsync;
+
     setFeedback(null);
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: false,
-        allowsMultipleSelection: false,
-        base64: false,
-        exif: false,
-        mediaTypes: ['images'],
-        quality: 0.9,
-        selectionLimit: 1,
-      });
+      const permission = await requestPermission();
+      if (permission.status !== 'granted') {
+        throw new Error(source === 'camera' ? 'CAMERA_PERMISSION_DENIED' : 'MEDIA_PERMISSION_DENIED');
+      }
+
+      const result = source === 'camera'
+        ? await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          mediaTypes: ['images'],
+          quality: 0.9,
+        })
+        : await ImagePicker.launchImageLibraryAsync({
+          allowsEditing: false,
+          allowsMultipleSelection: false,
+          base64: false,
+          exif: false,
+          mediaTypes: ['images'],
+          quality: 0.9,
+          selectionLimit: 1,
+        });
+
       if (result.canceled) return;
       const asset = result.assets[0];
       if (!asset?.uri) throw new Error('IMAGE_UNAVAILABLE');
       if (asset.fileSize && asset.fileSize > 6 * 1024 * 1024) throw new Error('IMAGE_TOO_LARGE');
+
       setImage({
         fileSize: asset.fileSize ?? null,
         height: asset.height,
@@ -238,7 +255,13 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
             </View>
             <Field hint="Optional" label="Fuel"><FormInput onChangeText={setFuel} placeholder="98 RON" value={fuel} /></Field>
             <NotesField label="Setup / run notes" onChangeText={setNotes} value={notes} />
-            <PrivateImagePicker image={image} label="Dyno graph image" onChoose={() => void chooseImage()} onRemove={() => setImage(null)} />
+            <PrivateImagePicker
+              image={image}
+              label="Dyno graph image"
+              onChoose={() => void chooseImageFromSource('library')}
+              onTakePhoto={() => void chooseImageFromSource('camera')}
+              onRemove={() => setImage(null)}
+            />
           </>
         ) : null}
 
@@ -248,7 +271,13 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
             <Field hint="DD/MM/YYYY" label="Invoice date"><FormInput keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={setDate} value={date} /></Field>
             <Field hint="Optional · AUD" label="Amount"><FormInput keyboardType="decimal-pad" onChangeText={setAmountAud} placeholder="423.50" value={amountAud} /></Field>
             <NotesField label="Completed work summary" onChangeText={setNotes} value={notes} />
-            <PrivateImagePicker image={image} label="Invoice image" onChoose={() => void chooseImage()} onRemove={() => setImage(null)} />
+            <PrivateImagePicker
+              image={image}
+              label="Invoice image"
+              onChoose={() => void chooseImageFromSource('library')}
+              onTakePhoto={() => void chooseImageFromSource('camera')}
+              onRemove={() => setImage(null)}
+            />
             <Text style={styles.pdfNote}>PDF publishing will be added after a reviewed private document-picker workflow. This stage accepts JPG, PNG or WebP images only.</Text>
           </>
         ) : null}
@@ -285,12 +314,19 @@ function NotesField({ label, onChangeText, value }: { label: string; onChangeTex
   return <Field hint="Optional" label={label}><FormInput multiline numberOfLines={4} onChangeText={onChangeText} placeholder="Add workshop notes" style={styles.notesInput} textAlignVertical="top" value={value} /></Field>;
 }
 
-function PrivateImagePicker({ image, label, onChoose, onRemove }: { image: StaffPublishImage | null; label: string; onChoose: () => void; onRemove: () => void }) {
+function PrivateImagePicker({
+  image,
+  label,
+  onChoose,
+  onTakePhoto,
+  onRemove,
+}: { image: StaffPublishImage | null; label: string; onChoose: () => void; onTakePhoto: () => void; onRemove: () => void }) {
   return (
     <View style={styles.imageSection}>
       <Text style={styles.smallLabel}>{label}</Text>
       {image ? <Image accessibilityLabel={`Selected ${label.toLowerCase()}`} resizeMode="contain" source={{ uri: image.uri }} style={styles.imagePreview} /> : null}
       <View style={styles.inlineChoices}>
+        <PrimaryButton label="Take photo" onPress={onTakePhoto} variant="outline" />
         <PrimaryButton label={image ? 'Replace image' : 'Choose image'} onPress={onChoose} variant="outline" />
         {image ? <PrimaryButton label="Remove" onPress={onRemove} variant="outline" /> : null}
       </View>
@@ -315,6 +351,8 @@ function capitalize(value: string) {
 
 function publishingErrorMessage(error: unknown) {
   const code = error instanceof Error ? error.message : '';
+  if (code.includes('CAMERA_PERMISSION_DENIED')) return 'Allow camera access and try again.';
+  if (code.includes('MEDIA_PERMISSION_DENIED')) return 'Allow photos access and try again.';
   if (code.includes('IMAGE_TOO_LARGE')) return 'Choose an image smaller than 6 MB for this reliable private upload.';
   if (code.includes('IMAGE_TYPE_UNSUPPORTED')) return 'Choose a JPG, PNG or WebP image.';
   if (code.includes('UPLOAD_CLEANUP_REQUIRED')) return 'The record was not published and the unused private image could not be removed automatically. Stop and review private Storage before retrying.';
