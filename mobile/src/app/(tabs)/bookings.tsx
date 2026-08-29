@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { formatAustralianDate, formatAustralianDateTime } from '@/lib/australian-date';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { CUSTOMER_PREVIEW } from '@/lib/customer-preview';
@@ -326,14 +327,7 @@ function BookingChoice({
 
 function formatBookingDate(value: string | null) {
   if (!value) return 'Preferred date awaits PSI review';
-  return new Date(value.length === 10 ? `${value}T12:00:00+10:00` : value).toLocaleString('en-AU', {
-    timeZone: 'Australia/Melbourne',
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    ...(value.length === 10 ? {} : { hour: 'numeric', minute: '2-digit' }),
-  });
+  return value.length === 10 ? formatAustralianDate(value) : formatAustralianDateTime(value);
 }
 
 const styles = StyleSheet.create({

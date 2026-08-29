@@ -5,6 +5,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { todayAustralianDate } from '@/lib/australian-date';
 import type { StaffPortalSnapshot } from '@/lib/staff-portal';
 import {
   publishPsiDyno,
@@ -23,7 +24,7 @@ const RECORD_TYPES: { icon: keyof typeof Ionicons.glyphMap; label: string; value
   { icon: 'receipt', label: 'Invoice', value: 'invoice' },
 ];
 
-const TODAY = new Date().toISOString().slice(0, 10);
+const TODAY = todayAustralianDate();
 
 export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapshot }) {
   const firstCustomerWithVehicle = snapshot.customers.find((customer) => snapshot.vehicles.some((vehicle) => vehicle.customer_id === customer.user_id));
@@ -210,7 +211,7 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
         {recordType === 'repair' ? (
           <>
             <Field label="Repair / service title"><FormInput onChangeText={setTitle} placeholder="Service & workshop inspection" value={title} /></Field>
-            <Field hint="YYYY-MM-DD" label="Completed date"><FormInput keyboardType="numbers-and-punctuation" onChangeText={setDate} value={date} /></Field>
+            <Field hint="DD/MM/YYYY" label="Completed date"><FormInput keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={setDate} value={date} /></Field>
             <Field hint="Optional" label="Odometer (km)"><FormInput keyboardType="number-pad" onChangeText={(value) => setOdometer(value.replace(/\D/gu, ''))} placeholder="84210" value={odometer} /></Field>
             <Text style={styles.smallLabel}>Record category</Text>
             <View style={styles.inlineChoices}>{(['service', 'repair', 'inspection'] as const).map((value) => <SmallChoice key={value} label={capitalize(value)} onPress={() => setRepairKind(value)} selected={repairKind === value} />)}</View>
@@ -230,7 +231,7 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
 
         {recordType === 'dyno' ? (
           <>
-            <Field hint="YYYY-MM-DD" label="Dyno date"><FormInput keyboardType="numbers-and-punctuation" onChangeText={setDate} value={date} /></Field>
+            <Field hint="DD/MM/YYYY" label="Dyno date"><FormInput keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={setDate} value={date} /></Field>
             <View style={styles.twoColumn}>
               <View style={styles.column}><Field label="Peak power · kW at hubs"><FormInput keyboardType="decimal-pad" onChangeText={setPower} placeholder="312.5" value={power} /></Field></View>
               <View style={styles.column}><Field hint="Optional" label="Peak torque · Nm at hubs"><FormInput keyboardType="decimal-pad" onChangeText={setTorque} placeholder="684" value={torque} /></Field></View>
@@ -244,7 +245,7 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
         {recordType === 'invoice' ? (
           <>
             <Field label="Invoice number"><FormInput autoCapitalize="characters" onChangeText={setInvoiceNumber} placeholder="PSI-INV-2026-0514" value={invoiceNumber} /></Field>
-            <Field hint="YYYY-MM-DD" label="Invoice date"><FormInput keyboardType="numbers-and-punctuation" onChangeText={setDate} value={date} /></Field>
+            <Field hint="DD/MM/YYYY" label="Invoice date"><FormInput keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={setDate} value={date} /></Field>
             <Field hint="Optional · AUD" label="Amount"><FormInput keyboardType="decimal-pad" onChangeText={setAmountAud} placeholder="423.50" value={amountAud} /></Field>
             <NotesField label="Completed work summary" onChangeText={setNotes} value={notes} />
             <PrivateImagePicker image={image} label="Invoice image" onChoose={() => void chooseImage()} onRemove={() => setImage(null)} />
@@ -317,7 +318,7 @@ function publishingErrorMessage(error: unknown) {
   if (code.includes('IMAGE_TOO_LARGE')) return 'Choose an image smaller than 6 MB for this reliable private upload.';
   if (code.includes('IMAGE_TYPE_UNSUPPORTED')) return 'Choose a JPG, PNG or WebP image.';
   if (code.includes('UPLOAD_CLEANUP_REQUIRED')) return 'The record was not published and the unused private image could not be removed automatically. Stop and review private Storage before retrying.';
-  if (code.includes('DATE_INVALID')) return 'Enter a real date in YYYY-MM-DD format.';
+  if (code.includes('DATE_INVALID')) return 'Enter a real date in DD/MM/YYYY format.';
   if (code.includes('TITLE_REQUIRED') || code.includes('SUMMARY_REQUIRED') || code.includes('NUMBER_REQUIRED')) return 'Complete the required title, summary or invoice number.';
   if (code.includes('POWER_INVALID') || code.includes('TORQUE_INVALID')) return 'Power and torque must be positive numbers; torque may be left blank.';
   if (code.includes('ODOMETER_INVALID')) return 'Odometer must be a whole number in kilometres.';

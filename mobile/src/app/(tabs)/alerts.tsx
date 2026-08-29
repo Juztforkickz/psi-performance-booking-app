@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_PREVIEW, type PreviewAlert } from '@/lib/customer-preview';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
@@ -332,7 +333,7 @@ function SecureAlertCard({ event, onPress }: { event: NotificationEventRow; onPr
         </View>
         <Text style={styles.alertTitle}>{event.title}</Text>
         <Text style={styles.bodyCopy}>{event.body}</Text>
-        <Text style={styles.eventDate}>{new Date(event.created_at).toLocaleString('en-AU')}</Text>
+        <Text style={styles.eventDate}>{formatAustralianDateTime(event.created_at, true)}</Text>
       </View>
     </Pressable>
   );

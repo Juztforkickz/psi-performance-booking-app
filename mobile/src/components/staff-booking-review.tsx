@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { isoDateToAustralian, todayAustralianDate } from '@/lib/australian-date';
 import type { BookingRequestRow } from '@/lib/database.types';
 import { reviewBookingRequest, type StaffBookingReviewInput } from '@/lib/staff-portal';
 
@@ -11,7 +12,7 @@ type ReviewAction = StaffBookingReviewInput['action'];
 
 export function StaffBookingReview({ booking, onRefresh }: { booking: BookingRequestRow; onRefresh: () => void }) {
   const [action, setAction] = useState<ReviewAction | null>(null);
-  const [approvedDate, setApprovedDate] = useState(booking.approved_date ?? booking.preferred_date ?? todayInSydney());
+  const [approvedDate, setApprovedDate] = useState(isoDateToAustralian(booking.approved_date ?? booking.preferred_date) || todayInSydney());
   const [staffNote, setStaffNote] = useState(booking.staff_note ?? '');
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -76,7 +77,7 @@ export function StaffBookingReview({ booking, onRefresh }: { booking: BookingReq
       ) : (
         <>
           {action !== 'cancel' ? (
-            <Field hint="YYYY-MM-DD · PSI workshop date" label={action === 'approve_date' ? 'Approved date' : 'Proposed date'}>
+            <Field hint="DD/MM/YYYY · PSI workshop date" label={action === 'approve_date' ? 'Approved date' : 'Proposed date'}>
               <FormInput keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(value) => { setApprovedDate(value); setConfirmed(false); }} value={approvedDate} />
             </Field>
           ) : null}
@@ -115,12 +116,7 @@ function reviewErrorMessage(error: unknown) {
 }
 
 function todayInSydney() {
-  return new Intl.DateTimeFormat('en-CA', {
-    day: '2-digit',
-    month: '2-digit',
-    timeZone: 'Australia/Sydney',
-    year: 'numeric',
-  }).format(new Date());
+  return todayAustralianDate('Australia/Sydney');
 }
 
 const styles = StyleSheet.create({

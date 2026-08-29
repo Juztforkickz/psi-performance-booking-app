@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { formatAustralianDate } from '@/lib/australian-date';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import {
@@ -312,9 +313,7 @@ function normalizeQrCodeUri(qrCode: string) {
 }
 
 function formatMfaDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'date unavailable';
-  return date.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+  return formatAustralianDate(value, 'date unavailable');
 }
 
 const styles = StyleSheet.create({

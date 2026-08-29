@@ -10,6 +10,7 @@ import { StaffBookingReview } from '@/components/staff-booking-review';
 import { StaffServiceCompletion } from '@/components/staff-service-completion';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { formatAustralianDate, formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import {
@@ -513,19 +514,11 @@ function customerName(customer: StaffPortalSnapshot['customers'][number] | undef
 }
 
 function formatDate(value: string) {
-  const [year, month, day] = value.slice(0, 10).split('-');
-  return `${day}/${month}/${year}`;
+  return formatAustralianDate(value, value);
 }
 
 function formatDateTime(value: string) {
-  return new Date(value).toLocaleString('en-AU', {
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    month: 'short',
-    timeZone: 'Australia/Melbourne',
-    year: 'numeric',
-  });
+  return formatAustralianDateTime(value);
 }
 
 function bookingContextLines(context: Record<string, unknown>) {

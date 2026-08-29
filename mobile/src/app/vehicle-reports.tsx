@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { australianDateToIso, formatAustralianDate } from '@/lib/australian-date';
 import type { CustomerAccountSnapshot } from '@/lib/customer-account';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
@@ -328,14 +329,15 @@ function VehicleReportsContent({
   const addDynoRecord = () => {
     const power = Number(dynoDraft.power);
     const torque = Number(dynoDraft.torque);
-    if (!Number.isFinite(power) || power <= 0 || !Number.isFinite(torque) || torque <= 0 || !isIsoDate(dynoDraft.date) || !dynoDraft.fuel.trim()) {
+    const recordedAt = australianDateToIso(dynoDraft.date);
+    if (!Number.isFinite(power) || power <= 0 || !Number.isFinite(torque) || torque <= 0 || !recordedAt || !dynoDraft.fuel.trim()) {
       setFormError('Enter valid power, torque, date and fuel details before adding this preview record.');
       return;
     }
     setLocalDynoRecords((records) => [{
       id: makeLocalId('dyno'),
       vehicleId: selectedVehicle.id,
-      recordedAt: dynoDraft.date,
+      recordedAt,
       peakPowerKwAtHubs: power,
       peakTorqueNmAtHubs: torque,
       fuel: dynoDraft.fuel.trim(),
@@ -351,7 +353,8 @@ function VehicleReportsContent({
 
   const addRepairRecord = () => {
     const odometer = repairDraft.odometer.trim() ? Number(repairDraft.odometer) : null;
-    if (!repairDraft.title.trim() || !isIsoDate(repairDraft.date) || !repairDraft.description.trim() || (odometer !== null && (!Number.isFinite(odometer) || odometer < 0))) {
+    const repairedAt = australianDateToIso(repairDraft.date);
+    if (!repairDraft.title.trim() || !repairedAt || !repairDraft.description.trim() || (odometer !== null && (!Number.isFinite(odometer) || odometer < 0))) {
       setFormError('Enter a title, valid date and description. Odometer must be a valid number when provided.');
       return;
     }
@@ -359,7 +362,7 @@ function VehicleReportsContent({
       id: makeLocalId('repair'),
       vehicleId: selectedVehicle.id,
       title: repairDraft.title.trim(),
-      repairedAt: repairDraft.date,
+      repairedAt,
       odometerKm: odometer,
       description: repairDraft.description.trim(),
       createdBy: 'customer_preview',
@@ -397,7 +400,8 @@ function VehicleReportsContent({
 
   const addInvoice = () => {
     const amount = invoiceDraft.amount.trim() ? Number(invoiceDraft.amount) : null;
-    if (!invoiceDraft.invoiceNumber.trim() || !isIsoDate(invoiceDraft.date) || !invoiceDraft.summary.trim() || (amount !== null && (!Number.isFinite(amount) || amount < 0))) {
+    const invoiceDate = australianDateToIso(invoiceDraft.date);
+    if (!invoiceDraft.invoiceNumber.trim() || !invoiceDate || !invoiceDraft.summary.trim() || (amount !== null && (!Number.isFinite(amount) || amount < 0))) {
       setFormError('Enter an invoice number, valid date and work summary. Amount must be valid when provided.');
       return;
     }
@@ -405,7 +409,7 @@ function VehicleReportsContent({
       id: makeLocalId('invoice'),
       vehicleId: selectedVehicle.id,
       invoiceNumber: invoiceDraft.invoiceNumber.trim().toUpperCase(),
-      invoiceDate: invoiceDraft.date,
+      invoiceDate,
       amountAud: amount,
       summary: invoiceDraft.summary.trim(),
       attachment: invoiceDraft.attachment,
@@ -503,7 +507,7 @@ function VehicleReportsContent({
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
                 <View style={styles.fieldCell}><Field label="Power · kW at hubs"><FormInput keyboardType="decimal-pad" maxLength={7} onChangeText={(power) => setDynoDraft((draft) => ({ ...draft, power }))} placeholder="318" value={dynoDraft.power} /></Field></View>
                 <View style={styles.fieldCell}><Field label="Torque · Nm at hubs"><FormInput keyboardType="decimal-pad" maxLength={7} onChangeText={(torque) => setDynoDraft((draft) => ({ ...draft, torque }))} placeholder="612" value={dynoDraft.torque} /></Field></View>
-                <View style={styles.fieldCell}><Field hint="YYYY-MM-DD" label="Date"><FormInput autoCapitalize="none" maxLength={10} onChangeText={(date) => setDynoDraft((draft) => ({ ...draft, date }))} placeholder="2026-08-23" value={dynoDraft.date} /></Field></View>
+                <View style={styles.fieldCell}><Field hint="DD/MM/YYYY" label="Date"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(date) => setDynoDraft((draft) => ({ ...draft, date }))} placeholder="23/08/2026" value={dynoDraft.date} /></Field></View>
                 <View style={styles.fieldCell}><Field label="Fuel"><FormInput maxLength={40} onChangeText={(fuel) => setDynoDraft((draft) => ({ ...draft, fuel }))} placeholder="98 RON" value={dynoDraft.fuel} /></Field></View>
               </View>
               <Field hint={`${dynoDraft.notes.length}/400`} label="Setup / run notes · optional"><FormInput autoCorrect maxLength={400} multiline onChangeText={(notes) => setDynoDraft((draft) => ({ ...draft, notes }))} placeholder="Temporary notes for this preview entry" style={styles.notesInput} value={dynoDraft.notes} /></Field>
@@ -533,7 +537,7 @@ function VehicleReportsContent({
               <FormHeading title={accountConnected ? 'Previous repair · temporary entry' : 'Previous repair · local preview'} />
               <Field label="Repair title"><FormInput autoCorrect maxLength={80} onChangeText={(title) => setRepairDraft((draft) => ({ ...draft, title }))} placeholder="Service & inspection" value={repairDraft.title} /></Field>
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
-                <View style={styles.fieldCell}><Field hint="YYYY-MM-DD" label="Date"><FormInput autoCapitalize="none" maxLength={10} onChangeText={(date) => setRepairDraft((draft) => ({ ...draft, date }))} placeholder="2026-08-23" value={repairDraft.date} /></Field></View>
+                <View style={styles.fieldCell}><Field hint="DD/MM/YYYY" label="Date"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(date) => setRepairDraft((draft) => ({ ...draft, date }))} placeholder="23/08/2026" value={repairDraft.date} /></Field></View>
                 <View style={styles.fieldCell}><Field hint="Optional" label="Odometer · km"><FormInput keyboardType="number-pad" maxLength={8} onChangeText={(odometer) => setRepairDraft((draft) => ({ ...draft, odometer: odometer.replace(/\D/g, '') }))} placeholder="84210" value={repairDraft.odometer} /></Field></View>
               </View>
               <Field hint={`${repairDraft.description.length}/400`} label="Description / notes"><FormInput autoCorrect maxLength={400} multiline onChangeText={(description) => setRepairDraft((draft) => ({ ...draft, description }))} placeholder="Work completed or inspected" style={styles.notesInput} value={repairDraft.description} /></Field>
@@ -585,7 +589,7 @@ function VehicleReportsContent({
               <FormHeading title={accountConnected ? 'Invoice · temporary entry' : 'Invoice · local preview'} />
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
                 <View style={styles.fieldCell}><Field label="Invoice number"><FormInput autoCapitalize="characters" maxLength={40} onChangeText={(invoiceNumber) => setInvoiceDraft((draft) => ({ ...draft, invoiceNumber }))} placeholder="PSI-INV-2026-0000" value={invoiceDraft.invoiceNumber} /></Field></View>
-                <View style={styles.fieldCell}><Field hint="YYYY-MM-DD" label="Invoice date"><FormInput autoCapitalize="none" maxLength={10} onChangeText={(date) => setInvoiceDraft((draft) => ({ ...draft, date }))} placeholder="2026-08-23" value={invoiceDraft.date} /></Field></View>
+                <View style={styles.fieldCell}><Field hint="DD/MM/YYYY" label="Invoice date"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(date) => setInvoiceDraft((draft) => ({ ...draft, date }))} placeholder="23/08/2026" value={invoiceDraft.date} /></Field></View>
               </View>
               <Field hint="Optional · AUD" label="Amount"><FormInput keyboardType="decimal-pad" maxLength={10} onChangeText={(amount) => setInvoiceDraft((draft) => ({ ...draft, amount }))} placeholder="423.50" value={invoiceDraft.amount} /></Field>
               <Field hint={`${invoiceDraft.summary.length}/300`} label="Completed work summary"><FormInput autoCorrect maxLength={300} multiline onChangeText={(summary) => setInvoiceDraft((draft) => ({ ...draft, summary }))} placeholder="Service & workshop inspection" style={styles.notesInput} value={invoiceDraft.summary} /></Field>
@@ -721,17 +725,11 @@ function AttachmentPicker({ attachment, label, notice, onChoose, onRemove, onVie
 }
 
 function formatDate(value: string) {
-  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
+  return formatAustralianDate(value, value);
 }
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('en-AU', { currency: 'AUD', style: 'currency' }).format(value);
-}
-
-function isIsoDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const parsed = new Date(`${value}T12:00:00Z`);
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
 function makeLocalId(prefix: string) {

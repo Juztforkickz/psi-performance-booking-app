@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChoiceCard, Eyebrow, Field, FormInput, PrimaryButton, UiToneProvider } from '@/components/ui';
 import { bookingColors, colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { formatAustralianDate } from '@/lib/australian-date';
 import type { CustomerProfileRow, CustomerVehicleRow } from '@/lib/database.types';
 import {
   BOOKING_DRAFT_EXPIRY_DAYS,
@@ -336,7 +337,7 @@ function BookingScreenContent({
           setDraftStatus('');
         } else if (draft) {
           setForm(draft.form);
-          setDraftStatus(`Draft restored from this device · expires ${new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short' }).format(new Date(draft.expiresAt))}`);
+          setDraftStatus(`Draft restored from this device · expires ${formatAustralianDate(draft.expiresAt)}`);
         } else {
           setForm(blankForm);
           setDraftConflict(null);
@@ -392,7 +393,7 @@ function BookingScreenContent({
   const resumeConflictingDraft = () => {
     if (!draftConflict) return;
     setForm(draftConflict.form);
-    setDraftStatus(`Draft restored from this device · expires ${new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short' }).format(new Date(draftConflict.expiresAt))}`);
+    setDraftStatus(`Draft restored from this device · expires ${formatAustralianDate(draftConflict.expiresAt)}`);
     setDraftConflictError('');
     setDraftConflict(null);
   };

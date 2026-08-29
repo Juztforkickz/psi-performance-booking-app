@@ -1,3 +1,4 @@
+import { australianDateToIso } from '@/lib/australian-date';
 import type {
   AccountDeletionRequestRow,
   AuditEventRow,
@@ -293,9 +294,7 @@ function mapVerifiedTotpFactors(factors: { created_at: string; friendly_name?: s
 }
 
 function requiredReviewDate(value: string) {
-  const normalized = value.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/u.test(normalized)) throw new Error('BOOKING_REVIEW_DATE_INVALID');
-  const date = new Date(`${normalized}T12:00:00.000Z`);
-  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== normalized) throw new Error('BOOKING_REVIEW_DATE_INVALID');
+  const normalized = australianDateToIso(value);
+  if (!normalized) throw new Error('BOOKING_REVIEW_DATE_INVALID');
   return normalized;
 }

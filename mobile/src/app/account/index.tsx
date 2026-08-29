@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { formatAustralianDate } from '@/lib/australian-date';
 import {
   cancelOwnAccountDeletionRequest,
   loadOwnAccountDeletionRequest,
@@ -465,5 +466,5 @@ const styles = StyleSheet.create({
 });
 
 function formatAccountDate(value: string) {
-  return new Date(value).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', timeZone: 'Australia/Melbourne', year: 'numeric' });
+  return formatAustralianDate(value, value);
 }

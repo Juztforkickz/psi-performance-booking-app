@@ -1,3 +1,4 @@
+import { formatAustralianDate } from '@/lib/australian-date';
 import type { Database } from '@/lib/database.types';
 import { dispatchBookingIntegrationNotifications } from '@/lib/booking-integrations';
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
@@ -144,9 +145,7 @@ export function dateFromIso(value: string) {
 
 export function displayDate(value: string) {
   if (!value) return 'Choose a date';
-  return new Intl.DateTimeFormat('en-AU', {
-    timeZone: 'Australia/Melbourne', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
-  }).format(dateFromIso(value));
+  return formatAustralianDate(value, 'Choose a date');
 }
 
 export function displayMoney(amountCents: number, currency = 'AUD') {

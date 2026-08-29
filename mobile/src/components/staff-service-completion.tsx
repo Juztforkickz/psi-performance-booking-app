@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { todayAustralianDate } from '@/lib/australian-date';
 import type { BookingRequestRow } from '@/lib/database.types';
 import { completePsiService } from '@/lib/staff-record-publishing';
 
@@ -91,7 +92,7 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
 
       {feedback?.kind !== 'success' ? (
         <>
-          <Field hint="YYYY-MM-DD" label="Completed date">
+          <Field hint="DD/MM/YYYY" label="Completed date">
             <FormInput keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(value) => { setCompletedDate(value); setConfirmed(false); }} value={completedDate} />
           </Field>
           <Field hint="Optional · whole kilometres" label="Odometer at PSI">
@@ -102,8 +103,8 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
           </Field>
           <View style={styles.twoColumn}>
             <View style={styles.column}>
-              <Field hint="Optional · YYYY-MM-DD" label="Next PSI check-in date">
-                <FormInput keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(value) => { setNextCheckInDate(value); setConfirmed(false); }} placeholder="2027-02-24" value={nextCheckInDate} />
+              <Field hint="Optional · DD/MM/YYYY" label="Next PSI check-in date">
+                <FormInput keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(value) => { setNextCheckInDate(value); setConfirmed(false); }} placeholder="24/02/2027" value={nextCheckInDate} />
               </Field>
             </View>
             <View style={styles.column}>
@@ -132,12 +133,7 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
 }
 
 function todayInSydney() {
-  return new Intl.DateTimeFormat('en-CA', {
-    day: '2-digit',
-    month: '2-digit',
-    timeZone: 'Australia/Sydney',
-    year: 'numeric',
-  }).format(new Date());
+  return todayAustralianDate('Australia/Sydney');
 }
 
 function completionErrorMessage(error: unknown) {
@@ -146,7 +142,7 @@ function completionErrorMessage(error: unknown) {
     : `${(error as { code?: string; message?: string } | null)?.code ?? ''} ${(error as { message?: string } | null)?.message ?? ''}`;
   if (detail.includes('23505') || detail.toLowerCase().includes('duplicate')) return 'This booking already has a service completion. Refresh the queue before doing anything else.';
   if (detail.includes('AAL2') || detail.includes('JWT') || detail.toLowerCase().includes('staff session')) return 'Your protected staff session needs authenticator verification again. Re-open the staff portal before retrying.';
-  if (detail.includes('DATE_INVALID') || detail.toLowerCase().includes('future') || detail.toLowerCase().includes('check-in')) return 'Check the completed date and next check-in date. Use real dates in YYYY-MM-DD format; the next check-in cannot be earlier than the service.';
+  if (detail.includes('DATE_INVALID') || detail.toLowerCase().includes('future') || detail.toLowerCase().includes('check-in')) return 'Check the completed date and next check-in date. Use real dates in DD/MM/YYYY format; the next check-in cannot be earlier than the service.';
   if (detail.includes('ODOMETER') || detail.toLowerCase().includes('odometer')) return 'Odometer values must be whole kilometres, and the next check-in odometer cannot be below the completed-service odometer.';
   if (detail.includes('SUMMARY_REQUIRED') || detail.toLowerCase().includes('summary')) return 'Add a completed work summary before closing the service.';
   if (detail.toLowerCase().includes('confirmed')) return 'This service booking is no longer confirmed. Refresh the queue and verify its current state.';

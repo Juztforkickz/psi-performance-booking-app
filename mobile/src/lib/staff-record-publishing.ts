@@ -1,5 +1,6 @@
 import * as Crypto from 'expo-crypto';
 
+import { australianDateToIso } from '@/lib/australian-date';
 import type {
   Database,
   DynoRecordRow,
@@ -326,10 +327,8 @@ function optionalText(value: string) {
 }
 
 function requiredDate(value: string, code: string) {
-  const normalized = value.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) throw new Error(code);
-  const date = new Date(`${normalized}T12:00:00.000Z`);
-  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== normalized) throw new Error(code);
+  const normalized = australianDateToIso(value);
+  if (!normalized) throw new Error(code);
   return normalized;
 }
 

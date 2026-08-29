@@ -16,6 +16,7 @@ import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { VehiclePhotoPicker } from '@/components/vehicle-photo-picker';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { australianDateToIso, formatAustralianDate, isoDateToAustralian } from '@/lib/australian-date';
 import { saveCustomerOdometer } from '@/lib/customer-account';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
@@ -179,8 +180,8 @@ function GarageContent({
   };
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const [maintenanceDraft, setMaintenanceDraft] = useState<MaintenanceDraft>({
-    customerLastServiceDate: maintenance.customerLastServiceDate ?? '',
-    customerNextCheckInDate: maintenance.customerNextCheckInDate ?? '',
+    customerLastServiceDate: isoDateToAustralian(maintenance.customerLastServiceDate),
+    customerNextCheckInDate: isoDateToAustralian(maintenance.customerNextCheckInDate),
     odometerKm: maintenance.odometerKm?.toString() ?? '',
   });
   const [maintenanceError, setMaintenanceError] = useState('');
@@ -243,8 +244,8 @@ function GarageContent({
       odometerKm: secureVehicles ? vehicle.odometerKm : local?.odometerKm ?? vehicle.odometerKm,
     };
     setMaintenanceDraft({
-      customerLastServiceDate: nextMaintenance.customerLastServiceDate ?? '',
-      customerNextCheckInDate: nextMaintenance.customerNextCheckInDate ?? '',
+      customerLastServiceDate: isoDateToAustralian(nextMaintenance.customerLastServiceDate),
+      customerNextCheckInDate: isoDateToAustralian(nextMaintenance.customerNextCheckInDate),
       odometerKm: nextMaintenance.odometerKm?.toString() ?? '',
     });
   };
@@ -270,14 +271,16 @@ function GarageContent({
 
   const saveMaintenancePreview = async () => {
     const odometerKm = maintenanceDraft.odometerKm ? Number(maintenanceDraft.odometerKm) : null;
-    const datesAreValid = [maintenanceDraft.customerLastServiceDate, maintenanceDraft.customerNextCheckInDate]
-      .every((value) => !value || isIsoDate(value));
+    const customerLastServiceDate = maintenanceDraft.customerLastServiceDate ? australianDateToIso(maintenanceDraft.customerLastServiceDate) : null;
+    const customerNextCheckInDate = maintenanceDraft.customerNextCheckInDate ? australianDateToIso(maintenanceDraft.customerNextCheckInDate) : null;
+    const datesAreValid = (!maintenanceDraft.customerLastServiceDate || customerLastServiceDate)
+      && (!maintenanceDraft.customerNextCheckInDate || customerNextCheckInDate);
     if (
       (odometerKm !== null && (!Number.isInteger(odometerKm) || odometerKm < 0 || odometerKm > 9999999))
       || !datesAreValid
     ) {
       setMaintenanceNotice('');
-      setMaintenanceError('Enter a valid odometer and use YYYY-MM-DD for each date, or leave a field blank.');
+      setMaintenanceError('Enter a valid odometer and use DD/MM/YYYY for each date, or leave a field blank.');
       return;
     }
     if (secureVehicles && odometerKm !== null && selectedVehicle.odometerKm !== null && odometerKm < selectedVehicle.odometerKm) {
@@ -293,8 +296,8 @@ function GarageContent({
         refreshAccount();
       }
       updateVehicleMaintenancePreview(selectedVehicle.id, {
-        customerLastServiceDate: maintenanceDraft.customerLastServiceDate || null,
-        customerNextCheckInDate: maintenanceDraft.customerNextCheckInDate || null,
+        customerLastServiceDate,
+        customerNextCheckInDate,
         odometerKm,
       });
       setMaintenanceError('');
@@ -444,8 +447,8 @@ function GarageContent({
                 />
               </Field>
               <View style={styles.maintenanceDateGrid}>
-                <View style={styles.maintenanceDateField}><Field hint="YYYY-MM-DD · customer entry" label="Personal last service"><FormInput autoCapitalize="none" maxLength={10} onChangeText={(customerLastServiceDate) => setMaintenanceDraft((draft) => ({ ...draft, customerLastServiceDate }))} placeholder="2026-05-14" value={maintenanceDraft.customerLastServiceDate} /></Field></View>
-                <View style={styles.maintenanceDateField}><Field hint="YYYY-MM-DD · customer entry" label="Personal next check-in"><FormInput autoCapitalize="none" maxLength={10} onChangeText={(customerNextCheckInDate) => setMaintenanceDraft((draft) => ({ ...draft, customerNextCheckInDate }))} placeholder="2026-11-14" value={maintenanceDraft.customerNextCheckInDate} /></Field></View>
+                <View style={styles.maintenanceDateField}><Field hint="DD/MM/YYYY · customer entry" label="Personal last service"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(customerLastServiceDate) => setMaintenanceDraft((draft) => ({ ...draft, customerLastServiceDate }))} placeholder="14/05/2026" value={maintenanceDraft.customerLastServiceDate} /></Field></View>
+                <View style={styles.maintenanceDateField}><Field hint="DD/MM/YYYY · customer entry" label="Personal next check-in"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(customerNextCheckInDate) => setMaintenanceDraft((draft) => ({ ...draft, customerNextCheckInDate }))} placeholder="14/11/2026" value={maintenanceDraft.customerNextCheckInDate} /></Field></View>
               </View>
               {maintenanceError ? <Text accessibilityRole="alert" style={styles.maintenanceError}>{maintenanceError}</Text> : null}
               <View style={styles.maintenanceActions}>
@@ -597,22 +600,11 @@ function ResultValue({ label, unit, value }: { label: string; unit: string; valu
 }
 
 function formatShortDate(value: string | null) {
-  if (!value) return 'Not scheduled';
-  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString('en-AU', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatAustralianDate(value);
 }
 
 function formatOdometer(value: number | null | undefined) {
   return value == null ? 'Not recorded' : `${value.toLocaleString('en-AU')} km`;
-}
-
-function isIsoDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const parsed = new Date(`${value}T12:00:00Z`);
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
 const styles = StyleSheet.create({
@@ -620,7 +612,7 @@ const styles = StyleSheet.create({
   accountState: { flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   accountStateTitle: { color: colors.white, fontSize: 24, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
   accountStateCopy: { maxWidth: 420, color: colors.muted, fontSize: 13, lineHeight: 20, textAlign: 'center' },
-  scroll: { width: '100%', maxWidth: 980, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
+  scroll: { width: '100%', maxWidth: 980, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl + spacing.lg },
   header: { minHeight: 68, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   headerCopy: { flex: 1, gap: spacing.xs },
   eyebrow: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
