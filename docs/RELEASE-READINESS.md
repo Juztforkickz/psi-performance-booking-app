@@ -85,6 +85,16 @@ and maintaining a consistent inset from the tile borders. It retains the
 protected `qa` profile, closed registration and registered iPhone provisioning.
 Real-device visual acceptance remains outstanding.
 
+The selected Home tile alignment build
+`1205ab6c-93c1-4417-a0e1-b01b58ffcad6` completed successfully on 29 August
+2026 from source checkpoint `d2545c2bcc15db505aeb9b519b2f417c903d9738`.
+It moves only My Bookings, Book Ahead, Settings & Notifications, Dyno Tuning
+and Vehicle Reports slightly lower within their approved image areas and fills
+the artwork side insets with the PSI black background. Approved tile sizes,
+labels, typography and the other three illustration positions remain unchanged.
+It retains the protected `qa` profile, closed registration and registered
+iPhone provisioning. Real-device visual acceptance remains outstanding.
+
 ## Remaining before an external pilot
 
 1. Run the native QA profile on one current iPhone and one supported Android device. Record build IDs, device models, operating-system versions and test identities.

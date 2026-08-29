@@ -36,6 +36,9 @@ Apple enrolment identifiers or service credentials in this file or an issue.
   `acce75be-e92a-4c8c-82d8-efcb800aa9ff` completed successfully.
 - [x] Build the artwork-fit correction from checkpoint `05d4e1d`; EAS build
   `5c1df258-125e-41ec-a097-4d52b915477d` completed successfully.
+- [x] Build the five-image vertical-alignment and black-fill update from
+  checkpoint `d2545c2`; EAS build
+  `1205ab6c-93c1-4417-a0e1-b01b58ffcad6` completed successfully.
 - [x] Confirm bundle ID `com.psiperformance.booking`, version/build number and
   iPhone-only support in the build details.
 - [x] Install from the protected EAS page and confirm the PSI icon, splash and
