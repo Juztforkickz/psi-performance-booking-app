@@ -17,7 +17,7 @@ registered QA iPhone.
 - A customer-owned vehicle can create an idempotent `pending_staff_review` request. PSI staff review, official service history and Vehicle Reports remain separately protected.
 - Resend transactional email is active through encrypted Edge Function secrets. Google Calendar credentials are server-only and the customer cannot list or read PSI calendar contents.
 - Public GitHub Pages remains a submission-disabled synthetic demo. The EAS QA build is protected by Expo authentication and uses a separate Auth-enabled environment.
-- Native push infrastructure supports opt-in permission, sounds, badge counts and safe deep links. The first Apple-signed build installed and completed an approved-customer email-code sign-in; notification and broader iPhone acceptance remain outstanding.
+- Native push infrastructure supports opt-in permission, sounds, badge counts and safe deep links. The registered iPhone installed the Apple-signed QA build, completed an approved-customer email-code sign-in and received a locked-screen PSI alert with sound and a badge change from one to two. Foreground delivery, deep links, badge clearing and the remaining iPhone acceptance checks are still outstanding.
 - Customers can initiate or cancel their own deletion request. Matt can review the queue only after AAL2 verification; completion remains a controlled owner procedure and is never represented as automatic.
 - Customer-facing privacy, support and conservative approval-first booking terms are available inside the app.
 - Expo SDK 57 dependencies match Expo's current compatible patch versions, peer
@@ -27,7 +27,17 @@ registered QA iPhone.
 
 ## Live synthetic acceptance evidence
 
-On 25 August 2026, the approved synthetic `QATEST1` customer flow created request `PSI-9F52116C` in `pending_staff_review` state. Both the customer request-received email and PSI request notification completed successfully through the deployed booking worker. Customer and staff in-app notification events were also created; their remote-push jobs remain pending because no signed native test device is registered yet. The booking had no approved date, no deposit amount and no Google Calendar event. This proves request intake and its two initial email paths; it does not prove native push, payment or booking confirmation.
+On 25 August 2026, the approved synthetic `QATEST1` customer flow created request `PSI-9F52116C` in `pending_staff_review` state. Both the customer request-received email and PSI request notification completed successfully through the deployed booking worker. Customer and staff in-app notification events were also created; at that time their remote-push jobs remained pending because no signed native test device had been registered. The booking had no approved date, no deposit amount and no Google Calendar event. This proves request intake and its two initial email paths; it does not prove payment or booking confirmation.
+
+On 29 August 2026, the registered iPhone deliberately enabled device
+notifications. Three isolated Expo delivery checks were accepted for that one
+enabled device without changing a booking or calendar record. The tester
+visually confirmed the PSI lock-screen banner and app icon, a badge change from
+one to two and the normal notification sound while the phone was locked. The
+private push token and device identifier were not recorded. This proves
+background native delivery, sound and badge presentation; it does not yet prove
+foreground presentation, safe deep-link routing, badge clearing or unregister
+behaviour after sign-out.
 
 The protected browser QA build is maintained at:
 

@@ -253,14 +253,14 @@ export default function AccountScreen() {
         <Eyebrow>PSI customer account</Eyebrow>
         <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>Your cars.{`\n`}Your bookings.</Text>
         <Text style={styles.lead}>
-          Account access is designed for saved customer details, vehicles, receipts and booking history through a managed identity provider.
+          Keep your customer details, vehicles, receipts and booking history together in your protected PSI account.
         </Text>
 
         <View style={[styles.providerNotice, compact && styles.cardCompact]}>
           <Text style={styles.providerKicker}>Your account security</Text>
           <Text style={styles.providerTitle}>{CUSTOMER_AUTH.enabled ? 'Secure email-code access' : 'Email-code access'}</Text>
           <Text style={styles.providerCopy}>
-            Passwords are not collected or stored here. {CUSTOMER_AUTH.enabled ? `Six-digit codes provide access to approved customer accounts. New account registration is ${CUSTOMER_AUTH.registrationEnabled ? 'available during this approved onboarding window' : 'currently closed'}.` : 'Secure email-code sign-in is available to approved PSI customers.'} Customers see only their own records; authorised PSI staff use a separate protected workshop portal.
+            Passwords are not collected or stored here. {CUSTOMER_AUTH.enabled ? `Six-digit codes provide access to your PSI account. New customer accounts are ${CUSTOMER_AUTH.registrationEnabled ? 'available during the current onboarding window' : 'set up by PSI'}.` : 'Secure email-code sign-in is available to approved PSI customers.'} Customers see only their own records; authorised PSI staff use a separate protected workshop portal.
           </Text>
         </View>
 

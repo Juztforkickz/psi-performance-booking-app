@@ -189,6 +189,7 @@ export default function AlertsScreen() {
             icon="calendar-outline"
             label="Booking updates"
             onPress={() => togglePreference('booking')}
+            previewOnly={!privateMode}
           />
           <PreferenceRow
             copy="Useful check-ins before an upcoming visit or service milestone."
@@ -196,6 +197,7 @@ export default function AlertsScreen() {
             icon="time-outline"
             label="Visit reminders"
             onPress={() => togglePreference('reminder')}
+            previewOnly={!privateMode}
           />
           {!privateMode || staffMode ? (
             <PreferenceRow
@@ -204,6 +206,7 @@ export default function AlertsScreen() {
               icon={privateMode ? 'construct-outline' : 'car-sport-outline'}
               label={privateMode ? 'Workshop alerts' : 'Vehicle records'}
               onPress={() => togglePreference('vehicle')}
+              previewOnly={!privateMode}
               last={!privateMode}
             />
           ) : null}
@@ -214,6 +217,7 @@ export default function AlertsScreen() {
               icon="volume-high-outline"
               label="Notification sound"
               onPress={() => void notifications.setPreference('sound_enabled', !(notifications.preferences?.sound_enabled ?? true))}
+              previewOnly={false}
               last
             />
           ) : null}
@@ -226,7 +230,7 @@ export default function AlertsScreen() {
               <Text style={styles.howItWorksTitle}>Device alerts</Text>
               <Text style={styles.bodyCopy}>{notifications.pushStatus === 'ready'
                 ? 'This device is registered for PSI banners, sound and app-icon badges.'
-                : 'Enable native notifications on an installed iPhone or Android QA build. Web previews continue to use this in-app notification centre.'}</Text>
+                : 'Enable notifications on this installed device. Your in-app notification centre remains available if device alerts are off.'}</Text>
             </View>
             {notificationFeedback ? <Text accessibilityRole="alert" style={styles.notificationFeedback}>{notificationFeedback}</Text> : null}
             <Pressable accessibilityRole="button" onPress={() => {
@@ -245,7 +249,9 @@ export default function AlertsScreen() {
           <View style={styles.howItWorksCopy}>
             <Text style={styles.howItWorksTitle}>Controlled by the customer</Text>
             <Text style={styles.bodyCopy}>
-              A finished version can offer in-app, email and push preferences. Booking changes still come from PSI—not another customer or a public calendar.
+              {privateMode
+                ? 'Choose how PSI keeps you updated. Booking changes come only from PSI—not another customer or a public calendar.'
+                : 'A customer account can offer in-app, email and push preferences. Booking changes still come from PSI—not another customer or a public calendar.'}
             </Text>
           </View>
           <Pressable
@@ -339,6 +345,7 @@ function PreferenceRow({
   label,
   last = false,
   onPress,
+  previewOnly,
 }: {
   copy: string;
   enabled: boolean;
@@ -346,10 +353,11 @@ function PreferenceRow({
   label: string;
   last?: boolean;
   onPress: () => void;
+  previewOnly: boolean;
 }) {
   return (
     <Pressable
-      accessibilityLabel={`${label}, ${enabled ? 'on' : 'off'}, demo only`}
+      accessibilityLabel={`${label}, ${enabled ? 'on' : 'off'}${previewOnly ? ', demo only' : ''}`}
       accessibilityRole="switch"
       accessibilityState={{ checked: enabled }}
       onPress={onPress}

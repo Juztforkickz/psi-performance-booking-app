@@ -477,7 +477,7 @@ function BookingScreenContent({
     if (!submissionEnabled || !secureBookingVehicle) {
       setErrorTitle(privateBookingEnabled ? 'Account vehicle required' : 'Public demo');
       setFormError(privateBookingEnabled
-        ? 'Choose a vehicle saved in My Garage before submitting this private QA request.'
+        ? 'Choose a vehicle saved in My Garage before submitting this account booking request.'
         : PUBLIC_DEMO.submissionMessage);
       scrollToTop();
       return;

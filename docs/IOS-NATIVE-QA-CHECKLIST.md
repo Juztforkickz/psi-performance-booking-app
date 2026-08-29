@@ -81,7 +81,7 @@ Apple enrolment identifiers or service credentials in this file or an issue.
 
 ## Notifications
 
-- [ ] Permission appears only after **Enable device notifications** is selected.
+- [x] Permission appears only after **Enable device notifications** is selected.
 - [ ] Denial leaves in-app notifications and email available.
 - [ ] Foreground and background booking alerts show with sound as expected.
 - [ ] App-icon badge increments and clears correctly.
@@ -89,6 +89,13 @@ Apple enrolment identifiers or service credentials in this file or an issue.
 - [ ] Matt-only staff notification deep links recheck staff status and AAL2.
 - [ ] Sign-out or disabling notifications prevents further account delivery to
   that registered device.
+
+On 29 August 2026, three isolated delivery checks were accepted for the one
+registered iPhone. The tester confirmed a PSI lock-screen banner, the normal
+notification sound and an app-icon badge change from one to two. No push token
+or device identifier was recorded. Foreground presentation, deep-link routing,
+badge clearing and unregister behaviour remain open, so the combined checklist
+items above are intentionally not marked complete yet.
 
 ## Presentation and store evidence
 

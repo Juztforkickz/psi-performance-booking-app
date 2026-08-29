@@ -199,7 +199,7 @@ export default function PlanBuildScreen() {
             />
           </View>
           <View style={styles.heroCopy}>
-            <Text style={styles.eyebrow}>Plan & Build · Customer preview</Text>
+            <Text style={styles.eyebrow}>Plan & Build · Build brief</Text>
             <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact]}>One goal.{`\n`}Measured stages.</Text>
             <Text style={styles.lead}>
               Keep the vehicle, your goals, PSI recommendations and the next approved stage together—without treating a plan as a quote or booking.
@@ -208,15 +208,15 @@ export default function PlanBuildScreen() {
         </View>
 
         <View accessibilityRole="alert" style={styles.previewNotice}>
-          <Text style={styles.previewNoticeTitle}>Preview build brief · not saved</Text>
+          <Text style={styles.previewNoticeTitle}>Build brief · not yet sent</Text>
           <Text style={styles.previewNoticeCopy}>
-            Use these choices to shape a conversation with PSI. Nothing is sent, uploaded or stored by this app. The brief clears when the preview reloads.
+            Use these choices to shape a conversation with PSI. Nothing is sent automatically. This brief stays in the current app session until you choose how to contact PSI.
           </Text>
         </View>
 
         <View style={styles.builderCard}>
           <BuilderHeading
-            copy="The vehicle currently selected in My Garage stays attached to this local preview brief."
+            copy="The vehicle currently selected in My Garage stays attached to this open build brief."
             number="01"
             title="Your vehicle"
           />
@@ -404,7 +404,7 @@ export default function PlanBuildScreen() {
           <View accessibilityRole="alert" style={styles.handoffNotice}>
             <Ionicons color={colors.accent} name="shield-checkmark-outline" size={22} />
             <Text style={styles.handoffNoticeText}>
-              Nothing has been sent. If you tap Send in the external app, this becomes a real message to PSI; the demo itself does not send or store it. For social messages, copy the selectable brief above first.
+              Nothing has been sent. If you tap Send in the external app, this becomes a real message to PSI; this screen does not send or store it. For social messages, copy the selectable brief above first.
             </Text>
           </View>
           <View style={styles.handoffActions}>
@@ -470,7 +470,7 @@ export default function PlanBuildScreen() {
 
         <View style={styles.examplePlan}>
           <Text style={styles.examplePlanKicker}>Example only · not generated from your selections</Text>
-          <Text style={styles.examplePlanNote}>PSI has not reviewed this local preview brief. These stages only show how a future plan could be organised.</Text>
+          <Text style={styles.examplePlanNote}>PSI has not reviewed this draft brief. These stages show how a future plan could be organised.</Text>
           <View style={styles.planHeading}>
             <View style={styles.planHeadingCopy}>
               <Text style={styles.planKicker}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>

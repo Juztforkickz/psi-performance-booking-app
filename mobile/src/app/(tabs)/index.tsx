@@ -70,7 +70,7 @@ export default function CustomerHomeScreen() {
   const [shortcutChooserOpen, setShortcutChooserOpen] = useState(false);
   const { resetShortcuts, shortcutIds, toggleShortcut } = useHomeShortcutPreferences();
   const threeColumns = tablet && width >= 780 && !largeText;
-  const privateQa = SUPABASE_CONNECTION.authEnabled;
+  const privateAccountMode = SUPABASE_CONNECTION.authEnabled;
 
   const openBooking = (type: 'service' | 'dyno') => {
     setBookingChooserOpen(false);
@@ -175,11 +175,11 @@ export default function CustomerHomeScreen() {
           ]}
         >
           <Text style={[styles.demoTitle, { color: activeTheme === 'dark' ? colors.ink : theme.textInverse }]}>
-            {privateQa ? 'PRIVATE QA' : PUBLIC_DEMO.label}
+            {privateAccountMode ? 'SECURE CUSTOMER ACCESS' : PUBLIC_DEMO.label}
           </Text>
           <Text style={[styles.demoCopy, { color: activeTheme === 'dark' ? '#464646' : '#555D61' }]}>
-            {privateQa
-              ? 'Approved accounts can use protected QA records and booking requests. Public registration and payments remain disabled.'
+            {privateAccountMode
+              ? 'Sign in to view your own protected vehicles, bookings, reports and notifications. New customer accounts are set up by PSI.'
               : 'Explore the new customer-app direction. Accounts, photos, alerts and submissions remain preview-only.'}
           </Text>
         </View>
@@ -212,7 +212,7 @@ export default function CustomerHomeScreen() {
 
         <View style={styles.intro}>
           <Text style={[styles.eyebrow, { color: activeTheme === 'dark' ? colors.accent : theme.accent }]}>
-            Good afternoon · Customer preview
+            Good afternoon · Your PSI garage
           </Text>
           <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact, { color: theme.text }]}>Your PSI app.</Text>
           <Text style={[styles.lead, { color: theme.textMuted }]}>Your vehicle, visits, results and next plan in one place.</Text>

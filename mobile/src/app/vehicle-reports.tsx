@@ -498,8 +498,8 @@ function VehicleReportsContent({
         >
           {openForm === 'dyno' ? (
             <View style={styles.formCard}>
-              <FormHeading title="Customer preview dyno entry" />
-              <Text style={styles.formNotice}>Preview only — this dyno graph is not uploaded or permanently saved.</Text>
+              <FormHeading title={accountConnected ? 'Temporary customer dyno entry' : 'Customer preview dyno entry'} />
+              <Text style={styles.formNotice}>{accountConnected ? 'Temporary only — this entry and dyno graph are not added to your account.' : 'Preview only — this dyno graph is not uploaded or permanently saved.'}</Text>
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
                 <View style={styles.fieldCell}><Field label="Power · kW at hubs"><FormInput keyboardType="decimal-pad" maxLength={7} onChangeText={(power) => setDynoDraft((draft) => ({ ...draft, power }))} placeholder="318" value={dynoDraft.power} /></Field></View>
                 <View style={styles.fieldCell}><Field label="Torque · Nm at hubs"><FormInput keyboardType="decimal-pad" maxLength={7} onChangeText={(torque) => setDynoDraft((draft) => ({ ...draft, torque }))} placeholder="612" value={dynoDraft.torque} /></Field></View>
@@ -510,13 +510,13 @@ function VehicleReportsContent({
               <AttachmentPicker
                 attachment={dynoDraft.graphImage}
                 label="Dyno graph image"
-                notice="Preview only — this dyno graph is not uploaded or permanently saved."
+                notice={accountConnected ? 'Temporary only — this dyno graph is not added to your account.' : 'Preview only — this dyno graph is not uploaded or permanently saved.'}
                 onChoose={() => void chooseImage(dynoDraft.graphImage, (graphImage) => setDynoDraft((draft) => ({ ...draft, graphImage })))}
                 onRemove={() => { releaseAttachment(dynoDraft.graphImage); setDynoDraft((draft) => ({ ...draft, graphImage: null })); }}
                 onView={() => dynoDraft.graphImage && setViewingAttachment({ title: 'Dyno graph preview', uri: dynoDraft.graphImage.uri })}
               />
               <FormError message={formError || attachmentError} />
-              <View style={styles.formActions}><PrimaryButton label="Add Local Preview Record" onPress={addDynoRecord} /><PrimaryButton label="Cancel" onPress={cancelDyno} variant="outline" /></View>
+              <View style={styles.formActions}><PrimaryButton label={accountConnected ? 'Add Temporary Record' : 'Add Local Preview Record'} onPress={addDynoRecord} /><PrimaryButton label="Cancel" onPress={cancelDyno} variant="outline" /></View>
             </View>
           ) : null}
           {dynoRecords.length ? dynoRecords.map((record) => <DynoCard attachmentLoading={loadingSecureAttachmentId === record.secureAttachment?.id} key={record.id} record={record} onView={() => record.graphImage ? setViewingAttachment({ title: 'Dyno graph preview', uri: record.graphImage.uri }) : record.secureAttachment ? void openSecureAttachment(record.secureAttachment, 'Private dyno graph') : undefined} />) : <EmptyState accountConnected={accountConnected} message="No dyno records for this vehicle yet." />}
@@ -530,16 +530,16 @@ function VehicleReportsContent({
         >
           {openForm === 'repair' ? (
             <View style={styles.formCard}>
-              <FormHeading title="Previous repair · local preview" />
+              <FormHeading title={accountConnected ? 'Previous repair · temporary entry' : 'Previous repair · local preview'} />
               <Field label="Repair title"><FormInput autoCorrect maxLength={80} onChangeText={(title) => setRepairDraft((draft) => ({ ...draft, title }))} placeholder="Service & inspection" value={repairDraft.title} /></Field>
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
                 <View style={styles.fieldCell}><Field hint="YYYY-MM-DD" label="Date"><FormInput autoCapitalize="none" maxLength={10} onChangeText={(date) => setRepairDraft((draft) => ({ ...draft, date }))} placeholder="2026-08-23" value={repairDraft.date} /></Field></View>
                 <View style={styles.fieldCell}><Field hint="Optional" label="Odometer · km"><FormInput keyboardType="number-pad" maxLength={8} onChangeText={(odometer) => setRepairDraft((draft) => ({ ...draft, odometer: odometer.replace(/\D/g, '') }))} placeholder="84210" value={repairDraft.odometer} /></Field></View>
               </View>
               <Field hint={`${repairDraft.description.length}/400`} label="Description / notes"><FormInput autoCorrect maxLength={400} multiline onChangeText={(description) => setRepairDraft((draft) => ({ ...draft, description }))} placeholder="Work completed or inspected" style={styles.notesInput} value={repairDraft.description} /></Field>
-              <Text style={styles.formNotice}>LOCAL PREVIEW · This entry clears when the preview reloads or closes.</Text>
+              <Text style={styles.formNotice}>{accountConnected ? 'TEMPORARY ENTRY · This is not added to your account and clears when the screen reloads or closes.' : 'LOCAL PREVIEW · This entry clears when the preview reloads or closes.'}</Text>
               <FormError message={formError} />
-              <View style={styles.formActions}><PrimaryButton label="Add Local Preview Repair" onPress={addRepairRecord} /><PrimaryButton label="Cancel" onPress={() => { setRepairDraft(EMPTY_REPAIR_DRAFT); setOpenForm(null); setFormError(''); }} variant="outline" /></View>
+              <View style={styles.formActions}><PrimaryButton label={accountConnected ? 'Add Temporary Repair' : 'Add Local Preview Repair'} onPress={addRepairRecord} /><PrimaryButton label="Cancel" onPress={() => { setRepairDraft(EMPTY_REPAIR_DRAFT); setOpenForm(null); setFormError(''); }} variant="outline" /></View>
             </View>
           ) : null}
           {repairRecords.length ? repairRecords.map((record) => <RepairCard key={record.id} record={record} />) : <EmptyState accountConnected={accountConnected} message="No previous repairs recorded." />}
@@ -553,7 +553,7 @@ function VehicleReportsContent({
         >
           {openForm === 'future' ? (
             <View style={styles.formCard}>
-              <FormHeading title="Recommended work · local preview" />
+              <FormHeading title={accountConnected ? 'Recommended work · temporary note' : 'Recommended work · local preview'} />
               <Field label="Repair / recommendation title"><FormInput autoCorrect maxLength={90} onChangeText={(title) => setFutureDraft((draft) => ({ ...draft, title }))} placeholder="Cooling system inspection" value={futureDraft.title} /></Field>
               <Field label="Timing"><FormInput autoCorrect maxLength={80} onChangeText={(timing) => setFutureDraft((draft) => ({ ...draft, timing }))} placeholder="At next service" value={futureDraft.timing} /></Field>
               <View style={styles.statusPicker} accessibilityRole="radiogroup">
@@ -564,9 +564,9 @@ function VehicleReportsContent({
                 })}</View>
               </View>
               <Field hint={`${futureDraft.notes.length}/400`} label="Notes"><FormInput autoCorrect maxLength={400} multiline onChangeText={(notes) => setFutureDraft((draft) => ({ ...draft, notes }))} placeholder="What should be checked or discussed" style={styles.notesInput} value={futureDraft.notes} /></Field>
-              <Text style={styles.formNotice}>LOCAL PREVIEW · This is not PSI-verified advice and clears when the preview reloads or closes.</Text>
+              <Text style={styles.formNotice}>{accountConnected ? 'TEMPORARY NOTE · This is not PSI-verified advice, is not added to your account and clears when the screen reloads or closes.' : 'LOCAL PREVIEW · This is not PSI-verified advice and clears when the preview reloads or closes.'}</Text>
               <FormError message={formError} />
-              <View style={styles.formActions}><PrimaryButton label="Add Local Preview Recommendation" onPress={addFutureRepair} /><PrimaryButton label="Cancel" onPress={() => { setFutureDraft(EMPTY_FUTURE_DRAFT); setOpenForm(null); setFormError(''); }} variant="outline" /></View>
+              <View style={styles.formActions}><PrimaryButton label={accountConnected ? 'Add Temporary Note' : 'Add Local Preview Recommendation'} onPress={addFutureRepair} /><PrimaryButton label="Cancel" onPress={() => { setFutureDraft(EMPTY_FUTURE_DRAFT); setOpenForm(null); setFormError(''); }} variant="outline" /></View>
             </View>
           ) : null}
           {futureRepairs.length ? futureRepairs.map((record) => <FutureRepairCard key={record.id} record={record} />) : <EmptyState accountConnected={accountConnected} message="No recommended work currently shown." />}
@@ -582,7 +582,7 @@ function VehicleReportsContent({
           <Text style={styles.pdfNotice}>{accountConnected ? 'Any image selected through the local preview form remains on this device session only and is never added to the private vault.' : 'PDF support planned for persistent Vehicle Reports. Stage 1 accepts one image only.'}</Text>
           {openForm === 'invoice' ? (
             <View style={styles.formCard}>
-              <FormHeading title="Invoice · local preview" />
+              <FormHeading title={accountConnected ? 'Invoice · temporary entry' : 'Invoice · local preview'} />
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
                 <View style={styles.fieldCell}><Field label="Invoice number"><FormInput autoCapitalize="characters" maxLength={40} onChangeText={(invoiceNumber) => setInvoiceDraft((draft) => ({ ...draft, invoiceNumber }))} placeholder="PSI-INV-2026-0000" value={invoiceDraft.invoiceNumber} /></Field></View>
                 <View style={styles.fieldCell}><Field hint="YYYY-MM-DD" label="Invoice date"><FormInput autoCapitalize="none" maxLength={10} onChangeText={(date) => setInvoiceDraft((draft) => ({ ...draft, date }))} placeholder="2026-08-23" value={invoiceDraft.date} /></Field></View>
@@ -592,13 +592,13 @@ function VehicleReportsContent({
               <AttachmentPicker
                 attachment={invoiceDraft.attachment}
                 label="Invoice image"
-                notice="Preview only — invoice attachments are not uploaded or saved to your account yet."
+                notice={accountConnected ? 'Temporary only — this invoice image is not uploaded or saved to your account.' : 'Preview only — invoice attachments are not uploaded or saved to your account yet.'}
                 onChoose={() => void chooseImage(invoiceDraft.attachment, (attachment) => setInvoiceDraft((draft) => ({ ...draft, attachment })))}
                 onRemove={() => { releaseAttachment(invoiceDraft.attachment); setInvoiceDraft((draft) => ({ ...draft, attachment: null })); }}
                 onView={() => invoiceDraft.attachment && setViewingAttachment({ title: 'Invoice image preview', uri: invoiceDraft.attachment.uri })}
               />
               <FormError message={formError || attachmentError} />
-              <View style={styles.formActions}><PrimaryButton label="Add Local Preview Invoice" onPress={addInvoice} /><PrimaryButton label="Cancel" onPress={cancelInvoice} variant="outline" /></View>
+              <View style={styles.formActions}><PrimaryButton label={accountConnected ? 'Add Temporary Invoice' : 'Add Local Preview Invoice'} onPress={addInvoice} /><PrimaryButton label="Cancel" onPress={cancelInvoice} variant="outline" /></View>
             </View>
           ) : null}
           {invoices.length ? invoices.map((record) => (
