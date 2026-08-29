@@ -122,7 +122,9 @@ test("uses one native responsive contract across every customer screen", async (
   assert.match(garage, /accessibilityLabel="Illustrated diagnostic scan tool[\s\S]*?resizeMode="contain"[\s\S]*?styles\.reportImage/);
   assert.match(garage, /reportImage:\s*\{[\s\S]*?scale:\s*1\.36[\s\S]*?transformOrigin:\s*'top center'/);
   assert.match(dashboardTile, /aspectRatio:\s*1/);
-  assert.match(dashboardTile, /transform:\s*\[\{ scale:\s*0\.9 \}\]/);
+  assert.match(dashboardTile, /imageResizeMode = 'contain'/);
+  assert.match(dashboardTile, /imageArea:\s*\{[\s\S]*?bottom:\s*50[\s\S]*?overflow:\s*'hidden'[\s\S]*?padding:\s*spacing\.xs/);
+  assert.match(dashboardTile, /transform:\s*\[\{ scale:\s*1\.55 \}\]/);
   assert.match(dashboardTile, /adjustsFontSizeToFit[\s\S]*?maxFontSizeMultiplier=\{1\.2\}[\s\S]*?numberOfLines=\{2\}/);
   assert.doesNotMatch(home, /bookingsTileImage|trustedPartnersTileImage|planBuildTileImage/);
   assert.match(alerts, /adjustsFontSizeToFit[\s\S]*?numberOfLines=\{1\}[\s\S]*?themeModeOptionText/);

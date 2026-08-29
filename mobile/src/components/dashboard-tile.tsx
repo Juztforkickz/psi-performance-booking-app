@@ -29,7 +29,7 @@ export type DashboardTileProps = {
  */
 export function DashboardTile({
   accessibilityHint,
-  imageResizeMode = 'cover',
+  imageResizeMode = 'contain',
   imageStyle,
   disabled = false,
   image,
@@ -52,15 +52,17 @@ export function DashboardTile({
         disabled && styles.disabled,
       ]}
     >
-      <Image
-        accessible={false}
-        resizeMode={imageResizeMode}
-        source={image}
-        style={[
-          styles.image,
-          imageStyle,
-        ]}
-      />
+      <View style={styles.imageArea}>
+        <Image
+          accessible={false}
+          resizeMode={imageResizeMode}
+          source={image}
+          style={[
+            styles.image,
+            imageStyle,
+          ]}
+        />
+      </View>
       <View style={styles.shade} />
       <View style={styles.labelBand}>
         <Text
@@ -86,10 +88,21 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: colors.panel,
   },
+  imageArea: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 50,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    padding: spacing.xs,
+  },
   image: {
     width: '100%',
     height: '100%',
-    transform: [{ scale: 0.9 }],
+    transform: [{ scale: 1.55 }],
   },
   shade: {
     position: 'absolute',
