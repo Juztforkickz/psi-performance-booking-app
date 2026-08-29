@@ -25,7 +25,7 @@ export type DashboardTileProps = {
 
 /**
  * A static, illustrated PSI dashboard destination. The parent controls the
- * responsive grid width; the 4:5 frame keeps every illustration consistent.
+ * responsive grid width; the square frame keeps every illustration consistent.
  */
 export function DashboardTile({
   accessibilityHint,
@@ -37,7 +37,6 @@ export function DashboardTile({
   onPress,
   style,
 }: DashboardTileProps) {
-  const isGarageTile = label === 'My Garage';
   return (
     <Pressable
       accessibilityHint={accessibilityHint}
@@ -59,13 +58,18 @@ export function DashboardTile({
         source={image}
         style={[
           styles.image,
-          isGarageTile && styles.garageImage,
           imageStyle,
         ]}
       />
       <View style={styles.shade} />
       <View style={styles.labelBand}>
-        <Text maxFontSizeMultiplier={1.6} numberOfLines={2} style={styles.label}>
+        <Text
+          adjustsFontSizeToFit
+          maxFontSizeMultiplier={1.2}
+          minimumFontScale={0.82}
+          numberOfLines={2}
+          style={styles.label}
+        >
           {label}
         </Text>
       </View>
@@ -77,7 +81,7 @@ const styles = StyleSheet.create({
   tile: {
     ...mobileFrame,
     width: '100%',
-    aspectRatio: 4 / 5,
+    aspectRatio: 1,
     overflow: 'hidden',
     borderRadius: 3,
     backgroundColor: colors.panel,
@@ -85,9 +89,7 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-  },
-  garageImage: {
-    transform: [{ translateY: -14 }, { scale: 1.04 }],
+    transform: [{ scale: 0.9 }],
   },
   shade: {
     position: 'absolute',
@@ -104,20 +106,20 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     pointerEvents: 'none',
-    minHeight: 58,
+    height: 50,
     justifyContent: 'center',
     borderTopWidth: mobileFrame.borderWidth,
     borderTopColor: mobileFrame.borderColor,
     backgroundColor: 'rgba(5, 5, 5, 0.94)',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
   },
   label: {
     color: colors.white,
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '900',
-    letterSpacing: 0.7,
-    lineHeight: 19,
+    letterSpacing: 0.55,
+    lineHeight: 15,
     textAlign: 'center',
     textTransform: 'uppercase',
   },

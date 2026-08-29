@@ -94,7 +94,6 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Opens your own upcoming and past visits"
             image={DASHBOARD_TILES.bookings}
-            imageStyle={styles.bookingsTileImage}
             label="My Bookings"
             onPress={() => router.push('/bookings')}
           />
@@ -140,7 +139,6 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Open the build brief template and official PSI parts links"
             image={DASHBOARD_TILES.planBuild}
-            imageStyle={styles.planBuildTileImage}
             label="Plan & Build"
             onPress={() => router.push('/parts')}
           />
@@ -150,10 +148,8 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Opens PSI's directory of independent automotive specialists"
             image={DASHBOARD_TILES.trustedPartners}
-            imageStyle={styles.trustedPartnersTileImage}
             label="Trusted Partners"
             onPress={() => router.push('/trusted-partners')}
-            style={styles.trustedPartnersTile}
           />
         );
     }
@@ -267,7 +263,6 @@ export default function CustomerHomeScreen() {
               accessibilityHint="Open the build brief template and official PSI parts links"
               image={DASHBOARD_TILES.planBuild}
               label="Plan & Build"
-              imageStyle={styles.planBuildTileImage}
               onPress={() => router.push('/parts')}
             />
           </TileCell>
@@ -275,10 +270,8 @@ export default function CustomerHomeScreen() {
             <DashboardTile
               accessibilityHint="Opens PSI's directory of independent automotive specialists"
               image={DASHBOARD_TILES.trustedPartners}
-              imageStyle={styles.trustedPartnersTileImage}
               label="Trusted Partners"
               onPress={() => router.push('/trusted-partners')}
-              style={styles.trustedPartnersTile}
             />
           </TileCell>
         </View>
@@ -683,8 +676,8 @@ const styles = StyleSheet.create({
   sectionHint: { color: colors.accent, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
   shortcutButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 2, paddingHorizontal: spacing.sm },
   shortcutButtonText: { fontSize: 9, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
-  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  tileCell: { width: '47%', flexGrow: 0, flexShrink: 1, minWidth: 0, maxWidth: 360 },
+  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: spacing.sm },
+  tileCell: { width: '46%', flexGrow: 0, flexShrink: 1, minWidth: 0, maxWidth: 340 },
   tileCellThird: { width: '30%', minWidth: 180 },
   standardPanel: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
   standardImageFrame: { width: '100%', aspectRatio: 1746 / 901, overflow: 'hidden', backgroundColor: colors.inkSoft },
@@ -723,16 +716,6 @@ const styles = StyleSheet.create({
   modalSafeArea: { flex: 1, backgroundColor: 'rgba(0,0,0,.82)' },
   modalBackdrop: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md },
   modalSheet: { width: '100%', maxWidth: 560, gap: spacing.md, ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.lg },
-  bookingsTileImage: {
-    transform: [{ translateY: -8 }, { scale: 0.97 }],
-  },
-  planBuildTileImage: {},
-  trustedPartnersTile: {
-    backgroundColor: '#000000',
-  },
-  trustedPartnersTileImage: {
-    transform: [{ translateY: -24 }, { scale: 0.8 }],
-  },
   modalHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   modalHeadingCopy: { flex: 1, gap: spacing.xs },
   modalTitle: { color: colors.white, fontSize: 24, fontWeight: '900', lineHeight: 28, textTransform: 'uppercase' },

@@ -45,6 +45,7 @@ test("uses one native responsive contract across every customer screen", async (
     rootLayout,
     tabsLayout,
     persistentNavigation,
+    dashboardTile,
     home,
     garage,
     bookings,
@@ -60,6 +61,7 @@ test("uses one native responsive contract across every customer screen", async (
     read("../mobile/src/app/_layout.tsx"),
     read("../mobile/src/app/(tabs)/_layout.tsx"),
     read("../mobile/src/components/persistent-bottom-navigation.tsx"),
+    read("../mobile/src/components/dashboard-tile.tsx"),
     read("../mobile/src/app/(tabs)/index.tsx"),
     read("../mobile/src/app/(tabs)/garage.tsx"),
     read("../mobile/src/app/(tabs)/bookings.tsx"),
@@ -103,7 +105,7 @@ test("uses one native responsive contract across every customer screen", async (
   }
 
   assert.doesNotMatch(home, /oneColumn/);
-  assert.match(home, /tileGrid: \{[^}]*gap: spacing\.xs/);
+  assert.match(home, /tileGrid: \{[^}]*justifyContent: 'space-between'[^}]*gap: spacing\.sm/);
   assert.match(home, /tileCell: \{[^}]*flexGrow: 0[^}]*minWidth: 0/);
   assert.match(home, /threeColumns = tablet && width >= 780 && !largeText/);
   assert.match(home, /compact && styles\.compactFrame/);
@@ -119,6 +121,10 @@ test("uses one native responsive contract across every customer screen", async (
   assert.match(garage, /dynoImageFrame:\s*\{[^}]*aspectRatio:\s*1\.1/);
   assert.match(garage, /accessibilityLabel="Illustrated diagnostic scan tool[\s\S]*?resizeMode="contain"[\s\S]*?styles\.reportImage/);
   assert.match(garage, /reportImage:\s*\{[\s\S]*?scale:\s*1\.36[\s\S]*?transformOrigin:\s*'top center'/);
+  assert.match(dashboardTile, /aspectRatio:\s*1/);
+  assert.match(dashboardTile, /transform:\s*\[\{ scale:\s*0\.9 \}\]/);
+  assert.match(dashboardTile, /adjustsFontSizeToFit[\s\S]*?maxFontSizeMultiplier=\{1\.2\}[\s\S]*?numberOfLines=\{2\}/);
+  assert.doesNotMatch(home, /bookingsTileImage|trustedPartnersTileImage|planBuildTileImage/);
   assert.match(alerts, /adjustsFontSizeToFit[\s\S]*?numberOfLines=\{1\}[\s\S]*?themeModeOptionText/);
   assert.match(alerts, /tile-my-bookings-blue-silver\.jpg/);
   assert.match(parts, /stackAreaCards\s*=\s*compact\s*\|\|\s*largeText/);
