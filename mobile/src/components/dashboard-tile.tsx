@@ -97,6 +97,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    backgroundColor: colors.ink,
     padding: spacing.xs,
   },
   image: {

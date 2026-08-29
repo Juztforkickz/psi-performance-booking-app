@@ -94,6 +94,7 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Opens your own upcoming and past visits"
             image={DASHBOARD_TILES.bookings}
+            imageStyle={styles.lowerTileImage}
             label="My Bookings"
             onPress={() => router.push('/bookings')}
           />
@@ -103,6 +104,7 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Choose a service or dyno request for a future date"
             image={DASHBOARD_TILES.bookAhead}
+            imageStyle={styles.lowerTileImage}
             label="Book Ahead"
             onPress={() => setBookingChooserOpen(true)}
           />
@@ -112,6 +114,7 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Opens settings, booking updates and reminders"
             image={DASHBOARD_TILES.alerts}
+            imageStyle={styles.lowerTileImage}
             label="Settings & Notifications"
             onPress={() => router.push('/alerts')}
           />
@@ -121,6 +124,7 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Starts the existing approval-first dyno tuning request"
             image={DASHBOARD_TILES.dyno}
+            imageStyle={styles.lowerTileImage}
             label="Dyno Tuning"
             onPress={() => openBooking('dyno')}
           />
@@ -130,6 +134,7 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Opens vehicle history, dyno results, repairs and invoices"
             image={DASHBOARD_TILES.reports}
+            imageStyle={styles.lowerTileImage}
             label="Vehicle Reports"
             onPress={() => router.push('/vehicle-reports')}
           />
@@ -246,6 +251,7 @@ export default function CustomerHomeScreen() {
             <DashboardTile
               accessibilityHint="Starts the existing approval-first dyno tuning request"
               image={DASHBOARD_TILES.dyno}
+              imageStyle={styles.lowerTileImage}
               label="Dyno Tuning"
               onPress={() => openBooking('dyno')}
             />
@@ -254,6 +260,7 @@ export default function CustomerHomeScreen() {
             <DashboardTile
               accessibilityHint="Opens vehicle history, dyno results, repairs and invoices"
               image={DASHBOARD_TILES.reports}
+              imageStyle={styles.lowerTileImage}
               label="Vehicle Reports"
               onPress={() => router.push('/vehicle-reports')}
             />
@@ -679,6 +686,7 @@ const styles = StyleSheet.create({
   tileGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: spacing.sm },
   tileCell: { width: '46%', flexGrow: 0, flexShrink: 1, minWidth: 0, maxWidth: 340 },
   tileCellThird: { width: '30%', minWidth: 180 },
+  lowerTileImage: { transform: [{ scale: 1.55 }, { translateY: 7 }] },
   standardPanel: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
   standardImageFrame: { width: '100%', aspectRatio: 1746 / 901, overflow: 'hidden', backgroundColor: colors.inkSoft },
   standardImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
