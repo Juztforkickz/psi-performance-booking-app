@@ -1,7 +1,8 @@
 # PSI iPhone native QA checklist
 
-Status: signed QA build ready 29 August 2026. The first Apple release is
-iPhone-only; installation and real-device acceptance remain in progress.
+Status: signed QA build installed 29 August 2026. The first Apple release is
+iPhone-only; initial authentication passed and broader real-device acceptance
+remains in progress.
 
 ## Evidence to record
 
@@ -27,12 +28,13 @@ Apple enrolment identifiers or service credentials in this file or an issue.
   `8a1e5433-1056-45f0-83d2-e470ba57b652` completed successfully.
 - [x] Confirm bundle ID `com.psiperformance.booking`, version/build number and
   iPhone-only support in the build details.
-- [ ] Install from the protected EAS page and confirm the PSI icon, splash and
+- [x] Install from the protected EAS page and confirm the PSI icon, splash and
   launch experience.
 
 ## Authentication and privacy
 
-- [ ] A known approved customer receives and verifies a six-digit email code.
+- [x] A known approved customer receives and verifies a six-digit email code on
+  the registered iPhone.
 - [ ] Invalid, expired, consumed/replayed and rapid resend attempts fail safely.
 - [ ] Session restoration works after closing/reopening the app; sign-out clears
   private account data from every screen.

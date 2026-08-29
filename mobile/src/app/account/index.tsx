@@ -189,72 +189,10 @@ export default function AccountScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-        <Eyebrow>PSI customer account</Eyebrow>
-        <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>Your cars.{`\n`}Your bookings.</Text>
-        <Text style={styles.lead}>
-          Account access is designed for saved customer details, vehicles, receipts and booking history through a managed identity provider.
-        </Text>
-
-        <View style={[styles.providerNotice, compact && styles.cardCompact]}>
-          <Text style={styles.providerKicker}>Supabase security foundation ready</Text>
-          <Text style={styles.providerTitle}>{CUSTOMER_AUTH.enabled ? 'Secure email-code access' : 'Email-code activation safely gated'}</Text>
-          <Text style={styles.providerCopy}>
-            Passwords are not collected or stored here. {CUSTOMER_AUTH.enabled ? `Six-digit codes provide access to approved customer accounts in this controlled build. New account registration is ${CUSTOMER_AUTH.registrationEnabled ? 'open only for this approved onboarding window' : 'closed'}.` : 'Six-digit email codes activate only in PSI-controlled builds.'} Customers see only their own records; MFA-authenticated PSI staff use a separate workshop portal.
-          </Text>
-        </View>
-
-        {auth.error ? <Text accessibilityRole="alert" style={styles.errorText}>{auth.error}</Text> : null}
-
-        {CUSTOMER_AUTH.enabled && auth.status === 'signed_in' ? (
-          <View accessibilityLabel="Secure customer account summary" style={[styles.dashboardPreview, compact && styles.cardCompact]}>
-            <View style={styles.dashboardHeading}>
-              <Text style={styles.dashboardKicker}>Secure customer account</Text>
-              <Text style={styles.dashboardBadge}>Authenticated</Text>
-            </View>
-            <Text style={styles.dashboardTitle}>{account?.profile?.first_name ? `Welcome, ${account.profile.first_name}.` : 'Your PSI account.'}</Text>
-            <Text style={styles.dashboardCopy}>{auth.user?.email}</Text>
-            {accountError ? <Text accessibilityRole="alert" style={styles.errorText}>{accountError}</Text> : null}
-            {accountStatus === 'loading' ? <Text style={styles.dashboardCopy}>Loading your private account…</Text> : null}
-            {account ? (
-              <View style={styles.dashboardGrid}>
-                <AccountFeature index="01" title="Profile" copy={account.profile ? 'Verified account profile connected.' : 'Complete your profile to continue.'} />
-                <AccountFeature index="02" title="Vehicles" copy={`${account.vehicles.length} vehicle${account.vehicles.length === 1 ? '' : 's'} connected to this account.`} />
-              </View>
-            ) : null}
-            <PrimaryButton label="Sign out" loading={busy} onPress={() => void signOut()} variant="outline" />
-          </View>
-        ) : (
-        <View accessibilityLabel="Customer account dashboard preview; no customer records loaded" style={[styles.dashboardPreview, compact && styles.cardCompact]}>
-          <View style={styles.dashboardHeading}>
-            <Text style={styles.dashboardKicker}>Account dashboard preview</Text>
-            <Text style={styles.dashboardBadge}>Example structure</Text>
-          </View>
-          <Text style={styles.dashboardTitle}>Everything ready for the next visit.</Text>
-          <Text style={styles.dashboardCopy}>No customer records are loaded in this owner-review build. When activated, each customer account is designed to keep:</Text>
-          <View style={styles.dashboardGrid}>
-            <AccountFeature index="01" title="Your details" copy="Full name, verified email and mobile for faster future requests and checkout." />
-            <AccountFeature index="02" title="Your vehicles" copy="Registration, make, model, year and optional VIN, with support for more than one vehicle." />
-            <AccountFeature index="03" title="Next booking" copy="The next confirmed date, approved work, deposit status and practical arrival information." />
-            <AccountFeature index="04" title="Visit history" copy="Booking requests, confirmed and completed visits, service dates, deposit receipts and payment status." />
-          </View>
-          <View style={styles.timelineCard}>
-            <Text style={styles.timelineTitle}>Booking status history</Text>
-            <AccountStatus label="Request received" copy="Pending PSI staff review · no payment due" />
-            <AccountStatus label="Date approved" copy="Secure deposit link sent" />
-            <AccountStatus label="Deposit verified" copy="Booking confirmed · internal calendar entry created" />
-            <AccountStatus label="Visit completed" copy="Added to the vehicle’s service and booking history" last />
-          </View>
-          <View style={styles.reminderPreview}>
-            <Text style={styles.reminderTitle}>Reminder preferences</Text>
-            <Text style={styles.reminderCopy}>Confirmed bookings receive factual 7-day and 24-hour appointment reminders. Optional “Ready for your next service?” messages at 6 and 12 months appear only after a completed service when the customer opted in, with unsubscribe included. No automatic review request or vehicle-package offer is added.</Text>
-          </View>
-        </View>
-        )}
-
         {auth.status !== 'signed_in' ? <View style={[styles.card, compact && styles.cardCompact]}>
           <Text style={styles.cardTitle}>Sign in with email</Text>
           <Text style={styles.cardCopy}>
-            The production experience will send a secure six-digit sign-in code. No reusable password is required.{secureReturnTo ? ' After verification, you will return to the protected PSI staff workspace.' : ''}
+            We’ll email you a secure six-digit sign-in code. No password is required.{secureReturnTo ? ' After verification, you will return to the protected PSI staff workspace.' : ''}
           </Text>
           <Field error={emailError} label="Email">
             <FormInput
@@ -312,12 +250,78 @@ export default function AccountScreen() {
           )}
         </View> : null}
 
+        <Eyebrow>PSI customer account</Eyebrow>
+        <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>Your cars.{`\n`}Your bookings.</Text>
+        <Text style={styles.lead}>
+          Account access is designed for saved customer details, vehicles, receipts and booking history through a managed identity provider.
+        </Text>
+
+        <View style={[styles.providerNotice, compact && styles.cardCompact]}>
+          <Text style={styles.providerKicker}>Your account security</Text>
+          <Text style={styles.providerTitle}>{CUSTOMER_AUTH.enabled ? 'Secure email-code access' : 'Email-code access'}</Text>
+          <Text style={styles.providerCopy}>
+            Passwords are not collected or stored here. {CUSTOMER_AUTH.enabled ? `Six-digit codes provide access to approved customer accounts. New account registration is ${CUSTOMER_AUTH.registrationEnabled ? 'available during this approved onboarding window' : 'currently closed'}.` : 'Secure email-code sign-in is available to approved PSI customers.'} Customers see only their own records; authorised PSI staff use a separate protected workshop portal.
+          </Text>
+        </View>
+
+        {auth.error ? <Text accessibilityRole="alert" style={styles.errorText}>{auth.error}</Text> : null}
+
+        {CUSTOMER_AUTH.enabled && auth.status === 'signed_in' ? (
+          <View accessibilityLabel="Secure customer account summary" style={[styles.dashboardPreview, compact && styles.cardCompact]}>
+            <View style={styles.dashboardHeading}>
+              <Text style={styles.dashboardKicker}>Secure customer account</Text>
+              <Text style={styles.dashboardBadge}>Authenticated</Text>
+            </View>
+            <Text style={styles.dashboardTitle}>{account?.profile?.first_name ? `Welcome, ${account.profile.first_name}.` : 'Your PSI account.'}</Text>
+            <Text style={styles.dashboardCopy}>{auth.user?.email}</Text>
+            {accountError ? <Text accessibilityRole="alert" style={styles.errorText}>{accountError}</Text> : null}
+            {accountStatus === 'loading' ? <Text style={styles.dashboardCopy}>Loading your private account…</Text> : null}
+            {account ? (
+              <View style={styles.dashboardGrid}>
+                <AccountFeature index="01" title="Profile" copy={account.profile ? 'Verified account profile connected.' : 'Complete your profile to continue.'} />
+                <AccountFeature index="02" title="Vehicles" copy={`${account.vehicles.length} vehicle${account.vehicles.length === 1 ? '' : 's'} connected to this account.`} />
+              </View>
+            ) : null}
+            <PrimaryButton label="Sign out" loading={busy} onPress={() => void signOut()} variant="outline" />
+          </View>
+        ) : !CUSTOMER_AUTH.enabled ? (
+        <View accessibilityLabel="Customer account dashboard preview; no customer records loaded" style={[styles.dashboardPreview, compact && styles.cardCompact]}>
+          <View style={styles.dashboardHeading}>
+            <Text style={styles.dashboardKicker}>Account dashboard preview</Text>
+            <Text style={styles.dashboardBadge}>Example structure</Text>
+          </View>
+          <Text style={styles.dashboardTitle}>Everything ready for the next visit.</Text>
+          <Text style={styles.dashboardCopy}>This demonstration does not load customer records. A PSI customer account is designed to keep:</Text>
+          <View style={styles.dashboardGrid}>
+            <AccountFeature index="01" title="Your details" copy="Full name, verified email and mobile for faster future requests and checkout." />
+            <AccountFeature index="02" title="Your vehicles" copy="Registration, make, model, year and optional VIN, with support for more than one vehicle." />
+            <AccountFeature index="03" title="Next booking" copy="The next confirmed date, approved work, deposit status and practical arrival information." />
+            <AccountFeature index="04" title="Visit history" copy="Booking requests, confirmed and completed visits, service dates, deposit receipts and payment status." />
+          </View>
+          <View style={styles.timelineCard}>
+            <Text style={styles.timelineTitle}>Booking status history</Text>
+            <AccountStatus label="Request received" copy="Pending PSI staff review · no payment due" />
+            <AccountStatus label="Date approved" copy="Secure deposit link sent" />
+            <AccountStatus label="Deposit verified" copy="Booking confirmed · internal calendar entry created" />
+            <AccountStatus label="Visit completed" copy="Added to the vehicle’s service and booking history" last />
+          </View>
+          <View style={styles.reminderPreview}>
+            <Text style={styles.reminderTitle}>Reminder preferences</Text>
+            <Text style={styles.reminderCopy}>Confirmed bookings receive factual 7-day and 24-hour appointment reminders. Optional “Ready for your next service?” messages at 6 and 12 months appear only after a completed service when the customer opted in, with unsubscribe included. No automatic review request or vehicle-package offer is added.</Text>
+          </View>
+        </View>
+        ) : null}
+
         <View style={[styles.createCard, compact && styles.cardCompact]}>
           <View style={styles.createCopy}>
-            <Text style={styles.createTitle}>{account ? 'Account details' : 'New to PSI?'}</Text>
-            <Text style={styles.createText}>{account ? 'Review or update the profile and primary vehicle connected to your secure account.' : CUSTOMER_AUTH.registrationEnabled ? 'Complete the approved account setup for your details and primary vehicle.' : 'Preview the account setup for your details and primary vehicle. New account registration is currently closed.'}</Text>
+            <Text style={styles.createTitle}>{account ? 'Account details' : CUSTOMER_AUTH.enabled ? 'Need an account?' : 'New to PSI?'}</Text>
+            <Text style={styles.createText}>{account ? 'Review or update the profile and primary vehicle connected to your secure account.' : CUSTOMER_AUTH.registrationEnabled ? 'Complete the approved account setup for your details and primary vehicle.' : CUSTOMER_AUTH.enabled ? 'New customer accounts are currently set up by PSI. Contact us if you need account access.' : 'Preview the account setup for your details and primary vehicle. New account registration is currently closed.'}</Text>
           </View>
-          <PrimaryButton label={account ? 'Edit account details →' : CUSTOMER_AUTH.registrationEnabled ? 'Set up approved account →' : 'Preview account setup →'} onPress={() => router.push('/account/sign-up')} variant="outline" />
+          <PrimaryButton
+            label={account ? 'Edit account details →' : CUSTOMER_AUTH.registrationEnabled ? 'Set up approved account →' : CUSTOMER_AUTH.enabled ? 'Contact PSI for account access →' : 'Preview account setup →'}
+            onPress={() => router.push(account || CUSTOMER_AUTH.registrationEnabled || !CUSTOMER_AUTH.enabled ? '/account/sign-up' : '/support')}
+            variant="outline"
+          />
         </View>
 
         {CUSTOMER_AUTH.enabled && auth.status === 'signed_in' ? (

@@ -17,7 +17,7 @@ registered QA iPhone.
 - A customer-owned vehicle can create an idempotent `pending_staff_review` request. PSI staff review, official service history and Vehicle Reports remain separately protected.
 - Resend transactional email is active through encrypted Edge Function secrets. Google Calendar credentials are server-only and the customer cannot list or read PSI calendar contents.
 - Public GitHub Pages remains a submission-disabled synthetic demo. The EAS QA build is protected by Expo authentication and uses a separate Auth-enabled environment.
-- Native push infrastructure supports opt-in permission, sounds, badge counts and safe deep links. The first Apple-signed build is ready; remote iPhone acceptance remains outstanding.
+- Native push infrastructure supports opt-in permission, sounds, badge counts and safe deep links. The first Apple-signed build installed and completed an approved-customer email-code sign-in; notification and broader iPhone acceptance remain outstanding.
 - Customers can initiate or cancel their own deletion request. Matt can review the queue only after AAL2 verification; completion remains a controlled owner procedure and is never represented as automatic.
 - Customer-facing privacy, support and conservative approval-first booking terms are available inside the app.
 - Expo SDK 57 dependencies match Expo's current compatible patch versions, peer
@@ -44,9 +44,11 @@ It uses bundle `com.psiperformance.booking`, version `1.0.0` build `1`, the
 protected `qa` profile, an active PSI-owned ad-hoc provisioning profile and an
 Apple push-notification key. The approved iPhone is included in the profile;
 its UDID is intentionally not stored in the repository. The protected build
-expires on 12 September 2026. Installation and the full real-device checklist
-remain outstanding; build completion alone does not prove authentication,
-private-file isolation or native push delivery.
+expires on 12 September 2026. On 29 August 2026, the registered iPhone installed
+and opened this build, then an approved customer received and verified a
+six-digit email code successfully. The remaining real-device checklist is still
+outstanding; this initial result does not prove invalid/replayed-code handling,
+session restoration, private-file isolation or native push delivery.
 
 ## Remaining before an external pilot
 
