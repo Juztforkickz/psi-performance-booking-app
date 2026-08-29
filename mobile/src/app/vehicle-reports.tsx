@@ -253,17 +253,50 @@ function VehicleReportsContent({
     current: PreviewAttachment | null,
     onChange: (attachment: PreviewAttachment) => void,
   ) => {
+    await chooseImageFromSource(current, onChange, 'library');
+  };
+
+  const takeImage = async (
+    current: PreviewAttachment | null,
+    onChange: (attachment: PreviewAttachment) => void,
+  ) => {
+    await chooseImageFromSource(current, onChange, 'camera');
+  };
+
+  const chooseImageFromSource = async (
+    current: PreviewAttachment | null,
+    onChange: (attachment: PreviewAttachment) => void,
+    source: 'library' | 'camera',
+  ) => {
     setAttachmentError('');
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: false,
-        allowsMultipleSelection: false,
-        base64: false,
-        exif: false,
-        mediaTypes: ['images'],
-        quality: 0.9,
-        selectionLimit: 1,
-      });
+      const requestPermission = source === 'camera'
+        ? ImagePicker.requestCameraPermissionsAsync
+        : ImagePicker.requestMediaLibraryPermissionsAsync;
+      const permission = await requestPermission();
+      if (!permission.granted) {
+        setAttachmentError(source === 'camera'
+          ? 'Camera permission is required to take a photo for this attachment.'
+          : 'Photo library permission is required to choose an attachment.');
+        return;
+      }
+
+      const result = source === 'camera'
+        ? await ImagePicker.launchCameraAsync({
+          allowsEditing: false,
+          mediaTypes: ['images'],
+          quality: 0.9,
+          saveToPhotos: false,
+        })
+        : await ImagePicker.launchImageLibraryAsync({
+          allowsEditing: false,
+          allowsMultipleSelection: false,
+          base64: false,
+          exif: false,
+          mediaTypes: ['images'],
+          quality: 0.9,
+          selectionLimit: 1,
+        });
       if (result.canceled) return;
       const asset = result.assets[0];
       if (!asset?.uri) {
@@ -275,7 +308,9 @@ function VehicleReportsContent({
       ownedAttachmentsRef.current.set(attachment.uri, attachment);
       onChange(attachment);
     } catch {
-      setAttachmentError('The image picker could not be opened. Please try again.');
+      setAttachmentError(source === 'camera'
+        ? 'The camera could not be opened. Please try again.'
+        : 'The image picker could not be opened. Please try again.');
     }
   };
 
@@ -516,6 +551,7 @@ function VehicleReportsContent({
                 label="Dyno graph image"
                 notice={accountConnected ? 'Temporary only — this dyno graph is not added to your account.' : 'Preview only — this dyno graph is not uploaded or permanently saved.'}
                 onChoose={() => void chooseImage(dynoDraft.graphImage, (graphImage) => setDynoDraft((draft) => ({ ...draft, graphImage })))}
+                onTakePhoto={() => void takeImage(dynoDraft.graphImage, (graphImage) => setDynoDraft((draft) => ({ ...draft, graphImage })))}
                 onRemove={() => { releaseAttachment(dynoDraft.graphImage); setDynoDraft((draft) => ({ ...draft, graphImage: null })); }}
                 onView={() => dynoDraft.graphImage && setViewingAttachment({ title: 'Dyno graph preview', uri: dynoDraft.graphImage.uri })}
               />
@@ -598,6 +634,7 @@ function VehicleReportsContent({
                 label="Invoice image"
                 notice={accountConnected ? 'Temporary only — this invoice image is not uploaded or saved to your account.' : 'Preview only — invoice attachments are not uploaded or saved to your account yet.'}
                 onChoose={() => void chooseImage(invoiceDraft.attachment, (attachment) => setInvoiceDraft((draft) => ({ ...draft, attachment })))}
+                onTakePhoto={() => void takeImage(invoiceDraft.attachment, (attachment) => setInvoiceDraft((draft) => ({ ...draft, attachment })))}
                 onRemove={() => { releaseAttachment(invoiceDraft.attachment); setInvoiceDraft((draft) => ({ ...draft, attachment: null })); }}
                 onView={() => invoiceDraft.attachment && setViewingAttachment({ title: 'Invoice image preview', uri: invoiceDraft.attachment.uri })}
               />
@@ -720,8 +757,47 @@ function SmallAction({ icon, label, onPress }: { icon: keyof typeof Ionicons.gly
   return <Pressable accessibilityLabel={label} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.smallAction, pressed && styles.pressed]}><Ionicons color={colors.accent} name={icon} size={17} /><Text style={styles.smallActionText}>{label}</Text></Pressable>;
 }
 
-function AttachmentPicker({ attachment, label, notice, onChoose, onRemove, onView }: { attachment: PreviewAttachment | null; label: string; notice: string; onChoose: () => void; onRemove: () => void; onView: () => void }) {
-  return <View style={styles.attachmentPicker}><Text style={styles.attachmentLabel}>{label}</Text>{attachment ? <Image accessibilityLabel={`Selected ${label}`} resizeMode="contain" source={{ uri: attachment.uri }} style={styles.attachmentPreview} /> : <View style={styles.attachmentEmpty}><Ionicons color={colors.accent} name="image-outline" size={28} /><Text style={styles.attachmentEmptyText}>No image selected</Text></View>}<View style={styles.attachmentActions}><SmallAction icon="image-outline" label={attachment ? 'Replace' : 'Choose image'} onPress={onChoose} />{attachment ? <><SmallAction icon="eye-outline" label="View attachment" onPress={onView} /><SmallAction icon="trash-outline" label="Remove" onPress={onRemove} /></> : null}</View><Text style={styles.attachmentNotice}>{notice}</Text></View>;
+function AttachmentPicker({
+  attachment,
+  label,
+  notice,
+  onChoose,
+  onTakePhoto,
+  onRemove,
+  onView,
+}: {
+  attachment: PreviewAttachment | null;
+  label: string;
+  notice: string;
+  onChoose: () => void;
+  onTakePhoto: () => void;
+  onRemove: () => void;
+  onView: () => void;
+}) {
+  return (
+    <View style={styles.attachmentPicker}>
+      <Text style={styles.attachmentLabel}>{label}</Text>
+      {attachment
+        ? <Image accessibilityLabel={`Selected ${label}`} resizeMode="contain" source={{ uri: attachment.uri }} style={styles.attachmentPreview} />
+        : (
+          <View style={styles.attachmentEmpty}>
+            <Ionicons color={colors.accent} name="image-outline" size={28} />
+            <Text style={styles.attachmentEmptyText}>No image selected</Text>
+          </View>
+        )}
+      <View style={styles.attachmentActions}>
+        <SmallAction icon="camera-outline" label={attachment ? 'Retake photo' : 'Take photo'} onPress={onTakePhoto} />
+        <SmallAction icon="image-outline" label={attachment ? 'Replace' : 'Choose image'} onPress={onChoose} />
+        {attachment ? (
+          <>
+            <SmallAction icon="eye-outline" label="View attachment" onPress={onView} />
+            <SmallAction icon="trash-outline" label="Remove" onPress={onRemove} />
+          </>
+        ) : null}
+      </View>
+      <Text style={styles.attachmentNotice}>{notice}</Text>
+    </View>
+  );
 }
 
 function formatDate(value: string) {

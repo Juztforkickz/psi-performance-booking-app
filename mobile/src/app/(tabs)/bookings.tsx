@@ -30,6 +30,8 @@ export default function BookingsScreen() {
   const { prepareBookingVehicle, prepareBookingVehicleRecord, selectedVehicleId } = useCustomerPreview();
   const { compact, horizontalPadding } = useResponsiveLayout();
   const [bookingChooserOpen, setBookingChooserOpen] = useState(false);
+  const [vehicleChooserOpen, setVehicleChooserOpen] = useState(false);
+  const [pendingBookingType, setPendingBookingType] = useState<'service' | 'dyno' | null>(null);
 
   const privateAccountMode = CUSTOMER_AUTH.enabled;
   const displayBookings = privateAccountMode
@@ -42,16 +44,36 @@ export default function BookingsScreen() {
   const openBooking = (type: 'service' | 'dyno') => {
     setBookingChooserOpen(false);
     if (privateAccountMode) {
-      const vehicle = account?.vehicles.find((item) => item.is_primary) ?? account?.vehicles[0];
-      if (!vehicle) {
+      const vehicles = account?.vehicles ?? [];
+      if (!vehicles.length) {
         router.push('/garage');
         return;
       }
-      prepareBookingVehicleRecord(accountVehiclePreview(vehicle));
+      if (vehicles.length === 1) {
+        prepareBookingVehicleRecord(accountVehiclePreview(vehicles[0]));
+      } else {
+        setPendingBookingType(type);
+        setVehicleChooserOpen(true);
+        return;
+      }
     } else {
       prepareBookingVehicle(selectedVehicleId);
     }
     router.push({ pathname: '/booking', params: { type } });
+  };
+
+  const openBookingWithVehicle = (type: 'service' | 'dyno', vehicleId: string) => {
+    const vehicle = account?.vehicles.find((item) => item.id === vehicleId);
+    if (!vehicle) return;
+    prepareBookingVehicleRecord(accountVehiclePreview(vehicle));
+    setVehicleChooserOpen(false);
+    setPendingBookingType(null);
+    router.push({ pathname: '/booking', params: { type } });
+  };
+
+  const closeVehicleChooser = () => {
+    setVehicleChooserOpen(false);
+    setPendingBookingType(null);
   };
 
   return (
@@ -210,6 +232,68 @@ export default function BookingsScreen() {
                 ? 'The selected saved vehicle opens a private request. Submission saves only after all details are reviewed.'
                 : 'Add a vehicle in My Garage before submitting a private booking request.'
               : 'Submissions remain disabled in this public demo. The existing request flow can still be explored safely.'}</Text>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal
+        animationType="fade"
+        onRequestClose={closeVehicleChooser}
+        transparent
+        visible={vehicleChooserOpen}
+      >
+        <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.modalSafeArea}>
+          <ScrollView contentContainerStyle={styles.modalBackdrop} showsVerticalScrollIndicator={false}>
+            <Pressable
+              accessibilityLabel="Close vehicle chooser"
+              accessibilityRole="button"
+              onPress={closeVehicleChooser}
+              style={StyleSheet.absoluteFill}
+            />
+            <View accessibilityViewIsModal style={styles.modalSheet}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalHeaderCopy}>
+                  <Text style={styles.eyebrow}>Choose vehicle</Text>
+                  <Text style={styles.modalTitle}>Select a saved vehicle</Text>
+                </View>
+                <Pressable
+                  accessibilityLabel="Close"
+                  accessibilityRole="button"
+                  onPress={closeVehicleChooser}
+                  style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
+                >
+                  <Ionicons color={colors.white} name="close" size={24} />
+                </Pressable>
+              </View>
+              {(account?.vehicles ?? []).map((vehicle) => {
+                return (
+                  <Pressable
+                    accessibilityLabel={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+                    accessibilityRole="button"
+                    key={vehicle.id}
+                    onPress={() => pendingBookingType && openBookingWithVehicle(pendingBookingType, vehicle.id)}
+                    style={({ pressed }) => [
+                      styles.vehicleChoice,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <View style={styles.vehicleChoiceCopy}>
+                      <Text style={styles.vehicleChoiceTitle}>
+                        {vehicle.year} {vehicle.make} {vehicle.model}
+                      </Text>
+                      <Text style={styles.vehicleChoiceMeta}>
+                        {vehicle.registration}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      color={colors.silver}
+                      name="chevron-forward"
+                      size={22}
+                    />
+                  </Pressable>
+                );
+              })}
             </View>
           </ScrollView>
         </SafeAreaView>

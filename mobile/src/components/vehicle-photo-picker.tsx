@@ -34,22 +34,40 @@ export function VehiclePhotoPicker({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const choosePhoto = async () => {
+  const pickPhotoFromSource = async (source: 'camera' | 'library') => {
     if (busy || saving || disabled) return;
 
     setBusy(true);
     setError('');
 
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: false,
-        allowsMultipleSelection: false,
-        base64: false,
-        exif: false,
-        mediaTypes: ['images'],
-        quality: 0.9,
-        selectionLimit: 1,
-      });
+      const requestPermission = source === 'camera'
+        ? ImagePicker.requestCameraPermissionsAsync
+        : ImagePicker.requestMediaLibraryPermissionsAsync;
+      const permissionResult = await requestPermission();
+      if (!permissionResult.granted) {
+        setError(source === 'camera'
+          ? 'Camera permission is needed to take photos for your vehicle record.'
+          : 'Photo permission is needed to choose an existing picture.');
+        return;
+      }
+
+      const result = source === 'camera'
+        ? await ImagePicker.launchCameraAsync({
+          allowsEditing: false,
+          mediaTypes: ['images'],
+          quality: 0.9,
+          saveToPhotos: false,
+        })
+        : await ImagePicker.launchImageLibraryAsync({
+          allowsEditing: false,
+          allowsMultipleSelection: false,
+          base64: false,
+          exif: false,
+          mediaTypes: ['images'],
+          quality: 0.9,
+          selectionLimit: 1,
+        });
 
       if (result.canceled) return;
 
@@ -68,10 +86,18 @@ export function VehiclePhotoPicker({
       };
       onChange(nextPhoto);
     } catch {
-      setError('We could not open your photo library. Try again or choose a different image.');
+      setError(source === 'camera' ? 'The camera could not be opened. Try again or choose from your library.' : 'We could not open your photo library. Try again or choose a different image.');
     } finally {
       setBusy(false);
     }
+  };
+
+  const choosePhoto = async () => {
+    await pickPhotoFromSource('library');
+  };
+
+  const takePhoto = async () => {
+    await pickPhotoFromSource('camera');
   };
 
   const removePhoto = () => {
@@ -108,11 +134,11 @@ export function VehiclePhotoPicker({
 
       <View style={styles.actions}>
         <Pressable
-          accessibilityLabel={value ? `Replace photo of ${vehicleLabel}` : `Choose a photo of ${vehicleLabel}`}
+          accessibilityLabel="Take a photo from camera"
           accessibilityRole="button"
           accessibilityState={{ busy: busy || saving, disabled: busy || saving || disabled }}
           disabled={busy || saving || disabled}
-          onPress={() => void choosePhoto()}
+          onPress={() => void takePhoto()}
           style={({ pressed }) => [
             styles.primaryAction,
             pressed && styles.pressed,
@@ -122,9 +148,26 @@ export function VehiclePhotoPicker({
           {busy || saving ? (
             <ActivityIndicator color={colors.ink} />
           ) : (
-            <Text maxFontSizeMultiplier={1.6} style={styles.primaryActionText}>
-              {value ? 'Replace photo' : 'Choose photo'}
-            </Text>
+            <Text maxFontSizeMultiplier={1.6} style={styles.primaryActionText}>Take photo</Text>
+          )}
+        </Pressable>
+
+        <Pressable
+          accessibilityLabel={value ? `Replace photo of ${vehicleLabel}` : `Choose a photo of ${vehicleLabel}`}
+          accessibilityRole="button"
+          accessibilityState={{ busy: busy || saving, disabled: busy || saving || disabled }}
+          disabled={busy || saving || disabled}
+          onPress={() => void choosePhoto()}
+          style={({ pressed }) => [
+            styles.secondaryAction,
+            pressed && styles.pressed,
+            (busy || saving || disabled) && styles.actionDisabled,
+          ]}
+        >
+          {busy || saving ? (
+            <ActivityIndicator color={colors.ink} />
+          ) : (
+            <Text maxFontSizeMultiplier={1.6} style={styles.secondaryActionText}>Choose photo</Text>
           )}
         </Pressable>
 
@@ -135,12 +178,12 @@ export function VehiclePhotoPicker({
             disabled={disabled || saving}
             onPress={removePhoto}
             style={({ pressed }) => [
-              styles.secondaryAction,
+              styles.tertiaryAction,
               pressed && styles.pressed,
               (disabled || saving) && styles.actionDisabled,
             ]}
           >
-            <Text maxFontSizeMultiplier={1.6} style={styles.secondaryActionText}>Remove</Text>
+            <Text maxFontSizeMultiplier={1.6} style={styles.tertiaryActionText}>Remove</Text>
           </Pressable>
         ) : null}
       </View>
@@ -248,6 +291,26 @@ const styles = StyleSheet.create({
   },
   secondaryActionText: {
     color: colors.white,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+  },
+  tertiaryAction: {
+    ...mobileFrame,
+    minWidth: 112,
+    minHeight: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 3,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  tertiaryActionText: {
+    color: colors.silver,
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.7,

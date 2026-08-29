@@ -727,13 +727,23 @@ function BookingScreenContent({
                   style={wideFields && step > 1 ? styles.actionButtonWide : undefined}
                 />
               ) : (
-                <PrimaryButton
-                  disabled={!submissionEnabled}
-                  label={submissionEnabled ? 'Submit request for PSI review' : privateBookingEnabled ? 'Choose a saved vehicle first' : 'Demo only · Submission disabled'}
-                  loading={submitting}
-                  onPress={() => void submitRequest()}
-                  style={wideFields && step > 1 ? styles.actionButtonWide : undefined}
-                />
+                <>
+                  {privateBookingEnabled && !submissionEnabled ? (
+                    <PrimaryButton
+                      label="Choose saved vehicle first"
+                      onPress={() => router.push('/garage')}
+                      style={wideFields && step > 1 ? styles.actionButtonWide : undefined}
+                      variant="outline"
+                    />
+                  ) : null}
+                  <PrimaryButton
+                    disabled={!submissionEnabled}
+                    label={submissionEnabled ? 'Submit request for PSI review' : privateBookingEnabled ? 'Choose a saved vehicle first' : 'Demo only · Submission disabled'}
+                    loading={submitting}
+                    onPress={() => void submitRequest()}
+                    style={wideFields && step > 1 ? styles.actionButtonWide : undefined}
+                  />
+                </>
               )}
             </View>
             <Text style={styles.requestNote}>
