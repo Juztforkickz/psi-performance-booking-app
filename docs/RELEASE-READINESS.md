@@ -68,6 +68,14 @@ Bookings artwork for customer booking notifications. It retains the protected
 `qa` profile, closed registration and the registered iPhone provisioning.
 Real-device visual acceptance of this replacement build remains outstanding.
 
+The standardised Home dashboard build
+`acce75be-e92a-4c8c-82d8-efcb800aa9ff` completed successfully on 29 August
+2026 from source checkpoint `3406354188baf2f3af44abae8006eb9251d23a73`.
+It uses a smaller two-column mobile grid, equal square image areas, consistent
+safe insets and matching two-line label bands across all eight dashboard tiles.
+It retains the protected `qa` profile, closed registration and registered
+iPhone provisioning. Real-device visual acceptance remains outstanding.
+
 ## Remaining before an external pilot
 
 1. Run the native QA profile on one current iPhone and one supported Android device. Record build IDs, device models, operating-system versions and test identities.
