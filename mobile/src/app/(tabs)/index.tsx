@@ -656,7 +656,7 @@ function WorkshopFact({
       <Ionicons color={theme.accent} name={icon} size={20} />
       <View style={styles.workshopFactCopy}>
         <Text style={[styles.workshopFactLabel, { color: theme.accent }]}>{label}</Text>
-        <Text style={[styles.workshopFactValue, { color: theme.textInverse }]}>{value}</Text>
+        <Text style={[styles.workshopFactValue, { color: colors.white }]}>{value}</Text>
       </View>
     </View>
   );
