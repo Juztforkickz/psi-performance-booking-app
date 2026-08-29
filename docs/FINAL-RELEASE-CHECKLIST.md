@@ -23,8 +23,9 @@ Status: controlled QA, 29 August 2026. Payments are deliberately last.
 - [x] Submit Apple Developer Program organisation enrolment through the Apple
   Developer app. Apple review began on 29 August 2026; private enrolment and
   D-U-N-S identifiers are intentionally excluded from the repository.
-- [ ] Receive Apple approval, pay/activate the membership and confirm the
-  displayed seller name is **PSI PERFORMANCE PTY LTD**.
+- [x] Receive Apple approval, pay/activate the membership and confirm the
+  displayed organisation is **PSI PERFORMANCE PTY LTD**. Apple signing and push
+  credentials were created under that organisation on 29 August 2026.
 - [x] Exercise the ordered database deletion path against QATEST1 in a
   rollback-only transaction and confirm the synthetic account remains intact.
 - [ ] Complete signed-native deletion acceptance with a disposable account and
@@ -36,7 +37,7 @@ Status: controlled QA, 29 August 2026. Payments are deliberately last.
   booking transitions on 26 August 2026. Signed-native Auth/file tests remain
   required above.
 - [ ] Complete iPhone notification permission, sound, badge and deep-link tests
-  after PSI's Apple Developer organisation enrolment is approved.
+  using the first signed internal iOS QA build.
 - [ ] Complete equivalent Android testing on a supported borrowed or dedicated
   test device before Google Play release.
 - [x] Record current Supabase plan, region and capacity; add a guarded encrypted

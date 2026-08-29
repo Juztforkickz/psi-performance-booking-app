@@ -7,7 +7,7 @@ signed release build and final owner/legal checks are complete.
 
 - App name: **PSI Performance**
 - Bundle/application ID: `com.psiperformance.booking`
-- Apple seller organisation requested: **PSI PERFORMANCE PTY LTD**
+- Apple Developer organisation: **PSI PERFORMANCE PTY LTD** — active 29 August 2026
 - D-U-N-S status: **Active D&B record confirmed by the owner on 29 August 2026**
 - Company ACN: **175 164 626** — owner-confirmed; recheck against current ASIC documentation during enrolment
 - Company ABN: **98 175 164 626** — owner-confirmed; recheck against current ABR documentation during enrolment
@@ -199,9 +199,9 @@ mailbox from a clean device immediately before submission.
 
 ## Still requires owner action
 
-- Wait for Apple to approve the organisation enrolment submitted on 29 August
-  2026, pay/activate the membership when invited, and confirm the displayed
-  seller name is **PSI PERFORMANCE PTY LTD**. Keep the enrolment identifier and
+- Install and acceptance-test the completed signed internal iPhone QA build,
+  including passwordless Auth, private files, deletion controls and native push.
+  Keep Apple credential material, the enrolment identifier, device UDID and
   D-U-N-S number outside the public repository.
 - Create or verify the Google Play organisation/developer account.
 - Decide supported territories and confirm the drafted age-rating answers.

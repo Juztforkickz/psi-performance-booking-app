@@ -4,11 +4,11 @@ Status: controlled QA, 29 August 2026. Payments remain deliberately deferred.
 
 On 29 August 2026, D&B confirmed an active D-U-N-S record for
 **PSI PERFORMANCE PTY LTD**. The identifier is intentionally not stored in the
-public repository. PSI submitted its Apple Developer Program organisation
-enrolment through the Apple Developer app on 29 August 2026 and Apple is now
-reviewing it. The private enrolment identifier is intentionally not stored here.
-Membership payment/activation, seller-name confirmation and Apple signing remain
-blocked until Apple approves the application.
+public repository. Apple accepted PSI's organisation enrolment on 29 August
+2026; the membership is paid and active under **PSI PERFORMANCE PTY LTD**. The
+private enrolment identifier is intentionally not stored here. Expo now has
+PSI-owned Apple distribution, ad-hoc provisioning and push credentials for the
+registered QA iPhone.
 
 ## Verified foundation
 
@@ -17,7 +17,7 @@ blocked until Apple approves the application.
 - A customer-owned vehicle can create an idempotent `pending_staff_review` request. PSI staff review, official service history and Vehicle Reports remain separately protected.
 - Resend transactional email is active through encrypted Edge Function secrets. Google Calendar credentials are server-only and the customer cannot list or read PSI calendar contents.
 - Public GitHub Pages remains a submission-disabled synthetic demo. The EAS QA build is protected by Expo authentication and uses a separate Auth-enabled environment.
-- Native push infrastructure supports opt-in permission, sounds, badge counts and safe deep links. Remote iPhone acceptance still requires an Apple-signed build.
+- Native push infrastructure supports opt-in permission, sounds, badge counts and safe deep links. The first Apple-signed build is ready; remote iPhone acceptance remains outstanding.
 - Customers can initiate or cancel their own deletion request. Matt can review the queue only after AAL2 verification; completion remains a controlled owner procedure and is never represented as automatic.
 - Customer-facing privacy, support and conservative approval-first booking terms are available inside the app.
 - Expo SDK 57 dependencies match Expo's current compatible patch versions, peer
@@ -37,6 +37,17 @@ Hosting exports must use the cache-safe process documented in `../mobile/README.
 
 The signed internal Android QA APK build `be1e5a7d-96f1-4fe3-8a44-0bbe400fd4ab` completed successfully on 25 August 2026 from source checkpoint `7dd0b75331bc5bda31407daf485dd0ef8f05c44d`. It uses package `com.psiperformance.booking`, the protected `qa` profile and PSI's Expo-managed Android keystore. Its Expo installation page is restricted to authorised project access and the build expires on 8 September 2026. Real-device installation and notification acceptance remain outstanding; build completion alone does not prove native push delivery.
 
+The first signed internal iOS QA build
+`8a1e5433-1056-45f0-83d2-e470ba57b652` completed successfully on 29 August
+2026 from source checkpoint `7748a9529331a38b6563e447cba66e514e720e7a`.
+It uses bundle `com.psiperformance.booking`, version `1.0.0` build `1`, the
+protected `qa` profile, an active PSI-owned ad-hoc provisioning profile and an
+Apple push-notification key. The approved iPhone is included in the profile;
+its UDID is intentionally not stored in the repository. The protected build
+expires on 12 September 2026. Installation and the full real-device checklist
+remain outstanding; build completion alone does not prove authentication,
+private-file isolation or native push delivery.
+
 ## Remaining before an external pilot
 
 1. Run the native QA profile on one current iPhone and one supported Android device. Record build IDs, device models, operating-system versions and test identities.
@@ -46,10 +57,9 @@ The signed internal Android QA APK build `be1e5a7d-96f1-4fe3-8a44-0bbe400fd4ab` 
 5. Exercise date proposal, date approval and cancellation emails, including duplicate-worker and Melbourne-time boundary checks. Do not move any request to paid or confirmed state.
 6. Acceptance-test the documented account-deletion completion procedure with a synthetic identity, approve the retention schedule and decide on Supabase backup/capacity before real customer records are invited.
 7. Confirm the new BNB Autohaus listing and logo, reconfirm all retained Trusted Partner contact details immediately before store submission, and approve final app-store privacy disclosures, signed-build screenshots and customer-facing terms. Listing and logo approval remains complete for the six continuing businesses.
-8. Wait for approval of the submitted PSI-owned Apple Developer organisation
-   enrolment, then pay/activate it and confirm the seller name. Obtain the Google
-   Play Console membership before store release. The PSI D-U-N-S record is
-   active; Apple membership and its associated signing access are not yet active.
+8. Complete the signed-iPhone acceptance checklist and obtain the Google Play
+   Console membership before store release. The PSI D-U-N-S record, Apple
+   organisation membership and Apple signing access are active.
 
 The exact owner deletion procedure is in `ACCOUNT-DELETION.md`. The consolidated launch gates are in `FINAL-RELEASE-CHECKLIST.md`.
 

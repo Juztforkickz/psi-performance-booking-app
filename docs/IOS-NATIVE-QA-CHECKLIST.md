@@ -1,7 +1,7 @@
 # PSI iPhone native QA checklist
 
-Status: prepared 29 August 2026. Run only after Apple approves and activates
-PSI's organisation membership. The first Apple release is iPhone-only.
+Status: signed QA build ready 29 August 2026. The first Apple release is
+iPhone-only; installation and real-device acceptance remain in progress.
 
 ## Evidence to record
 
@@ -18,13 +18,14 @@ Apple enrolment identifiers or service credentials in this file or an issue.
 
 ## Build and installation
 
-- [ ] Apple organisation membership is active and the seller name is PSI
+- [x] Apple organisation membership is active and the organisation name is PSI
   PERFORMANCE PTY LTD.
-- [ ] Register the approved iPhone for the internal QA build.
-- [ ] Create/reuse Expo-managed iOS distribution and push credentials under the
+- [x] Register the approved iPhone for the internal QA build.
+- [x] Create/reuse Expo-managed iOS distribution and push credentials under the
   PSI-owned Apple team.
-- [ ] Build the `qa` profile for iOS from the recorded checkpoint.
-- [ ] Confirm bundle ID `com.psiperformance.booking`, version/build number and
+- [x] Build the `qa` profile for iOS from checkpoint `7748a95`; EAS build
+  `8a1e5433-1056-45f0-83d2-e470ba57b652` completed successfully.
+- [x] Confirm bundle ID `com.psiperformance.booking`, version/build number and
   iPhone-only support in the build details.
 - [ ] Install from the protected EAS page and confirm the PSI icon, splash and
   launch experience.
