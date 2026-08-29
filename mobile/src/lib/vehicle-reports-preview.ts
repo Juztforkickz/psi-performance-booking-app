@@ -21,7 +21,7 @@ export type DynoRecord = {
   graphImage: PreviewAttachment | null;
   id: string;
   notes: string;
-  peakPowerKwAtHubs: number;
+  peakPowerHpAtHubs: number;
   peakTorqueNmAtHubs: number | null;
   recordedAt: string;
   secureAttachment?: SecureVehicleAttachment | null;
@@ -77,7 +77,7 @@ export const PREVIEW_DYNO_RECORDS: readonly DynoRecord[] = CUSTOMER_PREVIEW.dyno
   id: result.id,
   vehicleId: result.vehicleId,
   recordedAt: result.recordedAt,
-  peakPowerKwAtHubs: result.peakPower.value,
+  peakPowerHpAtHubs: result.peakPower.value,
   peakTorqueNmAtHubs: result.peakTorque.value,
   fuel: result.fuel,
   notes: result.summary,

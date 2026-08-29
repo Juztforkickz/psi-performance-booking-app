@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 
 import { australianDateToIso } from '@/lib/australian-date';
+import { horsepowerToKilowatts } from '@/lib/dyno-power';
 import type {
   Database,
   DynoRecordRow,
@@ -55,7 +56,7 @@ export type DynoPublishInput = VehicleTarget & {
   fuel: string;
   image: StaffPublishImage | null;
   notes: string;
-  powerKw: string;
+  powerHp: string;
   torqueNm: string;
 };
 
@@ -153,7 +154,7 @@ export async function publishPsiDyno(input: DynoPublishInput): Promise<PublishRe
     fuel: optionalText(input.fuel),
     id: recordId,
     notes: optionalText(input.notes),
-    power_kw_at_hubs: requiredPositiveNumber(input.powerKw, 'DYNO_POWER_INVALID'),
+    power_kw_at_hubs: horsepowerToKilowatts(requiredPositiveNumber(input.powerHp, 'DYNO_POWER_INVALID')),
     record_source: 'psi_verified',
     tested_at: middayUtc(requiredDate(input.date, 'DYNO_DATE_INVALID')),
     torque_nm_at_hubs: optionalPositiveNumber(input.torqueNm, 'DYNO_TORQUE_INVALID'),

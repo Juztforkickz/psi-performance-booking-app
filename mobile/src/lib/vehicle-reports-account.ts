@@ -8,6 +8,7 @@ import type {
   VehicleFileRow,
 } from '@/lib/database.types';
 import { getSupabaseClient } from '@/lib/supabase';
+import { kilowattsToHorsepower } from '@/lib/dyno-power';
 import type {
   DynoRecord,
   FutureRepair,
@@ -80,7 +81,7 @@ export function getAccountDynoRecords(reports: CustomerVehicleReportsSnapshot): 
     graphImage: null,
     id: record.id,
     notes: record.notes ?? '',
-    peakPowerKwAtHubs: record.power_kw_at_hubs,
+    peakPowerHpAtHubs: kilowattsToHorsepower(record.power_kw_at_hubs),
     peakTorqueNmAtHubs: record.torque_nm_at_hubs,
     recordedAt: record.tested_at,
     secureAttachment: toSecureAttachment(newestFileFor(reports.vehicleFiles, 'dyno_record_id', record.id, 'dyno_graph')),

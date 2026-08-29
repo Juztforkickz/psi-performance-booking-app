@@ -567,7 +567,7 @@ function DynoResultCard({
         {result ? (
           <>
             <View style={styles.resultGrid}>
-              <ResultValue label="Peak power" value={`${result.peakPower.value}`} unit="kW at hubs" />
+              <ResultValue label="Peak power" value={`${result.peakPower.value}`} unit="HP at hubs" />
               <ResultValue label="Peak torque" value={`${result.peakTorque.value}`} unit="Nm at hubs" />
             </View>
             <View style={styles.resultMeta}>

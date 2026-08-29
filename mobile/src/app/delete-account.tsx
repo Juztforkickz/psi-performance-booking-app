@@ -42,7 +42,7 @@ export default function DeleteAccountScreen() {
         </View>
 
         <PrimaryButton label="Privacy & data handling" onPress={() => router.push('/privacy')} variant="outline" />
-        <Text style={styles.updated}>PSI PERFORMANCE APP · LAST UPDATED 25 AUGUST 2026</Text>
+        <Text style={styles.updated}>PSI PERFORMANCE APP · LAST UPDATED 25/08/2026</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -61,4 +61,3 @@ const styles = StyleSheet.create({
   noticeTitle: { color: colors.accent, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   updated: { marginTop: spacing.sm, color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: 1.1, textAlign: 'center' },
 });
-

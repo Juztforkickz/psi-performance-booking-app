@@ -14,7 +14,7 @@ export type PreviewVehicle = {
 };
 
 export type DynoMeasurement = {
-  unit: 'kW_at_hubs' | 'Nm_at_hubs';
+  unit: 'HP_at_hubs' | 'Nm_at_hubs';
   value: number;
 };
 
@@ -28,7 +28,7 @@ export type PsiVerifiedDynoResult = {
   fuel: string;
   id: string;
   managedBy: 'psi';
-  peakPower: DynoMeasurement & { unit: 'kW_at_hubs' };
+  peakPower: DynoMeasurement & { unit: 'HP_at_hubs' };
   peakTorque: DynoMeasurement & { unit: 'Nm_at_hubs' };
   recordedAt: string;
   runType: 'hub_dyno';
@@ -134,7 +134,7 @@ export const CUSTOMER_PREVIEW = {
       customerAccess: 'read_only',
       fuel: '98 RON',
       ambientTemperatureC: 21,
-      peakPower: { value: 318, unit: 'kW_at_hubs' },
+      peakPower: { value: 426.4, unit: 'HP_at_hubs' },
       peakTorque: { value: 612, unit: 'Nm_at_hubs' },
       summary: 'Synthetic example of the latest PSI-verified hub-dyno result. PSI updates this record after a completed dyno session.',
     },
@@ -203,7 +203,7 @@ export const CUSTOMER_PREVIEW = {
       id: 'alert-next-visit',
       type: 'booking',
       title: 'Next visit confirmed',
-      message: 'Dyno Tuning · Wed 16 Sep 2026 at 9:00 am. This is synthetic preview information.',
+      message: 'Dyno Tuning · 16/09/2026 at 9:00 am. This is synthetic preview information.',
       read: false,
     },
     {
@@ -217,7 +217,7 @@ export const CUSTOMER_PREVIEW = {
       id: 'alert-service-reminder',
       type: 'reminder',
       title: 'Service check-in',
-      message: 'The example VF SS is due for its next service check-in in November 2026.',
+      message: 'The example VF SS is due for its next service check-in on 14/11/2026.',
       read: true,
     },
   ],

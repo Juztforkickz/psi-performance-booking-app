@@ -108,7 +108,7 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
         await publishPsiRecommendation({ customerId, notes, status: recommendationStatus, timing, title, vehicleId });
         setFeedback({ kind: 'success', text: 'Recommended work published as a read-only PSI record.' });
       } else if (recordType === 'dyno') {
-        const result = await publishPsiDyno({ customerId, date, fuel, image, notes, powerKw: power, torqueNm: torque, vehicleId });
+        const result = await publishPsiDyno({ customerId, date, fuel, image, notes, powerHp: power, torqueNm: torque, vehicleId });
         setFeedback(result.attachmentWarning
           ? { kind: 'warning', text: result.attachmentWarning }
           : { kind: 'success', text: `PSI verified dyno result published${result.attachmentStored ? ' with a private graph image' : ''}.` });
@@ -233,7 +233,7 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
           <>
             <Field hint="DD/MM/YYYY" label="Dyno date"><FormInput keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={setDate} value={date} /></Field>
             <View style={styles.twoColumn}>
-              <View style={styles.column}><Field label="Peak power · kW at hubs"><FormInput keyboardType="decimal-pad" onChangeText={setPower} placeholder="312.5" value={power} /></Field></View>
+              <View style={styles.column}><Field label="Peak power · HP at hubs"><FormInput keyboardType="decimal-pad" onChangeText={setPower} placeholder="426" value={power} /></Field></View>
               <View style={styles.column}><Field hint="Optional" label="Peak torque · Nm at hubs"><FormInput keyboardType="decimal-pad" onChangeText={setTorque} placeholder="684" value={torque} /></Field></View>
             </View>
             <Field hint="Optional" label="Fuel"><FormInput onChangeText={setFuel} placeholder="98 RON" value={fuel} /></Field>
