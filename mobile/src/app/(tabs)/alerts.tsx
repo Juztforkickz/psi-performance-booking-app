@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,6 +25,8 @@ const THEME_PREFERENCES: readonly { value: ThemePreference; label: string }[] = 
   { value: 'bright', label: 'Bright' },
   { value: 'automatic', label: 'Automatic' },
 ];
+
+const BOOKING_ALERT_IMAGE = require('../../../assets/images/dashboard/tile-my-bookings-blue-silver.jpg');
 
 type AlertPreference = 'booking' | 'reminder' | 'vehicle';
 
@@ -132,7 +135,13 @@ export default function AlertsScreen() {
                     >
                       {selected ? <View style={[styles.themeModeCheckboxInner, { backgroundColor: theme.textInverse }]} /> : null}
                     </View>
-                    <Text style={[styles.themeModeOptionText, { color: selected ? theme.textInverse : theme.text }]}>
+                    <Text
+                      adjustsFontSizeToFit
+                      maxFontSizeMultiplier={1.2}
+                      minimumFontScale={0.72}
+                      numberOfLines={1}
+                      style={[styles.themeModeOptionText, { color: selected ? theme.textInverse : theme.text }]}
+                    >
                       {item.label}
                     </Text>
                   </View>
@@ -277,7 +286,11 @@ function AlertCard({
       style={({ pressed }) => [styles.alertCard, !read && styles.alertCardUnread, pressed && styles.pressed]}
     >
       <View style={[styles.alertIcon, !read && styles.alertIconUnread]}>
-        <Ionicons color={!read ? colors.ink : colors.accent} name={icon} size={23} />
+        {alert.type === 'booking' ? (
+          <Image accessible={false} resizeMode="cover" source={BOOKING_ALERT_IMAGE} style={styles.alertArtwork} />
+        ) : (
+          <Ionicons color={!read ? colors.ink : colors.accent} name={icon} size={23} />
+        )}
       </View>
       <View style={styles.alertCopy}>
         <View style={styles.alertTopline}>
@@ -293,7 +306,7 @@ function AlertCard({
 
 function SecureAlertCard({ event, onPress }: { event: NotificationEventRow; onPress: () => void }) {
   const read = Boolean(event.read_at);
-  const icon = event.deep_link === '/staff' ? 'construct-outline' : 'calendar-outline';
+  const staffNotification = event.deep_link === '/staff';
   return (
     <Pressable
       accessibilityHint={read ? 'This notification is marked as read' : 'Marks this notification as read'}
@@ -302,11 +315,13 @@ function SecureAlertCard({ event, onPress }: { event: NotificationEventRow; onPr
       style={({ pressed }) => [styles.alertCard, !read && styles.alertCardUnread, pressed && styles.pressed]}
     >
       <View style={[styles.alertIcon, !read && styles.alertIconUnread]}>
-        <Ionicons color={!read ? colors.ink : colors.accent} name={icon} size={23} />
+        {staffNotification
+          ? <Ionicons color={!read ? colors.ink : colors.accent} name="construct-outline" size={23} />
+          : <Image accessible={false} resizeMode="cover" source={BOOKING_ALERT_IMAGE} style={styles.alertArtwork} />}
       </View>
       <View style={styles.alertCopy}>
         <View style={styles.alertTopline}>
-          <Text style={styles.alertType}>{event.deep_link === '/staff' ? 'Workshop' : 'Booking'}</Text>
+          <Text style={styles.alertType}>{staffNotification ? 'Workshop' : 'Booking'}</Text>
           {!read ? <View accessibilityLabel="Unread" style={styles.unreadDot} /> : <Text style={styles.readLabel}>Read</Text>}
         </View>
         <Text style={styles.alertTitle}>{event.title}</Text>
@@ -371,12 +386,12 @@ const styles = StyleSheet.create({
   sectionMeta: { color: colors.muted, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   themePanel: { ...mobileFrame, gap: spacing.sm, backgroundColor: colors.panel, paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.line },
   themeModeControls: { flexDirection: 'row', gap: spacing.xs },
-  themeModeOption: { minHeight: 36, minWidth: 82, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 8, paddingHorizontal: spacing.sm },
-  themeModeCheckboxRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  themeModeOption: { minHeight: 36, minWidth: 82, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 8, paddingHorizontal: 4 },
+  themeModeCheckboxRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   themeModeCheckbox: { width: 15, height: 15, borderRadius: 2.5, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   themeModeCheckboxSelected: {},
   themeModeCheckboxInner: { width: 7, height: 7, borderRadius: 1, backgroundColor: colors.ink },
-  themeModeOptionText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: .4 },
+  themeModeOptionText: { flexShrink: 1, fontSize: 10.5, fontWeight: '900', textTransform: 'uppercase', letterSpacing: .2 },
   themeModeTitle: { color: colors.white, fontSize: 10, fontWeight: '900', letterSpacing: .9, textTransform: 'uppercase' },
   themeModeNotice: { fontSize: 10, lineHeight: 16, fontStyle: 'italic' },
   alertList: { gap: spacing.sm },
@@ -385,6 +400,7 @@ const styles = StyleSheet.create({
   alertCardUnread: { backgroundColor: colors.inkSoft },
   alertIcon: { ...mobileFrame, width: 48, height: 48, flexShrink: 0, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
   alertIconUnread: { backgroundColor: colors.silver },
+  alertArtwork: { width: '100%', height: '100%' },
   alertCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
   alertTopline: { minHeight: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   alertType: { color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: .6, textTransform: 'uppercase' },

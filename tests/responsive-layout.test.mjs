@@ -72,6 +72,7 @@ test("uses one native responsive contract across every customer screen", async (
   ]);
 
   assert.match(appConfig, /"orientation":\s*"default"/);
+  assert.match(appConfig, /"name":\s*"PSI Garage"/);
   assert.match(appConfig, /"softwareKeyboardLayoutMode":\s*"resize"/);
   assert.match(hook, /useWindowDimensions\(\)/);
   assert.match(hook, /fontScale/);
@@ -118,6 +119,8 @@ test("uses one native responsive contract across every customer screen", async (
   assert.match(garage, /dynoImageFrame:\s*\{[^}]*aspectRatio:\s*1\.1/);
   assert.match(garage, /accessibilityLabel="Illustrated diagnostic scan tool[\s\S]*?resizeMode="contain"[\s\S]*?styles\.reportImage/);
   assert.match(garage, /reportImage:\s*\{[\s\S]*?scale:\s*1\.36[\s\S]*?transformOrigin:\s*'top center'/);
+  assert.match(alerts, /adjustsFontSizeToFit[\s\S]*?numberOfLines=\{1\}[\s\S]*?themeModeOptionText/);
+  assert.match(alerts, /tile-my-bookings-blue-silver\.jpg/);
   assert.match(parts, /stackAreaCards\s*=\s*compact\s*\|\|\s*largeText/);
   assert.match(parts, /!stackAreaCards\s*&&\s*styles\.areaCardTwoColumn/);
   assert.match(parts, /areaCard:\s*\{[^}]*minHeight:\s*132/);

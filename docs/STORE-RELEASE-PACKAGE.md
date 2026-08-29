@@ -6,6 +6,7 @@ signed release build and final owner/legal checks are complete.
 ## App identity
 
 - App name: **PSI Performance**
+- Installed Home Screen label: **PSI Garage**
 - Bundle/application ID: `com.psiperformance.booking`
 - Apple Developer organisation: **PSI PERFORMANCE PTY LTD** — active 29 August 2026
 - D-U-N-S status: **Active D&B record confirmed by the owner on 29 August 2026**
