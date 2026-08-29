@@ -76,6 +76,15 @@ safe insets and matching two-line label bands across all eight dashboard tiles.
 It retains the protected `qa` profile, closed registration and registered
 iPhone provisioning. Real-device visual acceptance remains outstanding.
 
+The Home tile artwork-fit build
+`5c1df258-125e-41ec-a097-4d52b915477d` completed successfully on 29 August
+2026 from source checkpoint `05d4e1d5c45b76569ba8f2f7dbb5a3a000926a42`.
+It preserves the approved tile dimensions, wording and label typography while
+centring every illustration above its label, keeping the full artwork visible
+and maintaining a consistent inset from the tile borders. It retains the
+protected `qa` profile, closed registration and registered iPhone provisioning.
+Real-device visual acceptance remains outstanding.
+
 ## Remaining before an external pilot
 
 1. Run the native QA profile on one current iPhone and one supported Android device. Record build IDs, device models, operating-system versions and test identities.
