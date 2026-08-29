@@ -59,6 +59,15 @@ the same protected `qa` profile, PSI-owned signing credentials, registered
 iPhone and closed-registration controls. Installation and acceptance of this
 replacement build remain to be completed on the registered device.
 
+The final launcher and notification-review build
+`233ee61e-b9a0-41a0-bf20-77b6c410ec2f` completed successfully on 29 August
+2026 from source checkpoint `c151ceffc0912df3134f526cfec437570283f755`.
+It uses the short installed label `PSI`, the PSI icon with `PERFORMANCE`
+centred beneath the mark, one-line theme preference labels and the Home-screen
+Bookings artwork for customer booking notifications. It retains the protected
+`qa` profile, closed registration and the registered iPhone provisioning.
+Real-device visual acceptance of this replacement build remains outstanding.
+
 ## Remaining before an external pilot
 
 1. Run the native QA profile on one current iPhone and one supported Android device. Record build IDs, device models, operating-system versions and test identities.
