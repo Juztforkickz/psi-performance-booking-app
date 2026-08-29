@@ -26,6 +26,8 @@ Apple enrolment identifiers or service credentials in this file or an issue.
   PSI-owned Apple team.
 - [x] Build the `qa` profile for iOS from checkpoint `7748a95`; EAS build
   `8a1e5433-1056-45f0-83d2-e470ba57b652` completed successfully.
+- [x] Build the Account sign-in-first update from checkpoint `04c6e74`; EAS
+  build `e4301f59-d444-4fb7-8c08-394f0ba4a5bb` completed successfully.
 - [x] Confirm bundle ID `com.psiperformance.booking`, version/build number and
   iPhone-only support in the build details.
 - [x] Install from the protected EAS page and confirm the PSI icon, splash and

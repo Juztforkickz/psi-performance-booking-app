@@ -50,6 +50,15 @@ six-digit email code successfully. The remaining real-device checklist is still
 outstanding; this initial result does not prove invalid/replayed-code handling,
 session restoration, private-file isolation or native push delivery.
 
+The updated signed internal iOS QA build
+`e4301f59-d444-4fb7-8c08-394f0ba4a5bb` completed successfully on 29 August
+2026 from source checkpoint `04c6e74744d5a1fb71d6f5482d793ccbfb63ed69`.
+It places secure email-code sign-in first on the Account screen and removes
+testing-oriented language from the authenticated customer experience. It uses
+the same protected `qa` profile, PSI-owned signing credentials, registered
+iPhone and closed-registration controls. Installation and acceptance of this
+replacement build remain to be completed on the registered device.
+
 ## Remaining before an external pilot
 
 1. Run the native QA profile on one current iPhone and one supported Android device. Record build IDs, device models, operating-system versions and test identities.
