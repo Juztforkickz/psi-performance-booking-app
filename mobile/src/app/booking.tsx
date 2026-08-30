@@ -1,4 +1,5 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
@@ -57,6 +58,7 @@ import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { PUBLIC_DEMO } from '@/lib/public-demo';
 import { SUPABASE_CONNECTION } from '@/lib/supabase';
+import { loadWorkshopWeather, type WeatherItem } from '@/lib/weather';
 
 const STEP_LABELS = ['Job', 'Vehicle', 'Details', 'Date', 'Review'];
 const COMPACT_STEP_LABELS = ['Job', 'Car', 'You', 'Date', 'Review'];
@@ -1504,12 +1506,31 @@ function DateStep({
   onDateChange: (event: DateTimePickerEvent, selected?: Date) => void;
 }) {
   const { compact, fontScale, shortLandscape, width } = useResponsiveLayout();
+  const [forecast, setForecast] = useState<WeatherItem[]>([]);
+  const [forecastLoading, setForecastLoading] = useState(true);
+  const [forecastUnavailable, setForecastUnavailable] = useState(false);
   const useInlineCalendar = width >= 390 && !shortLandscape && fontScale <= 1.3;
   const selectedDate = form.preferredDate ? dateFromIso(form.preferredDate) : new Date();
   const scheduleCopy = form.bookingType === 'dyno'
     ? 'Dyno requests: Monday, Wednesday and Thursday.'
     : 'Service requests: Monday to Friday.';
   const selectedDateEligible = form.preferredDate && isEligibleBookingDate(form.bookingType, form.preferredDate);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadWorkshopWeather(controller.signal)
+      .then((weather) => {
+        if (!controller.signal.aborted) setForecast(weather.nextSeven);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        if (!controller.signal.aborted) setForecastUnavailable(true);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setForecastLoading(false);
+      });
+    return () => controller.abort();
+  }, []);
 
   return (
     <View style={styles.stepContent}>
@@ -1547,6 +1568,65 @@ function DateStep({
 
         {form.appointmentPreferenceMode === 'specific' ? (
           <Field error={errors.preferredDate} label="Preferred booking date">
+            <View style={styles.forecastPicker}>
+              <View style={styles.forecastPickerHeading}>
+                <View style={styles.forecastPickerHeadingCopy}>
+                  <Text style={styles.forecastPickerTitle}>Forecast dates</Text>
+                  <Text style={styles.forecastPickerCopy}>Tap an eligible day to select it. Forecasts may change.</Text>
+                </View>
+                <Ionicons color={bookingColors.accent} name="partly-sunny-outline" size={23} />
+              </View>
+              {forecast.length ? (
+                <ScrollView
+                  contentContainerStyle={styles.forecastDateRow}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                >
+                  {forecast.map((day, index) => {
+                    const eligible = isEligibleBookingDate(form.bookingType, day.date);
+                    const selected = form.preferredDate === day.date;
+                    return (
+                      <Pressable
+                        accessibilityLabel={`${index === 0 ? 'Today' : new Intl.DateTimeFormat('en-AU', { weekday: 'long' }).format(new Date(`${day.date}T12:00:00`))}, ${formatAustralianDate(day.date)}, ${day.description}, ${day.precipitationChance} percent chance of rain${eligible ? '' : ', not an eligible request day'}`}
+                        accessibilityRole="button"
+                        accessibilityState={{ disabled: !eligible, selected }}
+                        disabled={!eligible}
+                        key={day.date}
+                        onPress={() => {
+                          update('preferredDate', day.date);
+                          update('appointmentPreferenceMode', 'specific');
+                          setShowDatePicker(false);
+                        }}
+                        style={({ pressed }) => [
+                          styles.forecastDate,
+                          selected && styles.forecastDateSelected,
+                          !eligible && styles.forecastDateDisabled,
+                          pressed && styles.pressed,
+                        ]}
+                      >
+                        <Text style={[styles.forecastDateDay, selected && styles.forecastDateTextSelected]}>
+                          {index === 0 ? 'Today' : new Intl.DateTimeFormat('en-AU', { weekday: 'short' }).format(new Date(`${day.date}T12:00:00`))}
+                        </Text>
+                        <Text style={[styles.forecastDateNumber, selected && styles.forecastDateTextSelected]}>
+                          {new Intl.DateTimeFormat('en-AU', { day: '2-digit', month: '2-digit' }).format(new Date(`${day.date}T12:00:00`))}
+                        </Text>
+                        <Ionicons color={selected ? colors.ink : bookingColors.accent} name={day.icon} size={27} />
+                        <Text style={[styles.forecastDateTemperature, selected && styles.forecastDateTextSelected]}>{Math.round(day.temperatureMaxC)}°</Text>
+                        <View style={styles.forecastDateRain}>
+                          <Ionicons color={selected ? colors.ink : colors.muted} name="water-outline" size={11} />
+                          <Text style={[styles.forecastDateRainText, selected && styles.forecastDateTextSelected]}>{day.precipitationChance}%</Text>
+                        </View>
+                        {!eligible ? <Text style={styles.forecastDateClosed}>Not offered</Text> : null}
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              ) : (
+                <Text style={styles.forecastPickerStatus}>
+                  {forecastUnavailable ? 'Forecast is temporarily unavailable. You can still use the calendar below.' : forecastLoading ? 'Loading the workshop forecast…' : 'Forecast is unavailable.'}
+                </Text>
+              )}
+            </View>
             <Pressable
               accessibilityLabel={`Preferred booking date, ${displayDate(form.preferredDate)}`}
               accessibilityRole="button"
@@ -2044,6 +2124,23 @@ const styles = StyleSheet.create({
   datePrivacyCard: { ...mobileFrame, gap: spacing.sm, backgroundColor: bookingColors.surfaceAlt, padding: spacing.md },
   datePrivacyTitle: { color: colors.white, fontSize: 13, fontWeight: '900' },
   datePrivacyCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
+  forecastPicker: { ...mobileFrame, gap: spacing.md, marginBottom: spacing.sm, backgroundColor: bookingColors.surfaceAlt, paddingVertical: spacing.md },
+  forecastPickerHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, paddingHorizontal: spacing.md },
+  forecastPickerHeadingCopy: { flex: 1, minWidth: 0, gap: 3 },
+  forecastPickerTitle: { color: colors.white, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  forecastPickerCopy: { color: colors.muted, fontSize: 10, lineHeight: 15 },
+  forecastDateRow: { gap: spacing.sm, paddingHorizontal: spacing.md },
+  forecastDate: { width: 92, minHeight: 142, alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1, borderColor: colors.line, backgroundColor: bookingColors.surface, paddingHorizontal: spacing.xs, paddingVertical: spacing.sm },
+  forecastDateSelected: { borderColor: bookingColors.accent, backgroundColor: bookingColors.accent },
+  forecastDateDisabled: { opacity: .42 },
+  forecastDateDay: { color: colors.silver, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
+  forecastDateNumber: { color: colors.muted, fontSize: 9, fontWeight: '800' },
+  forecastDateTemperature: { color: colors.white, fontSize: 16, fontWeight: '900' },
+  forecastDateRain: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  forecastDateRainText: { color: colors.muted, fontSize: 8, fontWeight: '800' },
+  forecastDateTextSelected: { color: colors.ink },
+  forecastDateClosed: { color: colors.muted, fontSize: 7, fontWeight: '900', textTransform: 'uppercase' },
+  forecastPickerStatus: { color: colors.muted, fontSize: 10, fontStyle: 'italic', lineHeight: 16, paddingHorizontal: spacing.md },
   dateButton: {
     ...mobileFrame,
     minHeight: 58,

@@ -49,7 +49,7 @@ const NAVIGATION_ITEMS: readonly NavigationItem[] = [
     href: '/vehicle-reports',
     inactiveIcon: 'document-text-outline',
     isActive: (pathname) => pathname === '/vehicle-reports',
-    label: 'Vehicle Reports',
+    label: 'Reports',
   },
   {
     accessibilityLabel: 'Settings and Notifications',

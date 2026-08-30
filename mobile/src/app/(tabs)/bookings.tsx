@@ -211,26 +211,35 @@ export default function BookingsScreen() {
         </View>}
 
         <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>Workshop weather</Text>
-          <Text style={styles.sectionMeta}>Forecast for PSI</Text>
+          <View>
+            <Text style={styles.sectionTitle}>Workshop weather</Text>
+            <Text style={styles.weatherHeadingCopy}>Six-day outlook for PSI</Text>
+          </View>
+          <Ionicons color={colors.accent} name="partly-sunny-outline" size={24} />
         </View>
         {workshopWeather ? (
           <View style={styles.weatherStrip}>
-            {workshopWeather.nextSeven.map((forecast) => (
-              <View key={forecast.date} style={styles.weatherDay}>
-                <Ionicons color={colors.accent} name={forecast.icon} size={18} />
+            {workshopWeather.nextSeven.slice(0, 6).map((forecast, index) => (
+              <View key={forecast.date} style={[styles.weatherDay, index === 0 && styles.weatherDayToday]}>
+                <View style={styles.weatherDayTopline}>
+                  <Text style={[styles.weatherDayLabel, index === 0 && styles.weatherDayLabelToday]}>
+                    {index === 0 ? 'Today' : new Intl.DateTimeFormat('en-AU', { weekday: 'short' }).format(new Date(`${forecast.date}T12:00:00`))}
+                  </Text>
+                  <Text style={styles.weatherDateText}>
+                    {new Intl.DateTimeFormat('en-AU', { day: '2-digit', month: '2-digit' }).format(new Date(`${forecast.date}T12:00:00`))}
+                  </Text>
+                </View>
+                <Ionicons color={colors.accent} name={forecast.icon} size={26} />
                 <Text style={styles.weatherDayLabel}>
-                  {new Intl.DateTimeFormat('en-AU', {
-                    weekday: 'short',
-                    day: 'numeric',
-                  }).format(new Date(`${forecast.date}T12:00:00`))}
+                  {forecast.description}
                 </Text>
                 <Text style={styles.weatherTempText}>
-                  {Math.round(forecast.temperatureMinC)}° · {Math.round(forecast.temperatureMaxC)}°
+                  {Math.round(forecast.temperatureMaxC)}° <Text style={styles.weatherMinText}>{Math.round(forecast.temperatureMinC)}°</Text>
                 </Text>
-                <Text style={styles.weatherRainText}>
-                  {forecast.precipitationChance}% rain
-                </Text>
+                <View style={styles.weatherRainRow}>
+                  <Ionicons color={colors.muted} name="water-outline" size={12} />
+                  <Text style={styles.weatherRainText}>{forecast.precipitationChance}% rain</Text>
+                </View>
               </View>
             ))}
           </View>
@@ -521,11 +530,18 @@ const styles = StyleSheet.create({
   legendMark: { width: 11, height: 11, borderRadius: 2, backgroundColor: colors.silver },
   legendText: { color: colors.silver, fontSize: 10, fontWeight: '700' },
   calendarNote: { color: colors.mutedDark, fontSize: 10, lineHeight: 15 },
-  weatherStrip: { ...mobileFrame, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, backgroundColor: colors.panel, padding: spacing.md },
-  weatherDay: { minWidth: 100, alignItems: 'center', paddingVertical: spacing.xs, gap: 3, flex: 1 },
-  weatherDayLabel: { color: colors.silver, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
-  weatherTempText: { color: colors.white, fontSize: 10, fontWeight: '900' },
-  weatherRainText: { color: colors.muted, fontSize: 9, fontWeight: '800' },
+  weatherHeadingCopy: { marginTop: 3, color: colors.muted, fontSize: 9, fontWeight: '800', textTransform: 'uppercase' },
+  weatherStrip: { ...mobileFrame, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, backgroundColor: colors.panel, padding: spacing.sm },
+  weatherDay: { width: '30%', minWidth: 92, flexGrow: 1, alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.inkSoft, padding: spacing.sm },
+  weatherDayToday: { borderColor: colors.accent, backgroundColor: 'rgba(101,207,248,.08)' },
+  weatherDayTopline: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
+  weatherDayLabel: { color: colors.silver, fontSize: 9, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
+  weatherDayLabelToday: { color: colors.accent },
+  weatherDateText: { color: colors.muted, fontSize: 8, fontWeight: '800' },
+  weatherTempText: { color: colors.white, fontSize: 14, fontWeight: '900' },
+  weatherMinText: { color: colors.muted, fontSize: 10, fontWeight: '800' },
+  weatherRainRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  weatherRainText: { color: colors.muted, fontSize: 8, fontWeight: '800' },
   weatherMissing: { color: colors.mutedDark, fontSize: 10, fontStyle: 'italic' },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.sm },
   sectionTitle: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },

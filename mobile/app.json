@@ -19,7 +19,9 @@
       "buildNumber": "1",
       "icon": "./assets/images/psi-app-icon-1024.png",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Allow PSI to use your camera to photograph your vehicle and supporting documents.",
+        "NSPhotoLibraryUsageDescription": "Allow PSI to select vehicle photos and supporting documents from your photo library."
       }
     },
     "android": {
@@ -45,8 +47,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": false,
-          "cameraPermission": false,
+          "photosPermission": "Allow PSI to select vehicle photos and supporting documents from your photo library.",
+          "cameraPermission": "Allow PSI to use your camera to photograph your vehicle and supporting documents.",
           "microphonePermission": false
         }
       ],
