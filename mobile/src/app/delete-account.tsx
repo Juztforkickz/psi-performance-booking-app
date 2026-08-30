@@ -17,7 +17,7 @@ export default function DeleteAccountScreen() {
         <PrimaryButton label="← Back" onPress={() => router.back()} variant="outline" />
         <Text style={styles.eyebrow}>PSI ACCOUNT CONTROL</Text>
         <Text style={styles.title}>Request account deletion</Text>
-        <Text style={styles.lead}>Delete your PSI Performance App account and associated customer data.</Text>
+        <Text style={styles.lead}>Delete your PSI app account and associated customer data.</Text>
 
         <View style={styles.card}>
           <Text style={styles.heading}>Inside the app</Text>

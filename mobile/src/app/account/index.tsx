@@ -79,7 +79,7 @@ export default function AccountScreen() {
     }
     setEmailError('');
     if (!CUSTOMER_AUTH.enabled) {
-      setNotice('The secure Supabase foundation is ready, but customer email delivery is not active in this build. No code was sent and your email was not stored.');
+      setNotice('Email sign-in is not active in this build. No code was sent.');
       return;
     }
 
@@ -108,7 +108,7 @@ export default function AccountScreen() {
     try {
       await verifyPasswordlessEmailCode(email, code);
       setCode('');
-      setNotice('Secure sign-in complete. Your account is loading.');
+      setNotice('Signed in. Your account is loading.');
     } catch {
       setCodeError('That code could not be verified. Check the code, request a new one, or try again before it expires.');
     } finally {
@@ -125,7 +125,7 @@ export default function AccountScreen() {
       setCodeSent(false);
       setResendSeconds(0);
       setEmail('');
-      setNotice('Signed out securely on this device.');
+      setNotice('Signed out on this device.');
     } catch {
       setNotice('The local sign-out could not be completed. Close the app and try again.');
     } finally {
@@ -193,7 +193,7 @@ export default function AccountScreen() {
         {auth.status !== 'signed_in' ? <View style={[styles.card, compact && styles.cardCompact]}>
           <Text style={styles.cardTitle}>Sign in with email</Text>
           <Text style={styles.cardCopy}>
-            We’ll email you a secure six-digit sign-in code. No password is required.{secureReturnTo ? ' After verification, you will return to the protected PSI staff workspace.' : ''}
+            We’ll email you a six-digit sign-in code. No password is required.{secureReturnTo ? ' After verification, you will return to the protected PSI staff workspace.' : ''}
           </Text>
           <Field error={emailError} label="Email">
             <FormInput
@@ -254,33 +254,35 @@ export default function AccountScreen() {
         <Eyebrow>PSI customer account</Eyebrow>
         <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>Your cars.{`\n`}Your bookings.</Text>
         <Text style={styles.lead}>
-          Keep your customer details, vehicles, receipts and booking history together in your protected PSI account.
+          Keep your details, vehicles, reports and bookings together.
         </Text>
 
-        <View style={[styles.providerNotice, compact && styles.cardCompact]}>
-          <Text style={styles.providerKicker}>Your account security</Text>
-          <Text style={styles.providerTitle}>{CUSTOMER_AUTH.enabled ? 'Secure email-code access' : 'Email-code access'}</Text>
-          <Text style={styles.providerCopy}>
-            Passwords are not collected or stored here. {CUSTOMER_AUTH.enabled ? `Six-digit codes provide access to your PSI account. New customer accounts are ${CUSTOMER_AUTH.registrationEnabled ? 'available during the current onboarding window' : 'set up by PSI'}.` : 'Secure email-code sign-in is available to approved PSI customers.'} Customers see only their own records; authorised PSI staff use a separate protected workshop portal.
-          </Text>
-        </View>
+        {auth.status !== 'signed_in' ? (
+          <View style={[styles.providerNotice, compact && styles.cardCompact]}>
+            <Text style={styles.providerKicker}>Account access</Text>
+            <Text style={styles.providerTitle}>Email-code sign in</Text>
+            <Text style={styles.providerCopy}>
+              Use a six-digit email code—no password needed. New customer access is {CUSTOMER_AUTH.registrationEnabled ? 'available during the current onboarding window' : 'set up by PSI'}.
+            </Text>
+          </View>
+        ) : null}
 
         {auth.error ? <Text accessibilityRole="alert" style={styles.errorText}>{auth.error}</Text> : null}
 
         {CUSTOMER_AUTH.enabled && auth.status === 'signed_in' ? (
           <View accessibilityLabel="Secure customer account summary" style={[styles.dashboardPreview, compact && styles.cardCompact]}>
             <View style={styles.dashboardHeading}>
-              <Text style={styles.dashboardKicker}>Secure customer account</Text>
-              <Text style={styles.dashboardBadge}>Authenticated</Text>
+              <Text style={styles.dashboardKicker}>Customer account</Text>
+              <Text style={styles.dashboardBadge}>Signed in</Text>
             </View>
             <Text style={styles.dashboardTitle}>{account?.profile?.first_name ? `Welcome, ${account.profile.first_name}.` : 'Your PSI account.'}</Text>
             <Text style={styles.dashboardCopy}>{auth.user?.email}</Text>
             {accountError ? <Text accessibilityRole="alert" style={styles.errorText}>{accountError}</Text> : null}
-            {accountStatus === 'loading' ? <Text style={styles.dashboardCopy}>Loading your private account…</Text> : null}
+            {accountStatus === 'loading' ? <Text style={styles.dashboardCopy}>Loading your account…</Text> : null}
             {account ? (
               <View style={styles.dashboardGrid}>
-                <AccountFeature index="01" title="Profile" copy={account.profile ? 'Verified account profile connected.' : 'Complete your profile to continue.'} />
-                <AccountFeature index="02" title="Vehicles" copy={`${account.vehicles.length} vehicle${account.vehicles.length === 1 ? '' : 's'} connected to this account.`} />
+                <AccountFeature index="01" title="Profile" copy={account.profile ? 'Profile ready.' : 'Complete your profile to continue.'} />
+                <AccountFeature index="02" title="Vehicles" copy={`${account.vehicles.length} vehicle${account.vehicles.length === 1 ? '' : 's'}.`} />
               </View>
             ) : null}
             <PrimaryButton label="Sign out" loading={busy} onPress={() => void signOut()} variant="outline" />
@@ -292,12 +294,12 @@ export default function AccountScreen() {
             <Text style={styles.dashboardBadge}>Example structure</Text>
           </View>
           <Text style={styles.dashboardTitle}>Everything ready for the next visit.</Text>
-          <Text style={styles.dashboardCopy}>This demonstration does not load customer records. A PSI customer account is designed to keep:</Text>
+          <Text style={styles.dashboardCopy}>This demonstration uses example details. A PSI account keeps:</Text>
           <View style={styles.dashboardGrid}>
-            <AccountFeature index="01" title="Your details" copy="Full name, verified email and mobile for faster future requests and checkout." />
-            <AccountFeature index="02" title="Your vehicles" copy="Registration, make, model, year and optional VIN, with support for more than one vehicle." />
-            <AccountFeature index="03" title="Next booking" copy="The next confirmed date, approved work, deposit status and practical arrival information." />
-            <AccountFeature index="04" title="Visit history" copy="Booking requests, confirmed and completed visits, service dates, deposit receipts and payment status." />
+            <AccountFeature index="01" title="Your details" copy="Name, email and mobile." />
+            <AccountFeature index="02" title="Your vehicles" copy="Vehicle details and photos." />
+            <AccountFeature index="03" title="Next booking" copy="Confirmed date and visit information." />
+            <AccountFeature index="04" title="Visit history" copy="Bookings, services and records." />
           </View>
           <View style={styles.timelineCard}>
             <Text style={styles.timelineTitle}>Booking status history</Text>
@@ -308,7 +310,7 @@ export default function AccountScreen() {
           </View>
           <View style={styles.reminderPreview}>
             <Text style={styles.reminderTitle}>Reminder preferences</Text>
-            <Text style={styles.reminderCopy}>Confirmed bookings receive factual 7-day and 24-hour appointment reminders. Optional “Ready for your next service?” messages at 6 and 12 months appear only after a completed service when the customer opted in, with unsubscribe included. No automatic review request or vehicle-package offer is added.</Text>
+            <Text style={styles.reminderCopy}>Choose booking, service and device-alert preferences in Settings & Notifications.</Text>
           </View>
         </View>
         ) : null}
@@ -316,7 +318,7 @@ export default function AccountScreen() {
         <View style={[styles.createCard, compact && styles.cardCompact]}>
           <View style={styles.createCopy}>
             <Text style={styles.createTitle}>{account ? 'Account details' : CUSTOMER_AUTH.enabled ? 'Need an account?' : 'New to PSI?'}</Text>
-            <Text style={styles.createText}>{account ? 'Review or update the profile and primary vehicle connected to your secure account.' : CUSTOMER_AUTH.registrationEnabled ? 'Complete the approved account setup for your details and primary vehicle.' : CUSTOMER_AUTH.enabled ? 'New customer accounts are currently set up by PSI. Contact us if you need account access.' : 'Preview the account setup for your details and primary vehicle. New account registration is currently closed.'}</Text>
+            <Text style={styles.createText}>{account ? 'Update your contact details and primary vehicle.' : CUSTOMER_AUTH.registrationEnabled ? 'Add your details and primary vehicle.' : CUSTOMER_AUTH.enabled ? 'New customer accounts are set up by PSI. Contact us for access.' : 'Explore account setup with demonstration details.'}</Text>
           </View>
           <PrimaryButton
             label={account ? 'Edit account details →' : CUSTOMER_AUTH.registrationEnabled ? 'Set up approved account →' : CUSTOMER_AUTH.enabled ? 'Contact PSI for account access →' : 'Preview account setup →'}

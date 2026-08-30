@@ -95,14 +95,14 @@ export default function PsiEventsScreen() {
         <View style={styles.hero}>
           <Text style={[styles.eyebrow, { color: activeTheme === 'dark' ? theme.accent : theme.accentAlt }]}>Workshop calendar</Text>
           <Text style={[styles.title, compact && styles.titleCompact, { color: theme.text }]}>PSI Events</Text>
-          <Text style={[styles.lead, { color: theme.textMuted }]}>Official PSI event dates, locations and customer alerts—published securely by the workshop.</Text>
+          <Text style={[styles.lead, { color: theme.textMuted }]}>Upcoming PSI events and reminders.</Text>
         </View>
 
         {auth.status !== 'signed_in' ? (
           <View style={styles.callout}>
             <Image source={require('../../assets/images/psi-logo.png')} style={styles.logoMini} />
             <Text style={styles.calloutTitle}>Sign in to see PSI Events</Text>
-            <Text style={styles.calloutCopy}>Events and reminders are available to approved PSI customer accounts.</Text>
+            <Text style={styles.calloutCopy}>Sign in to view event details and set reminders.</Text>
             <Pressable accessibilityRole="button" onPress={() => router.push('/account')} style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}>
               <Text style={styles.secondaryButtonText}>Open account</Text>
             </Pressable>
@@ -139,8 +139,8 @@ export default function PsiEventsScreen() {
 
         <View style={styles.callout}>
           <Image source={require('../../assets/images/psi-logo.png')} style={styles.logoMini} />
-          <Text style={styles.calloutTitle}>Official workshop updates</Text>
-          <Text style={styles.calloutCopy}>When PSI publishes or changes an event, it appears here and can alert your registered device. Your notification preferences remain under Settings & Notifications.</Text>
+          <Text style={styles.calloutTitle}>Event updates</Text>
+          <Text style={styles.calloutCopy}>New or changed events appear here and can notify your device.</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

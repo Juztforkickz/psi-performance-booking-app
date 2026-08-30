@@ -51,11 +51,11 @@ export default function GarageScreen() {
   const secureAccountActive = CUSTOMER_AUTH.enabled && auth.status === 'signed_in';
 
   if (CUSTOMER_AUTH.enabled && auth.status === 'loading') {
-    return <GarageAccountState copy="Restoring your protected customer session…" loading title="Opening secure garage" />;
+    return <GarageAccountState copy="Restoring your account…" loading title="Opening My Garage" />;
   }
 
   if (secureAccountActive && status === 'loading') {
-    return <GarageAccountState copy="Loading vehicles owned by your authenticated account…" loading title="Opening secure garage" />;
+    return <GarageAccountState copy="Loading your vehicles…" loading title="Opening My Garage" />;
   }
 
   if (secureAccountActive && (status === 'error' || !account)) {
@@ -83,7 +83,7 @@ export default function GarageScreen() {
     : null;
 
   if (secureVehicles && secureVehicles.length === 0) {
-    return <GarageAccountState actionLabel="Add your first vehicle" copy="Your secure account is active, but it does not have a vehicle yet." title="Your garage is ready" />;
+    return <GarageAccountState actionLabel="Add your first vehicle" copy="Your account is ready. Add a vehicle to begin." title="Your garage is ready" />;
   }
 
   return <GarageContent secureVehicleFiles={secureAccountActive ? account?.vehicleFiles ?? [] : null} secureVehicles={secureVehicles} />;
@@ -302,12 +302,12 @@ function GarageContent({
       });
       setMaintenanceError('');
       setMaintenanceNotice(secureVehicles
-        ? `Customer odometer ${odometerKm !== null && odometerKm !== selectedVehicle.odometerKm ? 'saved privately to the account' : 'was not changed'}. Personal service dates remain local to this open session and are not PSI verified.`
-        : 'Maintenance details updated for this open preview only. Nothing was uploaded or permanently saved.');
+        ? `Odometer ${odometerKm !== null && odometerKm !== selectedVehicle.odometerKm ? 'updated' : 'unchanged'}. Personal reminders remain separate from PSI workshop records.`
+        : 'Demo maintenance details updated for this session.');
       setMaintenanceOpen(false);
     } catch {
       setMaintenanceNotice('');
-      setMaintenanceError('The customer odometer could not be saved. No new reading was added; check the secure session and try again.');
+      setMaintenanceError('The odometer could not be saved. Sign in again and try once more.');
     } finally {
       setMaintenanceSaving(false);
     }
@@ -321,7 +321,7 @@ function GarageContent({
       >
         <View style={styles.header}>
           <View style={styles.headerCopy}>
-            <Text style={styles.eyebrow}>{secureVehicles ? 'Secure customer garage' : 'Customer preview'}</Text>
+            <Text style={styles.eyebrow}>{secureVehicles ? 'Your vehicles' : 'Garage preview'}</Text>
             <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact]}>My Garage</Text>
           </View>
           <Pressable
@@ -335,17 +335,17 @@ function GarageContent({
         </View>
 
         <View accessibilityRole="alert" style={styles.previewNotice}>
-          <Text style={styles.previewNoticeTitle}>{secureVehicles ? 'Private account vehicles' : 'Preview vehicle data'}</Text>
+          <Text style={styles.previewNoticeTitle}>{secureVehicles ? 'Your private garage' : 'Demo garage'}</Text>
           <Text style={styles.previewNoticeCopy}>
             {secureVehicles
-              ? 'Vehicles, PSI service dates, customer odometer readings and customer vehicle photos load from your authenticated private account. Personal reminder dates remain local to this open session.'
-              : 'This garage is not connected to PSI records. Details and photos stay only in this open app preview and clear when it reloads or closes.'}
+              ? 'Your vehicles, PSI history and photos are private. Personal reminder dates stay on this device.'
+              : 'These example details and photos clear when the demo closes.'}
           </Text>
         </View>
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>Your vehicles</Text>
-          <Text style={styles.sectionMeta}>{vehicles.length} {secureVehicles ? 'account' : 'preview'} vehicles</Text>
+          <Text style={styles.sectionMeta}>{vehicles.length} {vehicles.length === 1 ? 'vehicle' : 'vehicles'}</Text>
         </View>
         <ScrollView
           accessibilityRole="radiogroup"
@@ -387,7 +387,7 @@ function GarageContent({
             style={({ pressed }) => [styles.addVehicle, pressed && styles.pressed]}
           >
             <Ionicons color={colors.accent} name="add" size={24} />
-            <Text style={styles.addVehicleText}>{secureVehicles ? 'Manage primary vehicle' : 'Set up preview vehicle'}</Text>
+            <Text style={styles.addVehicleText}>{secureVehicles ? 'Manage vehicle' : 'Set up demo vehicle'}</Text>
           </Pressable>
         </ScrollView>
 
@@ -401,7 +401,7 @@ function GarageContent({
             />
             {!selectedPhoto ? (
               <View style={styles.exampleImageLabel}>
-                <Text style={styles.exampleImageLabelText}>Example artwork · add your car photo</Text>
+                <Text style={styles.exampleImageLabelText}>Example image · add your photo</Text>
               </View>
             ) : null}
           </View>
@@ -421,7 +421,7 @@ function GarageContent({
               <VehicleStat label="Personal last service" value={formatShortDate(maintenance.customerLastServiceDate)} />
               <VehicleStat label="Personal next check-in" value={formatShortDate(maintenance.customerNextCheckInDate)} />
             </View>
-            {maintenance.updatedLocally ? <Text style={styles.localMaintenanceLabel}>{secureVehicles ? 'Local personal reminders · not PSI verified' : 'Local preview details · not a PSI-verified record'}</Text> : null}
+            {maintenance.updatedLocally ? <Text style={styles.localMaintenanceLabel}>{secureVehicles ? 'Personal reminder · not a PSI record' : 'Demo details'}</Text> : null}
           </View>
         </View>
 
@@ -430,11 +430,11 @@ function GarageContent({
             <View style={styles.maintenanceHeadingCopy}>
               <Text style={styles.primaryLabel}>Vehicle upkeep</Text>
               <Text style={styles.maintenanceTitle}>Maintenance details</Text>
-              <Text style={styles.bodyCopy}>{secureVehicles ? 'Add a private customer odometer reading and keep optional personal service reminders for this open session.' : 'Update the customer odometer and personal service reminders for this preview vehicle.'}</Text>
+              <Text style={styles.bodyCopy}>Track your odometer and add personal service reminders.</Text>
             </View>
             <Ionicons color={colors.accent} name="create-outline" size={24} />
           </View>
-          <Text style={styles.maintenanceBoundary}>Customer-entered details stay separate from PSI workshop records. They cannot replace the protected Last PSI service or Next PSI check-in above.</Text>
+          <Text style={styles.maintenanceBoundary}>Personal entries do not change PSI workshop records.</Text>
           {maintenanceOpen ? (
             <View style={styles.maintenanceForm}>
               <Field hint="Customer reading · kilometres" label="Customer odometer">
@@ -447,23 +447,23 @@ function GarageContent({
                 />
               </Field>
               <View style={styles.maintenanceDateGrid}>
-                <View style={styles.maintenanceDateField}><Field hint="DD/MM/YYYY · customer entry" label="Personal last service"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(customerLastServiceDate) => setMaintenanceDraft((draft) => ({ ...draft, customerLastServiceDate }))} placeholder="14/05/2026" value={maintenanceDraft.customerLastServiceDate} /></Field></View>
-                <View style={styles.maintenanceDateField}><Field hint="DD/MM/YYYY · customer entry" label="Personal next check-in"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(customerNextCheckInDate) => setMaintenanceDraft((draft) => ({ ...draft, customerNextCheckInDate }))} placeholder="14/11/2026" value={maintenanceDraft.customerNextCheckInDate} /></Field></View>
+                <View style={styles.maintenanceDateField}><Field hint="DD/MM/YYYY · personal" label="Personal last service"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(customerLastServiceDate) => setMaintenanceDraft((draft) => ({ ...draft, customerLastServiceDate }))} placeholder="14/05/2026" value={maintenanceDraft.customerLastServiceDate} /></Field></View>
+                <View style={styles.maintenanceDateField}><Field hint="DD/MM/YYYY · personal" label="Personal next check-in"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(customerNextCheckInDate) => setMaintenanceDraft((draft) => ({ ...draft, customerNextCheckInDate }))} placeholder="14/11/2026" value={maintenanceDraft.customerNextCheckInDate} /></Field></View>
               </View>
               {maintenanceError ? <Text accessibilityRole="alert" style={styles.maintenanceError}>{maintenanceError}</Text> : null}
               <View style={styles.maintenanceActions}>
-                <PrimaryButton label={secureVehicles ? 'Save Maintenance Details' : 'Save Preview Details'} loading={maintenanceSaving} onPress={() => void saveMaintenancePreview()} />
+                <PrimaryButton label={secureVehicles ? 'Save details' : 'Save demo details'} loading={maintenanceSaving} onPress={() => void saveMaintenancePreview()} />
                 <PrimaryButton disabled={maintenanceSaving} label="Cancel" onPress={() => { setMaintenanceOpen(false); setMaintenanceError(''); }} variant="outline" />
               </View>
             </View>
           ) : (
             <View style={styles.maintenanceActions}>
-              <PrimaryButton label="Edit Maintenance Details" onPress={() => { setMaintenanceNotice(''); setMaintenanceOpen(true); }} />
-              <PrimaryButton label="Open Service History" onPress={() => router.push('/vehicle-reports')} variant="outline" />
+              <PrimaryButton label="Edit details" onPress={() => { setMaintenanceNotice(''); setMaintenanceOpen(true); }} />
+              <PrimaryButton label="Service history" onPress={() => router.push('/vehicle-reports')} variant="outline" />
             </View>
           )}
           {maintenanceNotice ? <Text accessibilityRole="alert" style={styles.maintenanceNotice}>{maintenanceNotice}</Text> : null}
-          <Text style={styles.maintenanceExpiry}>{secureVehicles ? 'Customer odometer readings are append-only account records. Personal dates remain local and clear when the app reloads or closes.' : 'Local only · these edits clear when the app reloads or closes.'}</Text>
+          <Text style={styles.maintenanceExpiry}>{secureVehicles ? 'Odometer updates save to your account. Reminder dates are temporary and clear when the app closes.' : 'Demo entries clear when the app closes.'}</Text>
         </View>
 
         {dynoFirst ? <DynoResultCard result={dynoResult} vehicleLabel={vehicleLabel} /> : null}
@@ -520,7 +520,7 @@ function GarageContent({
         <View style={styles.actions}>
           <PrimaryButton label="Book service for this vehicle" onPress={() => openBookingForVehicle('service')} />
           <PrimaryButton label="Book dyno for this vehicle" onPress={() => openBookingForVehicle('dyno')} variant="outline" />
-          <PrimaryButton label={secureVehicles ? 'Manage primary vehicle' : 'Preview account setup'} onPress={() => router.push('/account/sign-up')} variant="outline" />
+          <PrimaryButton label={secureVehicles ? 'Manage primary vehicle' : 'Open demo account setup'} onPress={() => router.push('/account/sign-up')} variant="outline" />
         </View>
       </ScrollView>
     </SafeAreaView>

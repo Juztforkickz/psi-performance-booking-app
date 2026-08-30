@@ -216,12 +216,12 @@ export default function CustomerHomeScreen() {
           ]}
         >
           <Text style={[styles.demoTitle, { color: activeTheme === 'dark' ? colors.ink : theme.textInverse }]}>
-            {privateAccountMode ? 'SECURE CUSTOMER ACCESS' : PUBLIC_DEMO.label}
+            {privateAccountMode ? 'YOUR PSI ACCOUNT' : PUBLIC_DEMO.label}
           </Text>
           <Text style={[styles.demoCopy, { color: activeTheme === 'dark' ? '#464646' : '#555D61' }]}>
             {privateAccountMode
-              ? 'Sign in to view your own protected vehicles, bookings, reports and notifications. New customer accounts are set up by PSI.'
-              : 'Explore the new customer-app direction. Accounts, photos, alerts and submissions remain preview-only.'}
+              ? 'Sign in to see your vehicles, bookings, reports and notifications. PSI can help with new account access.'
+              : 'Explore the app with demonstration data. Account access and submissions are disabled.'}
           </Text>
         </View>
 

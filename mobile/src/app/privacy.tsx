@@ -52,8 +52,8 @@ export default function PrivacyScreen() {
         <Text style={styles.title}>Privacy & data handling</Text>
         <Text style={styles.lead}>How the PSI Performance app protects customer accounts, vehicles, bookings and workshop records.</Text>
         <View style={styles.notice}>
-          <Text style={styles.noticeTitle}>Current release boundary</Text>
-          <Text style={styles.copy}>Public previews use synthetic data with account access and submissions disabled. These terms apply when PSI deliberately enables an authenticated customer build.</Text>
+          <Text style={styles.noticeTitle}>About this policy</Text>
+          <Text style={styles.copy}>This policy applies to authenticated PSI customer accounts. Public demonstrations use example data and cannot submit information.</Text>
         </View>
         {SECTIONS.map((section) => (
           <View key={section.title} style={styles.card}>

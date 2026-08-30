@@ -187,12 +187,12 @@ export function VehiclePhotoPicker({
         ) : null}
       </View>
 
-      <View accessibilityLabel={storageMode === 'private_account' ? 'Private account photo storage.' : 'Local preview only. The selected photo is not uploaded to PSI or added to an account.'} style={styles.notice}>
-        <Text maxFontSizeMultiplier={2} style={styles.noticeTitle}>{storageMode === 'private_account' ? 'Private account storage' : 'Local preview only'}</Text>
+      <View accessibilityLabel={storageMode === 'private_account' ? 'Private account photo.' : 'Demo photo. The selected photo is not uploaded.'} style={styles.notice}>
+        <Text maxFontSizeMultiplier={2} style={styles.noticeTitle}>{storageMode === 'private_account' ? 'Private photo' : 'Demo photo'}</Text>
         <Text maxFontSizeMultiplier={2} style={styles.noticeCopy}>
           {storageMode === 'private_account'
-            ? 'Choosing a photo saves it to your private PSI account. Only this authenticated customer account and authorised PSI staff can view it. Replacing or removing it never changes PSI workshop records.'
-            : 'This preview keeps only a temporary local reference. It is not uploaded to PSI or saved to an account. It clears when the app preview reloads or closes; your device and system photo picker manage any local copies or cache.'}
+            ? 'Saved to your PSI account. Only you and authorised PSI staff can view it.'
+            : 'This photo is not uploaded and clears when the demo closes.'}
         </Text>
       </View>
     </View>

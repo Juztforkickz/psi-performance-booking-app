@@ -131,21 +131,21 @@ export default function BookingsScreen() {
         </View>
 
         <View accessibilityRole="alert" style={styles.previewNotice}>
-          <Text style={styles.previewNoticeTitle}>Your visits only</Text>
+          <Text style={styles.previewNoticeTitle}>Your bookings</Text>
           <Text style={styles.previewNoticeCopy}>
             {privateAccountMode
               ? accountStatus === 'ready'
-                ? 'These are the requests and visits stored in your protected PSI account. Other customers and PSI workshop availability remain private.'
+                ? 'Only your requests and visits appear here. PSI workshop availability remains private.'
                 : accountStatus === 'signed_out'
-                  ? 'Sign in to load your private requests and confirmed visits. No synthetic bookings are substituted in an authenticated build.'
-                  : 'Your protected booking records are loading. No synthetic bookings are being substituted.'
-              : 'This public demo shows synthetic appointments. A real account will show only your requests and confirmed visits; PSI workshop availability stays private.'}
+                  ? 'Sign in to see your requests and confirmed visits.'
+                  : 'Loading your bookings…'
+              : 'Example bookings are shown. Real accounts show only that customer’s visits.'}
           </Text>
         </View>
         {privateAccountMode ? (
           <Pressable accessibilityRole="button" onPress={refreshAccount} style={({ pressed }) => [styles.refreshButton, pressed && styles.pressed]}>
             <Ionicons color={colors.accent} name="refresh" size={17} />
-            <Text style={styles.refreshText}>Refresh private bookings</Text>
+            <Text style={styles.refreshText}>Refresh bookings</Text>
           </Pressable>
         ) : null}
 
@@ -159,7 +159,7 @@ export default function BookingsScreen() {
               <Ionicons color={colors.accent} name="calendar-clear-outline" size={24} />
             </View>
             {calendarBookings.length === 0 ? (
-              <Text style={styles.calendarNote}>No approved or confirmed workshop dates are currently shown. Requested dates remain preferences until PSI approves them.</Text>
+              <Text style={styles.calendarNote}>No approved dates yet. Requested dates stay pending until PSI confirms them.</Text>
             ) : calendarBookings.map((booking) => (
               <View key={booking.id} style={styles.privateCalendarRow}>
                 <View style={styles.legendMark} />
@@ -175,7 +175,7 @@ export default function BookingsScreen() {
                 </View>
               </View>
             ))}
-            <Text style={styles.calendarNote}>Only your approved dates appear here. This is not PSI workshop availability.</Text>
+            <Text style={styles.calendarNote}>Only your approved dates appear here.</Text>
           </View>
         ) : <View style={styles.calendarCard}>
           <View style={styles.calendarHeader}>
@@ -308,9 +308,9 @@ export default function BookingsScreen() {
             <BookingChoice icon="speedometer-outline" label="Dyno Tuning" onPress={() => openBooking('dyno')} />
             <Text style={styles.modalNote}>{privateAccountMode
               ? account?.vehicles.length
-                ? 'The selected saved vehicle opens a private request. Submission saves only after all details are reviewed.'
-                : 'Add a vehicle in My Garage before submitting a private booking request.'
-              : 'Submissions remain disabled in this public demo. The existing request flow can still be explored safely.'}</Text>
+                ? 'Choose a saved vehicle to begin.'
+                : 'Add a vehicle in My Garage first.'
+              : 'Explore the flow with demonstration data. Submission is disabled.'}</Text>
             </View>
           </ScrollView>
         </SafeAreaView>

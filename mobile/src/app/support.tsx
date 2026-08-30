@@ -26,7 +26,7 @@ export default function SupportScreen() {
 
         <View style={styles.card}>
           <Text style={styles.heading}>Sign-in help</Text>
-          <Text style={styles.copy}>Use the newest six-digit email code within 10 minutes. A code can be used once. If the app returns from email before the session is visible, reopen Account; it will restore a valid session securely. PSI will never ask you to share a code or authenticator secret.</Text>
+          <Text style={styles.copy}>Use the newest six-digit email code within 10 minutes. Codes work once. PSI will never ask you to share a code or authenticator secret.</Text>
         </View>
 
         <View style={styles.card}>
@@ -38,7 +38,7 @@ export default function SupportScreen() {
 
         <View style={styles.card}>
           <Text style={styles.heading}>Booking requests</Text>
-          <Text style={styles.copy}>A request does not reserve a date and does not take payment. PSI reviews availability first. The app and email show any proposed, approved or cancelled date. Customers cannot see PSI’s private Google Calendar.</Text>
+          <Text style={styles.copy}>A request does not reserve a date or take payment. PSI reviews availability first and shows any proposed, approved or cancelled date in the app and by email. PSI’s internal calendar remains private.</Text>
           <PrimaryButton label="Open Bookings" onPress={() => router.push('/bookings')} variant="outline" />
         </View>
 

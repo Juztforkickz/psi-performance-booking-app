@@ -240,7 +240,7 @@ function BookingAccountLoading() {
       <View style={styles.accountLoadingState}>
         <ActivityIndicator color={bookingColors.accent} size="large" />
         <Text style={styles.accountLoadingTitle}>Preparing your booking</Text>
-        <Text style={styles.accountLoadingCopy}>Loading your private account details for secure form prefill…</Text>
+        <Text style={styles.accountLoadingCopy}>Loading your account details…</Text>
       </View>
     </SafeAreaView>
   );
@@ -411,7 +411,7 @@ function BookingScreenContent({
     }
     setForm(blankForm);
     setDraftConflict(null);
-    setDraftStatus('Previous saved draft cleared. Your selected preview vehicle is ready.');
+    setDraftStatus('Previous draft cleared. Your selected vehicle is ready.');
     setIdempotencyKey(randomUUID());
   };
 
@@ -633,7 +633,7 @@ function BookingScreenContent({
             source={require('../../assets/images/psi-logo.png')}
             style={[styles.topBarLogo, compactHeader && styles.topBarLogoCompact]}
           />
-          <Text maxFontSizeMultiplier={2} style={styles.topBarCopy}>Secure booking</Text>
+          <Text maxFontSizeMultiplier={2} style={styles.topBarCopy}>Booking request</Text>
         </View>
       </View>
 
@@ -657,16 +657,16 @@ function BookingScreenContent({
         >
           <View style={styles.formInner}>
             <View accessibilityRole="alert" style={styles.demoBanner}>
-              <Text style={styles.demoBannerTitle}>{privateBookingEnabled ? 'Private account booking' : PUBLIC_DEMO.label}</Text>
+              <Text style={styles.demoBannerTitle}>{privateBookingEnabled ? 'Booking request' : PUBLIC_DEMO.label}</Text>
               <Text style={styles.demoBannerCopy}>{privateBookingEnabled
-                ? 'Approved account requests save privately to PSI for workshop review. No payment, confirmed date, email or calendar event is created at submission.'
+                ? 'Your request is saved privately for PSI to review. No payment is taken and the date is not confirmed yet.'
                 : PUBLIC_DEMO.notice}</Text>
             </View>
             {formError ? (
               <View accessibilityRole="alert" style={styles.alert}>
                 <Text style={styles.alertTitle}>{errorTitle}</Text>
                 <Text style={styles.alertCopy}>{formError}</Text>
-                <Text style={styles.alertAssurance}>This screen has not confirmed a payment, email, calendar event or booking date.</Text>
+                <Text style={styles.alertAssurance}>Nothing has been paid or confirmed.</Text>
                 <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(contact.phoneUrl)}>
                   <Text style={styles.alertLink}>Call {contact.phoneDisplay}</Text>
                 </Pressable>
@@ -675,9 +675,9 @@ function BookingScreenContent({
 
             <View accessibilityLabel="Unfinished booking draft status" style={styles.draftCard}>
               <View style={styles.draftCopyWrap}>
-                <Text style={styles.draftTitle}>Private device draft</Text>
+                <Text style={styles.draftTitle}>Saved draft</Text>
                 <Text style={styles.draftCopy}>
-                  {draftStatus || `Unfinished details stay in this app’s local device storage for ${BOOKING_DRAFT_EXPIRY_DAYS} days and are never submitted automatically. Device backups may retain them; clear the draft on a shared device.`}
+                  {draftStatus || `Saved on this device for ${BOOKING_DRAFT_EXPIRY_DAYS} days and never sent automatically. Clear it on a shared device.`}
                 </Text>
               </View>
               <Pressable accessibilityRole="button" hitSlop={10} onPress={() => void clearDraft()} style={({ pressed }) => [styles.draftClear, pressed && styles.pressed]}>
@@ -751,9 +751,9 @@ function BookingScreenContent({
             <Text style={styles.requestNote}>
               {step === 5
                 ? submissionEnabled
-                  ? 'This private request saves to PSI for review. It does not send email, take payment, confirm a date or create a calendar event yet.'
-                  : 'This public demo does not submit details, send email, take payment or create a calendar event.'
-                : 'Every requested date and before/after-hours arrangement remains pending until PSI checks workshop capacity.'}
+                  ? 'PSI will review this request. No payment is taken and no date is confirmed now.'
+                  : 'This demo does not send or save your details.'
+                : 'Dates and after-hours requests stay pending until PSI confirms them.'}
             </Text>
           </View>
         </ScrollView>
@@ -829,15 +829,14 @@ function JobStep({
   return (
     <View style={styles.stepContent}>
       <StepHeading
-        copy="Your booking type is carried through from the home screen, so you only choose it once. Tell PSI what matters to you and what you want from the vehicle."
+        copy="Tell PSI what the vehicle needs and the result you want."
         eyebrow="Step 01 · Job"
         title={purpose?.label || 'Choose a booking type.'}
       />
       <View style={styles.personalPromise}>
         <Text style={styles.personalPromiseTitle}>Your vehicle. Your goals.</Text>
         <Text style={styles.personalPromiseCopy}>
-          One-stop workshop capability with individual attention. PSI reviews every request personally so the plan
-          protects the car today and supports where you want to take it.
+          PSI reviews every request personally and confirms the right scope before booking.
         </Text>
       </View>
       {purpose ? (
@@ -1416,7 +1415,7 @@ function DetailsStep({
   return (
     <View style={styles.stepContent}>
       <StepHeading
-        copy="PSI will use these contact details for booking communication once the request is securely submitted."
+        copy="PSI will use these details to contact you about the request."
         eyebrow="Step 03 · Details"
         title="Who is the booking for?"
       />
@@ -1535,14 +1534,14 @@ function DateStep({
   return (
     <View style={styles.stepContent}>
       <StepHeading
-        copy="Request an eligible date or tell PSI you are flexible. Other bookings stay private and PSI personally checks workshop capacity before requesting payment."
+        copy="Choose an eligible day or let PSI suggest one."
         eyebrow="Step 04 · Date"
         title="Request a date."
       />
       <View style={styles.datePrivacyCard}>
         <Text style={styles.datePrivacyTitle}>Preference, not a confirmed booking</Text>
         <Text style={styles.datePrivacyCopy}>
-          {scheduleCopy} If your first choice is unavailable, PSI will contact you to arrange another suitable date. Workshop work can carry over or change unexpectedly.
+          {scheduleCopy} Dates remain subject to workshop capacity; PSI will contact you if another day is needed.
         </Text>
       </View>
       <View style={styles.fields}>
@@ -1805,7 +1804,7 @@ function ReviewStep({
       <View style={styles.paymentCard}>
         <Text style={styles.paymentTitle}>What happens next</Text>
         <Text style={styles.paymentCopy}>
-          PSI checks the requested date and workshop capacity. If approved, PSI sends the secure deposit link. Only verified payment triggers the customer and PSI confirmation emails, internal Google Calendar booking and factual 7-day and 24-hour appointment reminders.
+          PSI reviews the date and sends a deposit link only after approval. Your booking is confirmed only after the deposit is verified.
         </Text>
       </View>
 

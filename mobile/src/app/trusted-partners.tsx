@@ -86,7 +86,7 @@ export default function TrustedPartnersScreen() {
         <View style={[styles.notice, { backgroundColor: theme.surfaceRaised, borderColor: theme.frame }]}>
           <Ionicons color={theme.accent} name="information-circle-outline" size={23} />
           <Text style={[styles.noticeText, { color: theme.textMuted }]}>
-            Contact each partner directly and confirm current services, availability and pricing. A listing is a referral—not a PSI booking, quote or warranty.
+            Contact partners directly to confirm services, availability and pricing. Referrals are not PSI bookings or quotes.
           </Text>
         </View>
 
@@ -110,7 +110,7 @@ export default function TrustedPartnersScreen() {
         </View>
 
         <Text style={[styles.footerNote, { color: theme.textMuted }]}>
-          Partner details are public business information and may change. PSI can update or remove a listing when advised.
+          Details may change; confirm directly with each business.
         </Text>
       </ScrollView>
     </SafeAreaView>

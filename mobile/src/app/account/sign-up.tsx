@@ -68,8 +68,8 @@ function AccountFormLoading() {
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <View style={[styles.loadingState, { paddingHorizontal: horizontalPadding }]}>
-        <Text style={styles.loadingTitle}>Loading secure account</Text>
-        <Text style={styles.loadingCopy}>Preparing the profile and primary vehicle owned by this signed-in account…</Text>
+        <Text style={styles.loadingTitle}>Loading account</Text>
+        <Text style={styles.loadingCopy}>Preparing your profile and primary vehicle…</Text>
       </View>
     </SafeAreaView>
   );
@@ -178,9 +178,9 @@ function AccountDetailsForm({ initialAccount }: { initialAccount: CustomerAccoun
           }
         }
         refreshAccount();
-        setNotice(`${canEditVehicle ? 'Your profile and vehicle details were' : 'Your profile was'} saved to your private Supabase account.${canEditVehicle ? '' : ' This PSI-created vehicle remains read-only and was not changed.'}${photoNotice}`);
+        setNotice(`${canEditVehicle ? 'Your profile and vehicle details were' : 'Your profile was'} saved to your private PSI account.${canEditVehicle ? '' : ' This PSI-created vehicle remains read-only and was not changed.'}${photoNotice}`);
       } catch {
-        setNotice('Your profile could not be saved. Nothing was uploaded. Check the secure session and try again.');
+        setNotice('Your profile could not be saved. Nothing was uploaded. Sign in again and try once more.');
       } finally {
         setSaving(false);
       }
@@ -200,7 +200,7 @@ function AccountDetailsForm({ initialAccount }: { initialAccount: CustomerAccoun
     });
     photoTransferredRef.current = true;
     setNotice(
-      `This account profile is ready for a managed identity provider. Nothing was submitted or stored outside this open preview.${vehiclePhoto ? ' The selected vehicle photo remains only in this open preview and was not uploaded.' : ''}`,
+      `Demo account details are ready and were not submitted.${vehiclePhoto ? ' The selected photo remains in this demo only.' : ''}`,
     );
   };
 
@@ -232,16 +232,16 @@ function AccountDetailsForm({ initialAccount }: { initialAccount: CustomerAccoun
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Eyebrow>{CUSTOMER_AUTH.enabled ? 'Secure account setup' : 'Account setup preview'}</Eyebrow>
+          <Eyebrow>{CUSTOMER_AUTH.enabled ? 'Account setup' : 'Account demo'}</Eyebrow>
           <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>One profile.{`\n`}Every PSI visit.</Text>
           <Text style={styles.lead}>
-            {CUSTOMER_AUTH.enabled ? 'Complete the profile connected to your verified email-code session. Passwords are deliberately excluded.' : 'This is the provider-ready profile PSI can connect to secure email sign-in. Passwords are deliberately excluded.'}
+            {CUSTOMER_AUTH.enabled ? 'Add your contact details and primary vehicle. Sign in uses an email code, not a password.' : 'Explore the account setup with demonstration details.'}
           </Text>
 
           <View style={[styles.securityCard, compact && styles.cardCompact]}>
-            <Text style={styles.securityTitle}>{CUSTOMER_AUTH.enabled ? 'Private account boundary' : 'No data leaves this preview'}</Text>
+            <Text style={styles.securityTitle}>{CUSTOMER_AUTH.enabled ? 'Your privacy' : 'Demo only'}</Text>
             <Text style={styles.securityCopy}>
-              {CUSTOMER_AUTH.enabled ? 'Profile, vehicle details and an optional vehicle photo save only after verified sign-in. The photo stays in a private bucket protected by customer ownership rules and remains visible to authorised PSI staff.' : 'Until managed authentication is connected, this preview keeps values only in app memory and discards them when the preview reloads or closes.'}
+              {CUSTOMER_AUTH.enabled ? 'Your profile, vehicle and photo are saved privately. Only you and authorised PSI staff can view them.' : 'Demo values clear when the app closes.'}
             </Text>
           </View>
 
@@ -336,8 +336,8 @@ function AccountDetailsForm({ initialAccount }: { initialAccount: CustomerAccoun
           ) : null}
 
           <View style={styles.actions}>
-            <PrimaryButton disabled={CUSTOMER_AUTH.enabled && auth.status !== 'signed_in'} label={CUSTOMER_AUTH.enabled ? 'Save secure account' : 'Check account setup'} loading={saving} onPress={() => void checkReadiness()} />
-            {notice ? <PrimaryButton label="Open My Garage preview" onPress={() => router.replace('/garage')} variant="outline" /> : null}
+            <PrimaryButton disabled={CUSTOMER_AUTH.enabled && auth.status !== 'signed_in'} label={CUSTOMER_AUTH.enabled ? 'Save account details' : 'Check account setup'} loading={saving} onPress={() => void checkReadiness()} />
+            {notice ? <PrimaryButton label="Open My Garage" onPress={() => router.replace('/garage')} variant="outline" /> : null}
             <PrimaryButton label="Book without an account" onPress={() => router.replace('/booking')} variant="outline" />
           </View>
         </ScrollView>

@@ -80,7 +80,7 @@ export default function AlertsScreen() {
       >
         <View style={styles.header}>
           <View style={styles.headerCopy}>
-            <Text style={styles.eyebrow}>Settings & Notifications</Text>
+            <Text style={styles.eyebrow}>Your preferences</Text>
             <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact]}>Settings & Notifications</Text>
           </View>
           <View accessibilityLabel={`${unreadCount} unread notifications`} style={styles.countBadge}>
@@ -90,13 +90,13 @@ export default function AlertsScreen() {
         </View>
 
         <View accessibilityRole="alert" style={styles.previewNotice}>
-          <Text style={styles.previewNoticeTitle}>{privateMode ? 'Protected notification centre' : 'Notification preview'}</Text>
+          <Text style={styles.previewNoticeTitle}>{privateMode ? 'Your notifications' : 'Demo notifications'}</Text>
           <Text style={styles.previewNoticeCopy}>
             {privateMode
               ? signedIn
-                ? 'Your own booking updates appear here. Native alerts, sound and app-icon badges activate only after you choose Enable device notifications below.'
-                : 'Sign in to load your private booking updates and notification preferences. No other customer records are shown.'
-              : 'These alerts and controls are synthetic and stay in memory. This public demo does not ask for notification permission, register a device or send messages.'}
+                ? 'Booking updates appear here. Enable device alerts below for banners, sound and badges.'
+                : 'Sign in to see your notifications and preferences.'
+              : 'Example alerts only. This demo does not register or notify your device.'}
           </Text>
         </View>
 
@@ -175,8 +175,8 @@ export default function AlertsScreen() {
                   void notifications.markRead(event.id);
                   router.push(event.deep_link as Href);
                 }} />)
-                : <View style={styles.emptyState}><Text style={styles.bodyCopy}>No private notifications yet.</Text></View>
-              : <View style={styles.emptyState}><Text style={styles.bodyCopy}>Sign in through Account to see your protected notifications.</Text></View>
+                : <View style={styles.emptyState}><Text style={styles.bodyCopy}>No notifications yet.</Text></View>
+              : <View style={styles.emptyState}><Text style={styles.bodyCopy}>Sign in through Account to see your notifications.</Text></View>
             : CUSTOMER_PREVIEW.alerts.map((alert) => (
               <AlertCard alert={alert} key={alert.id} onPress={() => markRead(alert.id)} read={readIds.has(alert.id)} />
             ))}
@@ -184,11 +184,11 @@ export default function AlertsScreen() {
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>{privateMode ? 'Notification preferences' : 'What you could receive'}</Text>
-          <Text style={styles.sectionMeta}>{privateMode ? 'Private account' : 'Demo controls'}</Text>
+          <Text style={styles.sectionMeta}>{privateMode ? 'Your account' : 'Demo controls'}</Text>
         </View>
         <View style={styles.preferenceCard}>
           <PreferenceRow
-            copy="Confirmation, PSI review and approved date changes for your own visits."
+            copy="Confirmations and date changes for your visits."
             enabled={securePreference('booking')}
             icon="calendar-outline"
             label="Booking updates"
@@ -196,7 +196,7 @@ export default function AlertsScreen() {
             previewOnly={!privateMode}
           />
           <PreferenceRow
-            copy="Useful check-ins before an upcoming visit or service milestone."
+            copy="Reminders before visits and service milestones."
             enabled={securePreference('reminder')}
             icon="time-outline"
             label="Visit reminders"
@@ -205,7 +205,7 @@ export default function AlertsScreen() {
           />
           {!privateMode || staffMode ? (
             <PreferenceRow
-              copy={privateMode ? 'New customer requests ready for protected workshop review.' : 'A PSI-published dyno result, report or build-plan stage is ready.'}
+              copy={privateMode ? 'New customer requests ready for workshop review.' : 'New dyno results, reports or build-plan stages.'}
               enabled={securePreference('vehicle')}
               icon={privateMode ? 'construct-outline' : 'car-sport-outline'}
               label={privateMode ? 'Workshop alerts' : 'Vehicle records'}
@@ -216,7 +216,7 @@ export default function AlertsScreen() {
           ) : null}
           {privateMode && signedIn ? (
             <PreferenceRow
-              copy="Play the PSI notification sound when device alerts are permitted."
+              copy="Play a sound with device notifications."
               enabled={notifications.preferences?.sound_enabled ?? true}
               icon="volume-high-outline"
               label="Notification sound"
@@ -233,8 +233,8 @@ export default function AlertsScreen() {
             <View style={styles.howItWorksCopy}>
               <Text style={styles.howItWorksTitle}>Device alerts</Text>
               <Text style={styles.bodyCopy}>{notifications.pushStatus === 'ready'
-                ? 'This device is registered for PSI banners, sound and app-icon badges.'
-                : 'Enable notifications on this installed device. Your in-app notification centre remains available if device alerts are off.'}</Text>
+                ? 'Banners, sound and app-icon badges are enabled on this device.'
+                : 'Enable alerts for banners, sound and badges. Updates still appear in the app.'}</Text>
             </View>
             {notificationFeedback ? <Text accessibilityRole="alert" style={styles.notificationFeedback}>{notificationFeedback}</Text> : null}
             <Pressable accessibilityRole="button" onPress={() => {
@@ -248,26 +248,6 @@ export default function AlertsScreen() {
           </View>
         ) : null}
 
-        <View style={styles.howItWorks}>
-          <Ionicons color={colors.accent} name="shield-checkmark-outline" size={30} />
-          <View style={styles.howItWorksCopy}>
-            <Text style={styles.howItWorksTitle}>Controlled by the customer</Text>
-            <Text style={styles.bodyCopy}>
-              {privateMode
-                ? 'Choose how PSI keeps you updated. Booking changes come only from PSI—not another customer or a public calendar.'
-                : 'A customer account can offer in-app, email and push preferences. Booking changes still come from PSI—not another customer or a public calendar.'}
-            </Text>
-          </View>
-          <Pressable
-            accessibilityLabel="Open example bookings"
-            accessibilityRole="button"
-            onPress={() => router.push('/bookings')}
-            style={({ pressed }) => [styles.openBookings, pressed && styles.pressed]}
-          >
-            <Text style={styles.openBookingsText}>Open bookings</Text>
-            <Ionicons color={colors.white} name="arrow-forward" size={18} />
-          </Pressable>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

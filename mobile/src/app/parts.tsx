@@ -202,21 +202,21 @@ export default function PlanBuildScreen() {
             <Text style={styles.eyebrow}>Plan & Build · Build brief</Text>
             <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact]}>One goal.{`\n`}Measured stages.</Text>
             <Text style={styles.lead}>
-              Keep the vehicle, your goals, PSI recommendations and the next approved stage together—without treating a plan as a quote or booking.
+              Shape your goals into a clear brief for PSI—without treating it as a quote or booking.
             </Text>
           </View>
         </View>
 
         <View accessibilityRole="alert" style={styles.previewNotice}>
-          <Text style={styles.previewNoticeTitle}>Build brief · not yet sent</Text>
+          <Text style={styles.previewNoticeTitle}>Draft only</Text>
           <Text style={styles.previewNoticeCopy}>
-            Use these choices to shape a conversation with PSI. Nothing is sent automatically. This brief stays in the current app session until you choose how to contact PSI.
+            Nothing is sent until you choose a contact option.
           </Text>
         </View>
 
         <View style={styles.builderCard}>
           <BuilderHeading
-            copy="The vehicle currently selected in My Garage stays attached to this open build brief."
+            copy="Uses the vehicle selected in My Garage."
             number="01"
             title="Your vehicle"
           />
@@ -234,7 +234,7 @@ export default function PlanBuildScreen() {
 
         <View style={styles.builderCard}>
           <BuilderHeading
-            copy="Choose every area you want to discuss. These are conversation topics—not a promise that a part or service is suitable."
+            copy="Choose the areas you want to discuss. PSI will confirm what suits the vehicle."
             number="02"
             title="Choose build areas"
           />
@@ -316,7 +316,7 @@ export default function PlanBuildScreen() {
 
         <View style={styles.builderCard}>
           <BuilderHeading
-            copy="Add any useful direction for the first conversation. These fields are optional; PSI still inspects and confirms the right scope separately."
+            copy="Add any useful goals, timing or budget details."
             number="03"
             title="Shape the plan"
           />
@@ -396,7 +396,7 @@ export default function PlanBuildScreen() {
 
         <View style={styles.actionPanel}>
           <BuilderHeading
-            copy="Check the brief, then choose how you want to contact PSI. SMS and email carry a draft; social buttons open the PSI message thread without copying your brief."
+            copy="Review your brief, then choose how to contact PSI."
             number="04"
             title="Review & continue"
           />
@@ -404,7 +404,7 @@ export default function PlanBuildScreen() {
           <View accessibilityRole="alert" style={styles.handoffNotice}>
             <Ionicons color={colors.accent} name="shield-checkmark-outline" size={22} />
             <Text style={styles.handoffNoticeText}>
-              Nothing has been sent. If you tap Send in the external app, this becomes a real message to PSI; this screen does not send or store it. For social messages, copy the selectable brief above first.
+              Nothing has been sent. The external app sends only when you tap Send.
             </Text>
           </View>
           <View style={styles.handoffActions}>
@@ -469,8 +469,8 @@ export default function PlanBuildScreen() {
         </View>
 
         <View style={styles.examplePlan}>
-          <Text style={styles.examplePlanKicker}>Example only · not generated from your selections</Text>
-          <Text style={styles.examplePlanNote}>PSI has not reviewed this draft brief. These stages show how a future plan could be organised.</Text>
+          <Text style={styles.examplePlanKicker}>Example build stages</Text>
+          <Text style={styles.examplePlanNote}>This example has not been reviewed by PSI.</Text>
           <View style={styles.planHeading}>
             <View style={styles.planHeadingCopy}>
               <Text style={styles.planKicker}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
@@ -496,7 +496,7 @@ export default function PlanBuildScreen() {
               <Text style={styles.storeTitle}>Parts & gift cards</Text>
             </View>
           </View>
-          <Text style={styles.bodyCopy}>Store checkout opens on PSI&apos;s official website. This app never claims an order or payment has completed.</Text>
+          <Text style={styles.bodyCopy}>Checkout opens on PSI&apos;s official website.</Text>
           <View style={styles.storeActions}>
             <PrimaryButton label="Shop performance parts ↗" onPress={() => void Linking.openURL(PARTS_STORE_URL)} />
             <PrimaryButton label="PSI gift cards ↗" onPress={() => void Linking.openURL(GIFT_CARD_URL)} variant="outline" />
