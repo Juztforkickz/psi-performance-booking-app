@@ -37,7 +37,7 @@ const DASHBOARD_TILES = {
   alerts: require('../../../assets/images/dashboard/tile-alerts-blue-silver.jpg'),
   dyno: require('../../../assets/images/dashboard/tile-hub-dyno-blue-silver.jpg'),
   reports: require('../../../assets/images/dashboard/tile-vehicle-reports-blue-silver.jpg'),
-  psiEvents: require('../../../assets/images/dashboard/tile-events-blue-silver.jpg'),
+  psiEvents: require('../../../assets/images/dashboard/tile-events-blue-silver-v2.jpg'),
   planBuild: require('../../../assets/images/dashboard/tile-plan-build-blue-silver.jpg'),
   trustedPartners: require('../../../assets/images/dashboard/tile-trusted-partners-blue-silver.jpg'),
 } as const;
@@ -238,7 +238,7 @@ export default function CustomerHomeScreen() {
                 <Ionicons color={colors.accent} name={weather.current.icon} size={18} />
                 <View style={styles.homeWeatherCopy}>
                   <Text style={styles.homeWeatherTemp}>{weather.current.temperatureC}°C</Text>
-                  <Text style={styles.homeWeatherDate}>{new Intl.DateTimeFormat('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(`${weather.current.date}T12:00:00`))}</Text>
+                  <Text style={styles.homeWeatherDate}>{new Intl.DateTimeFormat('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${weather.current.date}T12:00:00`))}</Text>
                 </View>
               </>
             ) : (
@@ -723,11 +723,11 @@ const styles = StyleSheet.create({
   demoTitle: { color: colors.ink, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
   demoCopy: { color: '#464646', fontSize: 11, lineHeight: 17 },
   header: { minHeight: 62, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  homeWeather: { alignItems: 'center', justifyContent: 'center', flexShrink: 0, gap: 2, minWidth: 94, borderWidth: 2, borderColor: colors.silver, padding: 5, backgroundColor: 'rgba(255,255,255,0.05)' },
-  homeWeatherCompact: { minWidth: 74, paddingHorizontal: 3 },
-  homeWeatherCopy: { alignItems: 'center' },
+  homeWeather: { alignItems: 'center', justifyContent: 'center', flexDirection: 'row', flexShrink: 1, gap: spacing.xs, minWidth: 0 },
+  homeWeatherCompact: { gap: 5 },
+  homeWeatherCopy: { alignItems: 'flex-start', minWidth: 0 },
   homeWeatherTemp: { color: colors.silver, fontSize: 12, fontWeight: '900' },
-  homeWeatherDate: { color: colors.muted, fontSize: 9, fontWeight: '800' },
+  homeWeatherDate: { color: colors.muted, fontSize: 8, fontWeight: '800' },
   homeWeatherError: { color: colors.muted, fontSize: 9, fontWeight: '900', textAlign: 'center' },
   logo: { width: 126, height: 48 },
   logoCompact: { width: 96, height: 42 },
