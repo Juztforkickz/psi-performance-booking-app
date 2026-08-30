@@ -134,7 +134,7 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Choose a service or dyno request for a future date"
             image={DASHBOARD_TILES.bookAhead}
-            imageStyle={styles.lowerTileImage}
+            imageStyle={styles.lowerRequestedTileImage}
             label="Book Ahead"
             onPress={() => setBookingChooserOpen(true)}
           />
@@ -164,7 +164,7 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Opens vehicle history, dyno results, repairs and invoices"
             image={DASHBOARD_TILES.reports}
-            imageStyle={styles.lowerTileImage}
+            imageStyle={styles.lowerRequestedTileImage}
             label="Vehicle Reports"
             onPress={() => router.push('/vehicle-reports')}
           />
@@ -174,7 +174,7 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Opens upcoming PSI workshop events and reminders"
             image={DASHBOARD_TILES.psiEvents}
-            imageStyle={styles.lowerTileImage}
+            imageStyle={styles.raiseEventsTileImage}
             label="PSI Events"
             onPress={() => router.push('/events' as Href)}
           />
@@ -184,6 +184,7 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Open the build brief template and official PSI parts links"
             image={DASHBOARD_TILES.planBuild}
+            imageStyle={styles.lowerPlanBuildTileImage}
             label="Plan & Build"
             onPress={() => router.push('/parts')}
           />
@@ -313,7 +314,7 @@ export default function CustomerHomeScreen() {
             <DashboardTile
               accessibilityHint="Opens vehicle history, dyno results, repairs and invoices"
               image={DASHBOARD_TILES.reports}
-              imageStyle={styles.lowerTileImage}
+              imageStyle={styles.lowerRequestedTileImage}
               label="Vehicle Reports"
               onPress={() => router.push('/vehicle-reports')}
             />
@@ -322,6 +323,7 @@ export default function CustomerHomeScreen() {
             <DashboardTile
               accessibilityHint="Open the build brief template and official PSI parts links"
               image={DASHBOARD_TILES.planBuild}
+              imageStyle={styles.lowerPlanBuildTileImage}
               label="Plan & Build"
               onPress={() => router.push('/parts')}
             />
@@ -747,6 +749,9 @@ const styles = StyleSheet.create({
   tileCell: { width: '46%', flexGrow: 0, flexShrink: 1, minWidth: 0, maxWidth: 340 },
   tileCellThird: { width: '30%', minWidth: 180 },
   lowerTileImage: { transform: [{ scale: 1.55 }, { translateY: 7 }] },
+  lowerRequestedTileImage: { transform: [{ scale: 1.55 }, { translateY: 10 }] },
+  lowerPlanBuildTileImage: { transform: [{ scale: 1.55 }, { translateY: 3 }] },
+  raiseEventsTileImage: { transform: [{ scale: 1.55 }, { translateY: 3 }] },
   standardPanel: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
   standardImageFrame: { width: '100%', aspectRatio: 1746 / 901, overflow: 'hidden', backgroundColor: colors.inkSoft },
   standardImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
