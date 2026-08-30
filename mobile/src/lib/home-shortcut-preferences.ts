@@ -8,6 +8,7 @@ export const HOME_TILE_IDS = [
   'alerts',
   'dyno',
   'reports',
+  'psi-events',
   'plan-build',
   'trusted-partners',
 ] as const;

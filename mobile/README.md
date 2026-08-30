@@ -4,7 +4,7 @@ Native iOS, Android and responsive React Native Web client for PSI Performance G
 
 The opening route is an illustrated PSI customer dashboard with a persistent five-button navigation bar for **Home**, **My Garage**, **Bookings**, **Vehicle Reports** and **Settings & Notifications**. It supports:
 
-- Responsive automotive tiles for the garage, bookings, booking ahead, alerts, hub-dyno results, vehicle reports, Plan & Build and Trusted Partners.
+- Responsive automotive tiles for the garage, bookings, booking ahead, alerts, hub-dyno results, vehicle reports, Plan & Build, PSI Events and Trusted Partners.
 - Device-local Home shortcut preferences, allowing any dashboard tiles to be shown in the opening shortcut grid without storing customer information.
 - Service & Report from $423.50 AUD including GST.
 - Dyno Tuning from $649 AUD including GST.
@@ -25,6 +25,8 @@ meaning. The PSI launcher icon and wordmark remain black and white.
 Expo Router keeps `/`, `/garage`, `/bookings` and `/alerts` inside the customer tab navigator while one shared root-level bar remains visible across those screens and the stacked `/booking`, `/parts`, `/vehicle-reports`, `/account` and `/account/sign-up` journeys. The Vehicle Reports button opens its dedicated route directly, and the shared bar hides while the software keyboard is open so forms keep their usable screen space. Native deep links use the `psiperformance` scheme from `app.json`; universal HTTPS links should only be enabled after PSI controls the final production domain and publishes the required Apple/Android association files.
 
 Home's **Customise** control can add or remove any available dashboard tile from **Your shortcuts**. This is the only new persistent value in this feature: a versioned list of tile identifiers stored in device-local AsyncStorage. It contains no customer, vehicle, booking or partner-contact data, and at least one shortcut must remain selected. The fixed Workshop tiles remain available even when their matching shortcut is removed.
+
+PSI Events is now available as a shortcut tile. Event entries are currently stored on-device and can be added from the new `/events` screen. In this rollout they support local date/time reminders per item, with a switch to add local device notifications when supported.
 
 The full-screen `/trusted-partners` directory presents public business contact details for independent automotive specialists PSI may recommend. It is a referral directory only: customers contact each business directly and must confirm its current services, availability and pricing. Opening a phone, email, website or Instagram link does not create a PSI booking or transmit customer data through the app. The directory has no account connection, API write, analytics or application storage. On 27 August 2026, the PSI owner confirmed approval from the six continuing listed businesses; Raceline was removed because its approval was not available. BNB Autohaus then replaced Luxe Automotive Interiors at the owner's request using contact details from BNB's official website; direct confirmation of the new BNB listing and logo remains a store-release gate.
 

@@ -286,7 +286,6 @@ function VehicleReportsContent({
           allowsEditing: false,
           mediaTypes: ['images'],
           quality: 0.9,
-          saveToPhotos: false,
         })
         : await ImagePicker.launchImageLibraryAsync({
           allowsEditing: false,

@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFonts } from 'expo-font';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { type Href, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
   Image,
   Linking,
@@ -26,6 +26,7 @@ import {
   useHomeShortcutPreferences,
 } from '@/lib/home-shortcut-preferences';
 import { PUBLIC_DEMO } from '@/lib/public-demo';
+import { loadWorkshopWeather, type WorkshopWeather } from '@/lib/weather';
 import { SUPABASE_CONNECTION } from '@/lib/supabase';
 import { useThemePreference } from '@/lib/theme-preference';
 
@@ -36,6 +37,7 @@ const DASHBOARD_TILES = {
   alerts: require('../../../assets/images/dashboard/tile-alerts-blue-silver.jpg'),
   dyno: require('../../../assets/images/dashboard/tile-hub-dyno-blue-silver.jpg'),
   reports: require('../../../assets/images/dashboard/tile-vehicle-reports-blue-silver.jpg'),
+  psiEvents: require('../../../assets/images/dashboard/tile-events-blue-silver.jpg'),
   planBuild: require('../../../assets/images/dashboard/tile-plan-build-blue-silver.jpg'),
   trustedPartners: require('../../../assets/images/dashboard/tile-trusted-partners-blue-silver.jpg'),
 } as const;
@@ -47,6 +49,7 @@ const HOME_TILE_LABELS: Readonly<Record<HomeTileId, string>> = {
   alerts: 'Settings & Notifications',
   dyno: 'Dyno Tuning',
   reports: 'Vehicle Reports',
+  'psi-events': 'PSI Events',
   'plan-build': 'Plan & Build',
   'trusted-partners': 'Trusted Partners',
 };
@@ -68,6 +71,8 @@ export default function CustomerHomeScreen() {
   });
   const [bookingChooserOpen, setBookingChooserOpen] = useState(false);
   const [shortcutChooserOpen, setShortcutChooserOpen] = useState(false);
+  const [weather, setWeather] = useState<WorkshopWeather | null>(null);
+  const [weatherError, setWeatherError] = useState(false);
   const { resetShortcuts, shortcutIds, toggleShortcut } = useHomeShortcutPreferences();
   const threeColumns = tablet && width >= 780 && !largeText;
   const privateAccountMode = SUPABASE_CONNECTION.authEnabled;
@@ -77,6 +82,31 @@ export default function CustomerHomeScreen() {
     prepareBookingVehicle(selectedVehicleId);
     router.push({ pathname: '/booking', params: { type } });
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    let controller: AbortController | null = null;
+
+    const run = async () => {
+      controller = new AbortController();
+      try {
+        const result = await loadWorkshopWeather(controller.signal);
+        if (cancelled) return;
+        setWeather(result);
+        setWeatherError(false);
+      } catch {
+        if (cancelled) return;
+        setWeather(null);
+        setWeatherError(true);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+      controller?.abort();
+    };
+  }, []);
 
   const renderHomeTile = (id: HomeTileId) => {
     switch (id) {
@@ -139,6 +169,16 @@ export default function CustomerHomeScreen() {
             onPress={() => router.push('/vehicle-reports')}
           />
         );
+      case 'psi-events':
+        return (
+          <DashboardTile
+            accessibilityHint="Opens upcoming PSI workshop events and reminders"
+            image={DASHBOARD_TILES.psiEvents}
+            imageStyle={styles.lowerTileImage}
+            label="PSI Events"
+            onPress={() => router.push('/events' as Href)}
+          />
+        );
       case 'plan-build':
         return (
           <DashboardTile
@@ -190,8 +230,21 @@ export default function CustomerHomeScreen() {
             accessibilityLabel="PSI Performance Garage"
             resizeMode="contain"
             source={require('../../../assets/images/psi-logo.png')}
-            style={[styles.logo, activeTheme === 'bright' && styles.logoBright]}
+            style={[styles.logo, compact && styles.logoCompact, activeTheme === 'bright' && styles.logoBright]}
           />
+          <View style={[styles.homeWeather, compact && styles.homeWeatherCompact]}>
+            {weather ? (
+              <>
+                <Ionicons color={colors.accent} name={weather.current.icon} size={18} />
+                <View style={styles.homeWeatherCopy}>
+                  <Text style={styles.homeWeatherTemp}>{weather.current.temperatureC}°C</Text>
+                  <Text style={styles.homeWeatherDate}>{new Intl.DateTimeFormat('en-AU', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(`${weather.current.date}T12:00:00`))}</Text>
+                </View>
+              </>
+            ) : (
+              <Text style={styles.homeWeatherError}>{weatherError ? 'Weather unavailable' : 'Loading weather...'}</Text>
+            )}
+          </View>
           <Pressable
             accessibilityHint="Opens passwordless customer account access"
             accessibilityLabel="Customer account"
@@ -670,7 +723,14 @@ const styles = StyleSheet.create({
   demoTitle: { color: colors.ink, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
   demoCopy: { color: '#464646', fontSize: 11, lineHeight: 17 },
   header: { minHeight: 62, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  homeWeather: { alignItems: 'center', justifyContent: 'center', flexShrink: 0, gap: 2, minWidth: 94, borderWidth: 2, borderColor: colors.silver, padding: 5, backgroundColor: 'rgba(255,255,255,0.05)' },
+  homeWeatherCompact: { minWidth: 74, paddingHorizontal: 3 },
+  homeWeatherCopy: { alignItems: 'center' },
+  homeWeatherTemp: { color: colors.silver, fontSize: 12, fontWeight: '900' },
+  homeWeatherDate: { color: colors.muted, fontSize: 9, fontWeight: '800' },
+  homeWeatherError: { color: colors.muted, fontSize: 9, fontWeight: '900', textAlign: 'center' },
   logo: { width: 126, height: 48 },
+  logoCompact: { width: 96, height: 42 },
   logoBright: { tintColor: colors.ink },
   accountButton: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.white, borderRadius: 23, backgroundColor: colors.white },
   intro: { gap: spacing.xs },
@@ -723,7 +783,7 @@ const styles = StyleSheet.create({
   footerLink: { color: colors.accent, fontSize: 10, fontWeight: '900', textDecorationLine: 'underline', textTransform: 'uppercase' },
   modalSafeArea: { flex: 1, backgroundColor: 'rgba(0,0,0,.82)' },
   modalBackdrop: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md },
-  modalSheet: { width: '100%', maxWidth: 560, gap: spacing.md, ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.lg },
+  modalSheet: { zIndex: 1, width: '100%', maxWidth: 560, gap: spacing.md, ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.lg },
   modalHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   modalHeadingCopy: { flex: 1, gap: spacing.xs },
   modalTitle: { color: colors.white, fontSize: 24, fontWeight: '900', lineHeight: 28, textTransform: 'uppercase' },

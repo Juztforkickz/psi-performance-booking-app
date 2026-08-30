@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -19,6 +19,7 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { CUSTOMER_PREVIEW } from '@/lib/customer-preview';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
+import { loadWorkshopWeather, normaliseDateOnly, type WeatherItem, type WorkshopWeather } from '@/lib/weather';
 import type { BookingRequestRow, CustomerVehicleRow } from '@/lib/database.types';
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const;
@@ -32,6 +33,8 @@ export default function BookingsScreen() {
   const [bookingChooserOpen, setBookingChooserOpen] = useState(false);
   const [vehicleChooserOpen, setVehicleChooserOpen] = useState(false);
   const [pendingBookingType, setPendingBookingType] = useState<'service' | 'dyno' | null>(null);
+  const [workshopWeather, setWorkshopWeather] = useState<WorkshopWeather | null>(null);
+  const [weatherError, setWeatherError] = useState(false);
 
   const privateAccountMode = CUSTOMER_AUTH.enabled;
   const displayBookings = privateAccountMode
@@ -75,6 +78,40 @@ export default function BookingsScreen() {
     setVehicleChooserOpen(false);
     setPendingBookingType(null);
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    let controller: AbortController | null = null;
+    const run = async () => {
+      controller = new AbortController();
+      try {
+        const result = await loadWorkshopWeather(controller.signal);
+        if (cancelled) return;
+        setWorkshopWeather(result);
+        setWeatherError(false);
+      } catch {
+        if (cancelled) return;
+        setWorkshopWeather(null);
+        setWeatherError(true);
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+      controller?.abort();
+    };
+  }, []);
+
+  const weatherForDate = useMemo(() => {
+    const weatherLookup = new Map<string, WeatherItem>();
+    for (const day of workshopWeather?.nextSeven ?? []) {
+      weatherLookup.set(day.date, day);
+    }
+    return (value: string | null) => {
+      const date = normaliseDateOnly(value);
+      return date ? weatherLookup.get(date) : null;
+    };
+  }, [workshopWeather]);
 
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
@@ -130,6 +167,11 @@ export default function BookingsScreen() {
                   <Text style={styles.bookingTitle}>{booking.service}</Text>
                   <Text style={styles.bookingDate}>{formatBookingDate(booking.date)}</Text>
                   <Text style={styles.bodyCopy}>{booking.vehicle}</Text>
+                  {weatherForDate(booking.date) ? (
+                    <Text style={styles.privateCalendarWeather}>
+                      {`Forecast · ${weatherForDate(booking.date)?.temperatureMaxC ?? 0}° / ${weatherForDate(booking.date)?.temperatureMinC ?? 0}° · ${weatherForDate(booking.date)?.precipitationChance ?? 0}% rain`}
+                    </Text>
+                  ) : null}
                 </View>
               </View>
             ))}
@@ -167,6 +209,34 @@ export default function BookingsScreen() {
           </View>
           <Text style={styles.calendarNote}>The account calendar is a personal visit history—not an open PSI workshop calendar.</Text>
         </View>}
+
+        <View style={styles.sectionHeading}>
+          <Text style={styles.sectionTitle}>Workshop weather</Text>
+          <Text style={styles.sectionMeta}>Forecast for PSI</Text>
+        </View>
+        {workshopWeather ? (
+          <View style={styles.weatherStrip}>
+            {workshopWeather.nextSeven.map((forecast) => (
+              <View key={forecast.date} style={styles.weatherDay}>
+                <Ionicons color={colors.accent} name={forecast.icon} size={18} />
+                <Text style={styles.weatherDayLabel}>
+                  {new Intl.DateTimeFormat('en-AU', {
+                    weekday: 'short',
+                    day: 'numeric',
+                  }).format(new Date(`${forecast.date}T12:00:00`))}
+                </Text>
+                <Text style={styles.weatherTempText}>
+                  {Math.round(forecast.temperatureMinC)}° · {Math.round(forecast.temperatureMaxC)}°
+                </Text>
+                <Text style={styles.weatherRainText}>
+                  {forecast.precipitationChance}% rain
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.weatherMissing}>{weatherError ? 'Weather forecast currently unavailable' : 'Loading weather forecast…'}</Text>
+        )}
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>Coming up</Text>
@@ -447,9 +517,16 @@ const styles = StyleSheet.create({
   calendarLegend: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   privateCalendarRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.sm },
   privateCalendarCopy: { flex: 1, gap: 2 },
+  privateCalendarWeather: { color: colors.muted, fontSize: 10, lineHeight: 15 },
   legendMark: { width: 11, height: 11, borderRadius: 2, backgroundColor: colors.silver },
   legendText: { color: colors.silver, fontSize: 10, fontWeight: '700' },
   calendarNote: { color: colors.mutedDark, fontSize: 10, lineHeight: 15 },
+  weatherStrip: { ...mobileFrame, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, backgroundColor: colors.panel, padding: spacing.md },
+  weatherDay: { minWidth: 100, alignItems: 'center', paddingVertical: spacing.xs, gap: 3, flex: 1 },
+  weatherDayLabel: { color: colors.silver, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  weatherTempText: { color: colors.white, fontSize: 10, fontWeight: '900' },
+  weatherRainText: { color: colors.muted, fontSize: 9, fontWeight: '800' },
+  weatherMissing: { color: colors.mutedDark, fontSize: 10, fontStyle: 'italic' },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.sm },
   sectionTitle: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
   sectionAction: { color: colors.accent, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
@@ -472,13 +549,17 @@ const styles = StyleSheet.create({
   calloutTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
   modalSafeArea: { flex: 1, backgroundColor: 'rgba(0,0,0,.82)' },
   modalBackdrop: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md },
-  modalSheet: { ...mobileFrame, width: '100%', maxWidth: 560, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.lg },
+  modalSheet: { ...mobileFrame, zIndex: 1, width: '100%', maxWidth: 560, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.lg },
   modalHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   modalHeaderCopy: { flex: 1, gap: spacing.xs },
   modalTitle: { color: colors.white, fontSize: 22, fontWeight: '900', lineHeight: 26, textTransform: 'uppercase' },
   closeButton: { ...mobileFrame, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
   bookingChoice: { ...mobileFrame, minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.panel, padding: spacing.md },
   bookingChoiceText: { flex: 1, color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
+  vehicleChoice: { ...mobileFrame, minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.panel, padding: spacing.md },
+  vehicleChoiceCopy: { flex: 1, minWidth: 0, gap: 3 },
+  vehicleChoiceTitle: { color: colors.white, fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
+  vehicleChoiceMeta: { color: colors.muted, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
   modalNote: { color: colors.muted, fontSize: 10, lineHeight: 16 },
   pressed: { opacity: .72 },
 });
