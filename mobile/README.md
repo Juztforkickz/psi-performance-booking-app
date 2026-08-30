@@ -126,6 +126,15 @@ On an installed native build, a signed-in user must deliberately choose
 permission and registers an Expo push token. Banners, default sound, safe
 Booking/Staff deep links and app-icon badge counts are supported. Disabled or
 unregistered devices retain the in-app notification centre and email updates.
+
+PSI Events uses the same protected notification foundation. Customers can read
+only published events; they cannot create, edit, publish or cancel them. Matt
+manages private drafts and published event details from the existing AAL2 staff
+portal. Publishing, changing or cancelling a live event creates per-customer
+in-app notification records and push jobs with a safe `/events` deep link.
+Customers may also schedule the event's 90-minute reminder locally on a signed
+native device. Public-demo builds remain signed out and cannot read the event
+feed.
 The web/PWA preview cannot provide Expo native push alerts, and iPhone remote
 push QA/release still requires Apple signing through an Apple Developer Program
 membership. No push token, service credential or other secret is compiled into

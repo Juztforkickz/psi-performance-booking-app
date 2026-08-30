@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import {
   createContext,
   type PropsWithChildren,
@@ -92,12 +92,12 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     const received = Notifications.addNotificationReceivedListener(() => { void refresh(); });
     const responded = Notifications.addNotificationResponseReceivedListener((response) => {
       const url = response.notification.request.content.data?.url;
-      if (url === '/bookings' || url === '/staff') router.push(url);
+      if (url === '/bookings' || url === '/events' || url === '/staff') router.push(url as Href);
       void refresh();
     });
     void Notifications.getLastNotificationResponseAsync().then((response) => {
       const url = response?.notification.request.content.data?.url;
-      if (url === '/bookings' || url === '/staff') router.push(url);
+      if (url === '/bookings' || url === '/events' || url === '/staff') router.push(url as Href);
     });
     return () => { received.remove(); responded.remove(); };
   }, [refresh, router]);
@@ -171,6 +171,11 @@ export function useNotifications() {
 export async function dispatchBookingPushNotifications(bookingId: string) {
   if (!SUPABASE_CONNECTION.authEnabled) return;
   await getSupabaseClient().functions.invoke('process-push-notifications', { body: { action: 'dispatch', bookingId } });
+}
+
+export async function dispatchPsiEventPushNotifications() {
+  if (!SUPABASE_CONNECTION.authEnabled) return;
+  await getSupabaseClient().functions.invoke('process-push-notifications', { body: { action: 'dispatch' } });
 }
 
 export async function unregisterCurrentPushDevice() {

@@ -18,6 +18,7 @@ registered QA iPhone.
 - Resend transactional email is active through encrypted Edge Function secrets. Google Calendar credentials are server-only and the customer cannot list or read PSI calendar contents.
 - Public GitHub Pages remains a submission-disabled synthetic demo. The EAS QA build is protected by Expo authentication and uses a separate Auth-enabled environment.
 - Native push infrastructure supports opt-in permission, sounds, badge counts and safe deep links. The registered iPhone installed the Apple-signed QA build, completed an approved-customer email-code sign-in and received a locked-screen PSI alert with sound and a badge change from one to two. Foreground delivery, deep links, badge clearing and the remaining iPhone acceptance checks are still outstanding.
+- PSI Events is centrally managed in Matt's AAL2 staff portal. Customers can read only published events; publish, detail-change and cancellation transitions queue private in-app alerts and native push jobs with a safe Events deep link. The live RLS regression blocks customer writes, permits AAL2 staff writes and verifies the notification fan-out inside a rolled-back transaction.
 - Customers can initiate or cancel their own deletion request. Matt can review the queue only after AAL2 verification; completion remains a controlled owner procedure and is never represented as automatic.
 - Customer-facing privacy, support and conservative approval-first booking terms are available inside the app.
 - Expo SDK 57 dependencies match Expo's current compatible patch versions, peer
@@ -44,6 +45,14 @@ The protected browser QA build is maintained at:
 `https://psi-performance-qa--qa-current.expo.app/`
 
 Hosting exports must use the cache-safe process documented in `../mobile/README.md` so public and authenticated bundles cannot share a stale asset filename.
+
+On 30 August 2026, migrations `20260830011927_psi_events` and
+`20260830013044_index_psi_events_created_by` added the AAL2-managed event feed,
+least-privilege grants, event notification fan-out and supporting indexes. Push
+worker version 4 recognises `/events` as a workshop alert while retaining its
+verified-JWT gate. The live advisor found no PSI Events security warning; its
+new indexes are reported only as unused because the event table is intentionally
+empty before Matt publishes the first real event.
 
 The signed internal Android QA APK build `be1e5a7d-96f1-4fe3-8a44-0bbe400fd4ab` completed successfully on 25 August 2026 from source checkpoint `7dd0b75331bc5bda31407daf485dd0ef8f05c44d`. It uses package `com.psiperformance.booking`, the protected `qa` profile and PSI's Expo-managed Android keystore. Its Expo installation page is restricted to authorised project access and the build expires on 8 September 2026. Real-device installation and notification acceptance remain outstanding; build completion alone does not prove native push delivery.
 
@@ -110,11 +119,12 @@ iPhone provisioning. Real-device visual acceptance remains outstanding.
 1. Run the native QA profile on one current iPhone and one supported Android device. Record build IDs, device models, operating-system versions and test identities.
 2. On both devices, verify email-code cooldown, invalid/expired/replayed codes, session restoration, sign-out, private vehicle photo access and private Vehicle Reports attachments.
 3. Verify notification opt-in, foreground/background sound, app-icon badge changes and Booking/Staff deep links on signed native builds.
-4. Run controlled two-customer isolation and staff AAL1/AAL2 regression checks after every Auth, RLS or policy change.
-5. Exercise date proposal, date approval and cancellation emails, including duplicate-worker and Melbourne-time boundary checks. Do not move any request to paid or confirmed state.
-6. Acceptance-test the documented account-deletion completion procedure with a synthetic identity, approve the retention schedule and decide on Supabase backup/capacity before real customer records are invited.
-7. Confirm the new BNB Autohaus listing and logo, reconfirm all retained Trusted Partner contact details immediately before store submission, and approve final app-store privacy disclosures, signed-build screenshots and customer-facing terms. Listing and logo approval remains complete for the six continuing businesses.
-8. Complete the signed-iPhone acceptance checklist and obtain the Google Play
+4. Publish one synthetic PSI Event from Matt's AAL2 portal, confirm its customer alert, Events deep link and local reminder on the signed iPhone, then cancel the event and confirm the update. Remove the synthetic event from the launch schedule by leaving it cancelled.
+5. Run controlled two-customer isolation and staff AAL1/AAL2 regression checks after every Auth, RLS or policy change.
+6. Exercise date proposal, date approval and cancellation emails, including duplicate-worker and Melbourne-time boundary checks. Do not move any request to paid or confirmed state.
+7. Acceptance-test the documented account-deletion completion procedure with a synthetic identity, approve the retention schedule and decide on Supabase backup/capacity before real customer records are invited.
+8. Confirm the new BNB Autohaus listing and logo, reconfirm all retained Trusted Partner contact details immediately before store submission, and approve final app-store privacy disclosures, signed-build screenshots and customer-facing terms. Listing and logo approval remains complete for the six continuing businesses.
+9. Complete the signed-iPhone acceptance checklist and obtain the Google Play
    Console membership before store release. The PSI D-U-N-S record, Apple
    organisation membership and Apple signing access are active.
 

@@ -67,7 +67,9 @@ Deno.serve(async (request) => {
       admin.from("notification_preferences").select("booking_updates_enabled,workshop_alerts_enabled,sound_enabled").eq("user_id", queued.recipient_user_id).maybeSingle(),
       admin.from("notification_events").select("id", { count: "exact", head: true }).eq("recipient_user_id", queued.recipient_user_id).is("read_at", null),
     ]);
-    const allowed = (event as EventRow | null)?.deep_link === "/staff" ? preference?.workshop_alerts_enabled !== false : preference?.booking_updates_enabled !== false;
+    const allowed = (event as EventRow | null)?.deep_link === "/staff" || (event as EventRow | null)?.deep_link === "/events"
+      ? preference?.workshop_alerts_enabled !== false
+      : preference?.booking_updates_enabled !== false;
     if (!event || !allowed || !devices?.length) {
       await admin.from("push_notification_jobs").update({ status: "cancelled", completed_at: now, last_error_code: !allowed ? "preference_disabled" : "no_registered_device", updated_at: now }).eq("id", queued.id);
       continue;

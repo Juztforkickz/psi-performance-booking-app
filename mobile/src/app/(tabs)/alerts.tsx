@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   Image,
@@ -171,7 +171,10 @@ export default function AlertsScreen() {
           {privateMode
             ? signedIn
               ? notifications.events.length
-                ? notifications.events.map((event) => <SecureAlertCard event={event} key={event.id} onPress={() => void notifications.markRead(event.id)} />)
+                ? notifications.events.map((event) => <SecureAlertCard event={event} key={event.id} onPress={() => {
+                  void notifications.markRead(event.id);
+                  router.push(event.deep_link as Href);
+                }} />)
                 : <View style={styles.emptyState}><Text style={styles.bodyCopy}>No private notifications yet.</Text></View>
               : <View style={styles.emptyState}><Text style={styles.bodyCopy}>Sign in through Account to see your protected notifications.</Text></View>
             : CUSTOMER_PREVIEW.alerts.map((alert) => (
@@ -314,21 +317,24 @@ function AlertCard({
 function SecureAlertCard({ event, onPress }: { event: NotificationEventRow; onPress: () => void }) {
   const read = Boolean(event.read_at);
   const staffNotification = event.deep_link === '/staff';
+  const eventNotification = event.deep_link === '/events';
   return (
     <Pressable
-      accessibilityHint={read ? 'This notification is marked as read' : 'Marks this notification as read'}
+      accessibilityHint={`Marks this notification as read and opens ${eventNotification ? 'PSI Events' : staffNotification ? 'the staff portal' : 'Bookings'}`}
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.alertCard, !read && styles.alertCardUnread, pressed && styles.pressed]}
     >
       <View style={[styles.alertIcon, !read && styles.alertIconUnread]}>
-        {staffNotification
+        {eventNotification
+          ? <Ionicons color={!read ? colors.ink : colors.accent} name="flag" size={23} />
+          : staffNotification
           ? <Ionicons color={!read ? colors.ink : colors.accent} name="construct-outline" size={23} />
           : <Image accessible={false} resizeMode="cover" source={BOOKING_ALERT_IMAGE} style={styles.alertArtwork} />}
       </View>
       <View style={styles.alertCopy}>
         <View style={styles.alertTopline}>
-          <Text style={styles.alertType}>{staffNotification ? 'Workshop' : 'Booking'}</Text>
+          <Text style={styles.alertType}>{eventNotification ? 'PSI Event' : staffNotification ? 'Workshop' : 'Booking'}</Text>
           {!read ? <View accessibilityLabel="Unread" style={styles.unreadDot} /> : <Text style={styles.readLabel}>Read</Text>}
         </View>
         <Text style={styles.alertTitle}>{event.title}</Text>

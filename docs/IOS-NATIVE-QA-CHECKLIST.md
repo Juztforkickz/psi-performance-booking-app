@@ -86,6 +86,10 @@ Apple enrolment identifiers or service credentials in this file or an issue.
 - [ ] Foreground and background booking alerts show with sound as expected.
 - [ ] App-icon badge increments and clears correctly.
 - [ ] Customer notification deep links open only safe customer routes.
+- [ ] A published PSI Event appears for the customer, sends a sound/badge alert,
+  opens the safe Events route and can schedule its local reminder.
+- [ ] Event changes and cancellation notify the customer once; a customer cannot
+  create, edit, publish or cancel an event.
 - [ ] Matt-only staff notification deep links recheck staff status and AAL2.
 - [ ] Sign-out or disabling notifications prevents further account delivery to
   that registered device.

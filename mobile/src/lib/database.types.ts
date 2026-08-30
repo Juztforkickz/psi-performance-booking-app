@@ -294,9 +294,10 @@ export type Database = {
           body: string;
           booking_request_id: string | null;
           created_at: string;
-          deep_link: '/bookings' | '/staff';
+          deep_link: '/bookings' | '/events' | '/staff';
           id: string;
-          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'new_booking_request';
+          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'new_booking_request' | 'psi_event_cancelled' | 'psi_event_published' | 'psi_event_updated';
+          psi_event_id: string | null;
           read_at: string | null;
           recipient_user_id: string;
           source_event_key: string;
@@ -354,6 +355,45 @@ export type Database = {
           user_id: string;
         };
         Update: { enabled?: boolean; last_seen_at?: string; updated_at?: string };
+        Relationships: [];
+      };
+      psi_events: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          description: string | null;
+          ends_at: string | null;
+          id: string;
+          location: string | null;
+          published_at: string | null;
+          reminder_minutes_before: number;
+          starts_at: string;
+          status: 'cancelled' | 'draft' | 'published';
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_by: string;
+          description?: string | null;
+          ends_at?: string | null;
+          id?: string;
+          location?: string | null;
+          published_at?: string | null;
+          reminder_minutes_before?: number;
+          starts_at: string;
+          status?: 'cancelled' | 'draft' | 'published';
+          title: string;
+        };
+        Update: {
+          description?: string | null;
+          ends_at?: string | null;
+          location?: string | null;
+          published_at?: string | null;
+          reminder_minutes_before?: number;
+          starts_at?: string;
+          status?: 'cancelled' | 'draft' | 'published';
+          title?: string;
+        };
         Relationships: [];
       };
       push_notification_jobs: {
@@ -629,6 +669,7 @@ export type InvoiceRow = Database['public']['Tables']['invoices']['Row'];
 export type NotificationEventRow = Database['public']['Tables']['notification_events']['Row'];
 export type NotificationPreferenceRow = Database['public']['Tables']['notification_preferences']['Row'];
 export type OdometerReadingRow = Database['public']['Tables']['odometer_readings']['Row'];
+export type PsiEventRow = Database['public']['Tables']['psi_events']['Row'];
 export type RecommendedWorkRow = Database['public']['Tables']['recommended_work']['Row'];
 export type RepairRecordRow = Database['public']['Tables']['repair_records']['Row'];
 export type ServiceCompletionRow = Database['public']['Tables']['service_completions']['Row'];

@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { StaffRecordPublisher } from '@/components/staff-record-publisher';
 import { StaffBookingReview } from '@/components/staff-booking-review';
+import { StaffEventsManager } from '@/components/staff-events-manager';
 import { StaffServiceCompletion } from '@/components/staff-service-completion';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -382,6 +383,9 @@ function StaffWorkspace({
           <Metric label="Active requests" value={activeBookings.length} />
           <Metric label="Deletion requests" value={snapshot.accountDeletionRequests.filter((request) => request.status !== 'completed').length} />
         </View>
+
+        <SectionHeading copy="Create customer-facing event dates, save private drafts, then publish alerts when the details are ready." title="PSI Events" />
+        <StaffEventsManager />
 
         <SectionHeading copy="Customer-initiated requests are visible only to Matt after MFA. Complete the documented storage, retained-record and Auth cleanup before recording completion." title="Account deletion queue" />
         {snapshot.accountDeletionRequests.length === 0 ? <EmptyState>No account deletion requests are currently shown.</EmptyState> : snapshot.accountDeletionRequests.map((request) => {
