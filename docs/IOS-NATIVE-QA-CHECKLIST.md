@@ -1,6 +1,7 @@
 # PSI iPhone native QA checklist
 
-Status: signed QA build installed 29 August 2026. The first Apple release is
+Status: signed QA build installed 29 August 2026 and first App Store build
+submitted to TestFlight processing 31 August 2026. The first Apple release is
 iPhone-only; initial authentication passed and broader real-device acceptance
 remains in progress.
 
@@ -43,6 +44,11 @@ Apple enrolment identifiers or service credentials in this file or an issue.
   iPhone-only support in the build details.
 - [x] Install from the protected EAS page and confirm the PSI icon, splash and
   launch experience.
+- [x] Build the first App Store/TestFlight archive from checkpoint `ac3dcfb`;
+  EAS build `b2ce7e46-c1b7-4653-a062-99d00dd27d75`, version `1.0.0` build `5`,
+  completed and uploaded successfully to App Store Connect on 31 August 2026.
+- [ ] Confirm Apple processing completes, enable the internal tester and install
+  build `5` through TestFlight on the target iPhone.
 
 ## Authentication and privacy
 

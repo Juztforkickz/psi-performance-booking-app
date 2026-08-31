@@ -20,6 +20,16 @@ compiled into the app. The production EAS profile remains App Store
 distribution on the isolated `production` update channel with automatic iOS
 build-number increments.
 
+The first App Store archive was built from checkpoint `ac3dcfb` on 31 August
+2026. EAS build `b2ce7e46-c1b7-4653-a062-99d00dd27d75` produced PSI version
+`1.0.0` build `5` using App Store distribution credentials and uploaded it
+successfully to App Store Connect for TestFlight processing. The App Store
+Connect record uses bundle identifier `com.psiperformance.booking`; its numeric
+app identifier is recorded only in the EAS submit profile. Expo generated a
+least-privilege App Manager submission key and retains it in the managed
+credential store; no key material or private identifier was committed. Apple
+processing and TestFlight installation acceptance remain outstanding.
+
 ## Verified foundation
 
 - The Sydney Supabase project supplies passwordless email authentication, customer-owned records, private file buckets and row-level security.
