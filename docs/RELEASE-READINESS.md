@@ -1,6 +1,7 @@
 # PSI app release readiness
 
-Status: controlled QA, 29 August 2026. Payments remain deliberately deferred.
+Status: controlled QA and TestFlight preparation, 31 August 2026. Payments
+remain deliberately deferred.
 
 On 29 August 2026, D&B confirmed an active D-U-N-S record for
 **PSI PERFORMANCE PTY LTD**. The identifier is intentionally not stored in the
@@ -9,6 +10,15 @@ public repository. Apple accepted PSI's organisation enrolment on 29 August
 private enrolment identifier is intentionally not stored here. Expo now has
 PSI-owned Apple distribution, ad-hoc provisioning and push credentials for the
 registered QA iPhone.
+
+On 31 August 2026, the Expo production build environment was configured for the
+existing Sydney Supabase project using only the public project URL and
+publishable client key. Customer Auth and the protected account-owned booking
+path are enabled for signed TestFlight builds, while new-customer registration
+remains closed. No service-role key, provider secret or private credential is
+compiled into the app. The production EAS profile remains App Store
+distribution on the isolated `production` update channel with automatic iOS
+build-number increments.
 
 ## Verified foundation
 
