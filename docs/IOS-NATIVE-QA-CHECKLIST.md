@@ -47,8 +47,11 @@ Apple enrolment identifiers or service credentials in this file or an issue.
 - [x] Build the first App Store/TestFlight archive from checkpoint `ac3dcfb`;
   EAS build `b2ce7e46-c1b7-4653-a062-99d00dd27d75`, version `1.0.0` build `5`,
   completed and uploaded successfully to App Store Connect on 31 August 2026.
-- [ ] Confirm Apple processing completes, enable the internal tester and install
-  build `5` through TestFlight on the target iPhone.
+- [x] Confirm Apple processing completes and enable the internal tester. Build
+  `5` is available to the `Team (Expo)` internal group, the PSI owner account is
+  invited and the approved testing checklist is saved in App Store Connect.
+- [ ] Accept the internal invitation and install build `5` through TestFlight on
+  the target iPhone.
 
 ## Authentication and privacy
 

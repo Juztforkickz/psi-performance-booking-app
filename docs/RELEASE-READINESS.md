@@ -28,7 +28,10 @@ Connect record uses bundle identifier `com.psiperformance.booking`; its numeric
 app identifier is recorded only in the EAS submit profile. Expo generated a
 least-privilege App Manager submission key and retains it in the managed
 credential store; no key material or private identifier was committed. Apple
-processing and TestFlight installation acceptance remain outstanding.
+processing completed successfully. Build `5` is available to the internal
+`Team (Expo)` group, the PSI owner account is invited and the TestFlight test
+notes are saved. Invitation acceptance, installation and signed-release
+acceptance remain outstanding.
 
 ## Verified foundation
 
