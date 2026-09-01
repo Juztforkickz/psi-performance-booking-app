@@ -117,7 +117,8 @@ items above are intentionally not marked complete yet.
   iPhone in light/dark system conditions where applicable.
 - [ ] Check portrait layout, keyboard avoidance, Dynamic Type, screen-reader
   labels, focus order, external links and the KNG Tow two-number call chooser.
-- [ ] Confirm every approved partner logo and detail, including BNB Autohaus.
+- [ ] Confirm every approved partner logo and detail, including the restored
+  Luxe Automotive Interiors listing.
 - [ ] Recapture the five store screenshots from this signed build at an accepted
   iPhone size, crop only device chrome, and export opaque JPEG/PNG files.
 - [ ] Compare final App Privacy and age-rating answers with the signed binary.

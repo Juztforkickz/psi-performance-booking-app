@@ -156,7 +156,7 @@ iPhone provisioning. Real-device visual acceptance remains outstanding.
 5. Run controlled two-customer isolation and staff AAL1/AAL2 regression checks after every Auth, RLS or policy change.
 6. Exercise date proposal, date approval and cancellation emails, including duplicate-worker and Melbourne-time boundary checks. Do not move any request to paid or confirmed state.
 7. Acceptance-test the documented account-deletion completion procedure with a synthetic identity, approve the retention schedule and decide on Supabase backup/capacity before real customer records are invited.
-8. Confirm the new BNB Autohaus listing and logo, reconfirm all retained Trusted Partner contact details immediately before store submission, and approve final app-store privacy disclosures, signed-build screenshots and customer-facing terms. Listing and logo approval remains complete for the six continuing businesses.
+8. Reconfirm all retained Trusted Partner contact details immediately before store submission, including the restored Luxe Automotive Interiors listing, and approve final app-store privacy disclosures, signed-build screenshots and customer-facing terms. Listing and logo approval remains complete for the seven retained businesses.
 9. Complete the signed-iPhone acceptance checklist and obtain the Google Play
    Console membership before store release. The PSI D-U-N-S record, Apple
    organisation membership and Apple signing access are active.
@@ -200,12 +200,11 @@ no Calendar job and no Calendar event. No payment was taken.
 
 Public-source checks reconfirmed the listed details for Elite Autobody, Race
 Wires Auto Electrics, Elite Car Detailing Studio and EyeCandy Motorsports.
-On 27 August 2026, the PSI owner confirmed approval from the six continuing
+On 27 August 2026, the PSI owner confirmed approval from the seven retained
 Trusted Partners for their listings and logos. Raceline Motorsport Racewear was
-removed because its approval was not available. BNB Autohaus then replaced Luxe
-Automotive Interiors at the owner's request; BNB's official website confirms
-the listed address, phone and email. Direct BNB confirmation remains outstanding
-before store submission.
+removed because its approval was not available. BNB Autohaus temporarily
+replaced Luxe Automotive Interiors, then on 1 September 2026 the owner restored
+Luxe Automotive Interiors and removed BNB Autohaus from the active directory.
 
 ## Deliberately last
 

@@ -59,16 +59,16 @@ On **23 August 2026**, a Trusted Partners dashboard tile was created with the bu
 
 The six continuing square identity badges under `mobile/assets/images/partners/` were prepared from the owner-supplied screenshots of the businesses' public social profiles. ImageGen edit mode was used to isolate and clean each visible profile mark into a consistent 512×512 dark badge without reproducing the surrounding Instagram/Facebook interface. The direction was: preserve the supplied identity and existing visible wording, remove UI, photographic clutter and unrelated marks, add no claims or invented wording, and keep the result suitable for a small circular directory badge. These files identify independent businesses nominatively; they are not PSI-owned artwork and do not establish PSI ownership of the marks. On **27 August 2026**, the PSI owner confirmed approval from the six continuing listed businesses; Raceline was removed because its approval was not available.
 
-On **27 August 2026**, BNB Autohaus replaced Luxe Automotive Interiors at the PSI owner's request. Built-in ImageGen edit mode isolated BNB's supplied Instagram profile-avatar artwork from `1-Photo-1.jpg`, preserving the central inverted neon triangle and magenta-to-orange ring while removing the Instagram interface, profile text, counts, buttons and unrelated content. The output was resized to a 512×512 optimised JPEG as `bnb-autohaus.jpg`. The app applies presentation-only, partner-specific scale values to all seven badges so each supplied inner disc fills the common circular mask; the badge source files remain otherwise unchanged.
+On **27 August 2026**, BNB Autohaus temporarily replaced Luxe Automotive Interiors at the PSI owner's request. On **1 September 2026**, the owner reversed that selection: Luxe Automotive Interiors was restored to the active directory and BNB Autohaus was removed. The app applies presentation-only, partner-specific scale values to all seven active badges so each supplied inner disc fills the common circular mask; the badge source files remain otherwise unchanged.
 
 | Partner badge | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `bnb-autohaus.jpg` | 61,123 | `4024992C351519449EC188899D06DFFB787BCD3B117CCD4541B4512418A3124F` |
 | `dark-side-film.jpg` | 31,051 | `50E1BEF5AAB28ECF9E7A0E0D933DCE363E2EC05BB558ED8B89E4FBE1B7624523` |
 | `elite-autobody.jpg` | 9,115 | `C1BEC7F922834C59C78BA858E501AB7422215530694B90C89059845AAE86668A` |
 | `elite-detailing.jpg` | 17,296 | `279F095C9A25587353D7E36DD669365B1B87C51B9A15DC7C81CD4D294FD950AA` |
 | `eye-candy.jpg` | 13,532 | `712F3F17DE9BC5802063397FEA5B84F1FA525B3B1403FD289D7C6060908DD00F` |
 | `kng-tow.jpg` | 8,995 | `9505C611E6153B366EC00608A800807C2C09F159DA5375A848E2D5BE4BB2170C` |
+| `luxe-interiors.jpg` | 47,877 | `1F5EA11032028937869B6A1DCB8888529F80D41C23FE8C6BE655CC7EB21E9E59` |
 | `race-wires.jpg` | 30,098 | `FBB901660DABE2299DB5691FC335198A7993CCA0A28CE9E054AC0F32FEEFE863` |
 
 | Active replacement | AI-generated subject | Bytes | SHA-256 |

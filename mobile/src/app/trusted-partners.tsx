@@ -27,7 +27,7 @@ const PARTNER_LOGOS: Readonly<Record<string, ImageSourcePropType>> = {
   'elite-autobody': require('../../assets/images/partners/elite-autobody.jpg'),
   'kng-tow': require('../../assets/images/partners/kng-tow.jpg'),
   'eye-candy': require('../../assets/images/partners/eye-candy.jpg'),
-  'bnb-autohaus': require('../../assets/images/partners/bnb-autohaus.jpg'),
+  'luxe-interiors': require('../../assets/images/partners/luxe-interiors.jpg'),
   'elite-detailing': require('../../assets/images/partners/elite-detailing.jpg'),
 };
 
@@ -37,7 +37,7 @@ const PARTNER_LOGO_SCALES: Readonly<Record<string, number>> = {
   'elite-autobody': 1.28,
   'kng-tow': 1.5,
   'eye-candy': 1.29,
-  'bnb-autohaus': 1.02,
+  'luxe-interiors': 1.26,
   'elite-detailing': 1.22,
 };
 

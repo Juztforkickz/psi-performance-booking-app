@@ -44,10 +44,10 @@ Status: controlled QA, 29 August 2026. Payments are deliberately last.
   logical-backup procedure for controlled QA.
 - [ ] Upgrade before external onboarding, confirm scheduled backup retention and
   complete a separate-environment restore rehearsal.
-- [x] Confirm approval for the six continuing Trusted Partner listings and
+- [x] Confirm approval for the seven retained Trusted Partner listings and
   logos. Owner confirmation was recorded on 27 August 2026; Raceline was
-  removed because its approval was not available.
-- [ ] Confirm the new BNB Autohaus listing and logo directly with that business.
+  removed because its approval was not available, and Luxe was restored in
+  place of BNB on 1 September 2026.
 - [ ] Reconfirm each retained partner's public contact details immediately before
   store submission.
 - [x] Prepare App Store/Google Play disclosure drafts, public support/privacy/
