@@ -20,6 +20,7 @@ import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
 
 type PushStatus = 'disabled' | 'not_enabled' | 'ready' | 'unsupported';
 type NotificationContextValue = {
+  disablePush: () => Promise<void>;
   enablePush: () => Promise<void>;
   events: NotificationEventRow[];
   markAllRead: () => Promise<void>;
@@ -106,8 +107,8 @@ export function NotificationProvider({ children }: PropsWithChildren) {
 
   const unreadCount = useMemo(() => events.filter((event) => !event.read_at).length, [events]);
   useEffect(() => {
-    if (Platform.OS !== 'web') void Notifications.setBadgeCountAsync(unreadCount).catch(() => undefined);
-  }, [unreadCount]);
+    if (Platform.OS !== 'web') void Notifications.setBadgeCountAsync(pushStatus === 'ready' ? unreadCount : 0).catch(() => undefined);
+  }, [pushStatus, unreadCount]);
 
   const enablePush = useCallback(async () => {
     if (Platform.OS === 'web' || !Device.isDevice) {
@@ -132,6 +133,24 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     registeredToken = token;
     await SecureStore.setItemAsync(PUSH_TOKEN_STORAGE_KEY, token);
     setPushStatus('ready');
+  }, []);
+
+  const disablePush = useCallback(async () => {
+    if (Platform.OS === 'web') {
+      setPushStatus('unsupported');
+      throw new Error('NATIVE_DEVICE_REQUIRED');
+    }
+    const token = registeredToken || await SecureStore.getItemAsync(PUSH_TOKEN_STORAGE_KEY) || '';
+    if (token && SUPABASE_CONNECTION.authEnabled) {
+      const { error } = await getSupabaseClient().functions.invoke('process-push-notifications', {
+        body: { action: 'unregister_device', expoPushToken: token },
+      });
+      if (error) throw error;
+    }
+    await SecureStore.deleteItemAsync(PUSH_TOKEN_STORAGE_KEY);
+    registeredToken = '';
+    await Notifications.setBadgeCountAsync(0).catch(() => undefined);
+    setPushStatus('not_enabled');
   }, []);
 
   const setPreference = useCallback(async (key: PreferenceKey, value: boolean) => {
@@ -161,7 +180,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     setEvents((current) => current.map((event) => ({ ...event, read_at: event.read_at ?? now })));
   }, [events]);
 
-  const value = useMemo<NotificationContextValue>(() => ({ enablePush, events, markAllRead, markRead, preferences, pushStatus, refresh, setPreference, unreadCount }), [enablePush, events, markAllRead, markRead, preferences, pushStatus, refresh, setPreference, unreadCount]);
+  const value = useMemo<NotificationContextValue>(() => ({ disablePush, enablePush, events, markAllRead, markRead, preferences, pushStatus, refresh, setPreference, unreadCount }), [disablePush, enablePush, events, markAllRead, markRead, preferences, pushStatus, refresh, setPreference, unreadCount]);
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }
 

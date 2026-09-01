@@ -49,6 +49,7 @@ export default function AlertsScreen() {
   );
   const [preferences, setPreferences] = useState<Record<AlertPreference, boolean>>({ booking: true, event: true, reminder: true, vehicle: true });
   const [notificationFeedback, setNotificationFeedback] = useState('');
+  const [notificationSaving, setNotificationSaving] = useState(false);
 
   const privateMode = CUSTOMER_AUTH.enabled;
   const signedIn = auth.status === 'signed_in';
@@ -252,13 +253,22 @@ export default function AlertsScreen() {
                 : 'Enable alerts for banners, sound and badges. Updates still appear in the app.'}</Text>
             </View>
             {notificationFeedback ? <Text accessibilityRole="alert" style={styles.notificationFeedback}>{notificationFeedback}</Text> : null}
-            <Pressable accessibilityRole="button" onPress={() => {
+            <Pressable accessibilityRole="button" accessibilityState={{ busy: notificationSaving, disabled: notificationSaving }} disabled={notificationSaving} onPress={() => {
               setNotificationFeedback('');
-              void notifications.enablePush()
-                .then(() => setNotificationFeedback('Device notifications are enabled.'))
-                .catch((error) => setNotificationFeedback(notificationErrorMessage(error)));
-            }} style={({ pressed }) => [styles.openBookings, pressed && styles.pressed]}>
-              <Text style={styles.openBookingsText}>{notifications.pushStatus === 'ready' ? 'Device notifications enabled' : 'Enable device notifications'}</Text>
+              setNotificationSaving(true);
+              const disabling = notifications.pushStatus === 'ready';
+              void (disabling ? notifications.disablePush() : notifications.enablePush())
+                .then(() => setNotificationFeedback(disabling
+                  ? 'Device notifications are disabled. In-app and email updates still work.'
+                  : 'Device notifications are enabled.'))
+                .catch((error) => setNotificationFeedback(disabling
+                  ? 'Device notifications could not be disabled yet. Try again while connected to the internet.'
+                  : notificationErrorMessage(error)))
+                .finally(() => setNotificationSaving(false));
+            }} style={({ pressed }) => [styles.openBookings, pressed && !notificationSaving && styles.pressed]}>
+              <Text style={styles.openBookingsText}>{notificationSaving
+                ? 'Updating device notifications'
+                : notifications.pushStatus === 'ready' ? 'Disable device notifications' : 'Enable device notifications'}</Text>
             </Pressable>
           </View>
         ) : null}
