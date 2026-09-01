@@ -312,6 +312,7 @@ export type Database = {
           booking_reminders_enabled: boolean;
           booking_updates_enabled: boolean;
           created_at: string;
+          event_alerts_enabled: boolean;
           sound_enabled: boolean;
           updated_at: string;
           user_id: string;
@@ -320,6 +321,7 @@ export type Database = {
         Insert: {
           booking_reminders_enabled?: boolean;
           booking_updates_enabled?: boolean;
+          event_alerts_enabled?: boolean;
           sound_enabled?: boolean;
           updated_at?: string;
           user_id: string;
@@ -328,6 +330,7 @@ export type Database = {
         Update: {
           booking_reminders_enabled?: boolean;
           booking_updates_enabled?: boolean;
+          event_alerts_enabled?: boolean;
           sound_enabled?: boolean;
           updated_at?: string;
           workshop_alerts_enabled?: boolean;

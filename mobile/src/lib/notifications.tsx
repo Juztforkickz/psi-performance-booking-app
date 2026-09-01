@@ -30,11 +30,11 @@ type NotificationContextValue = {
   setPreference: (key: PreferenceKey, value: boolean) => Promise<void>;
   unreadCount: number;
 };
-type PreferenceKey = 'booking_reminders_enabled' | 'booking_updates_enabled' | 'sound_enabled' | 'workshop_alerts_enabled';
+type PreferenceKey = 'booking_reminders_enabled' | 'booking_updates_enabled' | 'event_alerts_enabled' | 'sound_enabled' | 'workshop_alerts_enabled';
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 let registeredToken = '';
-const PUSH_TOKEN_STORAGE_KEY = 'psi-notifications:expo-push-token';
+const PUSH_TOKEN_STORAGE_KEY = 'psi-notifications.expo-push-token';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -79,12 +79,14 @@ export function NotificationProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (Platform.OS === 'web' || auth.status !== 'signed_in') return;
-    void SecureStore.getItemAsync(PUSH_TOKEN_STORAGE_KEY).then((token) => {
-      if (token) {
-        registeredToken = token;
-        setPushStatus('ready');
-      }
-    });
+    void SecureStore.getItemAsync(PUSH_TOKEN_STORAGE_KEY)
+      .then((token) => {
+        if (token) {
+          registeredToken = token;
+          setPushStatus('ready');
+        }
+      })
+      .catch(() => setPushStatus('not_enabled'));
   }, [auth.status]);
 
   useEffect(() => {
@@ -136,8 +138,9 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     if (!auth.user) throw new Error('SIGN_IN_REQUIRED');
     const update = key === 'booking_updates_enabled' ? { booking_updates_enabled: value }
       : key === 'booking_reminders_enabled' ? { booking_reminders_enabled: value }
-        : key === 'workshop_alerts_enabled' ? { workshop_alerts_enabled: value }
-          : { sound_enabled: value };
+        : key === 'event_alerts_enabled' ? { event_alerts_enabled: value }
+          : key === 'workshop_alerts_enabled' ? { workshop_alerts_enabled: value }
+            : { sound_enabled: value };
     const { data, error } = await getSupabaseClient().from('notification_preferences').update({ ...update, updated_at: new Date().toISOString() }).eq('user_id', auth.user.id).select('*').single();
     if (error) throw error;
     setPreferences(data);

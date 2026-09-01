@@ -207,23 +207,19 @@ export default function CustomerHomeScreen() {
         contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]}
         showsVerticalScrollIndicator={false}
       >
-        <View
-          accessibilityRole="alert"
-          style={[
-            styles.demoBanner,
-            compact && styles.compactFrame,
-            { backgroundColor: activeTheme === 'dark' ? colors.silver : theme.surfaceRaised, borderColor: theme.frame },
-          ]}
-        >
-          <Text style={[styles.demoTitle, { color: activeTheme === 'dark' ? colors.ink : theme.textInverse }]}>
-            {privateAccountMode ? 'YOUR PSI ACCOUNT' : PUBLIC_DEMO.label}
-          </Text>
-          <Text style={[styles.demoCopy, { color: activeTheme === 'dark' ? '#464646' : '#555D61' }]}>
-            {privateAccountMode
-              ? 'Sign in to see your vehicles, bookings, reports and notifications. PSI can help with new account access.'
-              : 'Explore the app with demonstration data. Account access and submissions are disabled.'}
-          </Text>
-        </View>
+        {!privateAccountMode ? (
+          <View
+            accessibilityRole="alert"
+            style={[
+              styles.demoBanner,
+              compact && styles.compactFrame,
+              { backgroundColor: activeTheme === 'dark' ? colors.silver : theme.surfaceRaised, borderColor: theme.frame },
+            ]}
+          >
+            <Text style={[styles.demoTitle, { color: activeTheme === 'dark' ? colors.ink : theme.textInverse }]}>{PUBLIC_DEMO.label}</Text>
+            <Text style={[styles.demoCopy, { color: activeTheme === 'dark' ? '#464646' : '#555D61' }]}>Explore the app with demonstration data. Account access and submissions are disabled.</Text>
+          </View>
+        ) : null}
 
         <View style={styles.header}>
           <Image

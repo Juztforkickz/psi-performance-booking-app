@@ -1,6 +1,6 @@
 # PSI app release readiness
 
-Status: controlled QA and TestFlight preparation, 31 August 2026. Payments
+Status: controlled TestFlight acceptance, 1 September 2026. Payments
 remain deliberately deferred.
 
 On 29 August 2026, D&B confirmed an active D-U-N-S record for
@@ -30,8 +30,9 @@ least-privilege App Manager submission key and retains it in the managed
 credential store; no key material or private identifier was committed. Apple
 processing completed successfully. Build `5` is available to the internal
 `Team (Expo)` group, the PSI owner account is invited and the TestFlight test
-notes are saved. Invitation acceptance, installation and signed-release
-acceptance remain outstanding.
+notes are saved. The invitation was accepted and build `5` was installed on the
+target iPhone on 1 September 2026. Broader signed-release acceptance remains in
+progress.
 
 ## Verified foundation
 
@@ -76,6 +77,15 @@ worker version 4 recognises `/events` as a workshop alert while retaining its
 verified-JWT gate. The live advisor found no PSI Events security warning; its
 new indexes are reported only as unused because the event table is intentionally
 empty before Matt publishes the first real event.
+
+On 1 September 2026, migration
+`20260901005802_add_event_notification_preference` added the customer-owned PSI
+Events notification preference with a secure default of enabled. Push worker
+version 5 now honours that preference independently of booking and staff
+workshop alerts while retaining its verified-JWT gate. The device-registration
+failure shown after a successful server registration was traced to an invalid
+character in the local SecureStore key; the corrected key is included in the
+next production OTA checkpoint.
 
 The signed internal Android QA APK build `be1e5a7d-96f1-4fe3-8a44-0bbe400fd4ab` completed successfully on 25 August 2026 from source checkpoint `7dd0b75331bc5bda31407daf485dd0ef8f05c44d`. It uses package `com.psiperformance.booking`, the protected `qa` profile and PSI's Expo-managed Android keystore. Its Expo installation page is restricted to authorised project access and the build expires on 8 September 2026. Real-device installation and notification acceptance remain outstanding; build completion alone does not prove native push delivery.
 

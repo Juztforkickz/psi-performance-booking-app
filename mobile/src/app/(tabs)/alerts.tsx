@@ -29,7 +29,14 @@ const THEME_PREFERENCES: readonly { value: ThemePreference; label: string }[] = 
 
 const BOOKING_ALERT_IMAGE = require('../../../assets/images/dashboard/tile-my-bookings-blue-silver.jpg');
 
-type AlertPreference = 'booking' | 'reminder' | 'vehicle';
+type AlertPreference = 'booking' | 'event' | 'reminder' | 'vehicle';
+
+const SECURE_PREFERENCE_KEYS = {
+  booking: 'booking_updates_enabled',
+  event: 'event_alerts_enabled',
+  reminder: 'booking_reminders_enabled',
+  vehicle: 'workshop_alerts_enabled',
+} as const;
 
 export default function AlertsScreen() {
   const router = useRouter();
@@ -40,7 +47,7 @@ export default function AlertsScreen() {
   const [readIds, setReadIds] = useState<Set<string>>(
     () => new Set(CUSTOMER_PREVIEW.alerts.filter((alert) => alert.read).map((alert) => alert.id)),
   );
-  const [preferences, setPreferences] = useState<Record<AlertPreference, boolean>>({ booking: true, reminder: true, vehicle: true });
+  const [preferences, setPreferences] = useState<Record<AlertPreference, boolean>>({ booking: true, event: true, reminder: true, vehicle: true });
   const [notificationFeedback, setNotificationFeedback] = useState('');
 
   const privateMode = CUSTOMER_AUTH.enabled;
@@ -58,7 +65,7 @@ export default function AlertsScreen() {
 
   const togglePreference = (key: AlertPreference) => {
     if (privateMode && signedIn) {
-      const secureKey = key === 'booking' ? 'booking_updates_enabled' : key === 'reminder' ? 'booking_reminders_enabled' : 'workshop_alerts_enabled';
+      const secureKey = SECURE_PREFERENCE_KEYS[key];
       const current = notifications.preferences?.[secureKey] ?? true;
       void notifications.setPreference(secureKey, !current);
       return;
@@ -68,7 +75,7 @@ export default function AlertsScreen() {
 
   const securePreference = (key: AlertPreference) => {
     if (!privateMode || !signedIn) return preferences[key];
-    const secureKey = key === 'booking' ? 'booking_updates_enabled' : key === 'reminder' ? 'booking_reminders_enabled' : 'workshop_alerts_enabled';
+    const secureKey = SECURE_PREFERENCE_KEYS[key];
     return notifications.preferences?.[secureKey] ?? true;
   };
 
@@ -182,9 +189,9 @@ export default function AlertsScreen() {
             ))}
         </View>
 
-        <View style={styles.sectionHeading}>
+        <View style={[styles.sectionHeading, styles.preferenceSectionHeading]}>
           <Text style={styles.sectionTitle}>{privateMode ? 'Notification preferences' : 'What you could receive'}</Text>
-          <Text style={styles.sectionMeta}>{privateMode ? 'Your account' : 'Demo controls'}</Text>
+          <Text style={[styles.sectionMeta, styles.preferenceSectionMeta]}>{privateMode ? 'Saved to your account' : 'Demo controls'}</Text>
         </View>
         <View style={styles.preferenceCard}>
           <PreferenceRow
@@ -201,6 +208,14 @@ export default function AlertsScreen() {
             icon="time-outline"
             label="Visit reminders"
             onPress={() => togglePreference('reminder')}
+            previewOnly={!privateMode}
+          />
+          <PreferenceRow
+            copy="New and updated PSI event dates and details."
+            enabled={securePreference('event')}
+            icon="flag-outline"
+            label="PSI event alerts"
+            onPress={() => togglePreference('event')}
             previewOnly={!privateMode}
           />
           {!privateMode || staffMode ? (
@@ -336,7 +351,7 @@ function PreferenceRow({
 }: {
   copy: string;
   enabled: boolean;
-  icon: 'calendar-outline' | 'time-outline' | 'car-sport-outline' | 'construct-outline' | 'volume-high-outline';
+  icon: 'calendar-outline' | 'time-outline' | 'car-sport-outline' | 'construct-outline' | 'flag-outline' | 'volume-high-outline';
   label: string;
   last?: boolean;
   onPress: () => void;
@@ -376,6 +391,8 @@ const styles = StyleSheet.create({
   previewNoticeTitle: { color: colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   previewNoticeCopy: { color: '#464646', fontSize: 11, lineHeight: 17 },
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.sm },
+  preferenceSectionHeading: { alignItems: 'flex-start', flexDirection: 'column', gap: spacing.xs },
+  preferenceSectionMeta: { width: '100%' },
   sectionTitle: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
   sectionAction: { color: colors.accent, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   sectionMeta: { color: colors.muted, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },

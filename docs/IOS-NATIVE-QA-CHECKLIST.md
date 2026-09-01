@@ -1,9 +1,9 @@
 # PSI iPhone native QA checklist
 
-Status: signed QA build installed 29 August 2026 and first App Store build
-submitted to TestFlight processing 31 August 2026. The first Apple release is
-iPhone-only; initial authentication passed and broader real-device acceptance
-remains in progress.
+Status: signed QA build installed 29 August 2026 and TestFlight build `5`
+installed on the target iPhone 1 September 2026. The first Apple release is
+iPhone-only; initial authentication and session restoration passed, while
+broader real-device acceptance remains in progress.
 
 ## Evidence to record
 
@@ -50,7 +50,7 @@ Apple enrolment identifiers or service credentials in this file or an issue.
 - [x] Confirm Apple processing completes and enable the internal tester. Build
   `5` is available to the `Team (Expo)` internal group, the PSI owner account is
   invited and the approved testing checklist is saved in App Store Connect.
-- [ ] Accept the internal invitation and install build `5` through TestFlight on
+- [x] Accept the internal invitation and install build `5` through TestFlight on
   the target iPhone.
 
 ## Authentication and privacy

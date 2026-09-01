@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   Image,
@@ -53,6 +53,7 @@ const EMPTY_ACCOUNT: AccountDraft = {
 type AccountErrors = Partial<Record<keyof AccountDraft, string>>;
 
 export default function SignUpScreen() {
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
   const auth = useCustomerAuth();
   const { account, status } = useCustomerAccount();
   const waitingForAccount = CUSTOMER_AUTH.enabled
@@ -60,7 +61,7 @@ export default function SignUpScreen() {
 
   if (waitingForAccount) return <AccountFormLoading />;
 
-  return <AccountDetailsForm initialAccount={auth.status === 'signed_in' ? account : null} />;
+  return <AccountDetailsForm addVehicleMode={mode === 'add'} initialAccount={auth.status === 'signed_in' ? account : null} />;
 }
 
 function AccountFormLoading() {
@@ -75,13 +76,13 @@ function AccountFormLoading() {
   );
 }
 
-function AccountDetailsForm({ initialAccount }: { initialAccount: CustomerAccountSnapshot | null }) {
+function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode: boolean; initialAccount: CustomerAccountSnapshot | null }) {
   const router = useRouter();
   const auth = useCustomerAuth();
   const { refreshAccount } = useCustomerAccount();
   const { stageAccountPreview } = useCustomerPreview();
   const { compact, horizontalPadding, short, useFieldColumns: wide } = useResponsiveLayout();
-  const initialVehicle = initialAccount?.vehicles.find((vehicle) => vehicle.is_primary) ?? initialAccount?.vehicles[0] ?? null;
+  const initialVehicle = addVehicleMode ? null : initialAccount?.vehicles.find((vehicle) => vehicle.is_primary) ?? initialAccount?.vehicles[0] ?? null;
   const canEditVehicle = !initialVehicle || initialVehicle.created_by === initialAccount?.user.id;
   const [form, setForm] = useState<AccountDraft>(() => initialAccount ? {
     email: initialAccount.user.email ?? initialAccount.profile?.email ?? '',
@@ -232,10 +233,12 @@ function AccountDetailsForm({ initialAccount }: { initialAccount: CustomerAccoun
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Eyebrow>{CUSTOMER_AUTH.enabled ? 'Account setup' : 'Account demo'}</Eyebrow>
-          <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>One profile.{`\n`}Every PSI visit.</Text>
+          <Eyebrow>{addVehicleMode ? 'My Garage' : CUSTOMER_AUTH.enabled ? 'Account setup' : 'Account demo'}</Eyebrow>
+          <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>{addVehicleMode ? `Add another.\nKeep it together.` : `One profile.\nEvery PSI visit.`}</Text>
           <Text style={styles.lead}>
-            {CUSTOMER_AUTH.enabled ? 'Add your contact details and primary vehicle. Sign in uses an email code, not a password.' : 'Explore the account setup with demonstration details.'}
+            {addVehicleMode
+              ? 'Add another vehicle to your private PSI garage. Your existing vehicles remain unchanged.'
+              : CUSTOMER_AUTH.enabled ? 'Add your contact details and primary vehicle. Sign in uses an email code, not a password.' : 'Explore the account setup with demonstration details.'}
           </Text>
 
           <View style={[styles.securityCard, compact && styles.cardCompact]}>
@@ -282,7 +285,7 @@ function AccountDetailsForm({ initialAccount }: { initialAccount: CustomerAccoun
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Primary vehicle</Text>
+            <Text style={styles.sectionTitle}>{addVehicleMode ? 'New vehicle' : 'Primary vehicle'}</Text>
             {!canEditVehicle ? <Text style={styles.vehicleOwnershipNotice}>PSI created this vehicle record. You can view it here, but only PSI can correct its verified details.</Text> : null}
             <View style={[styles.row, wide && styles.rowWide]}>
               <View style={styles.cell}>
@@ -336,7 +339,7 @@ function AccountDetailsForm({ initialAccount }: { initialAccount: CustomerAccoun
           ) : null}
 
           <View style={styles.actions}>
-            <PrimaryButton disabled={CUSTOMER_AUTH.enabled && auth.status !== 'signed_in'} label={CUSTOMER_AUTH.enabled ? 'Save account details' : 'Check account setup'} loading={saving} onPress={() => void checkReadiness()} />
+            <PrimaryButton disabled={CUSTOMER_AUTH.enabled && auth.status !== 'signed_in'} label={addVehicleMode ? 'Add vehicle' : CUSTOMER_AUTH.enabled ? 'Save account details' : 'Check account setup'} loading={saving} onPress={() => void checkReadiness()} />
             {notice ? <PrimaryButton label="Open My Garage" onPress={() => router.replace('/garage')} variant="outline" /> : null}
             <PrimaryButton label="Book without an account" onPress={() => router.replace('/booking')} variant="outline" />
           </View>
