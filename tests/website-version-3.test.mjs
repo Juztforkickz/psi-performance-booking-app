@@ -47,6 +47,11 @@ test("the Shopify Version 3 handoff is self-contained, enquiry-only and responsi
   assert.match(liquid, /data-psi-kind="service"/u);
   assert.match(liquid, /data-psi-kind="dyno"/u);
   assert.match(liquid, /data-psi-kind="plan"/u);
+  assert.match(liquid, /General Enquiry \/ Service Booking/u);
+  assert.match(liquid, /General enquiry or service booking details/u);
+  assert.match(liquid, /Describe your general enquiry, service request, symptoms, repairs or concerns\./u);
+  assert.match(liquid, /<span data-psi-customer-step>02<\/span>/u);
+  assert.match(liquid, /data-psi-customer-step[^\n]+kind==='plan'\?'03':'02'/u);
   assert.match(liquid, /PSI App · Coming Soon/u);
   assert.match(liquid, /@media\(max-width:760px\)/u);
   assert.match(liquid, /Book an Appointment/u);

@@ -18,13 +18,13 @@
         {% endif %}
         {{ form.errors | default_errors }}
 
-        <input type="hidden" name="contact[Enquiry type]" value="Service" data-psi-enquiry-type>
+        <input type="hidden" name="contact[Enquiry type]" value="General Enquiry / Service Booking" data-psi-enquiry-type>
 
         <div class="psi-v3__choice" role="group" aria-label="Enquiry type">
           <p>What are you booking in for?</p>
           <div class="psi-v3__choice-grid">
             <button class="psi-v3__choice-card is-active" type="button" data-psi-kind="service" aria-pressed="true">
-              <span>01</span><strong>Service</strong><small>Servicing, inspection, repairs and a clear report.</small>
+              <span>01</span><strong>General Enquiry / Service Booking</strong><small>General questions, servicing, inspections, repairs and vehicle concerns.</small>
             </button>
             <button class="psi-v3__choice-card" type="button" data-psi-kind="dyno" aria-pressed="false">
               <span>02</span><strong>Dyno Tuning</strong><small>Tell PSI how the vehicle is set up and what you want from the tune.</small>
@@ -36,8 +36,8 @@
         </div>
 
         <div class="psi-v3__panel" data-psi-panel="service">
-          <div class="psi-v3__section-heading"><span>01</span><div><h3>Service enquiry</h3><p>Tell PSI what the vehicle needs or what you would like checked.</p></div></div>
-          <label class="psi-v3__field psi-v3__field--wide"><span>What exactly are you after?</span><textarea name="contact[Service request]" rows="6" maxlength="2000" placeholder="Describe the service, symptoms, repairs or concerns." required></textarea></label>
+          <div class="psi-v3__section-heading"><span>01</span><div><h3>General Enquiry / Service Booking</h3><p>Tell PSI how we can help, including any service, repair or vehicle concerns.</p></div></div>
+          <label class="psi-v3__field psi-v3__field--wide"><span>General enquiry or service booking details</span><textarea name="contact[General enquiry or service booking]" rows="6" maxlength="2000" placeholder="Describe your general enquiry, service request, symptoms, repairs or concerns." required></textarea></label>
         </div>
 
         <div class="psi-v3__panel" data-psi-panel="dyno" hidden>
@@ -142,7 +142,7 @@
         </div>
 
         <div class="psi-v3__customer">
-          <div class="psi-v3__section-heading"><span>04</span><div><h3>You and your car</h3><p>These details let PSI respond to the right person about the right vehicle.</p></div></div>
+          <div class="psi-v3__section-heading"><span data-psi-customer-step>02</span><div><h3>You and your car</h3><p>These details let PSI respond to the right person about the right vehicle.</p></div></div>
           <div class="psi-v3__grid">
             <label class="psi-v3__field"><span>Full name</span><input name="contact[name]" autocomplete="name" required></label>
             <label class="psi-v3__field"><span>Email</span><input type="email" name="contact[email]" autocomplete="email" required></label>
@@ -191,7 +191,8 @@
     function showKind(kind){
       root.querySelectorAll('[data-psi-kind]').forEach(function(button){var active=button.dataset.psiKind===kind;button.classList.toggle('is-active',active);button.setAttribute('aria-pressed',String(active));});
       root.querySelectorAll('[data-psi-panel]').forEach(function(panel){var active=panel.dataset.psiPanel===kind;panel.hidden=!active;setEnabled(panel,active);});
-      typeInput.value=kind==='service'?'Service':kind==='dyno'?'Dyno Tuning':'Plan Builder';
+      typeInput.value=kind==='service'?'General Enquiry / Service Booking':kind==='dyno'?'Dyno Tuning':'Plan Builder';
+      root.querySelector('[data-psi-customer-step]').textContent=kind==='plan'?'03':'02';
     }
     root.querySelectorAll('[data-psi-kind]').forEach(function(button){button.addEventListener('click',function(){showKind(button.dataset.psiKind);});});
     root.querySelectorAll('[data-psi-confidence]').forEach(function(radio){radio.addEventListener('change',function(){var spec=root.querySelector('[data-psi-spec]');var visible=radio.dataset.psiConfidence==='known'&&radio.checked;spec.hidden=!visible;setEnabled(spec,visible);});});
