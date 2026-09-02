@@ -20,6 +20,13 @@ reviewed manually alongside changes to the App, providers and data handling.
 The public page was reloaded after saving and verified to show the App heading,
 all 17 App sections and the **PSI PERFORMANCE PTY LTD** sign-off.
 
+## Published presentation
+
+The App section heading is displayed as two fixed responsive lines: **PSI APP**
+and **PRIVACY POLICY**. Links within the App section use PSI blue `#29B6E8`,
+bold type and underlining so email addresses and websites remain readable on the
+dark website background.
+
 ## App Store Connect after publication
 
 Changing the policy content does not invalidate the current TestFlight build or
