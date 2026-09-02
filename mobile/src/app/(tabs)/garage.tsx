@@ -442,17 +442,20 @@ function GarageContent({
                 <Text style={styles.exampleImageLabelText}>Example image · add your photo</Text>
               </View>
             ) : null}
-            <VehiclePhotoPicker
-              display="quick"
-              onChange={(photo) => void changeVehiclePhoto(photo)}
-              saving={photoSaving}
-              storageMode={secureVehicles ? 'private_account' : 'local_preview'}
-              value={selectedPhoto}
-              vehicleLabel={vehicleLabel}
-            />
           </View>
           <View style={styles.vehicleDetails}>
-            <Text style={styles.primaryLabel}>{selectedVehicle.isPrimary ? 'Primary vehicle' : 'Garage vehicle'}</Text>
+            <View style={styles.vehicleDetailsHeader}>
+              <Text style={[styles.primaryLabel, styles.vehicleTypeLabel]}>{selectedVehicle.isPrimary ? 'Primary vehicle' : 'Garage vehicle'}</Text>
+              <VehiclePhotoPicker
+                display="quick"
+                onChange={(photo) => void changeVehiclePhoto(photo)}
+                saving={photoSaving}
+                storageMode={secureVehicles ? 'private_account' : 'local_preview'}
+                value={selectedPhoto}
+                vehicleLabel={vehicleLabel}
+              />
+            </View>
+            {photoNotice ? <Text accessibilityRole="alert" style={styles.vehiclePhotoNotice}>{photoNotice}</Text> : null}
             <Text maxFontSizeMultiplier={1.7} style={styles.vehicleName}>{vehicleLabel}</Text>
             <View style={styles.statGrid}>
               <VehicleStat label="Registration" value={selectedVehicle.registration} />
@@ -510,16 +513,6 @@ function GarageContent({
           )}
           {maintenanceNotice ? <Text accessibilityRole="alert" style={styles.maintenanceNotice}>{maintenanceNotice}</Text> : null}
           <Text style={styles.maintenanceExpiry}>{secureVehicles ? 'Odometer updates save to your account. Reminder dates are temporary and clear when the app closes.' : 'Demo entries clear when the app closes.'}</Text>
-          <View style={styles.maintenancePhoto}>
-            <VehiclePhotoPicker
-              onChange={(photo) => void changeVehiclePhoto(photo)}
-              saving={photoSaving}
-              storageMode={secureVehicles ? 'private_account' : 'local_preview'}
-              value={selectedPhoto}
-              vehicleLabel={vehicleLabel}
-            />
-            {photoNotice ? <Text accessibilityRole="alert" style={styles.maintenanceNotice}>{photoNotice}</Text> : null}
-          </View>
         </View>
 
         {dynoFirst ? <DynoResultCard accountConnected={Boolean(secureVehicles)} key={`dyno-first-${selectedVehicle.id}`} onOpenReports={() => router.push({ pathname: '/vehicle-reports', params: { vehicleId: selectedVehicle.id } })} results={dynoResults} vehicleLabel={vehicleLabel} /> : null}
@@ -743,6 +736,9 @@ const styles = StyleSheet.create({
   exampleImageLabel: { position: 'absolute', right: spacing.sm, bottom: spacing.sm, left: spacing.sm, backgroundColor: 'rgba(0,0,0,.84)', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   exampleImageLabelText: { color: colors.silver, fontSize: 8, fontWeight: '900', letterSpacing: .5, textAlign: 'center', textTransform: 'uppercase' },
   vehicleDetails: { flex: 1, gap: spacing.md, padding: spacing.lg },
+  vehicleDetailsHeader: { width: '100%', flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
+  vehicleTypeLabel: { flex: 1, minWidth: 0, paddingTop: 12 },
+  vehiclePhotoNotice: { color: colors.silver, fontSize: 10, fontWeight: '800', lineHeight: 16 },
   primaryLabel: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   vehicleName: { color: colors.white, fontSize: 22, fontWeight: '900', lineHeight: 26, textTransform: 'uppercase' },
   statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
@@ -762,7 +758,6 @@ const styles = StyleSheet.create({
   maintenanceError: { color: '#FF9F91', fontSize: 11, fontWeight: '800', lineHeight: 17 },
   maintenanceNotice: { color: colors.silver, fontSize: 11, fontWeight: '800', lineHeight: 17 },
   maintenanceExpiry: { color: colors.mutedDark, fontSize: 9, lineHeight: 14 },
-  maintenancePhoto: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
   dynoCard: { ...mobileFrame, backgroundColor: colors.panel },
   dynoBody: { gap: spacing.md, padding: spacing.md },
   dynoHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

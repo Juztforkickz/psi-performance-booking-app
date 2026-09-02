@@ -121,10 +121,7 @@ export default function CustomerHomeScreen() {
   useEffect(() => {
     let active = true;
     const profile = account?.profile;
-    if (!profile?.profile_photo_object_path) {
-      setProfilePhotoState(null);
-      return;
-    }
+    if (!profile?.profile_photo_object_path) return;
     void createCustomerProfilePhotoSignedUrl(profile)
       .then((uri) => {
         if (active && uri) setProfilePhotoState({ objectPath: profile.profile_photo_object_path!, uri, userId: profile.user_id });

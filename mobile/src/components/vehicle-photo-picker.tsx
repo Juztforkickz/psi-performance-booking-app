@@ -106,6 +106,7 @@ export function VehiclePhotoPicker({
 
   const removePhoto = () => {
     setError('');
+    setQuickMenuOpen(false);
     onChange(null);
   };
 
@@ -123,7 +124,7 @@ export function VehiclePhotoPicker({
           style={({ pressed }) => [styles.quickTrigger, pressed && styles.pressed, unavailable && styles.actionDisabled]}
         >
           {busy || saving ? <ActivityIndicator color={colors.ink} size="small" /> : <Ionicons color={colors.ink} name="camera-outline" size={17} />}
-          <Text numberOfLines={1} style={styles.quickTriggerText}>{value ? 'Change photo' : 'Add photo'}</Text>
+          <Text adjustsFontSizeToFit maxFontSizeMultiplier={1.2} minimumFontScale={0.72} numberOfLines={1} style={styles.quickTriggerText}>{value ? 'Change photo' : 'Add photo'}</Text>
         </Pressable>
         {quickMenuOpen ? (
           <View style={styles.quickMenu}>
@@ -147,6 +148,18 @@ export function VehiclePhotoPicker({
               <Ionicons color={colors.white} name="images" size={16} />
               <Text style={styles.quickChoiceText}>Photo library</Text>
             </Pressable>
+            {value ? (
+              <Pressable
+                accessibilityLabel={`Remove photo of ${vehicleLabel}`}
+                accessibilityRole="button"
+                disabled={unavailable}
+                onPress={removePhoto}
+                style={({ pressed }) => [styles.quickChoice, pressed && styles.pressed]}
+              >
+                <Ionicons color="#FFB4A9" name="trash-outline" size={16} />
+                <Text style={[styles.quickChoiceText, styles.quickRemoveText]}>Remove photo</Text>
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
         {error ? <Text accessibilityRole="alert" style={styles.quickError}>{error}</Text> : null}
@@ -251,16 +264,15 @@ export function VehiclePhotoPicker({
 
 const styles = StyleSheet.create({
   quickContainer: {
-    position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
     zIndex: 2,
+    width: 148,
+    flexShrink: 0,
     alignItems: 'flex-end',
     gap: 5,
   },
   quickTrigger: {
+    width: '100%',
     minHeight: 38,
-    maxWidth: 155,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -281,7 +293,7 @@ const styles = StyleSheet.create({
   },
   quickMenu: {
     ...mobileFrame,
-    width: 164,
+    width: '100%',
     overflow: 'hidden',
     backgroundColor: 'rgba(9,9,9,.96)',
   },
@@ -295,14 +307,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   quickChoiceText: {
+    flexShrink: 1,
     color: colors.white,
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: .4,
     textTransform: 'uppercase',
   },
+  quickRemoveText: {
+    color: '#FFB4A9',
+  },
   quickError: {
-    width: 210,
+    width: 190,
     color: '#FFB4A9',
     fontSize: 9,
     fontWeight: '800',
