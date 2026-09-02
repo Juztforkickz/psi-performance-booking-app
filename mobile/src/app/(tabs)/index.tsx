@@ -18,10 +18,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BrandRail } from '@/components/brand-rail';
 import { DashboardTile } from '@/components/dashboard-tile';
 import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
+import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { useCustomerAccount } from '@/lib/customer-account-context';
-import { createCustomerProfilePhotoSignedUrl } from '@/lib/customer-profile-photo';
 import {
   HOME_TILE_IDS,
   type HomeTileId,
@@ -76,16 +76,10 @@ export default function CustomerHomeScreen() {
   const [shortcutChooserOpen, setShortcutChooserOpen] = useState(false);
   const [weather, setWeather] = useState<WorkshopWeather | null>(null);
   const [weatherError, setWeatherError] = useState(false);
-  const [profilePhotoState, setProfilePhotoState] = useState<{ objectPath: string; uri: string; userId: string } | null>(null);
+  const profilePhotoUri = useCustomerProfilePhotoUri();
   const { resetShortcuts, shortcutIds, toggleShortcut } = useHomeShortcutPreferences();
   const threeColumns = tablet && width >= 780 && !largeText;
   const privateAccountMode = SUPABASE_CONNECTION.authEnabled;
-  const profilePhotoPath = account?.profile?.profile_photo_object_path ?? null;
-  const profilePhotoUri = account?.profile
-    && profilePhotoState?.userId === account.profile.user_id
-    && profilePhotoState.objectPath === profilePhotoPath
-    ? profilePhotoState.uri
-    : null;
 
   const openBooking = (type: 'service' | 'dyno') => {
     setBookingChooserOpen(false);
@@ -117,20 +111,6 @@ export default function CustomerHomeScreen() {
       controller?.abort();
     };
   }, []);
-
-  useEffect(() => {
-    let active = true;
-    const profile = account?.profile;
-    if (!profile?.profile_photo_object_path) return;
-    void createCustomerProfilePhotoSignedUrl(profile)
-      .then((uri) => {
-        if (active && uri) setProfilePhotoState({ objectPath: profile.profile_photo_object_path!, uri, userId: profile.user_id });
-      })
-      .catch(() => {
-        if (active) setProfilePhotoState(null);
-      });
-    return () => { active = false; };
-  }, [account?.profile]);
 
   const renderHomeTile = (id: HomeTileId) => {
     switch (id) {

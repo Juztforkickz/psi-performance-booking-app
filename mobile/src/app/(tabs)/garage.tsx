@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { VehiclePhotoPicker } from '@/components/vehicle-photo-picker';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { australianDateToIso, formatAustralianDate, isoDateToAustralian } from '@/lib/australian-date';
 import { saveCustomerOdometer } from '@/lib/customer-account';
@@ -133,6 +134,7 @@ function GarageContent({
 }) {
   const router = useRouter();
   const { refreshAccount } = useCustomerAccount();
+  const profilePhotoUri = useCustomerProfilePhotoUri();
   const { section } = useLocalSearchParams<{ section?: string }>();
   const { compact, horizontalPadding, largeText, tablet } = useResponsiveLayout();
   const {
@@ -361,7 +363,11 @@ function GarageContent({
             onPress={() => router.push('/account')}
             style={({ pressed }) => [styles.accountButton, pressed && styles.pressed]}
           >
-            <Ionicons color={colors.ink} name="person" size={20} />
+            {profilePhotoUri ? (
+              <Image accessibilityIgnoresInvertColors accessibilityLabel="Your profile photo" resizeMode="cover" source={{ uri: profilePhotoUri }} style={styles.accountPhoto} />
+            ) : (
+              <Ionicons color={colors.ink} name="person" size={20} />
+            )}
           </Pressable>
         </View>
 
@@ -709,7 +715,8 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
   title: { color: colors.white, fontSize: 39, fontWeight: '900', letterSpacing: -1.5, lineHeight: 41, textTransform: 'uppercase' },
   titleCompact: { fontSize: 33, lineHeight: 35 },
-  accountButton: { ...mobileFrame, width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 23, backgroundColor: colors.white },
+  accountButton: { ...mobileFrame, width: 46, height: 46, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderRadius: 23, backgroundColor: colors.white },
+  accountPhoto: { width: '100%', height: '100%' },
   previewNotice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.silver, padding: spacing.md },
   previewNoticeTitle: { color: colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   previewNoticeCopy: { color: '#464646', fontSize: 11, lineHeight: 17 },

@@ -11,11 +11,10 @@ import { StaffEventsManager } from '@/components/staff-events-manager';
 import { StaffServiceCompletion } from '@/components/staff-service-completion';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
 import { formatAustralianDate, formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
-import { useCustomerAccount } from '@/lib/customer-account-context';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
-import { createCustomerProfilePhotoSignedUrl } from '@/lib/customer-profile-photo';
 import {
   beginStaffTotpEnrollment,
   completeCustomerAccountDeletion,
@@ -313,7 +312,7 @@ function StaffWorkspace({
   verifiedTotpFactors: Extract<StaffPortalAccess, { kind: 'ready' }>['verifiedTotpFactors'];
 }) {
   const router = useRouter();
-  const { account } = useCustomerAccount();
+  const portalProfilePhotoUri = useCustomerProfilePhotoUri();
   const [integrationBusy, setIntegrationBusy] = useState(false);
   const [integrationResult, setIntegrationResult] = useState<BookingIntegrationRunResult | null>(null);
   const [integrationError, setIntegrationError] = useState('');
@@ -323,13 +322,6 @@ function StaffWorkspace({
   const [invitationNotice, setInvitationNotice] = useState('');
   const [latestInvitation, setLatestInvitation] = useState<CustomerInvitationResult['invitation'] | null>(null);
   const [vehiclePhotoUris, setVehiclePhotoUris] = useState<Record<string, string>>({});
-  const [profilePhotoState, setProfilePhotoState] = useState<{ objectPath: string; uri: string; userId: string } | null>(null);
-  const profilePhotoPath = account?.profile?.profile_photo_object_path ?? null;
-  const portalProfilePhotoUri = account?.profile
-    && profilePhotoState?.userId === account.profile.user_id
-    && profilePhotoState.objectPath === profilePhotoPath
-    ? profilePhotoState.uri
-    : null;
   const activeBookings = snapshot.bookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
   const waitingIntegrationJobs = snapshot.integrationJobs.filter((job) => ['blocked_configuration', 'failed', 'pending'].includes(job.status));
   const visibleInvitations = latestInvitation
@@ -352,20 +344,6 @@ function StaffWorkspace({
       });
     return () => { active = false; };
   }, [snapshot.vehicleFiles]);
-
-  useEffect(() => {
-    let active = true;
-    const profile = account?.profile;
-    if (!profile?.profile_photo_object_path) return;
-    void createCustomerProfilePhotoSignedUrl(profile)
-      .then((uri) => {
-        if (active && uri) setProfilePhotoState({ objectPath: profile.profile_photo_object_path!, uri, userId: profile.user_id });
-      })
-      .catch(() => {
-        if (active) setProfilePhotoState(null);
-      });
-    return () => { active = false; };
-  }, [account?.profile]);
 
   const processIntegrationQueue = async () => {
     if (integrationBusy) return;
