@@ -49,6 +49,7 @@ export type StaffPortalSnapshot = {
   auditEvents: AuditEventRow[];
   bookings: BookingRequestRow[];
   customers: CustomerProfileRow[];
+  deletionCustomers: CustomerProfileRow[];
   invitations: CustomerInvitationRow[];
   integrationJobs: BookingIntegrationJobRow[];
   vehicleFiles: VehicleFileRow[];
@@ -59,6 +60,22 @@ export type CustomerInvitationResult = {
   created: boolean;
   invitation: Pick<CustomerInvitationRow, 'accepted_at' | 'email' | 'id' | 'invited_at' | 'status'>;
   nextStep: 'send_testflight_invitation';
+};
+
+export type AccountDeletionCompletionResult = {
+  auditWarning: boolean;
+  completed: true;
+  completion: {
+    completed: true;
+    completedAt: string;
+    completionReference: string;
+  } | null;
+  databaseSummary: {
+    bookingsRemoved: number;
+    databaseFilesRemoved: number;
+    vehiclesRemoved: number;
+  };
+  storageObjectsRemoved: number;
 };
 
 export type BookingIntegrationRunResult = {
@@ -104,8 +121,9 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     };
   }
 
-  const [customersResult, vehiclesResult, bookingsResult, integrationJobsResult, auditEventsResult, vehicleFilesResult, accountDeletionRequestsResult, invitationsResult] = await Promise.all([
+  const [customersResult, deletionCustomersResult, vehiclesResult, bookingsResult, integrationJobsResult, auditEventsResult, vehicleFilesResult, accountDeletionRequestsResult, invitationsResult] = await Promise.all([
     supabase.from('customer_profiles').select('*').eq('account_state', 'active').order('last_name').order('first_name'),
+    supabase.from('customer_profiles').select('*').order('last_name').order('first_name'),
     supabase.from('customer_vehicles').select('*').is('archived_at', null).order('updated_at', { ascending: false }),
     supabase.from('booking_requests').select('*').is('archived_at', null).order('created_at', { ascending: false }).limit(50),
     supabase.from('booking_integration_jobs').select('*').order('created_at', { ascending: false }).limit(50),
@@ -115,6 +133,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     supabase.from('customer_invitations').select('*').order('invited_at', { ascending: false }).limit(100),
   ]);
   const firstError = customersResult.error
+    ?? deletionCustomersResult.error
     ?? vehiclesResult.error
     ?? bookingsResult.error
     ?? integrationJobsResult.error
@@ -133,12 +152,40 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
       auditEvents: auditEventsResult.data ?? [],
       bookings: bookingsResult.data ?? [],
       customers: customersResult.data ?? [],
+      deletionCustomers: deletionCustomersResult.data ?? [],
       integrationJobs: integrationJobsResult.data ?? [],
       invitations: invitationsResult.data ?? [],
       vehicleFiles: vehicleFilesResult.data ?? [],
       vehicles: vehiclesResult.data ?? [],
     },
   };
+}
+
+export async function completeCustomerAccountDeletion(input: {
+  confirmationEmail: string;
+  retentionReviewConfirmed: boolean;
+  staffNote: string;
+  userId: string;
+}): Promise<AccountDeletionCompletionResult> {
+  const confirmationEmail = input.confirmationEmail.trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(confirmationEmail) || confirmationEmail.length > 160) {
+    throw new Error('CONFIRMATION_EMAIL_INVALID');
+  }
+  if (!input.retentionReviewConfirmed) throw new Error('RETENTION_REVIEW_REQUIRED');
+  const access = await loadStaffMfaSecurityAccess();
+  if (access.kind !== 'ready' || access.staff.role !== 'owner') throw new Error('STAFF_OWNER_AAL2_REQUIRED');
+
+  const { data, error } = await getSupabaseClient().functions.invoke<AccountDeletionCompletionResult>('complete-account-deletion', {
+    body: {
+      confirmationEmail,
+      retentionReviewConfirmed: true,
+      staffNote: input.staffNote.trim().slice(0, 500),
+      userId: input.userId,
+    },
+  });
+  if (error) throw error;
+  if (!data?.completed) throw new Error('ACCOUNT_DELETION_RESPONSE_INVALID');
+  return data;
 }
 
 export async function inviteCustomer(email: string): Promise<CustomerInvitationResult> {

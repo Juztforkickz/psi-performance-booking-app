@@ -10,7 +10,9 @@ Status: controlled QA, 2 September 2026. Payments are deliberately last.
   disabled; Apple TestFlight invitations remain a separate owner action.
 - [x] Matt-only staff access with authenticator assurance level AAL2.
 - [x] Customer account editing, owned vehicles and private workshop records.
-- [x] Account-deletion request, cancellation and owner queue.
+- [x] Account-deletion request and cancellation, plus Matt-only AAL2 permanent
+  completion with retention review, exact-email confirmation, private Storage
+  cleanup, account-data removal and server-only Auth deletion.
 - [x] Approval-first booking requests with customer and PSI email delivery.
 - [x] Server-only Google Calendar connection; customers cannot list calendar
   contents and no event is created before the trusted confirmed transition.

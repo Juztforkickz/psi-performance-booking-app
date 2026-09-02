@@ -432,6 +432,12 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/invite-customer/deno.json"
 entrypoint = "./functions/invite-customer/index.ts"
+
+[functions.complete-account-deletion]
+enabled = true
+verify_jwt = true
+import_map = "./functions/complete-account-deletion/deno.json"
+entrypoint = "./functions/complete-account-deletion/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/process-booking-integrations/*.html" ]

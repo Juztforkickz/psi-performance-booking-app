@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
@@ -16,6 +16,7 @@ import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import {
   beginStaffTotpEnrollment,
+  completeCustomerAccountDeletion,
   inviteCustomer,
   loadStaffVehiclePhotoUrls,
   loadStaffPortalAccess,
@@ -477,18 +478,8 @@ function StaffWorkspace({
 
         <SectionHeading copy="Customer-initiated requests are visible only to Matt after MFA. Complete the documented storage, retained-record and Auth cleanup before recording completion." title="Account deletion queue" />
         {snapshot.accountDeletionRequests.length === 0 ? <EmptyState>No account deletion requests are currently shown.</EmptyState> : snapshot.accountDeletionRequests.map((request) => {
-          const customer = snapshot.customers.find((item) => item.user_id === request.user_id);
-          return (
-            <View key={request.user_id} style={styles.card}>
-              <View style={styles.cardHeading}>
-                <Text style={styles.cardTitle}>{customerName(customer)}</Text>
-                <Text style={styles.badge}>{humanize(request.status)}</Text>
-              </View>
-              <Text style={styles.cardCopy}>{customer?.email ?? 'Customer profile pending privacy review'}</Text>
-              <Text style={styles.cardMeta}>Requested {formatDateTime(request.requested_at)} · Target completion within 30 days</Text>
-              <Text style={styles.contextLine}>Owner procedure required · remove customer uploads and login access; retain or de-identify only records PSI must keep.</Text>
-            </View>
-          );
+          const customer = snapshot.deletionCustomers.find((item) => item.user_id === request.user_id);
+          return <AccountDeletionRequestCard customer={customer} key={request.user_id} onComplete={onRefresh} owner={role === 'owner'} request={request} />;
         })}
 
         <SectionHeading copy="Create customer-visible PSI records only after checking the selected customer and vehicle." title="Publish workshop records" />
@@ -588,6 +579,122 @@ function StaffWorkspace({
   );
 }
 
+function AccountDeletionRequestCard({
+  customer,
+  onComplete,
+  owner,
+  request,
+}: {
+  customer: StaffPortalSnapshot['deletionCustomers'][number] | undefined;
+  onComplete: () => void;
+  owner: boolean;
+  request: StaffPortalSnapshot['accountDeletionRequests'][number];
+}) {
+  const [busy, setBusy] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState('');
+  const [error, setError] = useState('');
+  const [expanded, setExpanded] = useState(false);
+  const [retentionConfirmed, setRetentionConfirmed] = useState(false);
+  const [staffNote, setStaffNote] = useState('');
+  const customerEmail = customer?.email ?? '';
+
+  const completeDeletion = async () => {
+    if (busy) return;
+    if (!customerEmail || confirmationEmail.trim().toLowerCase() !== customerEmail.toLowerCase()) {
+      setError('Type the customer email exactly as shown before continuing.');
+      return;
+    }
+    if (!retentionConfirmed) {
+      setError('Confirm the retention review before permanently deleting this account.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    try {
+      const result = await completeCustomerAccountDeletion({
+        confirmationEmail,
+        retentionReviewConfirmed: retentionConfirmed,
+        staffNote,
+        userId: request.user_id,
+      });
+      Alert.alert(
+        'Account deleted',
+        result.auditWarning
+          ? 'Customer access and private data were removed. The completion audit needs a technical follow-up.'
+          : 'Customer access and private data were removed. Send the customer a completion confirmation.',
+      );
+      onComplete();
+    } catch {
+      setError('Deletion did not complete. If cleanup started, the customer account is safely locked. Refresh and retry this same request; no other customer was affected.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHeading}>
+        <Text style={styles.cardTitle}>{customerName(customer)}</Text>
+        <Text style={styles.badge}>{humanize(request.status)}</Text>
+      </View>
+      <Text style={styles.cardCopy}>{customerEmail || 'Customer profile is locked for deletion review'}</Text>
+      <Text style={styles.cardMeta}>Requested {formatDateTime(request.requested_at)} · Target completion within 30 days</Text>
+      <Text style={styles.contextLine}>Review retained workshop, taxation, dispute and legal records before removing active customer data.</Text>
+      {owner && customerEmail ? (
+        expanded ? (
+          <View style={styles.deletionPanel}>
+            <View style={styles.deletionWarning}>
+              <Ionicons color={colors.danger} name="warning" size={20} />
+              <Text style={styles.deletionWarningText}>Permanent action. This removes private uploads, customer app records and sign-in access. It cannot be undone.</Text>
+            </View>
+            <Pressable
+              accessibilityLabel="Retention review completed"
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: retentionConfirmed }}
+              onPress={() => {
+                setRetentionConfirmed((current) => !current);
+                setError('');
+              }}
+              style={styles.deletionCheck}
+            >
+              <Ionicons color={retentionConfirmed ? colors.accent : colors.muted} name={retentionConfirmed ? 'checkbox' : 'square-outline'} size={24} />
+              <Text style={styles.deletionCheckText}>I have retained, exported or de-identified only the records PSI is required to keep.</Text>
+            </Pressable>
+            <Field hint={`Type ${customerEmail} exactly`} label="Confirm customer email">
+              <FormInput
+                autoCapitalize="none"
+                autoComplete="off"
+                keyboardType="email-address"
+                maxLength={160}
+                onChangeText={(value) => {
+                  setConfirmationEmail(value);
+                  setError('');
+                }}
+                placeholder={customerEmail}
+                value={confirmationEmail}
+              />
+            </Field>
+            <Field hint="Optional non-sensitive completion note · maximum 500 characters" label="Staff note">
+              <FormInput
+                maxLength={500}
+                multiline
+                numberOfLines={3}
+                onChangeText={setStaffNote}
+                placeholder="Retention review completed and customer identity verified"
+                textAlignVertical="top"
+                value={staffNote}
+              />
+            </Field>
+            {error ? <Text accessibilityRole="alert" style={styles.deletionError}>{error}</Text> : null}
+            <PrimaryButton label="Permanently delete account" loading={busy} onPress={() => void completeDeletion()} />
+            <PrimaryButton disabled={busy} label="Cancel" onPress={() => setExpanded(false)} variant="outline" />
+          </View>
+        ) : <PrimaryButton label={request.status === 'in_review' ? 'Resume protected deletion' : 'Review and delete account'} onPress={() => setExpanded(true)} variant="outline" />
+      ) : null}
+    </View>
+  );
+}
+
 function Metric({ label, value }: { label: string; value: number }) {
   return <View style={styles.metric}><Text style={styles.metricValue}>{value}</Text><Text style={styles.metricLabel}>{label}</Text></View>;
 }
@@ -679,6 +786,12 @@ const styles = StyleSheet.create({
   cardMeta: { color: colors.accent, fontSize: 12, fontWeight: '800', marginTop: spacing.xs },
   staffNote: { color: colors.silver, fontSize: 12, fontWeight: '800', lineHeight: 18, marginTop: spacing.xs },
   contextLine: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 2 },
+  deletionPanel: { borderTopColor: colors.line, borderTopWidth: 1, gap: spacing.md, marginTop: spacing.md, paddingTop: spacing.md },
+  deletionWarning: { alignItems: 'flex-start', backgroundColor: '#2A1717', flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
+  deletionWarningText: { color: colors.white, flex: 1, fontSize: 12, fontWeight: '800', lineHeight: 18 },
+  deletionCheck: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
+  deletionCheckText: { color: colors.silver, flex: 1, fontSize: 12, fontWeight: '800', lineHeight: 18 },
+  deletionError: { color: colors.danger, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   integrationError: { color: colors.danger, fontSize: 11, fontWeight: '800', lineHeight: 17, marginTop: spacing.xs },
   integrationControls: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.sm, marginBottom: spacing.sm, padding: spacing.md },
   invitationPanel: { ...mobileFrame, backgroundColor: colors.panel, gap: spacing.md, padding: spacing.md },

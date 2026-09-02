@@ -4,6 +4,7 @@ import type {
   BookingRequestRow,
   CustomerProfileRow,
   CustomerVehicleRow,
+  DynoRecordRow,
   VehicleFileRow,
   VehicleServiceSummaryRow,
 } from '@/lib/database.types';
@@ -11,6 +12,7 @@ import { getSupabaseClient } from '@/lib/supabase';
 
 export type CustomerAccountSnapshot = {
   bookings: BookingRequestRow[];
+  dynoRecords: DynoRecordRow[];
   profile: CustomerProfileRow | null;
   serviceSummaries: VehicleServiceSummaryRow[];
   user: User;
@@ -64,10 +66,17 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
       .is('archived_at', null)
       .order('created_at', { ascending: false }),
     supabase
+      .from('dyno_records')
+      .select('*')
+      .eq('customer_id', user.id)
+      .eq('record_source', 'psi_verified')
+      .is('archived_at', null)
+      .order('tested_at', { ascending: false }),
+    supabase
       .from('vehicle_files')
       .select('*')
       .eq('customer_id', user.id)
-      .eq('file_kind', 'vehicle_photo')
+      .in('file_kind', ['vehicle_photo', 'dyno_graph'])
       .is('archived_at', null)
       .order('created_at', { ascending: false }),
   ]);
@@ -78,16 +87,18 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
     if (!error && data.session) results = await readAccount();
   }
 
-  const [profileResult, vehiclesResult, serviceSummariesResult, bookingsResult, vehicleFilesResult] = results;
+  const [profileResult, vehiclesResult, serviceSummariesResult, bookingsResult, dynoRecordsResult, vehicleFilesResult] = results;
 
   if (profileResult.error) throw profileResult.error;
   if (vehiclesResult.error) throw vehiclesResult.error;
   if (serviceSummariesResult.error) throw serviceSummariesResult.error;
   if (bookingsResult.error) throw bookingsResult.error;
+  if (dynoRecordsResult.error) throw dynoRecordsResult.error;
   if (vehicleFilesResult.error) throw vehicleFilesResult.error;
 
   return {
     bookings: bookingsResult.data ?? [],
+    dynoRecords: dynoRecordsResult.data ?? [],
     profile: profileResult.data,
     serviceSummaries: serviceSummariesResult.data ?? [],
     user,

@@ -43,7 +43,7 @@ progress.
 - Public GitHub Pages remains a submission-disabled synthetic demo. The EAS QA build is protected by Expo authentication and uses a separate Auth-enabled environment.
 - Native push infrastructure supports opt-in permission, sounds, badge counts and safe deep links. The registered iPhone installed the Apple-signed QA build, completed an approved-customer email-code sign-in and received a locked-screen PSI alert with sound and a badge change from one to two. Foreground delivery, deep links, badge clearing and the remaining iPhone acceptance checks are still outstanding.
 - PSI Events is centrally managed in Matt's AAL2 staff portal. Customers can read only published events; publish, detail-change and cancellation transitions queue private in-app alerts and native push jobs with a safe Events deep link. The live RLS regression blocks customer writes, permits AAL2 staff writes and verifies the notification fan-out inside a rolled-back transaction.
-- Customers can initiate or cancel their own deletion request. Matt can review the queue only after AAL2 verification; completion remains a controlled owner procedure and is never represented as automatic.
+- Customers can initiate or cancel their own deletion request. Nothing is removed automatically when the request is lodged. Matt can review and permanently complete an active request only after AAL2 verification, retention confirmation and exact-email confirmation; the verified server workflow locks access first, removes private Storage and customer app data, then deletes the Auth identity.
 - Customer-facing privacy, support and conservative approval-first booking terms are available inside the app.
 - Expo SDK 57 dependencies match Expo's current compatible patch versions, peer
   dependency checks pass and the public web export completes successfully.
@@ -230,6 +230,16 @@ Trusted Partners for their listings and logos. Raceline Motorsport Racewear was
 removed because its approval was not available. BNB Autohaus temporarily
 replaced Luxe Automotive Interiors, then on 1 September 2026 the owner restored
 Luxe Automotive Interiors and removed BNB Autohaus from the active directory.
+
+On 2 September 2026, migration
+`20260902050249_complete_customer_account_deletion` added the locked-identity
+boundary and service-role-only ordered cleanup functions. The verified-JWT
+`complete-account-deletion` Edge Function and Matt-only AAL2 portal controls are
+active. Non-destructive checks confirmed that anon and authenticated roles
+cannot execute the cleanup RPCs, the server role can, all locked-identity
+policies are restrictive, and a request without an authorization header is
+rejected. No real or synthetic customer was deleted during deployment. The
+full disposable native account and private-Storage acceptance remains required.
 
 ## Deliberately last
 

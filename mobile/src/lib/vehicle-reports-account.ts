@@ -75,7 +75,11 @@ export function getAccountReportVehicles(account: CustomerAccountSnapshot): Prev
 }
 
 export function getAccountDynoRecords(reports: CustomerVehicleReportsSnapshot): DynoRecord[] {
-  return reports.dynoRecords.map((record) => ({
+  return getAccountDynoRecordsFromRows(reports.dynoRecords, reports.vehicleFiles);
+}
+
+export function getAccountDynoRecordsFromRows(dynoRecords: DynoRecordRow[], vehicleFiles: VehicleFileRow[]): DynoRecord[] {
+  return dynoRecords.map((record) => ({
     createdBy: record.record_source === 'psi_verified' ? 'psi' : 'customer_account',
     fuel: record.fuel ?? 'Not recorded',
     graphImage: null,
@@ -84,7 +88,7 @@ export function getAccountDynoRecords(reports: CustomerVehicleReportsSnapshot): 
     peakPowerHpAtHubs: kilowattsToHorsepower(record.power_kw_at_hubs),
     peakTorqueNmAtHubs: record.torque_nm_at_hubs,
     recordedAt: record.tested_at,
-    secureAttachment: toSecureAttachment(newestFileFor(reports.vehicleFiles, 'dyno_record_id', record.id, 'dyno_graph')),
+    secureAttachment: toSecureAttachment(newestFileFor(vehicleFiles, 'dyno_record_id', record.id, 'dyno_graph')),
     vehicleId: record.vehicle_id,
     verification: record.record_source === 'psi_verified' ? 'psi_verified' : 'customer_entry',
   }));

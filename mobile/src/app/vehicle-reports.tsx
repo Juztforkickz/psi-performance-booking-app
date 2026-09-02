@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -175,6 +175,7 @@ function VehicleReportsContent({
   secureReports: CustomerVehicleReportsSnapshot | null;
 }) {
   const router = useRouter();
+  const { vehicleId: requestedVehicleId } = useLocalSearchParams<{ vehicleId?: string }>();
   const { compact, horizontalPadding, largeText, tablet } = useResponsiveLayout();
   const {
     selectedVehicleId: previewSelectedVehicleId,
@@ -184,7 +185,7 @@ function VehicleReportsContent({
   } = useCustomerPreview();
   const secureVehicles = secureAccount ? getAccountReportVehicles(secureAccount) : null;
   const vehicles = secureVehicles ?? previewVehicles;
-  const [secureSelectedVehicleId, setSecureSelectedVehicleId] = useState(() => secureVehicles?.find((vehicle) => vehicle.isPrimary)?.id ?? secureVehicles?.[0]?.id ?? '');
+  const [secureSelectedVehicleId, setSecureSelectedVehicleId] = useState(() => secureVehicles?.find((vehicle) => vehicle.id === requestedVehicleId)?.id ?? secureVehicles?.find((vehicle) => vehicle.isPrimary)?.id ?? secureVehicles?.[0]?.id ?? '');
   const selectedVehicleId = secureVehicles ? secureSelectedVehicleId : previewSelectedVehicleId;
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0];
   const vehicleLabel = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;

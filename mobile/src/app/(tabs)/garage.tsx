@@ -35,6 +35,8 @@ import {
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import type { VehicleFileRow } from '@/lib/database.types';
 import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
+import { getAccountDynoRecordsFromRows } from '@/lib/vehicle-reports-account';
+import type { DynoRecord } from '@/lib/vehicle-reports-preview';
 
 const GARAGE_IMAGE = require('../../../assets/images/dashboard/tile-my-garage-blue-silver.jpg');
 const REPORT_IMAGE = require('../../../assets/images/dashboard/tile-vehicle-reports-blue-silver.jpg');
@@ -86,7 +88,10 @@ export default function GarageScreen() {
     return <GarageAccountState actionLabel="Add your first vehicle" copy="Your account is ready. Add a vehicle to begin." title="Your garage is ready" />;
   }
 
-  return <GarageContent secureVehicleFiles={secureAccountActive ? account?.vehicleFiles ?? [] : null} secureVehicles={secureVehicles} />;
+  const secureDynoRecords = secureAccountActive && account
+    ? getAccountDynoRecordsFromRows(account.dynoRecords, account.vehicleFiles)
+    : null;
+  return <GarageContent secureDynoRecords={secureDynoRecords} secureVehicleFiles={secureAccountActive ? account?.vehicleFiles ?? [] : null} secureVehicles={secureVehicles} />;
 }
 
 function GarageAccountState({
@@ -117,9 +122,11 @@ function GarageAccountState({
 }
 
 function GarageContent({
+  secureDynoRecords,
   secureVehicleFiles,
   secureVehicles,
 }: {
+  secureDynoRecords: readonly DynoRecord[] | null;
   secureVehicleFiles: readonly VehicleFileRow[] | null;
   secureVehicles: readonly PreviewVehicle[] | null;
 }) {
@@ -163,7 +170,25 @@ function GarageContent({
       width: 0,
     } : null
     : vehiclePhotos[selectedVehicle.id] ?? null;
-  const dynoResult = getLatestVerifiedDynoResult(selectedVehicle.id);
+  const previewDynoResult = getLatestVerifiedDynoResult(selectedVehicle.id);
+  const secureDynoResult = secureDynoRecords?.find((record) => record.vehicleId === selectedVehicle.id && record.verification === 'psi_verified') ?? null;
+  const dynoResult: GarageDynoResult | null = secureVehicles
+    ? secureDynoResult ? {
+      fuel: secureDynoResult.fuel,
+      graphAvailable: Boolean(secureDynoResult.secureAttachment),
+      notes: secureDynoResult.notes,
+      peakPowerHpAtHubs: secureDynoResult.peakPowerHpAtHubs,
+      peakTorqueNmAtHubs: secureDynoResult.peakTorqueNmAtHubs,
+      recordedAt: secureDynoResult.recordedAt,
+    } : null
+    : previewDynoResult ? {
+      fuel: previewDynoResult.fuel,
+      graphAvailable: false,
+      notes: previewDynoResult.summary,
+      peakPowerHpAtHubs: previewDynoResult.peakPower.value,
+      peakTorqueNmAtHubs: previewDynoResult.peakTorque.value,
+      recordedAt: previewDynoResult.recordedAt,
+    } : null;
   const buildPlan = CUSTOMER_PREVIEW.buildPlans.find((plan) => plan.vehicleId === selectedVehicle.id);
   const vehicleLabel = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;
   const dynoFirst = section === 'dyno';
@@ -475,7 +500,7 @@ function GarageContent({
           <Text style={styles.maintenanceExpiry}>{secureVehicles ? 'Odometer updates save to your account. Reminder dates are temporary and clear when the app closes.' : 'Demo entries clear when the app closes.'}</Text>
         </View>
 
-        {dynoFirst ? <DynoResultCard result={dynoResult} vehicleLabel={vehicleLabel} /> : null}
+        {dynoFirst ? <DynoResultCard accountConnected={Boolean(secureVehicles)} onOpenReports={() => router.push({ pathname: '/vehicle-reports', params: { vehicleId: selectedVehicle.id } })} result={dynoResult} vehicleLabel={vehicleLabel} /> : null}
 
         <View style={styles.photoSection}>
           <VehiclePhotoPicker
@@ -488,7 +513,7 @@ function GarageContent({
           {photoNotice ? <Text accessibilityRole="alert" style={styles.maintenanceNotice}>{photoNotice}</Text> : null}
         </View>
 
-        {!dynoFirst ? <DynoResultCard result={dynoResult} vehicleLabel={vehicleLabel} /> : null}
+        {!dynoFirst ? <DynoResultCard accountConnected={Boolean(secureVehicles)} onOpenReports={() => router.push({ pathname: '/vehicle-reports', params: { vehicleId: selectedVehicle.id } })} result={dynoResult} vehicleLabel={vehicleLabel} /> : null}
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>Plan & Build</Text>
@@ -545,28 +570,42 @@ function VehicleStat({ label, value }: { label: string; value: string }) {
   );
 }
 
+type GarageDynoResult = {
+  fuel: string;
+  graphAvailable: boolean;
+  notes: string;
+  peakPowerHpAtHubs: number;
+  peakTorqueNmAtHubs: number | null;
+  recordedAt: string;
+};
+
 function DynoResultCard({
+  accountConnected,
+  onOpenReports,
   result,
   vehicleLabel,
 }: {
-  result: ReturnType<typeof getLatestVerifiedDynoResult>;
+  accountConnected: boolean;
+  onOpenReports: () => void;
+  result: GarageDynoResult | null;
   vehicleLabel: string;
 }) {
   return (
     <View style={styles.dynoCard}>
-      <View style={styles.dynoImageFrame}>
-        <Image
-          accessibilityLabel="Illustrated diagnostic scan tool and vehicle health report"
-          resizeMode="contain"
-          source={REPORT_IMAGE}
-          style={[styles.fillImage, styles.reportImage]}
-        />
-      </View>
       <View style={styles.dynoBody}>
         <View style={styles.dynoHeading}>
+          <View style={styles.dynoImageFrame}>
+            <Image
+              accessibilityLabel="Illustrated diagnostic scan tool and vehicle health report"
+              resizeMode="contain"
+              source={REPORT_IMAGE}
+              style={[styles.fillImage, styles.reportImage]}
+            />
+          </View>
           <View style={styles.dynoHeadingCopy}>
             <Text style={styles.primaryLabel}>Latest PSI-verified hub dyno result</Text>
             <Text style={styles.dynoTitle}>{vehicleLabel}</Text>
+            {result ? <Text style={styles.bodyCopy}>{formatShortDate(result.recordedAt)} · {result.fuel}</Text> : null}
           </View>
           <View style={styles.verifiedBadge}>
             <Ionicons color={colors.ink} name="checkmark" size={14} />
@@ -576,13 +615,14 @@ function DynoResultCard({
         {result ? (
           <>
             <View style={styles.resultGrid}>
-              <ResultValue label="Peak power" value={`${result.peakPower.value}`} unit="HP at hubs" />
-              <ResultValue label="Peak torque" value={`${result.peakTorque.value}`} unit="Nm at hubs" />
+              <ResultValue label="Peak power" value={`${result.peakPowerHpAtHubs}`} unit="HP at hubs" />
+              <ResultValue label="Peak torque" value={result.peakTorqueNmAtHubs == null ? '—' : `${result.peakTorqueNmAtHubs}`} unit="Nm at hubs" />
             </View>
             <View style={styles.resultMeta}>
-              <Text style={styles.bodyCopy}>Run: {formatShortDate(result.recordedAt)} · {result.fuel} · {result.ambientTemperatureC}°C</Text>
+              {result.notes ? <Text numberOfLines={2} style={styles.bodyCopy}>{result.notes}</Text> : null}
               <Text style={styles.readOnly}>Read-only for customers · PSI publishes each verified run</Text>
             </View>
+            <PrimaryButton label={result.graphAvailable ? 'View verified dyno graph' : 'Open dyno history'} onPress={onOpenReports} variant="outline" />
           </>
         ) : (
           <View style={styles.emptyResult}>
@@ -590,9 +630,7 @@ function DynoResultCard({
             <Text style={styles.bodyCopy}>Verified results will appear here after PSI completes and publishes a hub-dyno session.</Text>
           </View>
         )}
-        <Text style={styles.disclaimer}>
-          Example display only. Figures use the measurement basis and conditions shown on the PSI run report; results vary.
-        </Text>
+        <Text style={styles.disclaimer}>{accountConnected ? 'Figures follow the measurement basis and conditions recorded on the PSI run report.' : 'Example display only. Figures and conditions are demonstration data.'}</Text>
       </View>
     </View>
   );
@@ -674,20 +712,19 @@ const styles = StyleSheet.create({
   maintenanceNotice: { color: colors.silver, fontSize: 11, fontWeight: '800', lineHeight: 17 },
   maintenanceExpiry: { color: colors.mutedDark, fontSize: 9, lineHeight: 14 },
   photoSection: { ...mobileFrame, backgroundColor: colors.panel, padding: spacing.lg },
-  dynoCard: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
-  dynoImageFrame: { width: '100%', aspectRatio: 1.1, overflow: 'hidden', backgroundColor: colors.ink },
-  // The source reserves its lower third for tile text. This keeps the complete scanner and plug visible while removing only that empty area.
-  reportImage: { transform: [{ scale: 1.36 }], transformOrigin: 'top center' },
-  dynoBody: { gap: spacing.lg, padding: spacing.lg },
-  dynoHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
+  dynoCard: { ...mobileFrame, backgroundColor: colors.panel },
+  dynoImageFrame: { width: 82, height: 82, flexShrink: 0, overflow: 'hidden', backgroundColor: colors.ink },
+  reportImage: { transform: [{ scale: 1.4 }], transformOrigin: 'top center' },
+  dynoBody: { gap: spacing.md, padding: spacing.md },
+  dynoHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   dynoHeadingCopy: { flex: 1, gap: spacing.xs },
-  dynoTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
+  dynoTitle: { color: colors.white, fontSize: 16, fontWeight: '900', textTransform: 'uppercase' },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 16, backgroundColor: colors.silver, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   verifiedText: { color: colors.ink, fontSize: 9, fontWeight: '900' },
   resultGrid: { flexDirection: 'row', gap: spacing.sm },
-  resultValue: { ...mobileFrame, flex: 1, minWidth: 0, gap: 2, backgroundColor: colors.ink, padding: spacing.md },
+  resultValue: { ...mobileFrame, flex: 1, minWidth: 0, gap: 2, backgroundColor: colors.ink, padding: spacing.sm },
   resultLabel: { color: colors.muted, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
-  resultNumber: { color: colors.white, fontSize: 38, fontWeight: '900', letterSpacing: -1.5, lineHeight: 42 },
+  resultNumber: { color: colors.white, fontSize: 30, fontWeight: '900', letterSpacing: -1.2, lineHeight: 34 },
   resultUnit: { color: colors.accent, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   resultMeta: { gap: spacing.xs },
   bodyCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
