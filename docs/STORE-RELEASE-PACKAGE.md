@@ -33,6 +33,14 @@ them to a stable PSI-owned domain before final store submission if practical.
 Google Play requires the external deletion resource even when deletion can be
 initiated inside the app.
 
+The dedicated App policy draft and its Shopify publication checklist are now
+maintained in `APP-PRIVACY-POLICY.md` and
+`SHOPIFY-APP-PRIVACY-PUBLISHING.md`. Before public submission, publish the
+approved App-specific policy on a PSI-owned page, update App Store Connect to
+that URL, and keep the general Shopify store policy separate. Short contextual
+notices for account, booking, upload, notification and deletion collection are
+in `PRIVACY-COLLECTION-NOTICES.md`.
+
 ## Apple App Privacy draft
 
 The following data is linked to the customer's account and used for app
