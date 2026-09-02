@@ -442,6 +442,14 @@ function GarageContent({
                 <Text style={styles.exampleImageLabelText}>Example image · add your photo</Text>
               </View>
             ) : null}
+            <VehiclePhotoPicker
+              display="quick"
+              onChange={(photo) => void changeVehiclePhoto(photo)}
+              saving={photoSaving}
+              storageMode={secureVehicles ? 'private_account' : 'local_preview'}
+              value={selectedPhoto}
+              vehicleLabel={vehicleLabel}
+            />
           </View>
           <View style={styles.vehicleDetails}>
             <Text style={styles.primaryLabel}>{selectedVehicle.isPrimary ? 'Primary vehicle' : 'Garage vehicle'}</Text>

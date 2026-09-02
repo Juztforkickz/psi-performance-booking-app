@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -16,6 +17,7 @@ export type { LocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 
 export type VehiclePhotoPickerProps = {
   disabled?: boolean;
+  display?: 'full' | 'quick';
   onChange: (photo: LocalVehiclePhoto | null) => void;
   saving?: boolean;
   storageMode?: 'local_preview' | 'private_account';
@@ -25,6 +27,7 @@ export type VehiclePhotoPickerProps = {
 
 export function VehiclePhotoPicker({
   disabled = false,
+  display = 'full',
   onChange,
   saving = false,
   storageMode = 'local_preview',
@@ -33,6 +36,7 @@ export function VehiclePhotoPicker({
 }: VehiclePhotoPickerProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [quickMenuOpen, setQuickMenuOpen] = useState(false);
 
   const pickPhotoFromSource = async (source: 'camera' | 'library') => {
     if (busy || saving || disabled) return;
@@ -84,6 +88,7 @@ export function VehiclePhotoPicker({
         width: asset.width,
       };
       onChange(nextPhoto);
+      setQuickMenuOpen(false);
     } catch {
       setError(source === 'camera' ? 'The camera could not be opened. Try again or choose from your library.' : 'We could not open your photo library. Try again or choose a different image.');
     } finally {
@@ -103,6 +108,51 @@ export function VehiclePhotoPicker({
     setError('');
     onChange(null);
   };
+
+  if (display === 'quick') {
+    const unavailable = busy || saving || disabled;
+    return (
+      <View style={styles.quickContainer}>
+        <Pressable
+          accessibilityHint="Opens camera and photo-library choices"
+          accessibilityLabel={value ? `Change photo of ${vehicleLabel}` : `Add photo of ${vehicleLabel}`}
+          accessibilityRole="button"
+          accessibilityState={{ busy: busy || saving, disabled: unavailable, expanded: quickMenuOpen }}
+          disabled={unavailable}
+          onPress={() => { setError(''); setQuickMenuOpen((current) => !current); }}
+          style={({ pressed }) => [styles.quickTrigger, pressed && styles.pressed, unavailable && styles.actionDisabled]}
+        >
+          {busy || saving ? <ActivityIndicator color={colors.ink} size="small" /> : <Ionicons color={colors.ink} name="camera-outline" size={17} />}
+          <Text numberOfLines={1} style={styles.quickTriggerText}>{value ? 'Change photo' : 'Add photo'}</Text>
+        </Pressable>
+        {quickMenuOpen ? (
+          <View style={styles.quickMenu}>
+            <Pressable
+              accessibilityLabel="Take vehicle photo with camera"
+              accessibilityRole="button"
+              disabled={unavailable}
+              onPress={() => void takePhoto()}
+              style={({ pressed }) => [styles.quickChoice, pressed && styles.pressed]}
+            >
+              <Ionicons color={colors.white} name="camera" size={16} />
+              <Text style={styles.quickChoiceText}>Take photo</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Choose vehicle photo from photo library"
+              accessibilityRole="button"
+              disabled={unavailable}
+              onPress={() => void choosePhoto()}
+              style={({ pressed }) => [styles.quickChoice, pressed && styles.pressed]}
+            >
+              <Ionicons color={colors.white} name="images" size={16} />
+              <Text style={styles.quickChoiceText}>Photo library</Text>
+            </Pressable>
+          </View>
+        ) : null}
+        {error ? <Text accessibilityRole="alert" style={styles.quickError}>{error}</Text> : null}
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -200,6 +250,68 @@ export function VehiclePhotoPicker({
 }
 
 const styles = StyleSheet.create({
+  quickContainer: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    zIndex: 2,
+    alignItems: 'flex-end',
+    gap: 5,
+  },
+  quickTrigger: {
+    minHeight: 38,
+    maxWidth: 155,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 2,
+    borderColor: colors.white,
+    borderRadius: 3,
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.sm,
+  },
+  quickTriggerText: {
+    flexShrink: 1,
+    color: colors.ink,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: .4,
+    textTransform: 'uppercase',
+  },
+  quickMenu: {
+    ...mobileFrame,
+    width: 164,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(9,9,9,.96)',
+  },
+  quickChoice: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+    paddingHorizontal: spacing.sm,
+  },
+  quickChoiceText: {
+    color: colors.white,
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: .4,
+    textTransform: 'uppercase',
+  },
+  quickError: {
+    width: 210,
+    color: '#FFB4A9',
+    fontSize: 9,
+    fontWeight: '800',
+    lineHeight: 14,
+    textAlign: 'right',
+    textShadowColor: colors.ink,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
   container: {
     gap: spacing.md,
   },

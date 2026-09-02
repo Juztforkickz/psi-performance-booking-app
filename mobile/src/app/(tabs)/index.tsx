@@ -20,6 +20,8 @@ import { DashboardTile } from '@/components/dashboard-tile';
 import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
+import { useCustomerAccount } from '@/lib/customer-account-context';
+import { createCustomerProfilePhotoSignedUrl } from '@/lib/customer-profile-photo';
 import {
   HOME_TILE_IDS,
   type HomeTileId,
@@ -62,6 +64,7 @@ const PSI_PROMISES = [
 
 export default function CustomerHomeScreen() {
   const router = useRouter();
+  const { account } = useCustomerAccount();
   const { prepareBookingVehicle, selectedVehicleId } = useCustomerPreview();
   const { compact, horizontalPadding, largeText, tablet, width } = useResponsiveLayout();
   const { activeTheme, theme } = useThemePreference();
@@ -73,9 +76,16 @@ export default function CustomerHomeScreen() {
   const [shortcutChooserOpen, setShortcutChooserOpen] = useState(false);
   const [weather, setWeather] = useState<WorkshopWeather | null>(null);
   const [weatherError, setWeatherError] = useState(false);
+  const [profilePhotoState, setProfilePhotoState] = useState<{ objectPath: string; uri: string; userId: string } | null>(null);
   const { resetShortcuts, shortcutIds, toggleShortcut } = useHomeShortcutPreferences();
   const threeColumns = tablet && width >= 780 && !largeText;
   const privateAccountMode = SUPABASE_CONNECTION.authEnabled;
+  const profilePhotoPath = account?.profile?.profile_photo_object_path ?? null;
+  const profilePhotoUri = account?.profile
+    && profilePhotoState?.userId === account.profile.user_id
+    && profilePhotoState.objectPath === profilePhotoPath
+    ? profilePhotoState.uri
+    : null;
 
   const openBooking = (type: 'service' | 'dyno') => {
     setBookingChooserOpen(false);
@@ -107,6 +117,23 @@ export default function CustomerHomeScreen() {
       controller?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const profile = account?.profile;
+    if (!profile?.profile_photo_object_path) {
+      setProfilePhotoState(null);
+      return;
+    }
+    void createCustomerProfilePhotoSignedUrl(profile)
+      .then((uri) => {
+        if (active && uri) setProfilePhotoState({ objectPath: profile.profile_photo_object_path!, uri, userId: profile.user_id });
+      })
+      .catch(() => {
+        if (active) setProfilePhotoState(null);
+      });
+    return () => { active = false; };
+  }, [account?.profile]);
 
   const renderHomeTile = (id: HomeTileId) => {
     switch (id) {
@@ -256,7 +283,17 @@ export default function CustomerHomeScreen() {
               },
             ]}
           >
-            <Ionicons color={activeTheme === 'dark' ? colors.ink : theme.textInverse} name="person" size={20} />
+            {profilePhotoUri ? (
+              <Image
+                accessibilityIgnoresInvertColors
+                accessibilityLabel="Your profile photo"
+                resizeMode="cover"
+                source={{ uri: profilePhotoUri }}
+                style={styles.accountPhoto}
+              />
+            ) : (
+              <Ionicons color={activeTheme === 'dark' ? colors.ink : theme.textInverse} name="person" size={20} />
+            )}
           </Pressable>
         </View>
 
@@ -730,7 +767,8 @@ const styles = StyleSheet.create({
   logo: { width: 126, height: 48 },
   logoCompact: { width: 96, height: 42 },
   logoBright: { tintColor: colors.ink },
-  accountButton: { width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.white, borderRadius: 23, backgroundColor: colors.white },
+  accountButton: { width: 46, height: 46, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.white, borderRadius: 23, backgroundColor: colors.white },
+  accountPhoto: { width: '100%', height: '100%' },
   intro: { gap: spacing.xs },
   eyebrow: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.35, textTransform: 'uppercase' },
   title: { color: colors.white, fontSize: 43, fontWeight: '900', letterSpacing: -1.8, lineHeight: 45, textTransform: 'uppercase' },
