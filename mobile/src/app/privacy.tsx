@@ -9,7 +9,7 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 const SECTIONS = [
   {
     title: 'Who operates the app',
-    copy: 'PSI PERFORMANCE PTY LTD publishes the PSI Performance app. Workshop bookings, vehicle services and related customer transactions are supplied by Matthew Ebert trading as PSI Performance. The app is free and does not currently offer paid digital products or subscriptions.',
+    copy: 'PSI PERFORMANCE PTY LTD, trading as PSI Performance, operates the PSI Performance app and administers the workshop bookings, vehicle services and customer records shown here. The app is free and does not currently offer paid digital products or subscriptions.',
   },
   {
     title: 'Information we handle',

@@ -1,53 +1,35 @@
-# Publish the PSI App Privacy Policy on Shopify
+# PSI App Privacy Policy on Shopify
 
-Status: owner-action checklist, 2 September 2026. Do not publish until the
-policy's pre-publication decisions and legal review are complete.
+Status: owner-approved and published on 2 September 2026.
 
-## Recommended structure
+## Published structure
 
-Keep the existing Shopify-generated **Privacy policy** for the website and
-online shop. Create a separate Shopify page named **PSI Performance App Privacy
-Policy** for the customer app. This prevents website cookie, advertising,
-Shopify-account and payment wording from being incorrectly presented as the
-App's behaviour.
+The App policy is published beneath the existing online-shop policy under the
+clear heading **PSI Performance App Privacy Policy**. Both policies use the
+existing public footer link:
 
-Suggested final URL:
+`https://psiperformance.com.au/policies/privacy-policy`
 
-`https://psiperformance.com.au/pages/app-privacy`
+This keeps one authoritative privacy address for the website, App, TestFlight
+and store metadata. The existing Shopify policy was preserved, and the custom
+App sections were added after it. Shopify's automated-policy setting was turned
+off because a custom combined policy cannot remain automatically generated.
 
-The exact Shopify handle may differ. Confirm the public URL after saving.
-
-## Shopify steps
-
-1. In Shopify Admin, open **Online Store → Pages**.
-2. Choose **Add page**.
-3. Set the title to **PSI Performance App Privacy Policy**.
-4. Copy only the public policy text from `APP-PRIVACY-POLICY.md`, beginning at
-   **Privacy Policy** and ending after **Changes to this policy**. Do not publish
-   the status note, pre-publication decisions or source list.
-5. Preserve headings, bullet lists, email, phone number and the OAIC link.
-6. Set the search-engine description to:
-   **How PSI Performance collects, uses, protects and deletes customer
-   information in the PSI Performance App.**
-7. Save as hidden or draft first and inspect it on mobile.
-8. Add **App Privacy Policy** to the website footer near the existing Privacy
-   policy link.
-9. Add one sentence near the beginning or end of the existing Shopify policy:
-   **Using the PSI Performance App? Read the separate PSI Performance App
-   Privacy Policy.** Link that wording to the new page.
-10. Obtain final owner approval immediately before making the page visible.
+Future changes to Shopify's template or store settings must therefore be
+reviewed manually alongside changes to the App, providers and data handling.
+The public page was reloaded after saving and verified to show the App heading,
+all 17 App sections and the **PSI PERFORMANCE PTY LTD** sign-off.
 
 ## App Store Connect after publication
 
-Changing the policy page does not invalidate the current TestFlight build or
-tester records. Before public App Store submission—and preferably before the
-external TestFlight review—change the privacy URL to the confirmed new page:
+Changing the policy content does not invalidate the current TestFlight build or
+tester records. Use the confirmed public page for Apple and Google metadata:
 
-`https://psiperformance.com.au/pages/app-privacy`
+`https://psiperformance.com.au/policies/privacy-policy`
 
 In **App Store Connect → App Privacy → Privacy Policy**, enter:
 
-- Privacy Policy URL: the final PSI App Privacy Policy page
+- Privacy Policy URL: the combined PSI website and App privacy page
 - User Privacy Choices URL: the final public PSI account-deletion page
 
 Also update TestFlight's Test Information privacy URL if it is displayed there.
@@ -56,19 +38,20 @@ the final metadata must accurately match the submitted App and its providers.
 
 ## Repository/app follow-up
 
-After the public Shopify URL is approved:
+After any future policy change:
 
-1. Update the App's `contact.privacy` URL to the dedicated page.
+1. Confirm the App's `contact.privacy` URL still points to the published page.
 2. Align the in-App privacy summary with the approved full policy.
-3. Add the short collection notices in `PRIVACY-COLLECTION-NOTICES.md`.
-4. Run lint, type checking, web export and signed-native acceptance.
+3. Keep the short collection notices in `PRIVACY-COLLECTION-NOTICES.md`
+   consistent with the policy.
+4. Run lint, type checking, web export and signed-native acceptance when App
+   wording or behaviour changes.
 5. Update Apple App Privacy and Google Play Data safety answers from the final
    signed binary.
 6. Create and push a checkpoint before shipping the metadata or App update.
 
 ## Publication safety boundary
 
-Publishing changes the live PSI website and is a separate external action. Do
-not publish, change the footer or alter App Store Connect until Matt has
-reviewed the final copy and explicitly approved that live action.
-
+Publishing changes the live PSI website and remains a separate external action.
+Do not change the policy, its footer link or App Store Connect metadata without
+owner review and explicit approval for that live action.

@@ -1,8 +1,10 @@
 # PSI Performance App Privacy Policy
 
-Status: owner and legal-review draft, 2 September 2026. This document is
-publish-ready copy only after the pre-publication decisions at the end have
-been completed. It must not be represented as legal advice.
+Status: owner-approved and published on 2 September 2026. The public copy is
+included under **PSI Performance App Privacy Policy** within PSI's Shopify
+privacy page at https://psiperformance.com.au/policies/privacy-policy. PSI
+PERFORMANCE PTY LTD was owner-confirmed as the sole operator. This document is
+an internal publication record and must not be represented as legal advice.
 
 ## Privacy Policy
 
@@ -10,17 +12,13 @@ been completed. It must not be represented as legal advice.
 
 ### 1. Who we are
 
-The PSI Performance App (the **App**) is published by **PSI PERFORMANCE PTY
-LTD**. Workshop services and the related customer and vehicle records shown in
-the App are administered by **Matthew Ebert trading as PSI Performance**.
-Together, these operations are referred to in this policy as **PSI**, **we**,
-**us** or **our**.
+The PSI Performance App (the **App**) is operated by **PSI PERFORMANCE PTY LTD,
+trading as PSI Performance**. In this policy, **PSI**, **we**, **us** and **our**
+refer to PSI PERFORMANCE PTY LTD.
 
-You can contact PSI about privacy at:
-
-- Email: info@psiperformance.com.au
-- Phone: 0433 431 781
-- Address: 21 Exchange Drive, Pakenham VIC 3810, Australia
+Privacy enquiries can be sent to info@psiperformance.com.au. You can also call
+0433 431 781 or write to PSI Performance, 21 Exchange Drive, Pakenham VIC 3810,
+Australia.
 
 This policy explains how PSI collects, holds, uses and discloses personal
 information through the App and its associated customer and staff services. It
@@ -41,40 +39,51 @@ is activated.
 
 ### 3. Personal information we collect and hold
 
-Depending on how you use the App, PSI may collect and hold:
+Depending on how you use the App, PSI may collect and hold the following types
+of information.
 
-- **Account and contact information:** verified email address, first and last
-  name, mobile number, customer account identifier, invitation status, account
-  status and optional profile photograph.
-- **Vehicle information:** make, model, year, registration, vehicle nickname,
-  partial VIN where recorded, odometer readings, vehicle photographs and
-  customer-selected vehicle details.
-- **Booking and workshop information:** booking type, requested and approved
-  dates, arrival arrangements, request notes, service-reminder choices,
-  cancellation information, booking status, staff notes and booking history.
-- **Performance and technical information:** customer-supplied modification and
-  tuning details, fuel and drivetrain setup, dyno measurements and graphs,
-  repair and inspection records, recommendations, service summaries and future
-  check-in information.
-- **Invoice and transaction records:** invoice number, date, summary, amount,
-  currency and related documents. The App does not collect or store card or
-  bank-account credentials.
-- **Customer content:** photographs taken with the device camera, images chosen
-  from the photo library, invoices, dyno graphs, repair documents and other
-  supporting files the customer chooses to upload.
-- **Notifications and events:** notification preferences, PSI Events reminder
-  choices, in-app notification messages, read status, device platform, push
-  token and whether device alerts are enabled.
-- **Security and operational records:** authentication events, account and
-  staff identifiers, staff actions, record-change audit information, deletion
-  requests, integration delivery status, error information and information
-  needed to detect misuse or protect accounts.
-- **Support information:** information included in calls, emails, feedback,
-  complaints or other communications with PSI.
-- **Technical information:** Internet Protocol address and limited device,
-  operating-system, update-installation and request information processed by
-  infrastructure providers when the App connects to online services, checks
-  for an update, sends an email or delivers a notification.
+**Account and contact information.** This includes your verified email address,
+first and last name, mobile number, customer account identifier, invitation
+status, account status and optional profile photograph.
+
+**Vehicle information.** This includes the vehicle make, model, year,
+registration, nickname, partial VIN where recorded, odometer readings, vehicle
+photographs and other vehicle details you choose to provide.
+
+**Booking and workshop information.** This includes the booking type, requested
+and approved dates, arrival arrangements, request notes, service reminder
+choices, cancellation information, booking status, staff notes and booking
+history.
+
+**Performance and technical information.** This includes modification and
+tuning details, fuel and drivetrain setup, dyno measurements and graphs, repair
+and inspection records, recommendations, service summaries and future check-in
+information.
+
+**Invoice and transaction records.** This includes the invoice number, date,
+summary, amount, currency and related documents. The App does not collect or
+store card or bank account credentials.
+
+**Customer content.** This includes photographs taken with the device camera,
+images selected from the photo library, invoices, dyno graphs, repair documents
+and other supporting files you choose to upload.
+
+**Notifications and events.** This includes notification preferences, PSI
+Events reminder choices, in-app notification messages, read status, device
+platform, push token and whether device alerts are enabled.
+
+**Security and operational records.** This includes authentication events,
+account and staff identifiers, staff actions, record change audit information,
+deletion requests, integration delivery status, error information and other
+information needed to detect misuse or protect accounts.
+
+**Support information.** This includes information provided during calls,
+emails, feedback, complaints or other communications with PSI.
+
+**Technical information.** Infrastructure providers may process an Internet
+Protocol address and limited device, operating system, update installation and
+request information when the App connects to online services, checks for an
+update, sends an email or delivers a notification.
 
 Please do not upload documents or images containing information that PSI does
 not need, including payment-card details, passwords, sign-in codes,
@@ -82,17 +91,17 @@ authenticator secrets or unnecessary information about another person.
 
 ### 4. How we collect personal information
 
-We collect personal information:
+We collect personal information directly from you when you sign in, create or
+update a profile, add a vehicle, request a booking, choose notification
+settings, upload a file, request deletion or contact PSI. We also collect
+information when PSI creates or updates legitimate workshop records, including
+verified service, repair, dyno, invoice and recommendation information.
 
-- directly from you when you sign in, create or update a profile, add a
-  vehicle, request a booking, choose notification settings, upload a file,
-  request deletion or contact PSI;
-- when PSI creates or updates legitimate workshop records, including verified
-  service, repair, dyno, invoice and recommendation information;
-- automatically when the App securely communicates with our authentication,
-  database, storage, email, update and notification services; and
-- from Apple, Google or another service provider where necessary to operate a
-  feature you have requested, such as confirming notification delivery.
+Limited technical information is collected automatically when the App securely
+communicates with our authentication, database, storage, email, update and
+notification services. We may also receive information from Apple, Google or
+another service provider where it is necessary to operate a feature you have
+requested, such as confirming notification delivery.
 
 If required information is not provided, PSI may be unable to create an
 account, identify the relevant vehicle, assess a booking request, display
@@ -101,38 +110,33 @@ attachments, weather information and device notifications can be left unused.
 
 ### 5. Why we use personal information
 
-PSI uses personal information to:
+PSI uses personal information to verify identity and provide passwordless
+customer accounts; create, display and protect customer-owned vehicle records;
+receive, assess and administer workshop booking requests; and communicate
+proposed dates, approvals, cancellations, reminders and event updates.
 
-- verify identity and provide passwordless customer accounts;
-- create, display and protect customer-owned vehicle records;
-- receive, assess and administer workshop booking requests;
-- communicate proposed dates, approvals, cancellations, reminders and event
-  updates;
-- create and display PSI-verified workshop, dyno, invoice, repair and service
-  records;
-- store and display customer-selected photographs and documents;
-- provide customer support and respond to access, correction, complaint and
-  deletion requests;
-- maintain accurate business, taxation, warranty, safety and dispute records;
-- protect customers, PSI, the App and connected services from misuse,
-  unauthorised access, fraud and security incidents;
-- diagnose faults, deliver reviewed App updates and maintain reliable service;
-  and
-- comply with legal obligations and establish, exercise or defend legal rights.
+We also use personal information to create and display PSI-verified workshop,
+dyno, invoice, repair and service records; store and display customer-selected
+photographs and documents; provide customer support; respond to access,
+correction, complaint and deletion requests; and maintain accurate business,
+taxation, warranty, safety and dispute records.
+
+Personal information may also be used to protect customers, PSI, the App and
+connected services from misuse, unauthorised access, fraud and security
+incidents; diagnose faults; deliver reviewed App updates; maintain reliable
+service; comply with legal obligations; and establish, exercise or defend legal
+rights.
 
 We will not use App information for an unrelated purpose unless you consent or
 the use is otherwise permitted or required by law.
 
 ### 6. Device permissions and choices
 
-The App may request the following optional device permissions:
-
-- **Camera:** to photograph a vehicle or supporting document you choose to
-  upload.
-- **Photo library:** to select an existing vehicle image or supporting
-  document you choose to upload.
-- **Notifications:** to deliver booking, workshop and PSI Events alerts, sounds
-  and badge counts.
+The App may request access to the camera so you can photograph a vehicle or
+supporting document you choose to upload. It may request photo library access
+so you can select an existing vehicle image or supporting document. It may also
+request notification permission so PSI can deliver booking, workshop and PSI
+Events alerts, sounds and badge counts.
 
 PSI receives only the images or files you actively select or capture for
 upload. The current App does not request access to your microphone, contacts,
@@ -156,21 +160,18 @@ does not confirm workshop availability or a booking date.
 
 ### 8. When we disclose information
 
-PSI may disclose personal information only where reasonably necessary:
+PSI may disclose personal information to authorised PSI personnel who need it
+to provide workshop or customer services, and to contracted technology
+providers that operate authentication, storage, email, App updates, weather,
+notifications and PSI's private booking calendar.
 
-- to authorised PSI personnel who need it to provide workshop or customer
-  services;
-- to contracted technology providers that operate authentication, storage,
-  email, App updates, weather, notifications and PSI's private booking
-  calendar;
-- to professional advisers, insurers or service providers who owe appropriate
-  confidentiality obligations;
-- where you request or authorise a disclosure;
-- to investigate misuse, protect safety or security, or establish, exercise or
-  defend legal rights;
-- where required or authorised by law, a court or a regulator; or
-- in connection with a genuine sale, restructure or transfer of the PSI
-  business, subject to appropriate confidentiality and privacy safeguards.
+Information may also be disclosed to professional advisers, insurers or
+service providers who owe appropriate confidentiality obligations; where you
+request or authorise the disclosure; to investigate misuse or protect safety
+and security; to establish, exercise or defend legal rights; where required or
+authorised by law, a court or a regulator; or in connection with a genuine
+sale, restructure or transfer of the PSI business subject to appropriate
+confidentiality and privacy safeguards.
 
 Trusted Partner listings and social, map or website buttons open independent
 third-party services. PSI does not send the customer's private account record
@@ -179,30 +180,33 @@ third party's own privacy terms apply after the customer leaves the App.
 
 ### 9. Service providers and overseas processing
 
-The App currently uses the following main service providers:
+The App uses **Supabase** for passwordless authentication, database services,
+Edge Functions and private file storage. PSI's primary project data is
+configured in the Sydney, Australia region. Supabase and its subprocessors may
+process limited operational, security and support information in other
+countries, including the United States.
 
-- **Supabase:** passwordless authentication, database, Edge Functions and
-  private file storage. PSI's primary project data is configured in the Sydney,
-  Australia region. Supabase and its subprocessors may process limited
-  operational, security and support information in other countries, including
-  the United States.
-- **Resend:** delivery of sign-in codes and transactional booking emails.
-  Email addresses, message content, delivery metadata and logs may be processed
-  and stored in the United States.
-- **Expo:** signed App builds, over-the-air updates, opted-in push tokens and
-  push delivery. Expo and its subprocessors may process technical and
-  notification information outside Australia, including in the United States.
-- **Apple and Google:** operating-system distribution and notification
-  delivery. Depending on the device, notification information may be processed
-  outside Australia, including in the United States.
-- **Google Calendar:** creation of limited PSI-internal booking events when a
-  booking reaches the required confirmed state. Customers cannot list or read
-  PSI's calendar contents. Google may process this information in countries in
-  which it operates, including the United States.
-- **Open-Meteo:** Pakenham workshop weather using fixed workshop coordinates.
-  Open-Meteo is based in Switzerland and may retain technical API logs, which
-  can include IP addresses and requested coordinates, for service operation and
-  abuse prevention.
+**Resend** delivers sign-in codes and transactional booking emails. Email
+addresses, message content, delivery metadata and logs may be processed and
+stored in the United States.
+
+**Expo** provides signed App builds, over-the-air updates, opted-in push tokens
+and push delivery. Expo and its subprocessors may process technical and
+notification information outside Australia, including in the United States.
+
+**Apple and Google** provide operating system distribution and notification
+delivery. Depending on the device, notification information may be processed
+outside Australia, including in the United States.
+
+**Google Calendar** receives limited PSI-internal booking information when a
+booking reaches the required confirmed state. Customers cannot list or read
+PSI's calendar contents. Google may process this information in countries in
+which it operates, including the United States.
+
+**Open-Meteo** supplies Pakenham workshop weather using fixed workshop
+coordinates. Open-Meteo is based in Switzerland and may retain technical API
+logs, which can include IP addresses and requested coordinates, for service
+operation and abuse prevention.
 
 Providers receive only the information reasonably required for their function.
 PSI reviews provider terms, security information and contractual protections
@@ -230,27 +234,26 @@ PSI retains personal information only for as long as it is reasonably needed
 for the purposes described in this policy or to satisfy a legal, accounting,
 taxation, warranty, safety, security or dispute obligation.
 
-In general:
+Active account, profile, vehicle and notification preference information is
+retained while the account is active and reviewed when deletion is requested or
+the account is no longer required. Push tokens are retained while device alerts
+remain enabled and are disabled or removed when alerts are turned off, the token
+is invalid or the account is deleted.
 
-- active account, profile, vehicle and notification-preference information is
-  retained while the account is active and then reviewed when deletion is
-  requested or the account is no longer required;
-- push tokens are retained while device alerts remain enabled and are disabled
-  or removed when alerts are turned off, the token is invalid, or the account
-  is deleted;
-- customer-uploaded photographs and documents are retained until they are
-  replaced, removed, no longer required or deleted with the account, unless a
-  copy forms part of a record PSI is legally required to retain;
-- booking, invoice and workshop transaction records may be retained for at
-  least five years after the relevant record or transaction, and longer where
-  required for taxation, warranty, safety, a dispute, legal proceedings or
-  another legal obligation;
-- authentication, audit, delivery, security and complaint records are retained
-  only for the period reasonably needed to protect the service, investigate an
-  issue, demonstrate an action or comply with law; and
-- restricted backup copies may persist temporarily until they expire through
-  PSI's normal backup rotation. Deleted information in a backup is not returned
-  to ordinary use and will be removed again if a backup must be restored.
+Customer-uploaded photographs and documents are retained until they are
+replaced, removed, no longer required or deleted with the account, unless a copy
+forms part of a record PSI is legally required to retain.
+
+Booking, invoice and workshop transaction records may be retained for at least
+five years after the relevant record or transaction, and longer where required
+for taxation, warranty, safety, a dispute, legal proceedings or another legal
+obligation. Authentication, audit, delivery, security and complaint records are
+retained only for the period reasonably needed to protect the service,
+investigate an issue, demonstrate an action or comply with law.
+
+Restricted backup copies may persist temporarily until they expire through
+PSI's normal backup rotation. Deleted information in a backup is not returned
+to ordinary use and will be removed again if a backup must be restored.
 
 When personal information is no longer required, PSI takes reasonable steps to
 delete it, de-identify it or put it beyond ordinary use.
@@ -329,39 +332,34 @@ change. The current version and its effective date will be published on PSI's
 website and linked from the App. Material changes will be communicated through
 an appropriate channel where required.
 
-## Pre-publication decisions
+## Follow-up compliance actions
 
-The following items are intentionally outside the public policy copy and must
-be resolved before publication:
+The following internal actions are intentionally outside the public policy
+copy and remain tracked after publication:
 
-1. Confirm with PSI's Australian lawyer or accountant that the operator wording
-   correctly describes the relationship between PSI PERFORMANCE PTY LTD and
-   Matthew Ebert trading as PSI Performance.
-2. Confirm ABN/ACN details if they will be added to the public page.
-3. Approve the five-year minimum for transaction records and document any
+1. Confirm ABN/ACN details if they will be added to the public page.
+2. Approve the five-year minimum for transaction records and document any
    categories that require a longer period.
-4. Confirm the real backup rotation and ensure the published retention wording
+3. Confirm the real backup rotation and ensure the published retention wording
    matches the production Supabase plan and encrypted export process.
-5. Confirm current provider DPAs, subprocessors and overseas processing.
-6. Resolve Open-Meteo commercial licensing or replace the provider, then update
+4. Confirm current provider DPAs, subprocessors and overseas processing.
+5. Resolve Open-Meteo commercial licensing or replace the provider, then update
    sections 7 and 9 if needed.
-7. Re-run the signed-binary App Store and Google Play data-disclosure audit.
-8. Replace this status block with the final effective date before publishing.
+6. Re-run the signed-binary App Store and Google Play data-disclosure audit.
 
 ## Principal review sources
 
-- OAIC, APP 1 privacy-policy requirements:
+1. OAIC, APP 1 privacy-policy requirements:
   https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-1-app-1-open-and-transparent-management-of-personal-information
-- OAIC, APP 5 collection notices:
+2. OAIC, APP 5 collection notices:
   https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-5-app-5-notification-of-the-collection-of-personal-information
-- OAIC, cross-border disclosure:
+3. OAIC, cross-border disclosure:
   https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-8-app-8-cross-border-disclosure-of-personal-information
-- OAIC, security and destruction/de-identification:
+4. OAIC, security and destruction/de-identification:
   https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-11-app-11-security-of-personal-information
-- Apple App Review Guidelines, privacy:
+5. Apple App Review Guidelines, privacy:
   https://developer.apple.com/app-store/review/guidelines/
-- Apple App privacy details:
+6. Apple App privacy details:
   https://developer.apple.com/app-store/app-privacy-details/
-- ATO business record keeping:
+7. ATO business record keeping:
   https://www.ato.gov.au/businesses-and-organisations/preparing-lodging-and-paying/record-keeping-for-business
-
