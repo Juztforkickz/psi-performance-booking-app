@@ -22,6 +22,7 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import {
+  createPrivateVehicleAttachmentSignedUrl,
   createCustomerVehiclePhotoSignedUrl,
   newestCustomerVehiclePhoto,
   removeCustomerVehiclePhoto,
@@ -36,7 +37,7 @@ import { useCustomerPreview } from '@/lib/customer-preview-context';
 import type { VehicleFileRow } from '@/lib/database.types';
 import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 import { getAccountDynoRecordsFromRows } from '@/lib/vehicle-reports-account';
-import type { DynoRecord } from '@/lib/vehicle-reports-preview';
+import type { DynoRecord, SecureVehicleAttachment } from '@/lib/vehicle-reports-preview';
 
 const GARAGE_IMAGE = require('../../../assets/images/dashboard/tile-my-garage-blue-silver.jpg');
 const REPORT_IMAGE = require('../../../assets/images/dashboard/tile-vehicle-reports-blue-silver.jpg');
@@ -171,24 +172,27 @@ function GarageContent({
     } : null
     : vehiclePhotos[selectedVehicle.id] ?? null;
   const previewDynoResult = getLatestVerifiedDynoResult(selectedVehicle.id);
-  const secureDynoResult = secureDynoRecords?.find((record) => record.vehicleId === selectedVehicle.id && record.verification === 'psi_verified') ?? null;
-  const dynoResult: GarageDynoResult | null = secureVehicles
-    ? secureDynoResult ? {
-      fuel: secureDynoResult.fuel,
-      graphAvailable: Boolean(secureDynoResult.secureAttachment),
-      notes: secureDynoResult.notes,
-      peakPowerHpAtHubs: secureDynoResult.peakPowerHpAtHubs,
-      peakTorqueNmAtHubs: secureDynoResult.peakTorqueNmAtHubs,
-      recordedAt: secureDynoResult.recordedAt,
-    } : null
-    : previewDynoResult ? {
+  const dynoResults: GarageDynoResult[] = secureVehicles
+    ? (secureDynoRecords ?? [])
+      .filter((record) => record.vehicleId === selectedVehicle.id && record.verification === 'psi_verified')
+      .map((record) => ({
+        fuel: record.fuel,
+        id: record.id,
+        notes: record.notes,
+        peakPowerHpAtHubs: record.peakPowerHpAtHubs,
+        peakTorqueNmAtHubs: record.peakTorqueNmAtHubs,
+        recordedAt: record.recordedAt,
+        secureAttachment: record.secureAttachment ?? null,
+      }))
+    : previewDynoResult ? [{
       fuel: previewDynoResult.fuel,
-      graphAvailable: false,
+      id: previewDynoResult.id,
       notes: previewDynoResult.summary,
       peakPowerHpAtHubs: previewDynoResult.peakPower.value,
       peakTorqueNmAtHubs: previewDynoResult.peakTorque.value,
       recordedAt: previewDynoResult.recordedAt,
-    } : null;
+      secureAttachment: null,
+    }] : [];
   const buildPlan = CUSTOMER_PREVIEW.buildPlans.find((plan) => plan.vehicleId === selectedVehicle.id);
   const vehicleLabel = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;
   const dynoFirst = section === 'dyno';
@@ -498,22 +502,21 @@ function GarageContent({
           )}
           {maintenanceNotice ? <Text accessibilityRole="alert" style={styles.maintenanceNotice}>{maintenanceNotice}</Text> : null}
           <Text style={styles.maintenanceExpiry}>{secureVehicles ? 'Odometer updates save to your account. Reminder dates are temporary and clear when the app closes.' : 'Demo entries clear when the app closes.'}</Text>
+          <View style={styles.maintenancePhoto}>
+            <VehiclePhotoPicker
+              onChange={(photo) => void changeVehiclePhoto(photo)}
+              saving={photoSaving}
+              storageMode={secureVehicles ? 'private_account' : 'local_preview'}
+              value={selectedPhoto}
+              vehicleLabel={vehicleLabel}
+            />
+            {photoNotice ? <Text accessibilityRole="alert" style={styles.maintenanceNotice}>{photoNotice}</Text> : null}
+          </View>
         </View>
 
-        {dynoFirst ? <DynoResultCard accountConnected={Boolean(secureVehicles)} onOpenReports={() => router.push({ pathname: '/vehicle-reports', params: { vehicleId: selectedVehicle.id } })} result={dynoResult} vehicleLabel={vehicleLabel} /> : null}
+        {dynoFirst ? <DynoResultCard accountConnected={Boolean(secureVehicles)} key={`dyno-first-${selectedVehicle.id}`} onOpenReports={() => router.push({ pathname: '/vehicle-reports', params: { vehicleId: selectedVehicle.id } })} results={dynoResults} vehicleLabel={vehicleLabel} /> : null}
 
-        <View style={styles.photoSection}>
-          <VehiclePhotoPicker
-            onChange={(photo) => void changeVehiclePhoto(photo)}
-            saving={photoSaving}
-            storageMode={secureVehicles ? 'private_account' : 'local_preview'}
-            value={selectedPhoto}
-            vehicleLabel={vehicleLabel}
-          />
-          {photoNotice ? <Text accessibilityRole="alert" style={styles.maintenanceNotice}>{photoNotice}</Text> : null}
-        </View>
-
-        {!dynoFirst ? <DynoResultCard accountConnected={Boolean(secureVehicles)} onOpenReports={() => router.push({ pathname: '/vehicle-reports', params: { vehicleId: selectedVehicle.id } })} result={dynoResult} vehicleLabel={vehicleLabel} /> : null}
+        {!dynoFirst ? <DynoResultCard accountConnected={Boolean(secureVehicles)} key={`dyno-${selectedVehicle.id}`} onOpenReports={() => router.push({ pathname: '/vehicle-reports', params: { vehicleId: selectedVehicle.id } })} results={dynoResults} vehicleLabel={vehicleLabel} /> : null}
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>Plan & Build</Text>
@@ -572,36 +575,52 @@ function VehicleStat({ label, value }: { label: string; value: string }) {
 
 type GarageDynoResult = {
   fuel: string;
-  graphAvailable: boolean;
+  id: string;
   notes: string;
   peakPowerHpAtHubs: number;
   peakTorqueNmAtHubs: number | null;
   recordedAt: string;
+  secureAttachment: SecureVehicleAttachment | null;
 };
 
 function DynoResultCard({
   accountConnected,
   onOpenReports,
-  result,
+  results,
   vehicleLabel,
 }: {
   accountConnected: boolean;
   onOpenReports: () => void;
-  result: GarageDynoResult | null;
+  results: GarageDynoResult[];
   vehicleLabel: string;
 }) {
+  const [selectedResultId, setSelectedResultId] = useState(results[0]?.id ?? '');
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [graphState, setGraphState] = useState<{ attachmentId: string; error: string; uri: string | null } | null>(null);
+  const result = results.find((candidate) => candidate.id === selectedResultId) ?? results[0] ?? null;
+  const imageAttachment = result?.secureAttachment?.mimeType.startsWith('image/') ? result.secureAttachment : null;
+  const graphStateMatches = Boolean(imageAttachment && graphState?.attachmentId === imageAttachment.id);
+  const graphUri = graphStateMatches ? graphState?.uri ?? null : null;
+  const graphError = graphStateMatches ? graphState?.error ?? '' : '';
+  const graphLoading = Boolean(imageAttachment && !graphStateMatches);
+
+  useEffect(() => {
+    let active = true;
+    if (!imageAttachment) return;
+    void createPrivateVehicleAttachmentSignedUrl(imageAttachment)
+      .then((uri) => {
+        if (active) setGraphState({ attachmentId: imageAttachment.id, error: '', uri });
+      })
+      .catch(() => {
+        if (active) setGraphState({ attachmentId: imageAttachment.id, error: 'The private dyno graph could not be loaded. Open Reports to try again.', uri: null });
+      });
+    return () => { active = false; };
+  }, [imageAttachment]);
+
   return (
     <View style={styles.dynoCard}>
       <View style={styles.dynoBody}>
         <View style={styles.dynoHeading}>
-          <View style={styles.dynoImageFrame}>
-            <Image
-              accessibilityLabel="Illustrated diagnostic scan tool and vehicle health report"
-              resizeMode="contain"
-              source={REPORT_IMAGE}
-              style={[styles.fillImage, styles.reportImage]}
-            />
-          </View>
           <View style={styles.dynoHeadingCopy}>
             <Text style={styles.primaryLabel}>Latest PSI-verified hub dyno result</Text>
             <Text style={styles.dynoTitle}>{vehicleLabel}</Text>
@@ -614,6 +633,30 @@ function DynoResultCard({
         </View>
         {result ? (
           <>
+            {results.length > 1 ? (
+              <View>
+                <Pressable accessibilityRole="button" accessibilityState={{ expanded: historyOpen }} onPress={() => setHistoryOpen((current) => !current)} style={({ pressed }) => [styles.dynoRunSelector, pressed && styles.pressed]}>
+                  <View style={styles.dynoHeadingCopy}>
+                    <Text style={styles.resultLabel}>Selected dyno run</Text>
+                    <Text style={styles.dynoRunSelectorText}>{formatShortDate(result.recordedAt)} · {result.fuel}</Text>
+                  </View>
+                  <Ionicons color={colors.white} name={historyOpen ? 'chevron-up' : 'chevron-down'} size={19} />
+                </Pressable>
+                {historyOpen ? <View accessibilityRole="radiogroup" style={styles.dynoRunDropdown}>{results.map((candidate) => {
+                  const selected = candidate.id === result.id;
+                  return <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected }} key={candidate.id} onPress={() => { setSelectedResultId(candidate.id); setHistoryOpen(false); }} style={({ pressed }) => [styles.dynoRunChoice, selected && styles.dynoRunChoiceSelected, pressed && styles.pressed]}><Text style={[styles.dynoRunChoiceText, selected && styles.dynoRunChoiceTextSelected]}>{formatShortDate(candidate.recordedAt)} · {candidate.fuel}</Text>{selected ? <Ionicons color={colors.ink} name="checkmark-circle" size={18} /> : null}</Pressable>;
+                })}</View> : null}
+              </View>
+            ) : null}
+            <View style={styles.dynoGraphFrame}>
+              {graphUri ? <Image accessibilityLabel={`Private dyno graph for ${vehicleLabel}`} resizeMode="contain" source={{ uri: graphUri }} style={styles.fillImage} /> : graphLoading ? <ActivityIndicator color={colors.accent} size="large" /> : (
+                <View style={styles.dynoGraphPlaceholder}>
+                  <Image accessibilityLabel="PSI vehicle report illustration" resizeMode="contain" source={REPORT_IMAGE} style={styles.dynoGraphPlaceholderImage} />
+                  <Text style={styles.dynoGraphPlaceholderText}>{result.secureAttachment?.mimeType === 'application/pdf' ? 'Dyno report available as a private PDF' : result.secureAttachment ? 'Private graph available in Reports' : 'No graph image attached to this run'}</Text>
+                </View>
+              )}
+            </View>
+            {graphError ? <Text accessibilityRole="alert" style={styles.maintenanceError}>{graphError}</Text> : null}
             <View style={styles.resultGrid}>
               <ResultValue label="Peak power" value={`${result.peakPowerHpAtHubs}`} unit="HP at hubs" />
               <ResultValue label="Peak torque" value={result.peakTorqueNmAtHubs == null ? '—' : `${result.peakTorqueNmAtHubs}`} unit="Nm at hubs" />
@@ -622,7 +665,7 @@ function DynoResultCard({
               {result.notes ? <Text numberOfLines={2} style={styles.bodyCopy}>{result.notes}</Text> : null}
               <Text style={styles.readOnly}>Read-only for customers · PSI publishes each verified run</Text>
             </View>
-            <PrimaryButton label={result.graphAvailable ? 'View verified dyno graph' : 'Open dyno history'} onPress={onOpenReports} variant="outline" />
+            <PrimaryButton label="Open full dyno history" onPress={onOpenReports} variant="outline" />
           </>
         ) : (
           <View style={styles.emptyResult}>
@@ -711,16 +754,25 @@ const styles = StyleSheet.create({
   maintenanceError: { color: '#FF9F91', fontSize: 11, fontWeight: '800', lineHeight: 17 },
   maintenanceNotice: { color: colors.silver, fontSize: 11, fontWeight: '800', lineHeight: 17 },
   maintenanceExpiry: { color: colors.mutedDark, fontSize: 9, lineHeight: 14 },
-  photoSection: { ...mobileFrame, backgroundColor: colors.panel, padding: spacing.lg },
+  maintenancePhoto: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
   dynoCard: { ...mobileFrame, backgroundColor: colors.panel },
-  dynoImageFrame: { width: 82, height: 82, flexShrink: 0, overflow: 'hidden', backgroundColor: colors.ink },
-  reportImage: { transform: [{ scale: 1.4 }], transformOrigin: 'top center' },
   dynoBody: { gap: spacing.md, padding: spacing.md },
   dynoHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   dynoHeadingCopy: { flex: 1, gap: spacing.xs },
   dynoTitle: { color: colors.white, fontSize: 16, fontWeight: '900', textTransform: 'uppercase' },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 16, backgroundColor: colors.silver, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   verifiedText: { color: colors.ink, fontSize: 9, fontWeight: '900' },
+  dynoRunSelector: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.ink, padding: spacing.md },
+  dynoRunSelectorText: { color: colors.white, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  dynoRunDropdown: { overflow: 'hidden', borderWidth: 1, borderTopWidth: 0, borderColor: colors.line, backgroundColor: colors.ink },
+  dynoRunChoice: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line, paddingHorizontal: spacing.md },
+  dynoRunChoiceSelected: { backgroundColor: colors.silver },
+  dynoRunChoiceText: { flex: 1, color: colors.white, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
+  dynoRunChoiceTextSelected: { color: colors.ink },
+  dynoGraphFrame: { ...mobileFrame, width: '100%', aspectRatio: 16 / 10, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
+  dynoGraphPlaceholder: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.lg },
+  dynoGraphPlaceholderImage: { width: 110, height: 92 },
+  dynoGraphPlaceholderText: { color: colors.muted, fontSize: 10, fontWeight: '800', lineHeight: 16, textAlign: 'center', textTransform: 'uppercase' },
   resultGrid: { flexDirection: 'row', gap: spacing.sm },
   resultValue: { ...mobileFrame, flex: 1, minWidth: 0, gap: 2, backgroundColor: colors.ink, padding: spacing.sm },
   resultLabel: { color: colors.muted, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },

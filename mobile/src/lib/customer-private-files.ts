@@ -3,6 +3,7 @@ import * as Crypto from 'expo-crypto';
 import type { CustomerVehicleRow, VehicleFileRow } from '@/lib/database.types';
 import type { LocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 import { getSupabaseClient } from '@/lib/supabase';
+import type { SecureVehicleAttachment } from '@/lib/vehicle-reports-preview';
 
 const PRIVATE_PHOTO_BUCKET = 'vehicle-photos' as const;
 const MAX_CUSTOMER_PHOTO_BYTES = 8 * 1024 * 1024;
@@ -84,6 +85,20 @@ export async function createCustomerVehiclePhotoSignedUrl(file: VehicleFileRow) 
   const { data, error } = await supabase.storage
     .from(PRIVATE_PHOTO_BUCKET)
     .createSignedUrl(file.object_path, 10 * 60);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+export async function createPrivateVehicleAttachmentSignedUrl(attachment: SecureVehicleAttachment) {
+  const supabase = getSupabaseClient();
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const user = userData.user;
+  if (userError || !user) throw userError ?? new Error('CUSTOMER_SESSION_REQUIRED');
+  if (!attachment.objectPath.startsWith(`${user.id}/`)) throw new Error('CUSTOMER_FILE_ACCESS_DENIED');
+
+  const { data, error } = await supabase.storage
+    .from(attachment.bucketId)
+    .createSignedUrl(attachment.objectPath, 10 * 60);
   if (error) throw error;
   return data.signedUrl;
 }

@@ -129,6 +129,9 @@ export type Database = {
           first_name: string | null;
           last_name: string | null;
           mobile: string | null;
+          profile_photo_mime_type: string | null;
+          profile_photo_object_path: string | null;
+          profile_photo_updated_at: string | null;
           updated_at: string;
           user_id: string;
         };
@@ -139,6 +142,9 @@ export type Database = {
           first_name?: string | null;
           last_name?: string | null;
           mobile?: string | null;
+          profile_photo_mime_type?: string | null;
+          profile_photo_object_path?: string | null;
+          profile_photo_updated_at?: string | null;
           updated_at?: string;
           user_id: string;
         };
@@ -148,6 +154,9 @@ export type Database = {
           first_name?: string | null;
           last_name?: string | null;
           mobile?: string | null;
+          profile_photo_mime_type?: string | null;
+          profile_photo_object_path?: string | null;
+          profile_photo_updated_at?: string | null;
           updated_at?: string;
         };
         Relationships: [];

@@ -186,6 +186,7 @@ function VehicleReportsContent({
   const secureVehicles = secureAccount ? getAccountReportVehicles(secureAccount) : null;
   const vehicles = secureVehicles ?? previewVehicles;
   const [secureSelectedVehicleId, setSecureSelectedVehicleId] = useState(() => secureVehicles?.find((vehicle) => vehicle.id === requestedVehicleId)?.id ?? secureVehicles?.find((vehicle) => vehicle.isPrimary)?.id ?? secureVehicles?.[0]?.id ?? '');
+  const [vehicleSelectorOpen, setVehicleSelectorOpen] = useState(false);
   const selectedVehicleId = secureVehicles ? secureSelectedVehicleId : previewSelectedVehicleId;
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0];
   const vehicleLabel = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;
@@ -246,6 +247,7 @@ function VehicleReportsContent({
     setFormError('');
     setAttachmentError('');
     setSecureAttachmentError('');
+    setVehicleSelectorOpen(false);
     if (secureVehicles) setSecureSelectedVehicleId(vehicleId);
     else selectVehicle(vehicleId);
   };
@@ -496,27 +498,45 @@ function VehicleReportsContent({
         <FormError message={secureAttachmentError} />
 
         <SectionHeading meta={`${vehicles.length} vehicles`} title="Vehicle selector" />
-        <ScrollView accessibilityRole="radiogroup" contentContainerStyle={styles.vehicleSelector} horizontal showsHorizontalScrollIndicator={false}>
-          {vehicles.map((vehicle) => {
-            const selected = vehicle.id === selectedVehicle.id;
-            return (
-              <Pressable
-                accessibilityLabel={`${vehicle.year} ${vehicle.make} ${vehicle.model}, registration ${vehicle.registration}`}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: selected }}
-                key={vehicle.id}
-                onPress={() => handleVehicleSelection(vehicle.id)}
-                style={({ pressed }) => [styles.vehicleChoice, selected && styles.vehicleChoiceSelected, pressed && styles.pressed]}
-              >
-                <Ionicons color={selected ? colors.ink : colors.accent} name="car-sport" size={22} />
-                <View style={styles.vehicleChoiceCopy}>
-                  <Text style={[styles.vehicleChoiceTitle, selected && styles.vehicleChoiceTitleSelected]}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
-                  <Text style={[styles.vehicleChoiceMeta, selected && styles.vehicleChoiceMetaSelected]}>Registration · {vehicle.registration}</Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <Pressable
+          accessibilityHint={vehicles.length > 1 ? 'Opens your saved vehicle list' : 'Shows your selected vehicle'}
+          accessibilityLabel={`Selected vehicle, ${vehicleLabel}`}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: vehicleSelectorOpen }}
+          onPress={() => setVehicleSelectorOpen((current) => !current)}
+          style={({ pressed }) => [styles.vehicleSelectButton, pressed && styles.pressed]}
+        >
+          <Ionicons color={colors.ink} name="car-sport" size={22} />
+          <View style={styles.vehicleChoiceCopy}>
+            <Text numberOfLines={1} style={[styles.vehicleChoiceTitle, styles.vehicleChoiceTitleSelected]}>{vehicleLabel}</Text>
+            <Text numberOfLines={1} style={[styles.vehicleChoiceMeta, styles.vehicleChoiceMetaSelected]}>Registration · {selectedVehicle.registration}</Text>
+          </View>
+          <Ionicons color={colors.ink} name={vehicleSelectorOpen ? 'chevron-up' : 'chevron-down'} size={20} />
+        </Pressable>
+        {vehicleSelectorOpen ? (
+          <View accessibilityRole="radiogroup" style={styles.vehicleDropdown}>
+            {vehicles.map((vehicle) => {
+              const selected = vehicle.id === selectedVehicle.id;
+              return (
+                <Pressable
+                  accessibilityLabel={`${vehicle.year} ${vehicle.make} ${vehicle.model}, registration ${vehicle.registration}`}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selected }}
+                  key={vehicle.id}
+                  onPress={() => handleVehicleSelection(vehicle.id)}
+                  style={({ pressed }) => [styles.vehicleDropdownChoice, selected && styles.vehicleDropdownChoiceSelected, pressed && styles.pressed]}
+                >
+                  <Ionicons color={selected ? colors.ink : colors.accent} name="car-sport" size={20} />
+                  <View style={styles.vehicleChoiceCopy}>
+                    <Text style={[styles.vehicleChoiceTitle, selected && styles.vehicleChoiceTitleSelected]}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
+                    <Text style={[styles.vehicleChoiceMeta, selected && styles.vehicleChoiceMetaSelected]}>Registration · {vehicle.registration}</Text>
+                  </View>
+                  {selected ? <Ionicons color={colors.ink} name="checkmark-circle" size={20} /> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
 
         <View style={styles.selectedVehicleBar}>
           <Text style={styles.selectedVehicleKicker}>Viewing records for</Text>
@@ -826,9 +846,10 @@ const styles = StyleSheet.create({
   sectionHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.sm },
   sectionTitle: { flexShrink: 1, color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
   sectionMeta: { color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: .5, textTransform: 'uppercase' },
-  vehicleSelector: { gap: spacing.sm, paddingRight: spacing.md },
-  vehicleChoice: { ...mobileFrame, minWidth: 225, minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.panel, padding: spacing.md },
-  vehicleChoiceSelected: { backgroundColor: colors.silver },
+  vehicleSelectButton: { ...mobileFrame, minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.silver, padding: spacing.md },
+  vehicleDropdown: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
+  vehicleDropdownChoice: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line, padding: spacing.md },
+  vehicleDropdownChoiceSelected: { backgroundColor: colors.silver },
   vehicleChoiceCopy: { flex: 1, minWidth: 0, gap: 3 },
   vehicleChoiceTitle: { color: colors.white, fontSize: 12, fontWeight: '900' },
   vehicleChoiceTitleSelected: { color: colors.ink },

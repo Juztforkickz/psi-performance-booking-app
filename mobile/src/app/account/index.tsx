@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ProfilePhotoPicker } from '@/components/profile-photo-picker';
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -22,14 +23,21 @@ import {
 } from '@/lib/customer-auth';
 import { unregisterCurrentPushDevice } from '@/lib/notifications';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
+import {
+  createCustomerProfilePhotoSignedUrl,
+  removeCustomerProfilePhoto,
+  uploadCustomerProfilePhoto,
+} from '@/lib/customer-profile-photo';
 import type { AccountDeletionRequestRow } from '@/lib/database.types';
+import type { LocalVehiclePhoto } from '@/lib/local-vehicle-photo';
+import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 
 export default function AccountScreen() {
   const router = useRouter();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
   const { compact, horizontalPadding, short } = useResponsiveLayout();
   const auth = useCustomerAuth();
-  const { account, error: accountError, status: accountStatus } = useCustomerAccount();
+  const { account, error: accountError, refreshAccount, status: accountStatus } = useCustomerAccount();
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -42,6 +50,9 @@ export default function AccountScreen() {
   const [deletionConfirmVisible, setDeletionConfirmVisible] = useState(false);
   const [deletionError, setDeletionError] = useState('');
   const [deletionRequest, setDeletionRequest] = useState<AccountDeletionRequestRow | null>(null);
+  const [profilePhotoState, setProfilePhotoState] = useState<{ objectPath: string; uri: string; userId: string } | null>(null);
+  const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
+  const [profilePhotoNotice, setProfilePhotoNotice] = useState('');
   const openSetupAfterSignInRef = useRef(false);
   const authenticatedUserId = auth.user?.id;
   const secureReturnTo = (Array.isArray(returnTo) ? returnTo[0] : returnTo) === '/staff' ? '/staff' : null;
@@ -51,6 +62,12 @@ export default function AccountScreen() {
     && account.profile.mobile?.trim()
     && account.vehicles.length > 0,
   );
+  const currentProfilePhotoPath = account?.profile?.profile_photo_object_path ?? null;
+  const profilePhotoUri = account?.profile
+    && profilePhotoState?.userId === account.profile.user_id
+    && (profilePhotoState.objectPath === currentProfilePhotoPath || profilePhotoState.objectPath === 'pending')
+    ? profilePhotoState.uri
+    : null;
 
   useEffect(() => {
     if (auth.status === 'signed_in' && secureReturnTo) router.replace(secureReturnTo);
@@ -82,6 +99,20 @@ export default function AccountScreen() {
       });
     return () => { cancelled = true; };
   }, [auth.status, authenticatedUserId]);
+
+  useEffect(() => {
+    let active = true;
+    const profile = account?.profile;
+    if (!profile?.profile_photo_object_path) return;
+    void createCustomerProfilePhotoSignedUrl(profile)
+      .then((uri) => {
+        if (active && uri) setProfilePhotoState({ objectPath: profile.profile_photo_object_path!, uri, userId: profile.user_id });
+      })
+      .catch(() => {
+        if (active) setProfilePhotoNotice('Your private profile photo could not be opened. Your account details are unaffected.');
+      });
+    return () => { active = false; };
+  }, [account?.profile]);
 
   const beginSignIn = async () => {
     if (busy || resendSeconds > 0) return;
@@ -173,6 +204,35 @@ export default function AccountScreen() {
       setDeletionError('The pending request could not be cancelled. Please contact PSI support before the review is completed.');
     } finally {
       setDeletionBusy(false);
+    }
+  };
+
+  const changeProfilePhoto = async (photo: LocalVehiclePhoto | null) => {
+    const profile = account?.profile;
+    if (!profile || profilePhotoBusy) return;
+    const previousState = profilePhotoState;
+    setProfilePhotoBusy(true);
+    setProfilePhotoNotice('');
+    try {
+      if (!photo) {
+        const result = await removeCustomerProfilePhoto(profile);
+        setProfilePhotoState(null);
+        setProfilePhotoNotice(result.storageRemoved
+          ? 'Your profile photo was removed.'
+          : 'Your profile photo was removed from the account. The previous private file is queued for cleanup.');
+      } else {
+        setProfilePhotoState({ objectPath: 'pending', uri: photo.uri, userId: profile.user_id });
+        const result = await uploadCustomerProfilePhoto(photo);
+        setProfilePhotoState({ objectPath: result.profile.profile_photo_object_path!, uri: result.signedUrl, userId: profile.user_id });
+        setProfilePhotoNotice(result.cleanupWarning ?? 'Your profile photo was saved privately.');
+      }
+      refreshAccount();
+    } catch {
+      setProfilePhotoState(previousState);
+      setProfilePhotoNotice('The profile photo was not changed. Choose a JPEG, PNG or WebP image under 8 MB and try again.');
+    } finally {
+      if (photo) releaseLocalVehiclePhoto(photo);
+      setProfilePhotoBusy(false);
     }
   };
 
@@ -290,12 +350,28 @@ export default function AccountScreen() {
               <Text style={styles.dashboardBadge}>Signed in</Text>
             </View>
             <Text style={styles.dashboardTitle}>{account?.profile?.first_name ? `Welcome, ${account.profile.first_name}.` : 'Your PSI account.'}</Text>
-            <Text style={styles.dashboardCopy}>{auth.user?.email}</Text>
             {accountError ? <Text accessibilityRole="alert" style={styles.errorText}>{accountError}</Text> : null}
             {accountStatus === 'loading' ? <Text style={styles.dashboardCopy}>Loading your account…</Text> : null}
-            {account ? (
+            {account?.profile ? (
+              <>
+                <ProfilePhotoPicker
+                  initials={`${account.profile.first_name?.[0] ?? ''}${account.profile.last_name?.[0] ?? ''}`}
+                  onChange={(photo) => void changeProfilePhoto(photo)}
+                  saving={profilePhotoBusy}
+                  uri={profilePhotoUri}
+                />
+                {profilePhotoNotice ? <Text accessibilityRole="alert" style={styles.profilePhotoNotice}>{profilePhotoNotice}</Text> : null}
+                <View style={styles.profileDetails}>
+                  <ProfileDetail label="Name" value={[account.profile.first_name, account.profile.last_name].filter(Boolean).join(' ') || 'Not completed'} />
+                  <ProfileDetail label="Email" value={account.profile.email} />
+                  <ProfileDetail label="Mobile" value={account.profile.mobile || 'Not completed'} />
+                  <ProfileDetail label="Vehicles" value={`${account.vehicles.length} saved`} />
+                </View>
+                <PrimaryButton label="Edit my profile" onPress={() => router.push('/account/sign-up')} />
+              </>
+            ) : account ? (
               <View style={styles.dashboardGrid}>
-                <AccountFeature index="01" title="Profile" copy={accountSetupComplete ? 'Profile ready.' : 'Complete your profile to continue.'} />
+                <AccountFeature index="01" title="Profile" copy="Complete your profile to continue." />
                 <AccountFeature index="02" title="Vehicles" copy={`${account.vehicles.length} vehicle${account.vehicles.length === 1 ? '' : 's'}.`} />
               </View>
             ) : null}
@@ -330,7 +406,7 @@ export default function AccountScreen() {
         </View>
         ) : null}
 
-        <View style={[styles.createCard, compact && styles.cardCompact]}>
+        {auth.status === 'signed_in' && account?.profile ? null : <View style={[styles.createCard, compact && styles.cardCompact]}>
           <View style={styles.createCopy}>
             <Text style={styles.createTitle}>{account ? accountSetupComplete ? 'Account details' : 'Complete your profile' : CUSTOMER_AUTH.enabled ? 'Need an account?' : 'New to PSI?'}</Text>
             <Text style={styles.createText}>{account ? accountSetupComplete ? 'Update your contact details and primary vehicle.' : 'Add your name, mobile number and first vehicle to finish setting up your private PSI account.' : CUSTOMER_AUTH.registrationEnabled ? 'Add your details and primary vehicle.' : CUSTOMER_AUTH.enabled ? 'New customer accounts are set up by PSI. Contact us for access.' : 'Explore account setup with demonstration details.'}</Text>
@@ -340,7 +416,7 @@ export default function AccountScreen() {
             onPress={() => router.push(account || CUSTOMER_AUTH.registrationEnabled || !CUSTOMER_AUTH.enabled ? '/account/sign-up' : '/support')}
             variant="outline"
           />
-        </View>
+        </View>}
 
         {CUSTOMER_AUTH.enabled && auth.status === 'signed_in' ? (
           <View accessibilityLabel="Account deletion controls" style={[styles.deletionCard, compact && styles.cardCompact]}>
@@ -442,6 +518,11 @@ const styles = StyleSheet.create({
   dashboardBadge: { color: colors.ink, fontSize: 8, fontWeight: '900', textTransform: 'uppercase', backgroundColor: colors.accent, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   dashboardTitle: { color: colors.white, fontSize: 22, fontWeight: '900', lineHeight: 26, textTransform: 'uppercase' },
   dashboardCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
+  profilePhotoNotice: { color: colors.silver, fontSize: 10, lineHeight: 16 },
+  profileDetails: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  profileDetail: { minWidth: 150, flex: 1, gap: 3, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.sm },
+  profileDetailLabel: { color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
+  profileDetailValue: { color: colors.white, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   dashboardGrid: { gap: spacing.sm },
   accountFeature: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.inkSoft, padding: spacing.md },
   accountFeatureIndex: { color: colors.accent, fontSize: 9, fontWeight: '900' },
@@ -484,4 +565,13 @@ const styles = StyleSheet.create({
 
 function formatAccountDate(value: string) {
   return formatAustralianDate(value, value);
+}
+
+function ProfileDetail({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.profileDetail}>
+      <Text style={styles.profileDetailLabel}>{label}</Text>
+      <Text style={styles.profileDetailValue}>{value}</Text>
+    </View>
+  );
 }

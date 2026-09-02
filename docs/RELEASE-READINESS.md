@@ -241,6 +241,12 @@ policies are restrictive, and a request without an authorization header is
 rejected. No real or synthetic customer was deleted during deployment. The
 full disposable native account and private-Storage acceptance remains required.
 
+Migration `20260902054705_customer_profile_photo` adds nullable private profile
+photo metadata to each customer profile. Images remain in the existing private
+`vehicle-photos` bucket under the customer's own UUID and `profile` prefix, so
+the existing owner-only Storage policies and complete-account-deletion cleanup
+continue to apply. No public image URL or new public Storage policy was added.
+
 ## Deliberately last
 
 Select the deposit provider, confirm PSI legal/GST/refund wording, implement and verify its signed webhook, and only then test the trusted payment-confirmed transition that creates the internal Google Calendar event. No manual client or staff action may mark a deposit paid.
