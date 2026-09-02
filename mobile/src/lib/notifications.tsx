@@ -36,6 +36,7 @@ type PreferenceKey = 'booking_reminders_enabled' | 'booking_updates_enabled' | '
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 let registeredToken = '';
 const PUSH_TOKEN_STORAGE_KEY = 'psi-notifications.expo-push-token';
+const PUSH_ENABLED_STORAGE_KEY = 'psi-notifications.device-alerts-enabled';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -80,15 +81,47 @@ export function NotificationProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (Platform.OS === 'web' || auth.status !== 'signed_in') return;
-    void SecureStore.getItemAsync(PUSH_TOKEN_STORAGE_KEY)
-      .then((token) => {
-        if (token) {
-          registeredToken = token;
-          setPushStatus('ready');
+    let active = true;
+    void Promise.all([
+      SecureStore.getItemAsync(PUSH_ENABLED_STORAGE_KEY),
+      SecureStore.getItemAsync(PUSH_TOKEN_STORAGE_KEY),
+    ])
+      .then(async ([enabled, storedToken]) => {
+        if (enabled !== 'true' && !storedToken) {
+          if (active) setPushStatus('not_enabled');
+          return;
         }
+        if (!Device.isDevice) {
+          if (active) setPushStatus('unsupported');
+          return;
+        }
+        const permission = await Notifications.getPermissionsAsync();
+        if (permission.status !== 'granted') {
+          if (active) setPushStatus('not_enabled');
+          return;
+        }
+        const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+        if (!projectId) {
+          if (active) setPushStatus('disabled');
+          return;
+        }
+        const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+        const { error } = await getSupabaseClient().functions.invoke('process-push-notifications', {
+          body: { action: 'register_device', expoPushToken: token, platform: Platform.OS },
+        });
+        if (error) throw error;
+        registeredToken = token;
+        await Promise.all([
+          SecureStore.setItemAsync(PUSH_ENABLED_STORAGE_KEY, 'true'),
+          SecureStore.setItemAsync(PUSH_TOKEN_STORAGE_KEY, token),
+        ]);
+        if (active) setPushStatus('ready');
       })
-      .catch(() => setPushStatus('not_enabled'));
-  }, [auth.status]);
+      .catch(() => {
+        if (active) setPushStatus('disabled');
+      });
+    return () => { active = false; };
+  }, [auth.sessionRevision, auth.status]);
 
   useEffect(() => {
     if (Platform.OS === 'web') return;
@@ -131,7 +164,10 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     });
     if (error) throw error;
     registeredToken = token;
-    await SecureStore.setItemAsync(PUSH_TOKEN_STORAGE_KEY, token);
+    await Promise.all([
+      SecureStore.setItemAsync(PUSH_ENABLED_STORAGE_KEY, 'true'),
+      SecureStore.setItemAsync(PUSH_TOKEN_STORAGE_KEY, token),
+    ]);
     setPushStatus('ready');
   }, []);
 
@@ -147,7 +183,10 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       });
       if (error) throw error;
     }
-    await SecureStore.deleteItemAsync(PUSH_TOKEN_STORAGE_KEY);
+    await Promise.all([
+      SecureStore.deleteItemAsync(PUSH_ENABLED_STORAGE_KEY),
+      SecureStore.deleteItemAsync(PUSH_TOKEN_STORAGE_KEY),
+    ]);
     registeredToken = '';
     await Notifications.setBadgeCountAsync(0).catch(() => undefined);
     setPushStatus('not_enabled');
@@ -206,7 +245,6 @@ export async function unregisterCurrentPushDevice() {
   try {
     await getSupabaseClient().functions.invoke('process-push-notifications', { body: { action: 'unregister_device', expoPushToken: registeredToken } });
   } finally {
-    if (Platform.OS !== 'web') await SecureStore.deleteItemAsync(PUSH_TOKEN_STORAGE_KEY);
     registeredToken = '';
   }
 }

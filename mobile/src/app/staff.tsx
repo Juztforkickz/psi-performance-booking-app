@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
@@ -53,6 +53,8 @@ const INTEGRATION_JOB_LABELS: Record<StaffPortalSnapshot['integrationJobs'][numb
   notify_psi_request_received: 'Email PSI · new request',
   sync_google_calendar_confirmed: 'Google Calendar · confirmed booking',
 };
+
+type HistoryPeriod = { label: string; value: string };
 
 export default function StaffPortalScreen() {
   const router = useRouter();
@@ -322,8 +324,18 @@ function StaffWorkspace({
   const [invitationNotice, setInvitationNotice] = useState('');
   const [latestInvitation, setLatestInvitation] = useState<CustomerInvitationResult['invitation'] | null>(null);
   const [vehiclePhotoUris, setVehiclePhotoUris] = useState<Record<string, string>>({});
+  const [auditPeriod, setAuditPeriod] = useState('');
+  const [integrationHistoryOpen, setIntegrationHistoryOpen] = useState(false);
+  const [integrationPeriod, setIntegrationPeriod] = useState('');
   const activeBookings = snapshot.bookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
-  const waitingIntegrationJobs = snapshot.integrationJobs.filter((job) => ['blocked_configuration', 'failed', 'pending'].includes(job.status));
+  const waitingIntegrationJobs = snapshot.integrationJobs.filter((job) => ['blocked_configuration', 'failed', 'pending', 'processing'].includes(job.status));
+  const completedIntegrationJobs = snapshot.integrationJobs.filter((job) => ['cancelled', 'succeeded'].includes(job.status));
+  const auditPeriods = useMemo(() => historyPeriods(snapshot.auditEvents.map((event) => event.occurred_at)), [snapshot.auditEvents]);
+  const integrationPeriods = useMemo(() => historyPeriods(completedIntegrationJobs.map((job) => job.completed_at ?? job.created_at)), [completedIntegrationJobs]);
+  const selectedAuditPeriod = resolveHistoryPeriod(auditPeriod, auditPeriods);
+  const selectedIntegrationPeriod = resolveHistoryPeriod(integrationPeriod, integrationPeriods);
+  const visibleAuditEvents = snapshot.auditEvents.filter((event) => historyPeriodValue(event.occurred_at) === selectedAuditPeriod).slice(0, 24);
+  const visibleIntegrationHistory = completedIntegrationJobs.filter((job) => historyPeriodValue(job.completed_at ?? job.created_at) === selectedIntegrationPeriod).slice(0, 24);
   const visibleInvitations = latestInvitation
     ? [latestInvitation, ...snapshot.invitations.filter((invitation) => invitation.id !== latestInvitation.id)]
     : snapshot.invitations;
@@ -352,7 +364,6 @@ function StaffWorkspace({
     try {
       const result = await processBookingIntegrationJobs();
       setIntegrationResult(result);
-      onRefresh();
     } catch {
       setIntegrationError('The protected worker could not be reached. Nothing was sent and no Calendar event was created.');
     } finally {
@@ -530,19 +541,29 @@ function StaffWorkspace({
           );
         })}
 
-        <SectionHeading copy="Provider-neutral jobs are recorded once for audit and retry safety. Pending means queued only—it does not claim an email was sent or a Calendar event created." title="Email & Calendar queue" />
+        <SectionHeading copy="Check jobs that need attention. Completed delivery records stay available in a compact month-by-month history." title="Email & Calendar queue" />
         <View style={styles.integrationControls}>
-          <Text style={styles.securityCopy}>Only Matt&apos;s current AAL2 staff session can start this worker. Resend and Google Calendar credentials are configured as private provider secrets for this QA flow.</Text>
-          <Text style={styles.contextLine}>Waiting integration jobs · {waitingIntegrationJobs.length}</Text>
+          <View style={styles.queueStatusRow}>
+            <Ionicons color={waitingIntegrationJobs.length ? colors.danger : colors.success} name={waitingIntegrationJobs.length ? 'alert-circle' : 'checkmark-circle'} size={22} />
+            <View style={styles.flex}>
+              <Text style={styles.securityTitle}>{waitingIntegrationJobs.length ? `${waitingIntegrationJobs.length} job${waitingIntegrationJobs.length === 1 ? '' : 's'} need attention` : 'Queue is clear'}</Text>
+              <Text style={styles.securityCopy}>Email delivery is active. Google Calendar is ready and creates a private event only when a booking legitimately reaches Confirmed.</Text>
+            </View>
+          </View>
           <PrimaryButton label="Check email & Calendar queue" loading={integrationBusy} onPress={() => void processIntegrationQueue()} variant="outline" />
           {integrationResult ? (
-            <Text accessibilityLiveRegion="polite" style={styles.contextLine}>
-              Processed {integrationResult.processed} · Email {integrationResult.readiness.emailConfigured ? 'ready' : 'not configured'} · Calendar {integrationResult.readiness.calendarConfigured ? 'ready' : 'not configured'} · Payments intentionally off
-            </Text>
+            <View accessibilityLiveRegion="polite" style={styles.integrationSuccess}>
+              <Ionicons color={colors.success} name="checkmark-circle" size={20} />
+              <View style={styles.flex}>
+                <Text style={styles.integrationSuccessTitle}>Queue check complete</Text>
+                <Text style={styles.integrationSuccessCopy}>{integrationResult.processed === 0 ? 'No waiting jobs were found.' : `${integrationResult.processed} waiting job${integrationResult.processed === 1 ? '' : 's'} checked.`} Email {integrationResult.readiness.emailConfigured ? 'connected' : 'needs configuration'} · Calendar {integrationResult.readiness.calendarConfigured ? 'connected' : 'needs configuration'}.</Text>
+              </View>
+            </View>
           ) : null}
+          {integrationResult?.processed ? <PrimaryButton label="Refresh portal records" onPress={onRefresh} /> : null}
           {integrationError ? <Text accessibilityRole="alert" style={styles.integrationError}>{integrationError}</Text> : null}
         </View>
-        {snapshot.integrationJobs.length === 0 ? <EmptyState>No booking integration jobs are currently queued.</EmptyState> : snapshot.integrationJobs.slice(0, 16).map((job) => (
+        {waitingIntegrationJobs.length === 0 ? <EmptyState>No email or Calendar jobs need attention.</EmptyState> : waitingIntegrationJobs.slice(0, 16).map((job) => (
           <View key={job.id} style={styles.card}>
             <View style={styles.cardHeading}>
               <Text style={styles.cardTitle}>{INTEGRATION_JOB_LABELS[job.job_kind]}</Text>
@@ -555,16 +576,48 @@ function StaffWorkspace({
           </View>
         ))}
 
-        <SectionHeading copy="Recent protected database activity. This feed records who changed customer, vehicle, booking, workshop record and integration-job data." title="Audit history" />
-        {snapshot.auditEvents.length === 0 ? <EmptyState>No audit events are currently shown.</EmptyState> : snapshot.auditEvents.slice(0, 16).map((event) => (
-          <View key={event.id} style={styles.auditRow}>
-            <Ionicons color={event.actor_kind === 'staff' ? colors.accent : colors.muted} name={event.actor_kind === 'staff' ? 'shield-checkmark' : event.actor_kind === 'customer' ? 'person' : 'cog'} size={18} />
-            <View style={styles.flex}>
-              <Text style={styles.auditTitle}>{humanize(event.table_name)} · {humanize(event.action)}</Text>
-              <Text style={styles.contextLine}>{humanize(event.actor_kind)} · {formatDateTime(event.occurred_at)}</Text>
-            </View>
+        {completedIntegrationJobs.length ? (
+          <View style={styles.historyPanel}>
+            <Pressable accessibilityRole="button" onPress={() => setIntegrationHistoryOpen((current) => !current)} style={({ pressed }) => [styles.historyHeading, pressed && styles.pressed]}>
+              <View style={styles.flex}>
+                <Text style={styles.historyTitle}>Completed delivery history</Text>
+                <Text style={styles.historyMeta}>{completedIntegrationJobs.length} recorded job{completedIntegrationJobs.length === 1 ? '' : 's'}</Text>
+              </View>
+              <Ionicons color={colors.accent} name={integrationHistoryOpen ? 'chevron-up' : 'chevron-down'} size={22} />
+            </Pressable>
+            {integrationHistoryOpen ? (
+              <>
+                <HistoryDropdown label="Month and year" onChange={setIntegrationPeriod} options={integrationPeriods} value={selectedIntegrationPeriod} />
+                {visibleIntegrationHistory.map((job) => (
+                  <View key={job.id} style={styles.compactHistoryRow}>
+                    <Ionicons color={job.status === 'succeeded' ? colors.success : colors.muted} name={job.status === 'succeeded' ? 'checkmark-circle' : 'remove-circle-outline'} size={18} />
+                    <View style={styles.flex}>
+                      <Text style={styles.auditTitle}>{INTEGRATION_JOB_LABELS[job.job_kind]}</Text>
+                      <Text style={styles.contextLine}>{humanize(job.status)} · {formatDateTime(job.completed_at ?? job.created_at)}</Text>
+                    </View>
+                  </View>
+                ))}
+              </>
+            ) : null}
           </View>
-        ))}
+        ) : null}
+
+        <SectionHeading copy="Protected activity is grouped by month so the portal stays concise and easy to review." title="Audit history" />
+        {snapshot.auditEvents.length === 0 ? <EmptyState>No audit events are currently shown.</EmptyState> : (
+          <View style={styles.historyPanel}>
+            <HistoryDropdown label="Month and year" onChange={setAuditPeriod} options={auditPeriods} value={selectedAuditPeriod} />
+            <Text style={styles.historyMeta}>{visibleAuditEvents.length} event{visibleAuditEvents.length === 1 ? '' : 's'} shown</Text>
+            {visibleAuditEvents.map((event) => (
+              <View key={event.id} style={styles.auditRow}>
+                <Ionicons color={event.actor_kind === 'staff' ? colors.accent : colors.muted} name={event.actor_kind === 'staff' ? 'shield-checkmark' : event.actor_kind === 'customer' ? 'person' : 'cog'} size={18} />
+                <View style={styles.flex}>
+                  <Text style={styles.auditTitle}>{humanize(event.table_name)} · {humanize(event.action)}</Text>
+                  <Text style={styles.contextLine}>{humanize(event.actor_kind)} · {formatDateTime(event.occurred_at)}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
 
         <SectionHeading copy="Customer contact and vehicle ownership remain read-only in this stage." title="Customer and vehicle lookup" />
         {snapshot.customers.length === 0 ? <EmptyState>No active customer accounts are currently shown.</EmptyState> : snapshot.customers.map((customer) => {
@@ -724,6 +777,67 @@ function EmptyState({ children }: { children: string }) {
   return <View style={styles.empty}><Text style={styles.emptyText}>{children}</Text></View>;
 }
 
+function HistoryDropdown({ label, onChange, options, value }: { label: string; onChange: (value: string) => void; options: HistoryPeriod[]; value: string }) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value) ?? options[0];
+  if (!selected) return null;
+  return (
+    <>
+      <Pressable accessibilityLabel={`${label}: ${selected.label}`} accessibilityRole="button" onPress={() => setOpen(true)} style={({ pressed }) => [styles.historySelect, pressed && styles.pressed]}>
+        <View style={styles.flex}>
+          <Text style={styles.historySelectLabel}>{label}</Text>
+          <Text style={styles.historySelectValue}>{selected.label}</Text>
+        </View>
+        <Ionicons color={colors.accent} name="chevron-down" size={20} />
+      </Pressable>
+      <Modal animationType="fade" onRequestClose={() => setOpen(false)} transparent visible={open}>
+        <View style={styles.modalBackdrop}>
+          <View accessibilityViewIsModal style={styles.modalCard}>
+            <View style={styles.modalHeading}>
+              <Text style={styles.modalTitle}>Choose month and year</Text>
+              <Pressable accessibilityLabel="Close month and year menu" accessibilityRole="button" onPress={() => setOpen(false)} style={styles.modalClose}>
+                <Ionicons color={colors.white} name="close" size={22} />
+              </Pressable>
+            </View>
+            <ScrollView style={styles.modalOptions}>
+              {options.map((option) => {
+                const isSelected = option.value === value;
+                return (
+                  <Pressable accessibilityRole="button" accessibilityState={{ selected: isSelected }} key={option.value} onPress={() => { onChange(option.value); setOpen(false); }} style={({ pressed }) => [styles.modalOption, isSelected && styles.modalOptionSelected, pressed && styles.pressed]}>
+                    <Text style={[styles.modalOptionText, isSelected && styles.modalOptionTextSelected]}>{option.label}</Text>
+                    {isSelected ? <Ionicons color={colors.ink} name="checkmark" size={20} /> : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+}
+
+function historyPeriods(values: string[]): HistoryPeriod[] {
+  const unique = [...new Set(values.filter(Boolean).map(historyPeriodValue))].sort((a, b) => b.localeCompare(a));
+  return unique.map((value) => ({ value, label: historyPeriodLabel(value) }));
+}
+
+function resolveHistoryPeriod(selected: string, options: HistoryPeriod[]) {
+  return options.some((option) => option.value === selected) ? selected : options[0]?.value ?? '';
+}
+
+function historyPeriodValue(value: string) {
+  const parts = new Intl.DateTimeFormat('en-AU', { month: '2-digit', timeZone: 'Australia/Melbourne', year: 'numeric' }).formatToParts(new Date(value));
+  const year = parts.find((part) => part.type === 'year')?.value ?? '';
+  const month = parts.find((part) => part.type === 'month')?.value ?? '';
+  return `${year}-${month}`;
+}
+
+function historyPeriodLabel(value: string) {
+  const [year, month] = value.split('-').map(Number);
+  return new Intl.DateTimeFormat('en-AU', { month: 'long', year: 'numeric' }).format(new Date(Date.UTC(year, month - 1, 1)));
+}
+
 function customerName(customer: StaffPortalSnapshot['customers'][number] | undefined) {
   if (!customer) return 'Customer record unavailable';
   return [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.email;
@@ -814,6 +928,28 @@ const styles = StyleSheet.create({
   deletionError: { color: colors.danger, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   integrationError: { color: colors.danger, fontSize: 11, fontWeight: '800', lineHeight: 17, marginTop: spacing.xs },
   integrationControls: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.sm, marginBottom: spacing.sm, padding: spacing.md },
+  queueStatusRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
+  integrationSuccess: { alignItems: 'flex-start', backgroundColor: '#12251E', flexDirection: 'row', gap: spacing.sm, padding: spacing.sm },
+  integrationSuccessTitle: { color: colors.success, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
+  integrationSuccessCopy: { color: colors.silver, fontSize: 11, lineHeight: 17, marginTop: 2 },
+  historyPanel: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.sm, marginBottom: spacing.sm, padding: spacing.md },
+  historyHeading: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between', minHeight: 48 },
+  historyTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
+  historyMeta: { color: colors.accent, fontSize: 11, fontWeight: '800', lineHeight: 17 },
+  historySelect: { alignItems: 'center', backgroundColor: colors.panelRaised, borderColor: colors.line, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, minHeight: 60, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  historySelectLabel: { color: colors.muted, fontSize: 10, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase' },
+  historySelectValue: { color: colors.white, fontSize: 15, fontWeight: '900', marginTop: 2 },
+  compactHistoryRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.sm },
+  modalBackdrop: { alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.78)', flex: 1, justifyContent: 'center', padding: spacing.lg },
+  modalCard: { ...mobileFrame, backgroundColor: colors.panel, maxHeight: '72%', maxWidth: 520, padding: spacing.md, width: '100%' },
+  modalHeading: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between', marginBottom: spacing.sm },
+  modalTitle: { color: colors.white, flex: 1, fontSize: 18, fontWeight: '900' },
+  modalClose: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
+  modalOptions: { flexGrow: 0 },
+  modalOption: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 52, paddingHorizontal: spacing.sm },
+  modalOptionSelected: { backgroundColor: colors.accent },
+  modalOptionText: { color: colors.white, fontSize: 14, fontWeight: '800' },
+  modalOptionTextSelected: { color: colors.ink },
   invitationPanel: { ...mobileFrame, backgroundColor: colors.panel, gap: spacing.md, padding: spacing.md },
   invitationNotice: { color: colors.success, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   testFlightStep: { alignItems: 'flex-start', backgroundColor: colors.inkSoft, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },

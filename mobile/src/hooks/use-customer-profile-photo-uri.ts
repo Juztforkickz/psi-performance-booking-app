@@ -18,7 +18,6 @@ export function useCustomerProfilePhotoUri() {
   useEffect(() => {
     let active = true;
     if (!profile?.profile_photo_object_path) {
-      setPhotoState(null);
       return () => { active = false; };
     }
 

@@ -21,7 +21,6 @@ import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
-import { useCustomerAccount } from '@/lib/customer-account-context';
 import {
   HOME_TILE_IDS,
   type HomeTileId,
@@ -64,7 +63,6 @@ const PSI_PROMISES = [
 
 export default function CustomerHomeScreen() {
   const router = useRouter();
-  const { account } = useCustomerAccount();
   const { prepareBookingVehicle, selectedVehicleId } = useCustomerPreview();
   const { compact, horizontalPadding, largeText, tablet, width } = useResponsiveLayout();
   const { activeTheme, theme } = useThemePreference();
