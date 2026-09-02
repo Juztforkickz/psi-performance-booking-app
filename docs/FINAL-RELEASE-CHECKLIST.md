@@ -45,7 +45,8 @@ Status: controlled QA, 2 September 2026. Payments are deliberately last.
 - [ ] Complete iPhone notification permission, sound, badge and deep-link tests
   using the first signed internal iOS QA build.
 - [ ] Complete equivalent Android testing on a supported borrowed or dedicated
-  test device before Google Play release.
+  test device before Google Play release, recording the evidence in
+  `ANDROID-NATIVE-QA-CHECKLIST.md`.
 - [x] Record current Supabase plan, region and capacity; add a guarded encrypted
   logical-backup procedure for controlled QA.
 - [ ] Upgrade before external onboarding, confirm scheduled backup retention and
