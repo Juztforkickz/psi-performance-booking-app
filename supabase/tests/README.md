@@ -37,3 +37,9 @@ The script starts a transaction and ends with `rollback`, so its users, records
 and audit events never persist. Run it only with a privileged database test
 connection; it deliberately changes to the `authenticated` database role while
 testing the real policies.
+
+`customer_invitation_rls.sql` verifies that invite audit rows remain invisible
+to customers and AAL1 staff, are readable only to an AAL2 owner, cannot be
+mutated through the authenticated Data API, and move to `profile_complete` when
+the invited customer saves their required contact details. Its synthetic users
+and invitation are also rolled back.

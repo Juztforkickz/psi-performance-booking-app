@@ -16,10 +16,12 @@ import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import {
   beginStaffTotpEnrollment,
+  inviteCustomer,
   loadStaffVehiclePhotoUrls,
   loadStaffPortalAccess,
   processBookingIntegrationJobs,
   type BookingIntegrationRunResult,
+  type CustomerInvitationResult,
   type StaffPortalAccess,
   type StaffPortalSnapshot,
   type StaffTotpEnrollment,
@@ -311,9 +313,17 @@ function StaffWorkspace({
   const [integrationBusy, setIntegrationBusy] = useState(false);
   const [integrationResult, setIntegrationResult] = useState<BookingIntegrationRunResult | null>(null);
   const [integrationError, setIntegrationError] = useState('');
+  const [invitationEmail, setInvitationEmail] = useState('');
+  const [invitationBusy, setInvitationBusy] = useState(false);
+  const [invitationError, setInvitationError] = useState('');
+  const [invitationNotice, setInvitationNotice] = useState('');
+  const [latestInvitation, setLatestInvitation] = useState<CustomerInvitationResult['invitation'] | null>(null);
   const [vehiclePhotoUris, setVehiclePhotoUris] = useState<Record<string, string>>({});
   const activeBookings = snapshot.bookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
   const waitingIntegrationJobs = snapshot.integrationJobs.filter((job) => ['blocked_configuration', 'failed', 'pending'].includes(job.status));
+  const visibleInvitations = latestInvitation
+    ? [latestInvitation, ...snapshot.invitations.filter((invitation) => invitation.id !== latestInvitation.id)]
+    : snapshot.invitations;
   const vehiclesByCustomer = useMemo(() => {
     const grouped = new Map<string, StaffPortalSnapshot['vehicles']>();
     snapshot.vehicles.forEach((vehicle) => grouped.set(vehicle.customer_id, [...(grouped.get(vehicle.customer_id) ?? []), vehicle]));
@@ -344,6 +354,33 @@ function StaffWorkspace({
       setIntegrationError('The protected worker could not be reached. Nothing was sent and no Calendar event was created.');
     } finally {
       setIntegrationBusy(false);
+    }
+  };
+
+  const approveCustomerAccess = async () => {
+    if (invitationBusy) return;
+    const normalizedEmail = invitationEmail.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      setInvitationError('Enter the customer’s complete email address.');
+      setInvitationNotice('');
+      return;
+    }
+    setInvitationBusy(true);
+    setInvitationError('');
+    setInvitationNotice('');
+    try {
+      const result = await inviteCustomer(normalizedEmail);
+      setInvitationEmail('');
+      setLatestInvitation(result.invitation);
+      setInvitationNotice(
+        result.invitation.status === 'profile_complete'
+          ? `${result.invitation.email} already has a completed PSI profile. Their account remains approved.`
+          : `${result.invitation.email} can now request their own six-digit PSI sign-in code. Add the same email to TestFlight next.`,
+      );
+    } catch {
+      setInvitationError('Customer access could not be approved. Check the email, confirm your authenticator session is current, then try again. No public registration was opened.');
+    } finally {
+      setInvitationBusy(false);
     }
   };
 
@@ -383,6 +420,57 @@ function StaffWorkspace({
           <Metric label="Active requests" value={activeBookings.length} />
           <Metric label="Deletion requests" value={snapshot.accountDeletionRequests.filter((request) => request.status !== 'completed').length} />
         </View>
+
+        {role === 'owner' ? (
+          <>
+            <SectionHeading
+              copy="Approve one customer email at a time. They create their own private profile after signing in; public registration stays closed."
+              title="Invite a customer"
+            />
+            <View style={styles.invitationPanel}>
+              <Field error={invitationError} hint="Use the same email for PSI access and the Apple TestFlight invitation" label="Customer email">
+                <FormInput
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  error={invitationError}
+                  keyboardType="email-address"
+                  maxLength={160}
+                  onChangeText={(value) => {
+                    setInvitationEmail(value);
+                    setInvitationError('');
+                    setInvitationNotice('');
+                  }}
+                  placeholder="customer@example.com"
+                  value={invitationEmail}
+                />
+              </Field>
+              <PrimaryButton label="Approve PSI account" loading={invitationBusy} onPress={() => void approveCustomerAccess()} />
+              {invitationNotice ? <Text accessibilityLiveRegion="polite" style={styles.invitationNotice}>{invitationNotice}</Text> : null}
+              <View style={styles.testFlightStep}>
+                <Ionicons color={colors.accent} name="logo-apple" size={22} />
+                <View style={styles.flex}>
+                  <Text style={styles.securityTitle}>Then send the TestFlight invitation</Text>
+                  <Text style={styles.securityCopy}>Apple emails the tester and prompts them to install TestFlight and PSI. This is separate from their PSI six-digit sign-in code.</Text>
+                </View>
+              </View>
+              <PrimaryButton
+                label="Open App Store Connect TestFlight"
+                onPress={() => void Linking.openURL('https://appstoreconnect.apple.com/apps/6806902732/testflight')}
+                variant="outline"
+              />
+            </View>
+            <Text style={styles.invitationCount}>{visibleInvitations.length} approved customer email{visibleInvitations.length === 1 ? '' : 's'}</Text>
+            {visibleInvitations.slice(0, 8).map((invitation) => (
+              <View key={invitation.id} style={styles.invitationRow}>
+                <View style={styles.flex}>
+                  <Text style={styles.cardTitle}>{invitation.email}</Text>
+                  <Text style={styles.cardMeta}>Approved {formatDateTime(invitation.invited_at)}</Text>
+                </View>
+                <Text style={styles.badge}>{invitation.status === 'profile_complete' ? 'Profile ready' : 'Profile pending'}</Text>
+              </View>
+            ))}
+          </>
+        ) : null}
 
         <SectionHeading copy="Create customer-facing event dates, save private drafts, then publish alerts when the details are ready." title="PSI Events" />
         <StaffEventsManager />
@@ -593,6 +681,11 @@ const styles = StyleSheet.create({
   contextLine: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 2 },
   integrationError: { color: colors.danger, fontSize: 11, fontWeight: '800', lineHeight: 17, marginTop: spacing.xs },
   integrationControls: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.sm, marginBottom: spacing.sm, padding: spacing.md },
+  invitationPanel: { ...mobileFrame, backgroundColor: colors.panel, gap: spacing.md, padding: spacing.md },
+  invitationNotice: { color: colors.success, fontSize: 12, fontWeight: '800', lineHeight: 18 },
+  testFlightStep: { alignItems: 'flex-start', backgroundColor: colors.inkSoft, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
+  invitationCount: { color: colors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 0.8, marginBottom: spacing.sm, marginTop: spacing.md, textTransform: 'uppercase' },
+  invitationRow: { ...mobileFrame, alignItems: 'center', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xs, padding: spacing.md },
   badge: { borderColor: colors.accentDark, borderWidth: 1, color: colors.accent, fontSize: 10, fontWeight: '900', paddingHorizontal: 8, paddingVertical: 5, textTransform: 'uppercase' },
   vehicleList: { gap: spacing.sm, marginTop: spacing.md },
   vehicleRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.sm },

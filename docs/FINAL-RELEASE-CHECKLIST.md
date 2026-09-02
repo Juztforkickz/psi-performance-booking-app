@@ -1,11 +1,13 @@
 # Final release checklist
 
-Status: controlled QA, 29 August 2026. Payments are deliberately last.
+Status: controlled QA, 2 September 2026. Payments are deliberately last.
 
 ## Ready in controlled QA
 
 - [x] Sydney-hosted Supabase Auth and RLS customer ownership foundation.
 - [x] Passwordless email-code sign-in for approved existing accounts.
+- [x] Matt-only AAL2 customer-email approval with public registration still
+  disabled; Apple TestFlight invitations remain a separate owner action.
 - [x] Matt-only staff access with authenticator assurance level AAL2.
 - [x] Customer account editing, owned vehicles and private workshop records.
 - [x] Account-deletion request, cancellation and owner queue.
@@ -32,6 +34,8 @@ Status: controlled QA, 29 August 2026. Payments are deliberately last.
   private test image; approve PSI's retention schedule and response template.
 - [ ] Complete two-customer isolation, expired/replayed email-code, sign-out and
   private-file regression tests on signed native builds.
+- [ ] Add each approved pilot email to both the PSI staff onboarding panel and
+  Apple TestFlight, then verify that each person creates only their own profile.
 - [x] Re-run the rollback-only database boundary suite for two isolated
   customers, private file metadata, AAL1/AAL2 staff separation and protected
   booking transitions on 26 August 2026. Signed-native Auth/file tests remain

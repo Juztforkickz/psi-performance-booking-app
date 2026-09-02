@@ -1,9 +1,10 @@
 # PSI customer accounts
 
 Status: the existing Cloudflare/D1 web account endpoints remain provider-neutral
-and fail-closed. The separate mobile-app foundation now selects Supabase, but its
-customer-auth activation flag remains false until custom SMTP and end-to-end
-security tests pass. See `SUPABASE-APP-FOUNDATION.md` for the app-specific model.
+and fail-closed. The separate mobile-app foundation uses Supabase for controlled
+signed builds. Matt can approve individual customer emails from the AAL2 staff
+portal, while public registration remains disabled. See
+`SUPABASE-APP-FOUNDATION.md` for the app-specific model.
 
 ## Approved account model
 
@@ -30,6 +31,21 @@ The initial profile contains first name, last name, verified email and mobile.
 A customer may then keep one or more vehicles with registration, year, make,
 model and optional VIN. Booking, payment and reminder records stay in their
 existing purpose-specific tables.
+
+## Invite-only onboarding
+
+Matt approves one normalized email at a time from the protected staff portal.
+The server-only `invite-customer` function rechecks Matt's owner identity and
+AAL2 authenticator claim before creating the Auth identity. Its service-role key
+never enters the app. The customer then requests their own six-digit code and
+completes their own contact and vehicle profile under the existing ownership
+policies. An owner-only invitation audit row records whether profile setup is
+pending or complete; customers cannot read or change that audit table.
+
+For iPhone testing, Apple TestFlight access is a separate step. Matt adds the
+same approved email in App Store Connect, and Apple prompts that person to
+install TestFlight and PSI. A TestFlight invitation does not itself grant PSI
+account access, and a PSI account approval does not bypass Apple's tester list.
 
 ## Shared API boundary
 

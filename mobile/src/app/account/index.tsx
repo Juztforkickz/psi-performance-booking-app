@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -42,12 +42,25 @@ export default function AccountScreen() {
   const [deletionConfirmVisible, setDeletionConfirmVisible] = useState(false);
   const [deletionError, setDeletionError] = useState('');
   const [deletionRequest, setDeletionRequest] = useState<AccountDeletionRequestRow | null>(null);
+  const openSetupAfterSignInRef = useRef(false);
   const authenticatedUserId = auth.user?.id;
   const secureReturnTo = (Array.isArray(returnTo) ? returnTo[0] : returnTo) === '/staff' ? '/staff' : null;
+  const accountSetupComplete = Boolean(
+    account?.profile?.first_name?.trim()
+    && account.profile.last_name?.trim()
+    && account.profile.mobile?.trim()
+    && account.vehicles.length > 0,
+  );
 
   useEffect(() => {
     if (auth.status === 'signed_in' && secureReturnTo) router.replace(secureReturnTo);
   }, [auth.status, router, secureReturnTo]);
+
+  useEffect(() => {
+    if (!openSetupAfterSignInRef.current || secureReturnTo || auth.status !== 'signed_in' || accountStatus !== 'ready' || !account) return;
+    openSetupAfterSignInRef.current = false;
+    if (!accountSetupComplete) router.replace('/account/sign-up');
+  }, [account, accountSetupComplete, accountStatus, auth.status, router, secureReturnTo]);
 
   useEffect(() => {
     if (resendSeconds <= 0) return;
@@ -108,6 +121,7 @@ export default function AccountScreen() {
     try {
       await verifyPasswordlessEmailCode(email, code);
       setCode('');
+      openSetupAfterSignInRef.current = true;
       setNotice('Signed in. Your account is loading.');
     } catch {
       setCodeError('That code could not be verified. Check the code, request a new one, or try again before it expires.');
@@ -281,10 +295,11 @@ export default function AccountScreen() {
             {accountStatus === 'loading' ? <Text style={styles.dashboardCopy}>Loading your account…</Text> : null}
             {account ? (
               <View style={styles.dashboardGrid}>
-                <AccountFeature index="01" title="Profile" copy={account.profile ? 'Profile ready.' : 'Complete your profile to continue.'} />
+                <AccountFeature index="01" title="Profile" copy={accountSetupComplete ? 'Profile ready.' : 'Complete your profile to continue.'} />
                 <AccountFeature index="02" title="Vehicles" copy={`${account.vehicles.length} vehicle${account.vehicles.length === 1 ? '' : 's'}.`} />
               </View>
             ) : null}
+            {account && !accountSetupComplete ? <PrimaryButton label="Complete my profile" onPress={() => router.push('/account/sign-up')} /> : null}
             <PrimaryButton label="Sign out" loading={busy} onPress={() => void signOut()} variant="outline" />
           </View>
         ) : !CUSTOMER_AUTH.enabled ? (
@@ -317,11 +332,11 @@ export default function AccountScreen() {
 
         <View style={[styles.createCard, compact && styles.cardCompact]}>
           <View style={styles.createCopy}>
-            <Text style={styles.createTitle}>{account ? 'Account details' : CUSTOMER_AUTH.enabled ? 'Need an account?' : 'New to PSI?'}</Text>
-            <Text style={styles.createText}>{account ? 'Update your contact details and primary vehicle.' : CUSTOMER_AUTH.registrationEnabled ? 'Add your details and primary vehicle.' : CUSTOMER_AUTH.enabled ? 'New customer accounts are set up by PSI. Contact us for access.' : 'Explore account setup with demonstration details.'}</Text>
+            <Text style={styles.createTitle}>{account ? accountSetupComplete ? 'Account details' : 'Complete your profile' : CUSTOMER_AUTH.enabled ? 'Need an account?' : 'New to PSI?'}</Text>
+            <Text style={styles.createText}>{account ? accountSetupComplete ? 'Update your contact details and primary vehicle.' : 'Add your name, mobile number and first vehicle to finish setting up your private PSI account.' : CUSTOMER_AUTH.registrationEnabled ? 'Add your details and primary vehicle.' : CUSTOMER_AUTH.enabled ? 'New customer accounts are set up by PSI. Contact us for access.' : 'Explore account setup with demonstration details.'}</Text>
           </View>
           <PrimaryButton
-            label={account ? 'Edit account details →' : CUSTOMER_AUTH.registrationEnabled ? 'Set up approved account →' : CUSTOMER_AUTH.enabled ? 'Contact PSI for account access →' : 'Preview account setup →'}
+            label={account ? accountSetupComplete ? 'Edit account details →' : 'Complete my profile →' : CUSTOMER_AUTH.registrationEnabled ? 'Set up approved account →' : CUSTOMER_AUTH.enabled ? 'Contact PSI for account access →' : 'Preview account setup →'}
             onPress={() => router.push(account || CUSTOMER_AUTH.registrationEnabled || !CUSTOMER_AUTH.enabled ? '/account/sign-up' : '/support')}
             variant="outline"
           />

@@ -47,6 +47,9 @@ Completed acceptance checks:
 3. A rollback-only two-customer test exercised the real deployed RLS policies
    without retaining test identities or records.
 4. New-user registration was independently checked closed after testing.
+5. Owner-only invite onboarding passed a rollback-only RLS test: customers and
+   AAL1 staff cannot read invitation audit rows, authenticated clients cannot
+   mutate them, and only an AAL2 owner can list them.
 
 Remaining private-QA gates:
 
@@ -70,8 +73,9 @@ Remaining private-QA gates:
 6. Confirm a staff identity remains unable to access workshop-wide records at
    AAL1 and receives that access only after its enrolled MFA factor reaches
    AAL2. Customer MFA remains out of scope for the first release.
-7. Keep registration closed in the private QA build; create any additional pilot
-   identity through a separately approved onboarding window.
+7. Keep registration closed in the private QA build. Matt may approve an
+   additional pilot email only through the AAL2 staff portal, then add the same
+   email separately to Apple TestFlight.
 8. The internal EAS `qa` profile sets Auth true, registration false and the
    booking API empty. The public GitHub Pages preview keeps both Auth and
    registration false.
@@ -207,6 +211,15 @@ The first portal should provide:
   and next PSI check-in before the booking can close;
 - private attachment access; and
 - an audit trail plus owner-only staff access management.
+
+The portal now also provides owner-only customer onboarding. The
+`invite-customer` Edge Function requires a valid JWT, Matt's exact active owner
+identity and an AAL2 claim before its server-only admin client can create a
+confirmed email identity. `customer_invitations` has RLS enabled, grants only
+authenticated SELECT, and exposes rows solely through the existing AAL2 owner
+predicate. Public registration remains off. First-time customers are prompted
+to complete their own private profile and first vehicle after verifying their
+email code.
 
 The private portal exists at the Expo route
 `/staff`. It is deliberately unlinked from customer navigation and available

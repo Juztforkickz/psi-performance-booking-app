@@ -87,6 +87,15 @@ failure shown after a successful server registration was traced to an invalid
 character in the local SecureStore key; the corrected key is included in the
 next production OTA checkpoint.
 
+On 2 September 2026, local migration
+`20260902032825_customer_invitation_onboarding` was applied to the protected
+project as live migration `20260902033442_customer_invitation_onboarding`.
+It adds the owner-only invitation audit table and profile-completion trigger.
+Verified-JWT Edge Function `invite-customer` version 1 keeps Auth admin access
+server-only and rechecks Matt's active owner identity plus AAL2 before approving
+an email. Its rollback-only RLS test passed, an unauthenticated request returned
+401, and no customer invitation row was retained or created during validation.
+
 The signed internal Android QA APK build `be1e5a7d-96f1-4fe3-8a44-0bbe400fd4ab` completed successfully on 25 August 2026 from source checkpoint `7dd0b75331bc5bda31407daf485dd0ef8f05c44d`. It uses package `com.psiperformance.booking`, the protected `qa` profile and PSI's Expo-managed Android keystore. Its Expo installation page is restricted to authorised project access and the build expires on 8 September 2026. Real-device installation and notification acceptance remain outstanding; build completion alone does not prove native push delivery.
 
 The replacement signed internal Android QA APK build
@@ -159,6 +168,11 @@ It retains the protected `qa` profile, closed registration and registered
 iPhone provisioning. Real-device visual acceptance remains outstanding.
 
 ## Remaining before an external pilot
+
+The invite-only onboarding foundation is now active: Matt approves each email
+from the AAL2 portal, then sends the Apple TestFlight invitation to that same
+email. Public registration remains closed and no tester has been added by this
+checkpoint.
 
 1. Run the native QA profile on one current iPhone and one supported Android device. Record build IDs, device models, operating-system versions and test identities.
 2. On both devices, verify email-code cooldown, invalid/expired/replayed codes, session restoration, sign-out, private vehicle photo access and private Vehicle Reports attachments.

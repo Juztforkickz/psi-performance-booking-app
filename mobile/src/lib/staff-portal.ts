@@ -4,6 +4,7 @@ import type {
   AuditEventRow,
   BookingIntegrationJobRow,
   BookingRequestRow,
+  CustomerInvitationRow,
   CustomerProfileRow,
   CustomerVehicleRow,
   StaffMemberRow,
@@ -48,9 +49,16 @@ export type StaffPortalSnapshot = {
   auditEvents: AuditEventRow[];
   bookings: BookingRequestRow[];
   customers: CustomerProfileRow[];
+  invitations: CustomerInvitationRow[];
   integrationJobs: BookingIntegrationJobRow[];
   vehicleFiles: VehicleFileRow[];
   vehicles: CustomerVehicleRow[];
+};
+
+export type CustomerInvitationResult = {
+  created: boolean;
+  invitation: Pick<CustomerInvitationRow, 'accepted_at' | 'email' | 'id' | 'invited_at' | 'status'>;
+  nextStep: 'send_testflight_invitation';
 };
 
 export type BookingIntegrationRunResult = {
@@ -96,7 +104,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     };
   }
 
-  const [customersResult, vehiclesResult, bookingsResult, integrationJobsResult, auditEventsResult, vehicleFilesResult, accountDeletionRequestsResult] = await Promise.all([
+  const [customersResult, vehiclesResult, bookingsResult, integrationJobsResult, auditEventsResult, vehicleFilesResult, accountDeletionRequestsResult, invitationsResult] = await Promise.all([
     supabase.from('customer_profiles').select('*').eq('account_state', 'active').order('last_name').order('first_name'),
     supabase.from('customer_vehicles').select('*').is('archived_at', null).order('updated_at', { ascending: false }),
     supabase.from('booking_requests').select('*').is('archived_at', null).order('created_at', { ascending: false }).limit(50),
@@ -104,6 +112,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     supabase.from('audit_events').select('*').order('occurred_at', { ascending: false }).limit(50),
     supabase.from('vehicle_files').select('*').eq('file_kind', 'vehicle_photo').is('archived_at', null).order('created_at', { ascending: false }).limit(100),
     supabase.from('account_deletion_requests').select('*').order('requested_at', { ascending: true }),
+    supabase.from('customer_invitations').select('*').order('invited_at', { ascending: false }).limit(100),
   ]);
   const firstError = customersResult.error
     ?? vehiclesResult.error
@@ -111,7 +120,8 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     ?? integrationJobsResult.error
     ?? auditEventsResult.error
     ?? vehicleFilesResult.error
-    ?? accountDeletionRequestsResult.error;
+    ?? accountDeletionRequestsResult.error
+    ?? invitationsResult.error;
   if (firstError) throw firstError;
 
   return {
@@ -124,10 +134,25 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
       bookings: bookingsResult.data ?? [],
       customers: customersResult.data ?? [],
       integrationJobs: integrationJobsResult.data ?? [],
+      invitations: invitationsResult.data ?? [],
       vehicleFiles: vehicleFilesResult.data ?? [],
       vehicles: vehiclesResult.data ?? [],
     },
   };
+}
+
+export async function inviteCustomer(email: string): Promise<CustomerInvitationResult> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(normalizedEmail) || normalizedEmail.length > 160) throw new Error('INVALID_CUSTOMER_EMAIL');
+  const access = await loadStaffMfaSecurityAccess();
+  if (access.kind !== 'ready' || access.staff.role !== 'owner') throw new Error('STAFF_OWNER_AAL2_REQUIRED');
+
+  const { data, error } = await getSupabaseClient().functions.invoke<CustomerInvitationResult>('invite-customer', {
+    body: { email: normalizedEmail },
+  });
+  if (error) throw error;
+  if (!data?.invitation || data.nextStep !== 'send_testflight_invitation') throw new Error('CUSTOMER_INVITATION_RESPONSE_INVALID');
+  return data;
 }
 
 export async function loadStaffMfaSecurityAccess(): Promise<StaffMfaSecurityAccess> {

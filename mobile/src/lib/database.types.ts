@@ -152,6 +152,38 @@ export type Database = {
         };
         Relationships: [];
       };
+      customer_invitations: {
+        Row: {
+          accepted_at: string | null;
+          auth_user_id: string;
+          email: string;
+          id: string;
+          invited_at: string;
+          invited_by: string;
+          status: 'pending_profile' | 'profile_complete';
+          updated_at: string;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          auth_user_id: string;
+          email: string;
+          id?: string;
+          invited_at?: string;
+          invited_by: string;
+          status?: 'pending_profile' | 'profile_complete';
+          updated_at?: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          auth_user_id?: string;
+          email?: string;
+          invited_at?: string;
+          invited_by?: string;
+          status?: 'pending_profile' | 'profile_complete';
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       customer_vehicles: {
         Row: {
           archived_at: string | null;
@@ -662,6 +694,7 @@ export type Database = {
 };
 
 export type AccountDeletionRequestRow = Database['public']['Tables']['account_deletion_requests']['Row'];
+export type CustomerInvitationRow = Database['public']['Tables']['customer_invitations']['Row'];
 export type CustomerProfileRow = Database['public']['Tables']['customer_profiles']['Row'];
 export type AuditEventRow = Database['public']['Tables']['audit_events']['Row'];
 export type BookingIntegrationJobRow = Database['public']['Tables']['booking_integration_jobs']['Row'];
