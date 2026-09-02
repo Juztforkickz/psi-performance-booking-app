@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,6 +32,12 @@ import {
 import type { AccountDeletionRequestRow } from '@/lib/database.types';
 import type { LocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
+import { loadStaffMfaSecurityAccess } from '@/lib/staff-portal';
+
+type StaffEntryState = {
+  eligible: boolean;
+  userId: string;
+};
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -53,6 +60,7 @@ export default function AccountScreen() {
   const [profilePhotoState, setProfilePhotoState] = useState<{ objectPath: string; uri: string; userId: string } | null>(null);
   const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
   const [profilePhotoNotice, setProfilePhotoNotice] = useState('');
+  const [staffEntryState, setStaffEntryState] = useState<StaffEntryState | null>(null);
   const openSetupAfterSignInRef = useRef(false);
   const authenticatedUserId = auth.user?.id;
   const secureReturnTo = (Array.isArray(returnTo) ? returnTo[0] : returnTo) === '/staff' ? '/staff' : null;
@@ -68,6 +76,7 @@ export default function AccountScreen() {
     && (profilePhotoState.objectPath === currentProfilePhotoPath || profilePhotoState.objectPath === 'pending')
     ? profilePhotoState.uri
     : null;
+  const staffPortalEligible = Boolean(authenticatedUserId && staffEntryState?.userId === authenticatedUserId && staffEntryState.eligible);
 
   useEffect(() => {
     if (auth.status === 'signed_in' && secureReturnTo) router.replace(secureReturnTo);
@@ -113,6 +122,19 @@ export default function AccountScreen() {
       });
     return () => { active = false; };
   }, [account?.profile]);
+
+  useEffect(() => {
+    if (auth.status !== 'signed_in' || !authenticatedUserId) return;
+    let active = true;
+    void loadStaffMfaSecurityAccess()
+      .then((access) => {
+        if (active) setStaffEntryState({ eligible: access.kind !== 'access_denied', userId: authenticatedUserId });
+      })
+      .catch(() => {
+        if (active) setStaffEntryState({ eligible: false, userId: authenticatedUserId });
+      });
+    return () => { active = false; };
+  }, [auth.sessionRevision, auth.status, authenticatedUserId]);
 
   const beginSignIn = async () => {
     if (busy || resendSeconds > 0) return;
@@ -325,19 +347,36 @@ export default function AccountScreen() {
           )}
         </View> : null}
 
-        <Eyebrow>PSI customer account</Eyebrow>
-        <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>Your cars.{`\n`}Your bookings.</Text>
+        <Eyebrow>{secureReturnTo ? 'PSI staff access' : 'PSI customer account'}</Eyebrow>
+        <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>{secureReturnTo ? `Staff sign in.${`\n`}Protected portal.` : `Your cars.${`\n`}Your bookings.`}</Text>
         <Text style={styles.lead}>
-          Keep your details, vehicles, reports and bookings together.
+          {secureReturnTo ? 'Use your approved PSI email. Authenticator verification is required before workshop records open.' : 'Keep your details, vehicles, reports and bookings together.'}
         </Text>
 
         {auth.status !== 'signed_in' ? (
           <View style={[styles.providerNotice, compact && styles.cardCompact]}>
             <Text style={styles.providerKicker}>Account access</Text>
-            <Text style={styles.providerTitle}>Email-code sign in</Text>
+            <Text style={styles.providerTitle}>{secureReturnTo ? 'Staff email-code sign in' : 'Email-code sign in'}</Text>
             <Text style={styles.providerCopy}>
-              Use a six-digit email code—no password needed. New customer access is {CUSTOMER_AUTH.registrationEnabled ? 'available during the current onboarding window' : 'set up by PSI'}.
+              {secureReturnTo
+                ? 'Use the same six-digit email-code sign in. Only approved PSI staff continue to authenticator verification and the private portal.'
+                : `Use a six-digit email code—no password needed. New customer access is ${CUSTOMER_AUTH.registrationEnabled ? 'available during the current onboarding window' : 'set up by PSI'}.`}
             </Text>
+            {!secureReturnTo ? (
+              <Pressable
+                accessibilityHint="Uses the same email-code sign in, then verifies staff permission and MFA"
+                accessibilityRole="button"
+                onPress={() => router.replace({ pathname: '/account', params: { returnTo: '/staff' } })}
+                style={({ pressed }) => [styles.staffSignInLink, pressed && styles.pressed]}
+              >
+                <Ionicons color={colors.accent} name="shield-checkmark-outline" size={19} />
+                <View style={styles.staffSignInCopy}>
+                  <Text style={styles.staffSignInTitle}>PSI Staff Sign-in</Text>
+                  <Text style={styles.staffSignInText}>Approved workshop accounts only</Text>
+                </View>
+                <Ionicons color={colors.accent} name="arrow-forward" size={18} />
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
 
@@ -376,6 +415,19 @@ export default function AccountScreen() {
               </View>
             ) : null}
             {account && !accountSetupComplete ? <PrimaryButton label="Complete my profile" onPress={() => router.push('/account/sign-up')} /> : null}
+            {staffPortalEligible ? (
+              <View accessibilityLabel="PSI staff portal access" style={styles.staffAccessCard}>
+                <View style={styles.staffAccessHeading}>
+                  <Ionicons color={colors.success} name="shield-checkmark" size={23} />
+                  <View style={styles.staffAccessCopy}>
+                    <Text style={styles.staffAccessTitle}>PSI Staff Access</Text>
+                    <Text style={styles.staffAccessText}>This approved account can switch between the customer app and protected workshop portal.</Text>
+                  </View>
+                </View>
+                <PrimaryButton label="Open PSI Portal" onPress={() => router.push('/staff')} />
+                <PrimaryButton label="Continue to Customer App" onPress={() => router.replace('/')} variant="outline" />
+              </View>
+            ) : null}
             <PrimaryButton label="Sign out" loading={busy} onPress={() => void signOut()} variant="outline" />
           </View>
         ) : !CUSTOMER_AUTH.enabled ? (
@@ -512,6 +564,10 @@ const styles = StyleSheet.create({
   providerKicker: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase' },
   providerTitle: { color: colors.white, fontSize: 17, fontWeight: '900', textTransform: 'uppercase' },
   providerCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
+  staffSignInLink: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md },
+  staffSignInCopy: { flex: 1, minWidth: 0, gap: 2 },
+  staffSignInTitle: { color: colors.white, fontSize: 11, fontWeight: '900', letterSpacing: .6, textTransform: 'uppercase' },
+  staffSignInText: { color: colors.muted, fontSize: 9, lineHeight: 14 },
   dashboardPreview: { ...mobileFrame, gap: spacing.lg, marginTop: spacing.xl, backgroundColor: colors.panel, padding: spacing.lg },
   dashboardHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   dashboardKicker: { flex: 1, minWidth: 0, color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase' },
@@ -520,6 +576,11 @@ const styles = StyleSheet.create({
   dashboardCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
   profilePhotoNotice: { color: colors.silver, fontSize: 10, lineHeight: 16 },
   profileDetails: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  staffAccessCard: { gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.accentDark, backgroundColor: colors.inkSoft, padding: spacing.md },
+  staffAccessHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  staffAccessCopy: { flex: 1, minWidth: 0, gap: 3 },
+  staffAccessTitle: { color: colors.white, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
+  staffAccessText: { color: colors.muted, fontSize: 10, lineHeight: 16 },
   profileDetail: { minWidth: 150, flex: 1, gap: 3, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.sm },
   profileDetailLabel: { color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
   profileDetailValue: { color: colors.white, fontSize: 12, fontWeight: '800', lineHeight: 18 },

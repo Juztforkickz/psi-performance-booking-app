@@ -13,7 +13,9 @@ import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAustralianDate, formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
+import { useCustomerAccount } from '@/lib/customer-account-context';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
+import { createCustomerProfilePhotoSignedUrl } from '@/lib/customer-profile-photo';
 import {
   beginStaffTotpEnrollment,
   completeCustomerAccountDeletion,
@@ -311,6 +313,7 @@ function StaffWorkspace({
   verifiedTotpFactors: Extract<StaffPortalAccess, { kind: 'ready' }>['verifiedTotpFactors'];
 }) {
   const router = useRouter();
+  const { account } = useCustomerAccount();
   const [integrationBusy, setIntegrationBusy] = useState(false);
   const [integrationResult, setIntegrationResult] = useState<BookingIntegrationRunResult | null>(null);
   const [integrationError, setIntegrationError] = useState('');
@@ -320,6 +323,13 @@ function StaffWorkspace({
   const [invitationNotice, setInvitationNotice] = useState('');
   const [latestInvitation, setLatestInvitation] = useState<CustomerInvitationResult['invitation'] | null>(null);
   const [vehiclePhotoUris, setVehiclePhotoUris] = useState<Record<string, string>>({});
+  const [profilePhotoState, setProfilePhotoState] = useState<{ objectPath: string; uri: string; userId: string } | null>(null);
+  const profilePhotoPath = account?.profile?.profile_photo_object_path ?? null;
+  const portalProfilePhotoUri = account?.profile
+    && profilePhotoState?.userId === account.profile.user_id
+    && profilePhotoState.objectPath === profilePhotoPath
+    ? profilePhotoState.uri
+    : null;
   const activeBookings = snapshot.bookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
   const waitingIntegrationJobs = snapshot.integrationJobs.filter((job) => ['blocked_configuration', 'failed', 'pending'].includes(job.status));
   const visibleInvitations = latestInvitation
@@ -342,6 +352,20 @@ function StaffWorkspace({
       });
     return () => { active = false; };
   }, [snapshot.vehicleFiles]);
+
+  useEffect(() => {
+    let active = true;
+    const profile = account?.profile;
+    if (!profile?.profile_photo_object_path) return;
+    void createCustomerProfilePhotoSignedUrl(profile)
+      .then((uri) => {
+        if (active && uri) setProfilePhotoState({ objectPath: profile.profile_photo_object_path!, uri, userId: profile.user_id });
+      })
+      .catch(() => {
+        if (active) setProfilePhotoState(null);
+      });
+    return () => { active = false; };
+  }, [account?.profile]);
 
   const processIntegrationQueue = async () => {
     if (integrationBusy) return;
@@ -388,9 +412,24 @@ function StaffWorkspace({
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]} showsVerticalScrollIndicator={false}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}>
-          <Text style={styles.backText}>← Back</Text>
-        </Pressable>
+        <View style={styles.portalNavigation}>
+          <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
+            <Text style={styles.backText}>← Customer App</Text>
+          </Pressable>
+          <Pressable
+            accessibilityHint="Opens your shared customer and staff profile"
+            accessibilityLabel="Open PSI account profile"
+            accessibilityRole="button"
+            onPress={() => router.push('/account')}
+            style={({ pressed }) => [styles.portalProfileButton, pressed && styles.pressed]}
+          >
+            {portalProfilePhotoUri ? (
+              <Image accessibilityIgnoresInvertColors resizeMode="cover" source={{ uri: portalProfilePhotoUri }} style={styles.portalProfilePhoto} />
+            ) : (
+              <Ionicons color={colors.ink} name="person" size={21} />
+            )}
+          </Pressable>
+        </View>
         <Text style={styles.eyebrow}>PSI PRIVATE WORKSPACE</Text>
         <Text style={styles.title}>Workshop portal</Text>
         <Text style={styles.lead}>A protected operational workspace for approved PSI staff. Customer-wide access and controlled publishing are protected by the staff allowlist, verified MFA and database row-level policies.</Text>
@@ -760,8 +799,11 @@ const styles = StyleSheet.create({
   manualSecret: { backgroundColor: colors.ink, borderColor: colors.line, borderWidth: 1, color: colors.white, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 13, letterSpacing: 1.2, padding: spacing.md, textAlign: 'center' },
   errorText: { color: colors.danger, fontSize: 13, lineHeight: 19 },
   scroll: { alignSelf: 'center', width: '100%', maxWidth: 880, paddingBottom: spacing.xxl, paddingTop: spacing.md },
+  portalNavigation: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   back: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
   backText: { color: colors.white, fontSize: 15, fontWeight: '800' },
+  portalProfileButton: { ...mobileFrame, width: 48, height: 48, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: colors.white },
+  portalProfilePhoto: { width: '100%', height: '100%' },
   eyebrow: { color: colors.accent, fontSize: 12, fontWeight: '900', letterSpacing: 1.7, marginTop: spacing.md },
   title: { color: colors.white, fontSize: 38, fontWeight: '900', letterSpacing: -1.2, marginTop: spacing.xs },
   lead: { color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: spacing.sm, maxWidth: 680 },
@@ -809,4 +851,5 @@ const styles = StyleSheet.create({
   empty: { ...mobileFrame, backgroundColor: colors.panel, padding: spacing.lg },
   emptyText: { color: colors.muted, fontSize: 14, textAlign: 'center' },
   footer: { color: colors.mutedDark, fontSize: 10, fontWeight: '900', letterSpacing: 1.1, lineHeight: 16, marginTop: spacing.xl, textAlign: 'center' },
+  pressed: { opacity: .72 },
 });
