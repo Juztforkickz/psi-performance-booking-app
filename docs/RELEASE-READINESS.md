@@ -89,6 +89,17 @@ next production OTA checkpoint.
 
 The signed internal Android QA APK build `be1e5a7d-96f1-4fe3-8a44-0bbe400fd4ab` completed successfully on 25 August 2026 from source checkpoint `7dd0b75331bc5bda31407daf485dd0ef8f05c44d`. It uses package `com.psiperformance.booking`, the protected `qa` profile and PSI's Expo-managed Android keystore. Its Expo installation page is restricted to authorised project access and the build expires on 8 September 2026. Real-device installation and notification acceptance remain outstanding; build completion alone does not prove native push delivery.
 
+The replacement signed internal Android QA APK build
+`7d3259d3-93f1-4599-b273-23954024b650` completed successfully on 2 September
+2026 from source checkpoint `90cff8b3788dd21fcc588aa5b6a306a949c5d888`.
+It carries the current customer experience, events, weather, upload,
+notification and restored Luxe Trusted Partner work in package
+`com.psiperformance.booking`. The directly installable build uses the protected
+`qa` channel, closed-registration controls and PSI's existing Expo-managed
+Android keystore; it expires on 16 September 2026. Real-device installation,
+permissions, private-file, booking, notification and layout acceptance remain
+required before creating the Google Play production App Bundle.
+
 The first signed internal iOS QA build
 `8a1e5433-1056-45f0-83d2-e470ba57b652` completed successfully on 29 August
 2026 from source checkpoint `7748a9529331a38b6563e447cba66e514e720e7a`.
