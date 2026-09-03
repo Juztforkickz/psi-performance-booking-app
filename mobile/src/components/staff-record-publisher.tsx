@@ -7,6 +7,7 @@ import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { todayAustralianDate } from '@/lib/australian-date';
 import type { StaffPortalSnapshot } from '@/lib/staff-portal';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import {
   publishPsiDyno,
   publishPsiInvoice,
@@ -174,7 +175,7 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
         <Ionicons color={colors.accent} name="shield-checkmark" size={22} />
         <View style={styles.flex}>
           <Text style={styles.noticeTitle}>Controlled PSI publishing</Text>
-          <Text style={styles.muted}>Every publish is an authenticated AAL2 workshop write. Customers can read PSI records but cannot mark their own entries as PSI verified.</Text>
+          <Text style={styles.muted}>{REVIEW_ENVIRONMENT.enabled ? 'Publishing changes fictional sandbox records only. Customers can read workshop records but cannot verify their own entries.' : 'Every publish is an authenticated AAL2 workshop write. Customers can read PSI records but cannot mark their own entries as PSI verified.'}</Text>
         </View>
       </View>
 

@@ -3,6 +3,7 @@ import { AppState, Platform } from 'react-native';
 
 import type { Database } from '@/lib/database.types';
 import { supabaseAuthStorage } from '@/lib/supabase-auth-storage';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() ?? '';
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ?? '';
@@ -25,7 +26,7 @@ export const SUPABASE_CONNECTION = {
     && requestedAuthActivation
     && requestedRegistrationActivation
   ),
-  projectRef: 'lslhfrujyuqcavsnugfx',
+  projectRef: REVIEW_ENVIRONMENT.projectRef ?? 'lslhfrujyuqcavsnugfx',
   region: 'ap-southeast-2',
 } as const;
 

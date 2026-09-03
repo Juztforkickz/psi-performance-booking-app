@@ -13,6 +13,7 @@ import type {
 import { dispatchBookingIntegrationNotifications } from '@/lib/booking-integrations';
 import { getSupabaseClient } from '@/lib/supabase';
 import { dispatchBookingPushNotifications } from '@/lib/notifications';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 export type StaffPortalAccess =
   | { kind: 'access_denied' }
@@ -113,7 +114,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
   if (assuranceResult.error) throw assuranceResult.error;
   if (factorsResult.error) throw factorsResult.error;
   const verifiedTotpFactors = mapVerifiedTotpFactors(factorsResult.data.totp);
-  if (assuranceResult.data.currentLevel !== 'aal2') {
+  if (!REVIEW_ENVIRONMENT.enabled && assuranceResult.data.currentLevel !== 'aal2') {
     return {
       kind: 'mfa_required',
       staff,
@@ -217,7 +218,7 @@ export async function loadStaffMfaSecurityAccess(): Promise<StaffMfaSecurityAcce
 
   const { data: assurance, error: assuranceError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   if (assuranceError) throw assuranceError;
-  if (assurance.currentLevel !== 'aal2') return { kind: 'mfa_required' };
+  if (!REVIEW_ENVIRONMENT.enabled && assurance.currentLevel !== 'aal2') return { kind: 'mfa_required' };
 
   const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
   if (factorsError) throw factorsError;
@@ -295,6 +296,7 @@ export async function loadStaffVehiclePhotoUrls(files: readonly VehicleFileRow[]
 }
 
 export async function beginStaffTotpEnrollment(friendlyName = 'PSI Performance staff'): Promise<StaffTotpEnrollment> {
+  if (REVIEW_ENVIRONMENT.enabled) throw new Error('REVIEW_AUTHENTICATORS_ARE_NOT_SHARED');
   const supabase = getSupabaseClient();
   const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
   if (factorsError) throw factorsError;

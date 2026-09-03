@@ -65,6 +65,10 @@ jobs:
         working-directory: mobile
         run: pnpm typecheck
 
+      - name: Verify review environment isolation
+        working-directory: mobile
+        run: node --test scripts/test-review-environment.cjs
+
       - name: Export Expo web preview
         working-directory: mobile
         env:

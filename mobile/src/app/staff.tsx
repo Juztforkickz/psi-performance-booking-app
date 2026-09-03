@@ -14,6 +14,7 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
 import { formatAustralianDate, formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import {
   beginStaffTotpEnrollment,
@@ -387,12 +388,12 @@ function StaffWorkspace({
       setInvitationEmail('');
       setLatestInvitation(result.invitation);
       setInvitationNotice(
-        result.invitation.status === 'profile_complete'
+        REVIEW_ENVIRONMENT.enabled ? `${result.invitation.email} recorded in the sandbox. No email or TestFlight invitation was sent. Use the supplied review customer credentials to inspect customer functionality.` : result.invitation.status === 'profile_complete'
           ? `${result.invitation.email} already has a completed PSI profile. Their account remains approved.`
           : `${result.invitation.email} can now request their own six-digit PSI sign-in code. Add the same email to TestFlight next.`,
       );
     } catch {
-      setInvitationError('Customer access could not be approved. Check the email, confirm your authenticator session is current, then try again. No public registration was opened.');
+      setInvitationError(REVIEW_ENVIRONMENT.enabled ? 'Use demo1@example.invalid through demo5@example.invalid for fictional invitations. No real email is sent.' : 'Customer access could not be approved. Check the email, confirm your authenticator session is current, then try again. No public registration was opened.');
     } finally {
       setInvitationBusy(false);
     }
@@ -421,17 +422,17 @@ function StaffWorkspace({
         </View>
         <Text style={styles.eyebrow}>PSI PRIVATE WORKSPACE</Text>
         <Text style={styles.title}>Workshop portal</Text>
-        <Text style={styles.lead}>A protected operational workspace for approved PSI staff. Customer-wide access and controlled publishing are protected by the staff allowlist, verified MFA and database row-level policies.</Text>
+        <Text style={styles.lead}>{REVIEW_ENVIRONMENT.enabled ? 'Isolated demonstration of the workshop workflow. All customer records are fictional. The live PSI portal remains separate and requires staff MFA.' : 'A protected operational workspace for approved PSI staff. Customer-wide access and controlled publishing are protected by the staff allowlist, verified MFA and database row-level policies.'}</Text>
 
         <View style={styles.securityBanner}>
           <Ionicons color={colors.success} name="shield-checkmark" size={22} />
           <View style={styles.flex}>
-            <Text style={styles.securityTitle}>MFA verified · {role === 'owner' ? 'Owner access' : 'Staff access'}</Text>
-            <Text style={styles.securityCopy}>Booking review, controlled PSI record publishing, private customer photos and Complete Service are protected by staff authentication and MFA. Email delivery is active. Google Calendar remains limited to later payment-confirmed bookings. Payments, public customer registration and staff management remain disabled.</Text>
+            <Text style={styles.securityTitle}>{REVIEW_ENVIRONMENT.enabled ? 'Sandbox staff account' : 'MFA verified'} · {role === 'owner' ? 'Owner access' : 'Staff access'}</Text>
+            <Text style={styles.securityCopy}>{REVIEW_ENVIRONMENT.enabled ? 'Review password access is limited to this synthetic database. No live customer data, real emails, device push delivery, Calendar changes or payments. Customer records and private uploads remain protected by ownership rules.' : 'Booking review, controlled PSI record publishing, private customer photos and Complete Service are protected by staff authentication and MFA. Email delivery is active. Google Calendar remains limited to later payment-confirmed bookings. Payments, public customer registration and staff management remain disabled.'}</Text>
           </View>
         </View>
 
-        <View style={styles.securityManagement}>
+        {!REVIEW_ENVIRONMENT.enabled ? <View style={styles.securityManagement}>
           <View style={styles.securityManagementHeading}>
             <View style={styles.flex}>
               <Text style={styles.securityTitle}>Authenticator security</Text>
@@ -441,7 +442,7 @@ function StaffWorkspace({
           </View>
           {verifiedTotpFactors.length === 1 ? <Text style={styles.securityWarning}>Add a backup authenticator before replacing or retiring this device.</Text> : null}
           <PrimaryButton label="Manage authenticators" onPress={() => router.push('/staff-security')} variant="outline" />
-        </View>
+        </View> : null}
 
         <View style={styles.metrics}>
           <Metric label="Customers" value={snapshot.customers.length} />
@@ -457,7 +458,7 @@ function StaffWorkspace({
               title="Invite a customer"
             />
             <View style={styles.invitationPanel}>
-              <Field error={invitationError} hint="Use the same email for PSI access and the Apple TestFlight invitation" label="Customer email">
+              <Field error={invitationError} hint={REVIEW_ENVIRONMENT.enabled ? 'Demo only: demo1@example.invalid through demo5@example.invalid' : 'Use the same email for PSI access and the Apple TestFlight invitation'} label="Customer email">
                 <FormInput
                   autoCapitalize="none"
                   autoComplete="email"
@@ -475,7 +476,7 @@ function StaffWorkspace({
               </Field>
               <PrimaryButton label="Approve PSI account" loading={invitationBusy} onPress={() => void approveCustomerAccess()} />
               {invitationNotice ? <Text accessibilityLiveRegion="polite" style={styles.invitationNotice}>{invitationNotice}</Text> : null}
-              <View style={styles.testFlightStep}>
+              {!REVIEW_ENVIRONMENT.enabled ? <><View style={styles.testFlightStep}>
                 <Ionicons color={colors.accent} name="logo-apple" size={22} />
                 <View style={styles.flex}>
                   <Text style={styles.securityTitle}>Then send the TestFlight invitation</Text>
@@ -487,6 +488,7 @@ function StaffWorkspace({
                 onPress={() => void Linking.openURL('https://appstoreconnect.apple.com/apps/6806902732/testflight')}
                 variant="outline"
               />
+              </> : null}
             </View>
             <Text style={styles.invitationCount}>{visibleInvitations.length} approved customer email{visibleInvitations.length === 1 ? '' : 's'}</Text>
             {visibleInvitations.slice(0, 8).map((invitation) => (
@@ -504,7 +506,7 @@ function StaffWorkspace({
         <SectionHeading copy="Create customer-facing event dates, save private drafts, then publish alerts when the details are ready." title="PSI Events" />
         <StaffEventsManager />
 
-        <SectionHeading copy="Customer-initiated requests are visible only to Matt after MFA. Complete the documented storage, retained-record and Auth cleanup before recording completion." title="Account deletion queue" />
+        <SectionHeading copy={REVIEW_ENVIRONMENT.enabled ? 'Synthetic customer deletion requests. Completion permanently removes only the selected sandbox account and its private files.' : 'Customer-initiated requests are visible only to Matt after MFA. Complete the documented storage, retained-record and Auth cleanup before recording completion.'} title="Account deletion queue" />
         {snapshot.accountDeletionRequests.length === 0 ? <EmptyState>No account deletion requests are currently shown.</EmptyState> : snapshot.accountDeletionRequests.map((request) => {
           const customer = snapshot.deletionCustomers.find((item) => item.user_id === request.user_id);
           return <AccountDeletionRequestCard customer={customer} key={request.user_id} onComplete={onRefresh} owner={role === 'owner'} request={request} />;
@@ -513,7 +515,7 @@ function StaffWorkspace({
         <SectionHeading copy="Create customer-visible PSI records only after checking the selected customer and vehicle." title="Publish workshop records" />
         <StaffRecordPublisher snapshot={snapshot} />
 
-        <SectionHeading copy="Recent requests visible through the existing MFA-gated staff policies." title="Booking queue" />
+        <SectionHeading copy={REVIEW_ENVIRONMENT.enabled ? 'Fictional requests for testing the workshop workflow.' : 'Recent requests visible through the existing MFA-gated staff policies.'} title="Booking queue" />
         {activeBookings.length === 0 ? <EmptyState>No active booking requests are currently shown.</EmptyState> : activeBookings.slice(0, 12).map((booking) => {
           const vehicle = snapshot.vehicles.find((item) => item.id === booking.vehicle_id);
           const customer = snapshot.customers.find((item) => item.user_id === booking.customer_id);
@@ -547,7 +549,7 @@ function StaffWorkspace({
             <Ionicons color={waitingIntegrationJobs.length ? colors.danger : colors.success} name={waitingIntegrationJobs.length ? 'alert-circle' : 'checkmark-circle'} size={22} />
             <View style={styles.flex}>
               <Text style={styles.securityTitle}>{waitingIntegrationJobs.length ? `${waitingIntegrationJobs.length} job${waitingIntegrationJobs.length === 1 ? '' : 's'} need attention` : 'Queue is clear'}</Text>
-              <Text style={styles.securityCopy}>Email delivery is active. Google Calendar is ready and creates a private event only when a booking legitimately reaches Confirmed.</Text>
+              <Text style={styles.securityCopy}>{REVIEW_ENVIRONMENT.enabled ? 'External email and Calendar delivery are deliberately disabled. Queue entries demonstrate the workflow without contacting anyone or creating appointments.' : 'Email delivery is active. Google Calendar is ready and creates a private event only when a booking legitimately reaches Confirmed.'}</Text>
             </View>
           </View>
           <PrimaryButton label="Check email & Calendar queue" loading={integrationBusy} onPress={() => void processIntegrationQueue()} variant="outline" />
@@ -556,7 +558,7 @@ function StaffWorkspace({
               <Ionicons color={colors.success} name="checkmark-circle" size={20} />
               <View style={styles.flex}>
                 <Text style={styles.integrationSuccessTitle}>Queue check complete</Text>
-                <Text style={styles.integrationSuccessCopy}>{integrationResult.processed === 0 ? 'No waiting jobs were found.' : `${integrationResult.processed} waiting job${integrationResult.processed === 1 ? '' : 's'} checked.`} Email {integrationResult.readiness.emailConfigured ? 'connected' : 'needs configuration'} · Calendar {integrationResult.readiness.calendarConfigured ? 'connected' : 'needs configuration'}.</Text>
+                <Text style={styles.integrationSuccessCopy}>{REVIEW_ENVIRONMENT.enabled ? 'Sandbox queue checked. No emails were sent and no Calendar events were created. External delivery remains disabled.' : `${integrationResult.processed === 0 ? 'No waiting jobs were found.' : `${integrationResult.processed} waiting job${integrationResult.processed === 1 ? '' : 's'} checked.`} Email ${integrationResult.readiness.emailConfigured ? 'connected' : 'needs configuration'} · Calendar ${integrationResult.readiness.calendarConfigured ? 'connected' : 'needs configuration'}.`}</Text>
               </View>
             </View>
           ) : null}
@@ -643,7 +645,7 @@ function StaffWorkspace({
             </View>
           );
         })}
-        <Text style={styles.footer}>AAL2 STAFF ACCESS · PRIVATE STORAGE · AUDITED EMAIL/CALENDAR QUEUE · PAYMENTS DISABLED</Text>
+        <Text style={styles.footer}>{REVIEW_ENVIRONMENT.enabled ? 'ISOLATED REVIEW · PRIVATE STORAGE · EXTERNAL DELIVERY AND PAYMENTS DISABLED' : 'AAL2 STAFF ACCESS · PRIVATE STORAGE · AUDITED EMAIL/CALENDAR QUEUE · PAYMENTS DISABLED'}</Text>
       </ScrollView>
     </SafeAreaView>
   );

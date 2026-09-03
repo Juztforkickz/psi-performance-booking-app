@@ -12,6 +12,7 @@ import type {
 } from '@/lib/database.types';
 import { getSupabaseClient } from '@/lib/supabase';
 import { dispatchBookingPushNotifications } from '@/lib/notifications';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 const PRIVATE_DOCUMENT_BUCKET = 'vehicle-documents' as const;
 const MAX_STANDARD_UPLOAD_BYTES = 6 * 1024 * 1024;
@@ -254,7 +255,7 @@ async function requireAal2StaffActor() {
   ]);
   if (userError || !userData.user) throw userError ?? new Error('STAFF_SESSION_REQUIRED');
   if (assuranceError) throw assuranceError;
-  if (assurance.currentLevel !== 'aal2') throw new Error('STAFF_AAL2_REQUIRED');
+  if (!REVIEW_ENVIRONMENT.enabled && assurance.currentLevel !== 'aal2') throw new Error('STAFF_AAL2_REQUIRED');
 
   const { data: staff, error: staffError } = await supabase
     .from('staff_members')

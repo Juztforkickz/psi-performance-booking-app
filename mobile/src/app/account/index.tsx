@@ -5,6 +5,8 @@ import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleShee
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProfilePhotoPicker } from '@/components/profile-photo-picker';
+import { AppleReviewSignIn } from '@/components/apple-review-sign-in';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -286,7 +288,8 @@ export default function AccountScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-        {auth.status !== 'signed_in' ? <View style={[styles.card, compact && styles.cardCompact]}>
+        {auth.status !== 'signed_in' && REVIEW_ENVIRONMENT.enabled ? <AppleReviewSignIn /> : null}
+        {auth.status !== 'signed_in' && !REVIEW_ENVIRONMENT.enabled ? <View style={[styles.card, compact && styles.cardCompact]}>
           <Text style={styles.cardTitle}>Sign in with email</Text>
           <Text style={styles.cardCopy}>
             We’ll email you a six-digit sign-in code. No password is required.{secureReturnTo ? ' After verification, you will return to the protected PSI staff workspace.' : ''}
@@ -350,10 +353,10 @@ export default function AccountScreen() {
         <Eyebrow>{secureReturnTo ? 'PSI staff access' : 'PSI customer account'}</Eyebrow>
         <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>{secureReturnTo ? `Staff sign in.${`\n`}Protected portal.` : `Your cars.${`\n`}Your bookings.`}</Text>
         <Text style={styles.lead}>
-          {secureReturnTo ? 'Use your approved PSI email. Authenticator verification is required before workshop records open.' : 'Keep your details, vehicles, reports and bookings together.'}
+          {REVIEW_ENVIRONMENT.enabled ? 'Review accounts open fictional data in a separate environment. Live customer and workshop accounts are not accessible here.' : secureReturnTo ? 'Use your approved PSI email. Authenticator verification is required before workshop records open.' : 'Keep your details, vehicles, reports and bookings together.'}
         </Text>
 
-        {auth.status !== 'signed_in' ? (
+        {auth.status !== 'signed_in' && !REVIEW_ENVIRONMENT.enabled ? (
           <View style={[styles.providerNotice, compact && styles.cardCompact]}>
             <Text style={styles.providerKicker}>Account access</Text>
             <Text style={styles.providerTitle}>{secureReturnTo ? 'Staff email-code sign in' : 'Email-code sign in'}</Text>
@@ -458,7 +461,7 @@ export default function AccountScreen() {
         </View>
         ) : null}
 
-        {auth.status === 'signed_in' && account?.profile ? null : <View style={[styles.createCard, compact && styles.cardCompact]}>
+        {(REVIEW_ENVIRONMENT.enabled && auth.status !== 'signed_in') || (auth.status === 'signed_in' && account?.profile) ? null : <View style={[styles.createCard, compact && styles.cardCompact]}>
           <View style={styles.createCopy}>
             <Text style={styles.createTitle}>{account ? accountSetupComplete ? 'Account details' : 'Complete your profile' : CUSTOMER_AUTH.enabled ? 'Need an account?' : 'New to PSI?'}</Text>
             <Text style={styles.createText}>{account ? accountSetupComplete ? 'Update your contact details and primary vehicle.' : 'Add your name, mobile number and first vehicle to finish setting up your private PSI account.' : CUSTOMER_AUTH.registrationEnabled ? 'Add your details and primary vehicle.' : CUSTOMER_AUTH.enabled ? 'New customer accounts are set up by PSI. Contact us for access.' : 'Explore account setup with demonstration details.'}</Text>

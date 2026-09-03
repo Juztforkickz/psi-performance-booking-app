@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { PersistentBottomNavigation } from '@/components/persistent-bottom-navigation';
+import { AppleReviewBanner } from '@/components/apple-review-banner';
 import { colors } from '@/constants/brand';
 import { CustomerAccountProvider } from '@/lib/customer-account-context';
 import { CustomerAuthProvider } from '@/lib/customer-auth-context';
@@ -39,6 +40,7 @@ function ThemeAwareRootShell() {
             <CustomerPreviewProvider>
               <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
               <View style={styles.shell}>
+                <AppleReviewBanner />
                 <View style={styles.content}>
                   <Stack
                     screenOptions={{

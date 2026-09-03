@@ -17,6 +17,7 @@ import { Platform } from 'react-native';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import type { NotificationEventRow, NotificationPreferenceRow } from '@/lib/database.types';
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
+import { environmentStorageKey, REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 type PushStatus = 'disabled' | 'not_enabled' | 'ready' | 'unsupported';
 type NotificationContextValue = {
@@ -35,10 +36,10 @@ type PreferenceKey = 'booking_reminders_enabled' | 'booking_updates_enabled' | '
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 let registeredToken = '';
-const PUSH_TOKEN_STORAGE_KEY = 'psi-notifications.expo-push-token';
-const PUSH_ENABLED_STORAGE_KEY = 'psi-notifications.device-alerts-enabled';
+const PUSH_TOKEN_STORAGE_KEY = environmentStorageKey('psi-notifications.expo-push-token');
+const PUSH_ENABLED_STORAGE_KEY = environmentStorageKey('psi-notifications.device-alerts-enabled');
 
-if (Platform.OS !== 'web') {
+if (!REVIEW_ENVIRONMENT.enabled && Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }),
   });
@@ -80,7 +81,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   }, [refresh, auth.sessionRevision]);
 
   useEffect(() => {
-    if (Platform.OS === 'web' || auth.status !== 'signed_in') return;
+    if (REVIEW_ENVIRONMENT.enabled || Platform.OS === 'web' || auth.status !== 'signed_in') return;
     let active = true;
     void Promise.all([
       SecureStore.getItemAsync(PUSH_ENABLED_STORAGE_KEY),
@@ -124,7 +125,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   }, [auth.sessionRevision, auth.status]);
 
   useEffect(() => {
-    if (Platform.OS === 'web') return;
+    if (REVIEW_ENVIRONMENT.enabled || Platform.OS === 'web') return;
     const received = Notifications.addNotificationReceivedListener(() => { void refresh(); });
     const responded = Notifications.addNotificationResponseReceivedListener((response) => {
       const url = response.notification.request.content.data?.url;
@@ -140,10 +141,11 @@ export function NotificationProvider({ children }: PropsWithChildren) {
 
   const unreadCount = useMemo(() => events.filter((event) => !event.read_at).length, [events]);
   useEffect(() => {
-    if (Platform.OS !== 'web') void Notifications.setBadgeCountAsync(pushStatus === 'ready' ? unreadCount : 0).catch(() => undefined);
+    if (!REVIEW_ENVIRONMENT.enabled && Platform.OS !== 'web') void Notifications.setBadgeCountAsync(pushStatus === 'ready' ? unreadCount : 0).catch(() => undefined);
   }, [pushStatus, unreadCount]);
 
   const enablePush = useCallback(async () => {
+    if (REVIEW_ENVIRONMENT.enabled) throw new Error('REVIEW_EXTERNAL_PUSH_DISABLED');
     if (Platform.OS === 'web' || !Device.isDevice) {
       setPushStatus('unsupported');
       throw new Error('NATIVE_DEVICE_REQUIRED');
@@ -172,6 +174,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   }, []);
 
   const disablePush = useCallback(async () => {
+    if (REVIEW_ENVIRONMENT.enabled) return;
     if (Platform.OS === 'web') {
       setPushStatus('unsupported');
       throw new Error('NATIVE_DEVICE_REQUIRED');
@@ -230,16 +233,19 @@ export function useNotifications() {
 }
 
 export async function dispatchBookingPushNotifications(bookingId: string) {
+  if (REVIEW_ENVIRONMENT.enabled) return;
   if (!SUPABASE_CONNECTION.authEnabled) return;
   await getSupabaseClient().functions.invoke('process-push-notifications', { body: { action: 'dispatch', bookingId } });
 }
 
 export async function dispatchPsiEventPushNotifications() {
+  if (REVIEW_ENVIRONMENT.enabled) return;
   if (!SUPABASE_CONNECTION.authEnabled) return;
   await getSupabaseClient().functions.invoke('process-push-notifications', { body: { action: 'dispatch' } });
 }
 
 export async function unregisterCurrentPushDevice() {
+  if (REVIEW_ENVIRONMENT.enabled) return;
   if (Platform.OS !== 'web' && !registeredToken) registeredToken = await SecureStore.getItemAsync(PUSH_TOKEN_STORAGE_KEY) ?? '';
   if (!registeredToken || !SUPABASE_CONNECTION.authEnabled) return;
   try {

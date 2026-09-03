@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { environmentStorageKey } from '@/lib/review-environment';
 
 import {
   EMPTY_BOOKING,
@@ -27,7 +28,7 @@ export type LoadedBookingDraft = {
 };
 
 function keyFor(type: BookingType) {
-  return `@psi-performance/booking-draft/v${DRAFT_VERSION}/${type}`;
+  return environmentStorageKey(`@psi-performance/booking-draft/v${DRAFT_VERSION}/${type}`);
 }
 
 function stringValue(value: unknown, maxLength: number, fallback = '') {

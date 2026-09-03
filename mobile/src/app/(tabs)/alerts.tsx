@@ -16,6 +16,7 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_PREVIEW, type PreviewAlert } from '@/lib/customer-preview';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import type { NotificationEventRow } from '@/lib/database.types';
 import { useNotifications } from '@/lib/notifications';
@@ -53,7 +54,7 @@ export default function AlertsScreen() {
 
   const privateMode = CUSTOMER_AUTH.enabled;
   const signedIn = auth.status === 'signed_in';
-  const staffMode = signedIn && auth.user?.email?.toLowerCase() === 'matt@psiperformance.com.au';
+  const staffMode = signedIn && auth.user?.email?.toLowerCase() === (REVIEW_ENVIRONMENT.enabled ? 'psiappreview+staff@gmail.com' : 'matt@psiperformance.com.au');
   const previewUnreadCount = useMemo(
     () => CUSTOMER_PREVIEW.alerts.filter((alert) => !readIds.has(alert.id)).length,
     [readIds],
@@ -115,7 +116,7 @@ export default function AlertsScreen() {
           <Text style={styles.previewNoticeTitle}>{privateMode ? 'Your notifications' : 'Demo notifications'}</Text>
           <Text style={styles.previewNoticeCopy}>
             {privateMode
-              ? signedIn
+              ? REVIEW_ENVIRONMENT.enabled ? 'Sandbox booking and event updates appear here. External push delivery is disabled; no live devices are registered.' : signedIn
                 ? 'Booking updates appear here. Enable device alerts below for banners, sound and badges.'
                 : 'Sign in to see your notifications and preferences.'
               : 'Example alerts only. This demo does not register or notify your device.'}
@@ -257,7 +258,7 @@ export default function AlertsScreen() {
           ) : null}
         </View>
 
-        {privateMode && signedIn ? (
+        {privateMode && signedIn && !REVIEW_ENVIRONMENT.enabled ? (
           <View style={styles.howItWorks}>
             <Ionicons color={colors.accent} name="phone-portrait-outline" size={30} />
             <View style={styles.howItWorksCopy}>

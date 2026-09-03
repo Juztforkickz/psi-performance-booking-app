@@ -7,6 +7,7 @@ import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { isoDateToAustralian, todayAustralianDate } from '@/lib/australian-date';
 import type { BookingRequestRow } from '@/lib/database.types';
 import { reviewBookingRequest, type StaffBookingReviewInput } from '@/lib/staff-portal';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 type ReviewAction = StaffBookingReviewInput['action'];
 
@@ -52,7 +53,7 @@ export function StaffBookingReview({ booking, onRefresh }: { booking: BookingReq
     <View style={styles.workspace}>
       <View style={styles.heading}>
         <View style={styles.flex}>
-          <Text style={styles.kicker}>MFA-protected review</Text>
+          <Text style={styles.kicker}>{REVIEW_ENVIRONMENT.enabled ? 'Fictional booking review' : 'MFA-protected review'}</Text>
           <Text style={styles.title}>Workshop decision</Text>
         </View>
         {action && feedback?.kind !== 'success' ? (

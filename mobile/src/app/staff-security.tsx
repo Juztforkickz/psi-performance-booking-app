@@ -9,6 +9,7 @@ import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAustralianDate } from '@/lib/australian-date';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import {
   beginStaffTotpEnrollment,
@@ -52,6 +53,9 @@ export default function StaffSecurityScreen() {
     };
   }, [auth.sessionRevision, auth.status, auth.user?.id, refreshNonce]);
 
+  if (REVIEW_ENVIRONMENT.enabled) {
+    return <SecurityState title="Review sandbox security" copy="This isolated demonstration uses dedicated app passwords. No live PSI authenticators are shared or changed. The live workshop portal still requires MFA." actionLabel="Return to portal" onAction={() => router.replace('/staff')} />;
+  }
   if (!CUSTOMER_AUTH.enabled) {
     return <SecurityState copy="Staff authenticator management is unavailable in the public preview." title="Private security workspace" />;
   }

@@ -7,6 +7,7 @@ import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { formatAustralianDateTime } from '@/lib/australian-date';
 import type { PsiEventRow } from '@/lib/database.types';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { cancelPsiEvent, createPsiEvent, loadStaffPsiEvents, publishPsiEvent, updatePsiEvent } from '@/lib/psi-events';
 
 function initialStart() {
@@ -116,7 +117,7 @@ export function StaffEventsManager() {
         <View style={styles.headingRow}>
           <View style={styles.flex}>
             <Text style={styles.heading}>{editingId ? 'Edit PSI Event' : 'Create PSI Event'}</Text>
-            <Text style={styles.copy}>{editingId ? 'Save the corrected details. Changes to a published event queue a customer update alert.' : 'Save privately as a draft or publish to every signed-in customer. Publishing queues app alerts and native push notifications.'}</Text>
+            <Text style={styles.copy}>{REVIEW_ENVIRONMENT.enabled ? 'Save a fictional draft or publish to sandbox accounts. In-app alerts can be reviewed here; external push delivery is disabled.' : editingId ? 'Save the corrected details. Changes to a published event queue a customer update alert.' : 'Save privately as a draft or publish to every signed-in customer. Publishing queues app alerts and native push notifications.'}</Text>
           </View>
           <Ionicons color={colors.accent} name="flag" size={24} />
         </View>

@@ -1,6 +1,8 @@
 # Isolated Apple review environment
 
-Status: project created only, 3 September 2026. Not ready for Apple review.
+Status: sandbox implemented and browser/API acceptance passed, 3 September 2026.
+The review iOS JavaScript bundle compiles. A signed native build, on-device
+acceptance and App Store Connect handover remain pending at this checkpoint.
 
 ## Owner approval and cost boundary
 
@@ -18,10 +20,11 @@ would be required. This quote covers Supabase, not Expo build allowance.
 | Existing protected app, do not change | `lslhfrujyuqcavsnugfx` | Sydney |
 | PSI Apple Review Sandbox | `jwikoldibbpxyhbdrsow` | Sydney |
 
-The new project reported `ACTIVE_HEALTHY`. Its migration list was empty after
-creation. No production records, Auth users, private files, provider secrets or
-staff permissions have been copied. No application configuration, native build,
-OTA channel or existing web deployment has been redirected to this project.
+The new project reports `ACTIVE_HEALTHY`. The 25 approved schema migrations were
+replayed, followed by three sandbox-only migrations kept outside the live
+deployment directory. No production records, Auth users, private files or
+provider secrets were copied. Existing QA, production and public-demo builds
+continue to use their original configuration.
 
 ## Saved source restore point
 
@@ -38,46 +41,118 @@ provider-configuration backup. A current encrypted data/file export and restore
 rehearsal have not been verified. See `SUPABASE-BACKUP-RECOVERY.md`. Do not reset
 the live app or database as part of sandbox setup.
 
-## Current setup gate
+## Implemented isolation
 
-The management connector can create the project but does not expose the Auth
-configuration controls needed for this setup. The sandbox Auth settings page
-redirects to Supabase owner sign-in. The owner must sign in before registration
-settings and review-account creation can be completed. No credentials should be
-placed in chat, source history or public documents.
+Public, anonymous and manual-linking registration are disabled server-side.
+Dedicated email/password accounts are confirmed administratively, with separate
+36-character randomly generated passwords. Gmail access is not needed.
 
-Sandbox settings:
-https://supabase.com/dashboard/project/jwikoldibbpxyhbdrsow/auth/providers
+| Account | Scope |
+| --- | --- |
+| `psiappreview@gmail.com` | Fictional customer and two demo cars |
+| `psiappreview+staff@gmail.com` | Owner role in this sandbox only |
+| `psiappreview+isolation@gmail.com` | Private isolation test; not an Apple login |
 
-## Required implementation and acceptance
+The sandbox staff SQL requires the exact staff email, sandbox JWT issuer, an
+active Auth session and a private installation marker. This dedicated password
+session is accepted without staff TOTP only in the isolated database. The live
+Matt allowlist, mandatory AAL2 and live authentication code paths are unchanged.
+A client flag alone cannot grant database access. Customer ownership and private
+Storage policies remain enforced.
 
-These are pending requirements, not completed functionality:
+Review credentials are saved with Windows DPAPI in the ignored file
+`artifacts/apple-review-private/PSI-APPLE-REVIEW-SANDBOX-credentials.clixml`.
+Only the owning Windows account can decrypt it. Never commit or print passwords,
+mailbox credentials, tokens or privileged keys. `New-PsiAppleReviewCredentials.ps1`
+supports ephemeral RSA-encrypted transport for private form entry, not plaintext
+terminal output. Do not recreate existing credentials. DPAPI recovery requires
+the original Windows identity; this file is not a portable credential backup.
 
-1. Disable public and anonymous registration in the sandbox, verify the saved
-   server settings, and keep all providers and real-world integrations isolated.
-2. Reuse the approved schema and app screens, preserving customer ownership,
-   private buckets and least-privilege roles. Seed only explicitly fictional
-   accounts, vehicles, documents, bookings and events. Never clone live data.
-3. Supply independent customer and staff review credentials. Do not grant the
-   production `psiappreview@gmail.com` customer live staff access. Do not share
-   Matt's account, authenticator or provider credentials. Review login design
-   must not weaken production email-code authentication or staff AAL2.
-4. Implement a fail-closed review configuration pinned to the sandbox project,
-   with a separate native update channel and unmistakable review labelling.
-   Switching environment must not reuse production sessions or customer drafts.
-5. Isolate all email, push, Calendar, invitation and deletion effects. Label any
-   simulated external delivery honestly. Never claim real delivery succeeded
-   when it was simulated or disabled. Payments remain disabled.
-6. Test customer isolation, denied staff access for a customer, valid staff
-   review actions, uploads, sign-out, fresh sign-in and environment separation.
-   Verify no production changes or external messages occur during these tests.
-7. Check the current Expo iOS build allowance before starting a signed build.
-   Stop rather than incur a charge. Use the existing app source, not a recreated
-   application. Do not publish an OTA to the existing customer channels.
-8. Disclose all review-specific behaviour to Apple, resolve any required
-   approval for a demo mode, and provide tested access to both account types.
-   Do not describe the app as ready until the submitted native build passes the
-   fresh-session tests and the access instructions match that build.
+Synthetic content consists of three vehicles, an inspection, a 310 HP example
+dyno graph, a zero-AUD non-payable invoice, a pending booking and a fictional
+event. Three private JPG attachments were uploaded and checked. No real vehicle
+inspection, tax invoice or workshop appointment is represented.
+
+Three sandbox-only Edge Functions are deployed: `invite-customer`,
+`complete-account-deletion` and `process-booking-integrations`. Each rejects a
+different project URL and verifies the caller via Supabase Auth. Owner actions
+also require the session-aware staff RPC. Gateway `verify_jwt` is false for
+asymmetric JWT compatibility; application-level verification remains mandatory.
+Invitations only accept bounded fictional `demo1@example.invalid` through
+`demo5@example.invalid` accounts or the existing test customer aliases. No
+external invitation emails or TestFlight invitations are sent. Deletion requires
+a customer request plus explicit owner confirmation. The integration worker
+records deliberately blocked delivery; it cannot email, charge or access Calendar.
+No push worker or external provider secrets are installed in the sandbox.
+
+## App/build separation
+
+| Field | Review build |
+| --- | --- |
+| Display name | PSI Review |
+| EAS build profile / channel | `apple-review` |
+| Runtime | `1.0.0-apple-review-1` |
+| Bundle identifier | `com.psiperformance.booking` (existing app) |
+| EAS project | `e62e9cdf-867c-4eb7-b8c5-a2610f969286` (existing project) |
+
+`mobile/review-environment.cjs` fails closed unless the explicit review flag,
+pinned sandbox URL/public key, closed registration and review channel agree.
+The dynamic app config rejects review mode under a production/QA build profile.
+Review sessions are project-specific; draft and push storage keys are namespaced.
+Every screen shows a review banner. External device push handling is disabled.
+Existing production and QA profiles are unchanged. No live OTA was published.
+
+This is a separate signed build of the same app, not a new application. Because
+the bundle identifier stays the same, installing it on a phone replaces that
+phone's current PSI installation. Previous builds and live server records remain
+available; do not distribute this review build to ordinary customer test groups.
+Do not submit this sandbox build as the eventual public production release.
+
+## Acceptance evidence
+
+* Eight environment/configuration regression tests passed.
+* TypeScript and targeted ESLint validation passed; the isolated iOS Hermes bundle
+  exported successfully. The submission-disabled public web export also passed
+  across all 22 routes.
+* 34 API checks passed: fresh logins, account isolation, denied anonymous and
+  invalid-token operations, bounded invitations, blocked external delivery and
+  private access to all three uploaded documents.
+* A separate nine-check deletion rehearsal passed. It removed only the disposable
+  `demo5@example.invalid` fixture, one vehicle and one private file. The three
+  review accounts and three review documents remained intact afterward.
+* Browser checks passed for fresh customer sign-in, the two-car garage selector,
+  visible private dyno image, sign-out, staff sign-in, workshop records and the
+  queue's explicit no-delivery result. This is not an iPhone native acceptance test.
+* Private test reports are in `artifacts/apple-review-private/`.
+
+Security advisors: intentionally deny-all RLS tables produce informational
+messages. Leaked-password screening remains disabled; no paid upgrade was
+activated. Strong unique passwords and closed registration are used, but do not
+describe this as a warning-free security audit.
+
+Expo billing was checked immediately before build preparation: Free $0/month,
+15 iOS builds included, 0 iOS used, 2 Android used and $0 estimated bill. Recheck
+if the build is resumed later. Stop rather than upgrade if the free allowance is
+unavailable. Supabase remains on Free.
+
+## Remaining handover gate
+
+1. Save and push the implementation checkpoint and verify automatic Pages refresh.
+2. Build iOS with the `apple-review` profile only; label the build and record its
+   ID and source commit. Do not auto-submit or auto-distribute it.
+3. Install the exact signed build and verify both fresh logins, private documents,
+   customer-to-staff isolation, uploads and sign-out on iPhone. A local web pass
+   does not replace these checks.
+4. Provide the customer credentials in Beta App Review Information and the
+   separate staff credentials in Apple's private review notes. Do not disclose
+   Gmail, Apple or Matt credentials. Follow `APPLE-REVIEW-REPLY-DRAFT.md` only after
+   the build and private credentials are attached and verified.
+5. Disclose the isolated demo mode and all disabled external effects to Apple;
+   acceptance is Apple's decision. Keep registration closed and live MFA intact.
+
+Sandbox operations and rebuild cautions: `../operations/apple-review/README.md`.
+No live database rollback, production OTA, paid service or public-store release
+is part of this checkpoint.
 
 References: [Apple account-type review guidance](https://developer.apple.com/forums/thread/810791),
 [Apple review guidelines](https://developer.apple.com/app-store/review/guidelines/),

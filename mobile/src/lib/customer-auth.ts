@@ -1,4 +1,5 @@
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 export const EMAIL_CODE_RESEND_COOLDOWN_SECONDS = 60;
 
@@ -11,6 +12,7 @@ export const CUSTOMER_AUTH = {
 } as const;
 
 export async function requestPasswordlessEmailCode(email: string) {
+  if (REVIEW_ENVIRONMENT.enabled) throw new Error('USE_REVIEW_APP_PASSWORD');
   const normalizedEmail = email.trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
     throw new Error('INVALID_EMAIL');
@@ -25,6 +27,7 @@ export async function requestPasswordlessEmailCode(email: string) {
 }
 
 export async function verifyPasswordlessEmailCode(email: string, token: string) {
+  if (REVIEW_ENVIRONMENT.enabled) throw new Error('USE_REVIEW_APP_PASSWORD');
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedToken = token.replace(/\s/gu, '');
   if (!/^\d{6}$/.test(normalizedToken)) {

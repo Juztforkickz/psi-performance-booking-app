@@ -31,6 +31,20 @@
         "buildType": "apk"
       }
     },
+    "apple-review": {
+      "autoIncrement": true,
+      "channel": "apple-review",
+      "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_PSI_APPLE_REVIEW": "true",
+        "EXPO_PUBLIC_PSI_UPDATE_CHANNEL": "apple-review",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://jwikoldibbpxyhbdrsow.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ehO9_cXAkXQ6fffoDmzvZA_c8erSaqP",
+        "EXPO_PUBLIC_SUPABASE_AUTH_ENABLED": "true",
+        "EXPO_PUBLIC_SUPABASE_BOOKING_ENABLED": "true",
+        "EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED": "false"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "channel": "production",
