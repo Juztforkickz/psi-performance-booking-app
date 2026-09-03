@@ -1,0 +1,38 @@
+# EAS reads this at the Git root. Upload only the standalone mobile project.
+/*
+!/.easignore
+!/mobile
+!/mobile/**
+
+# Local dependencies, generated exports, caches and device state.
+**/node_modules/
+**/.expo/
+**/.expo-shared/
+**/.netlify/
+**/.git
+**/dist/
+**/web-build/
+**/work/
+**/artifacts/
+**/coverage/
+**/expo-env.d.ts
+**/*.tsbuildinfo
+**/*.log
+
+# Never upload local environment files, signing material or private backups.
+**/.env*
+**/*.clixml
+**/*.pem
+**/*.key
+**/*.p8
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.keystore
+**/*.mobileprovision
+**/credentials.json
+**/google-services.json
+**/GoogleService-Info.plist
+**/*.bundle
+**/*.zip
+**/*.orig.*

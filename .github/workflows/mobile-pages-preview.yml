@@ -67,7 +67,7 @@ jobs:
 
       - name: Verify review environment isolation
         working-directory: mobile
-        run: node --test scripts/test-review-environment.cjs
+        run: node --test scripts/test-review-environment.cjs scripts/test-demo-mode.cjs
 
       - name: Export Expo web preview
         working-directory: mobile

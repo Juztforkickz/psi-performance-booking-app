@@ -19,13 +19,15 @@ Hello App Review team,
 
 Thank you for explaining the access issue under Guideline 2.1(a).
 
-We have prepared build [REVIEW BUILD NUMBER] with a clearly labelled, isolated
-demonstration environment using the same customer and workshop screens. It
+We have prepared PSI build [REVIEW BUILD NUMBER] with the normal invitation-only
+customer app and a clearly labelled, selectable isolated demonstration mode in
+the same binary. It uses the same customer and workshop screens. The demonstration
 contains fictional vehicles, an inspection record, a dyno graph, a sample invoice,
 a booking request and an event. No live customer information is included.
 
 The customer app credentials are saved in Beta App Review Information. Open
-Account and use the Apple review sign-in form with those credentials. A mailbox
+Account, select Open demonstration, then Enter demo and restart. After the app
+restarts, use the Apple review sign-in form with those credentials. A mailbox
 or one-time email code is not required in this review environment. You can review
 My Garage, Bookings, Reports, Settings and PSI Events, including private documents.
 
@@ -34,6 +36,12 @@ notes. Sign out of the customer account, sign in with the workshop account, then
 open PSI Portal from Account. This allows you to inspect the workshop booking
 queue, customer records, record publishing and account-deletion workflow using
 fictional data. The live workshop portal remains separate and requires staff MFA.
+
+The Return to normal PSI app button signs out the demonstration session and
+restarts the normal app. Normal PSI customers sign in with their own email codes;
+the demo credentials do not grant access to the live workshop or customer data.
+External testers will use this same binary after beta approval, not a replacement
+review-only version.
 
 The sandbox deliberately disables external email and push delivery, real Calendar
 changes and payments. It shows in-app notifications and the integration queue

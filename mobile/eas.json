@@ -45,6 +45,22 @@
         "EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED": "false"
       }
     },
+    "beta": {
+      "autoIncrement": true,
+      "distribution": "store",
+      "channel": "beta",
+      "environment": "production",
+      "env": {
+        "EXPO_PUBLIC_PSI_DEMO_MODE_ENABLED": "true",
+        "EXPO_PUBLIC_PSI_APPLE_REVIEW": "false",
+        "EXPO_PUBLIC_PSI_UPDATE_CHANNEL": "beta",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://lslhfrujyuqcavsnugfx.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_B1fbCA2hQegGaE9JDCcp-Q_L2rvyeDN",
+        "EXPO_PUBLIC_SUPABASE_AUTH_ENABLED": "true",
+        "EXPO_PUBLIC_SUPABASE_BOOKING_ENABLED": "true",
+        "EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED": "false"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "channel": "production",

@@ -1,5 +1,9 @@
 # PSI Performance mobile app
 
+Current Apple review delivery: [one PSI build with normal and selectable demo
+access](../docs/SAME-BUILD-APPLE-REVIEW.md). Use the `beta` profile for that plan;
+the earlier standalone `apple-review` profile is historical, not the handover build.
+
 Native iOS, Android and responsive React Native Web client for PSI Performance Garage. The app uses Expo SDK 57, React Native 0.86 and Expo Router.
 
 The opening route is an illustrated PSI customer dashboard with a persistent five-button navigation bar for **Home**, **My Garage**, **Bookings**, **Vehicle Reports** and **Settings & Notifications**. It supports:

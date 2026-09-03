@@ -3,7 +3,8 @@ import { AppState, Platform } from 'react-native';
 
 import type { Database } from '@/lib/database.types';
 import { supabaseAuthStorage } from '@/lib/supabase-auth-storage';
-import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
+import { appModeRuntime, REVIEW_ENVIRONMENT } from '@/lib/review-environment';
+import { REVIEW_URL, REVIEW_PUBLIC_KEY } from '../../review-environment.cjs';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() ?? '';
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ?? '';
@@ -26,18 +27,19 @@ export const SUPABASE_CONNECTION = {
     && requestedAuthActivation
     && requestedRegistrationActivation
   ),
-  projectRef: REVIEW_ENVIRONMENT.projectRef ?? 'lslhfrujyuqcavsnugfx',
+  get projectRef() { return REVIEW_ENVIRONMENT.projectRef ?? 'lslhfrujyuqcavsnugfx'; },
   region: 'ap-southeast-2',
 } as const;
 
 let client: SupabaseClient<Database> | null = null;
 
 export function getSupabaseClient() {
+  appModeRuntime.assertReady();
   if (!SUPABASE_CONNECTION.authEnabled) {
     throw new Error('CUSTOMER_AUTH_NOT_ENABLED');
   }
 
-  client ??= createClient<Database>(supabaseUrl, supabasePublishableKey, {
+  client ??= createClient<Database>(REVIEW_ENVIRONMENT.enabled ? REVIEW_URL : supabaseUrl, REVIEW_ENVIRONMENT.enabled ? REVIEW_PUBLIC_KEY : supabasePublishableKey, {
     auth: {
       storage: supabaseAuthStorage,
       autoRefreshToken: true,

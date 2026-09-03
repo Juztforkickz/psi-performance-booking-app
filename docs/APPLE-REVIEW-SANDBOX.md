@@ -1,5 +1,16 @@
 # Isolated Apple review environment
 
+## Current delivery plan supersedes the standalone build plan
+
+See [Same-build Apple review](SAME-BUILD-APPLE-REVIEW.md). On 3 September 2026
+the owner approved one normal PSI binary with an explicit, selectable isolated
+demonstration. Use the `beta` build profile, not the historical `apple-review`
+profile below. The owner also approved source upload to the existing Expo project
+and use of its stored signing credentials, provided the build is free.
+Apple and subsequent external testers should use the same approved binary. Do not
+switch to an unreviewed binary after approval. The sections below preserve the
+earlier sandbox checkpoint and implementation history.
+
 Status: sandbox implemented and browser/API acceptance passed, 3 September 2026.
 The review iOS JavaScript bundle compiles. A signed native build, on-device
 acceptance and App Store Connect handover remain pending at this checkpoint.

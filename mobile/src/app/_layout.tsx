@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { PersistentBottomNavigation } from '@/components/persistent-bottom-navigation';
 import { AppleReviewBanner } from '@/components/apple-review-banner';
+import { AppModeGate } from '@/components/app-mode-gate';
 import { colors } from '@/constants/brand';
 import { CustomerAccountProvider } from '@/lib/customer-account-context';
 import { CustomerAuthProvider } from '@/lib/customer-auth-context';
@@ -70,7 +71,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemePreferenceProvider>
-          <ThemeAwareRootShell />
+          <AppModeGate><ThemeAwareRootShell /></AppModeGate>
         </ThemePreferenceProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

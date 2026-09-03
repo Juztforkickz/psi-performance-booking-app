@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProfilePhotoPicker } from '@/components/profile-photo-picker';
 import { AppleReviewSignIn } from '@/components/apple-review-sign-in';
+import { DemoModeControl } from '@/components/demo-mode-control';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
@@ -289,6 +290,7 @@ export default function AccountScreen() {
           showsVerticalScrollIndicator={false}
         >
         {auth.status !== 'signed_in' && REVIEW_ENVIRONMENT.enabled ? <AppleReviewSignIn /> : null}
+        {auth.status === 'signed_out' && !REVIEW_ENVIRONMENT.enabled ? <DemoModeControl /> : null}
         {auth.status !== 'signed_in' && !REVIEW_ENVIRONMENT.enabled ? <View style={[styles.card, compact && styles.cardCompact]}>
           <Text style={styles.cardTitle}>Sign in with email</Text>
           <Text style={styles.cardCopy}>

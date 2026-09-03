@@ -11,6 +11,7 @@ import { formatAustralianDateTime } from '@/lib/australian-date';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import type { PsiEventRow } from '@/lib/database.types';
 import { loadPublishedPsiEvents } from '@/lib/psi-events';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useThemePreference } from '@/lib/theme-preference';
 
 export default function PsiEventsScreen() {
@@ -52,6 +53,7 @@ export default function PsiEventsScreen() {
 
   const scheduleReminder = async (event: PsiEventRow) => {
     setMessage('');
+    if (REVIEW_ENVIRONMENT.enabled) { setMessage('Device reminders are disabled for fictional demonstration events.'); return; }
     if (Platform.OS === 'web') {
       setMessage('Event reminders are available in the installed iPhone or Android app.');
       return;

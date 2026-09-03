@@ -17,7 +17,7 @@ import { Platform } from 'react-native';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import type { NotificationEventRow, NotificationPreferenceRow } from '@/lib/database.types';
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
-import { environmentStorageKey, REVIEW_ENVIRONMENT } from '@/lib/review-environment';
+import { appModeRuntime, environmentStorageKey, REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 type PushStatus = 'disabled' | 'not_enabled' | 'ready' | 'unsupported';
 type NotificationContextValue = {
@@ -39,9 +39,12 @@ let registeredToken = '';
 const PUSH_TOKEN_STORAGE_KEY = environmentStorageKey('psi-notifications.expo-push-token');
 const PUSH_ENABLED_STORAGE_KEY = environmentStorageKey('psi-notifications.device-alerts-enabled');
 
-if (!REVIEW_ENVIRONMENT.enabled && Platform.OS !== 'web') {
+if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: true, shouldShowBanner: true, shouldShowList: true }),
+    handleNotification: async () => {
+      const normalMode = appModeRuntime.ready && !REVIEW_ENVIRONMENT.enabled;
+      return { shouldPlaySound: normalMode, shouldSetBadge: normalMode, shouldShowBanner: normalMode, shouldShowList: normalMode };
+    },
   });
 }
 
