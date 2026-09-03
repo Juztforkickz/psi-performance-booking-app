@@ -4,6 +4,21 @@ Status: sandbox implemented and browser/API acceptance passed, 3 September 2026.
 The review iOS JavaScript bundle compiles. A signed native build, on-device
 acceptance and App Store Connect handover remain pending at this checkpoint.
 
+Implementation checkpoint: `426c1c2dca7fc6afd87ce38c8664cf25f73b6876` on `main`.
+Saved GitHub tag: `checkpoint/apple-review-sandbox-tested-2026-09-03`.
+Local source bundle: `artifacts/restore-points/PSI-APPLE-REVIEW-SANDBOX-TESTED-2026-09-03.bundle`.
+`git bundle verify` confirmed complete history. SHA-256:
+`619E4D42FE99D4BEAA75AF7E738E2E41527FD5DF7522CB2605F3621B673CA916`.
+The implementation's automatic GitHub Pages refresh passed, including the new
+isolation test step: [run 33713834957](https://github.com/Juztforkickz/psi-performance-booking-app/actions/runs/33713834957).
+
+The attempted EAS cloud build was blocked before the command started by the
+execution approval check. No build was queued, signing credentials changed or
+upload performed by that attempt. Explicit owner approval is required to upload
+the app source to the existing Expo project and use its existing signing
+credentials for the free isolated review build. Private credential files and
+local backup artifacts are Git-ignored and must remain excluded from any upload.
+
 ## Owner approval and cost boundary
 
 The owner approved a separate review environment only if it costs nothing.
@@ -137,7 +152,7 @@ unavailable. Supabase remains on Free.
 
 ## Remaining handover gate
 
-1. Save and push the implementation checkpoint and verify automatic Pages refresh.
+1. Implementation checkpoint saved and pushed; automatic Pages refresh verified.
 2. Build iOS with the `apple-review` profile only; label the build and record its
    ID and source commit. Do not auto-submit or auto-distribute it.
 3. Install the exact signed build and verify both fresh logins, private documents,
