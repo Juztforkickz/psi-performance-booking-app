@@ -1,0 +1,2 @@
+# Preserve PDF byte offsets across Windows and Unix checkouts.
+output/pdf/apple-review/*.pdf binary
