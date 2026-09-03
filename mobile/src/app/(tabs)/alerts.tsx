@@ -87,13 +87,27 @@ export default function AlertsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View style={styles.headerCopy}>
+          <View style={styles.headerTopline}>
             <Text style={styles.eyebrow}>Your preferences</Text>
-            <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact]}>Settings & Notifications</Text>
+            <View accessibilityLabel={`${unreadCount} unread notifications`} style={styles.countBadge}>
+              <Ionicons color={colors.ink} name="notifications" size={18} />
+              <Text style={styles.countNumber}>{unreadCount}</Text>
+            </View>
           </View>
-          <View accessibilityLabel={`${unreadCount} unread notifications`} style={styles.countBadge}>
-            <Ionicons color={colors.ink} name="notifications" size={18} />
-            <Text style={styles.countNumber}>{unreadCount}</Text>
+          <View accessible accessibilityLabel="Settings & Notifications" accessibilityRole="header" style={styles.headerCopy}>
+            {['Settings &', 'Notifications'].map((line) => (
+              <Text
+                accessible={false}
+                adjustsFontSizeToFit
+                key={line}
+                maxFontSizeMultiplier={1.8}
+                minimumFontScale={0.5}
+                numberOfLines={1}
+                style={[styles.title, compact && styles.titleCompact]}
+              >
+                {line}
+              </Text>
+            ))}
           </View>
         </View>
 
@@ -390,8 +404,9 @@ function PreferenceRow({
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.ink },
   scroll: { width: '100%', maxWidth: 880, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
-  header: { minHeight: 68, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
-  headerCopy: { flex: 1, gap: spacing.xs },
+  header: { gap: spacing.sm },
+  headerTopline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  headerCopy: { width: '100%', minWidth: 0 },
   eyebrow: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.3, textTransform: 'uppercase' },
   title: { color: colors.white, fontSize: 39, fontWeight: '900', letterSpacing: -1.5, lineHeight: 41, textTransform: 'uppercase' },
   titleCompact: { fontSize: 33, lineHeight: 35 },
