@@ -2,8 +2,10 @@
 
 NOT READY TO SEND until the signed review build is attached, both native logins
 are verified and private credentials have been entered in App Store Connect.
-Build 1.0.0 (6) is signed and saved but still needs internal TestFlight upload and
-an iPhone acceptance check. Never put passwords in this file.
+Build 1.0.0 (6) is signed, saved, uploaded and VALID / IN_BETA_TESTING internally.
+Its external state is READY_FOR_BETA_SUBMISSION, not submitted. The owner's
+iPhone acceptance check and private review credentials still need confirmation.
+Never put passwords in this file.
 
 ## Private App Store Connect information
 

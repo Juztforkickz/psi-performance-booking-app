@@ -11,12 +11,19 @@ review arrangement is sufficient; approval is not guaranteed.
 
 Source, local iOS bundle and browser checks passed on 3 September 2026. The signed
 App Store-distribution build **PSI 1.0.0 (6)** finished successfully at 05:01 UTC.
-It is not uploaded to App Store Connect, distributed or submitted for review yet.
-Internal TestFlight upload and real-iPhone mode-switch checks remain required.
+The owner approved upload of this existing build on 3 September 2026. EAS Submit
+completed delivery to App Store Connect app `6806902732` at 05:30:30 UTC, without
+automatic TestFlight setup or group selection. No new build was created, no
+external invitations were sent, and no review submission was requested.
+Apple subsequently confirmed build 6 is VALID and IN_BETA_TESTING internally.
+Its external state is READY_FOR_BETA_SUBMISSION: it has not been submitted for
+external beta review. The owner's installation and real-iPhone mode-switch checks
+remain required before review handover.
 Do not send the reply draft as a completed claim before those checks pass.
 
 * Source checkpoint: `ae221aba391504c68b9c5fce82af4e90d574d2ea` on main.
 * [Completed EAS build](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/a3f7d3ec-0dff-4e9c-8e9c-1ea7e07e7224).
+* [Completed App Store Connect upload](https://expo.dev/accounts/psi-performance/projects/matt-psi/submissions/e801a547-74eb-4627-948a-935fc6d1d83d).
 * [Successful Pages validation and refresh](https://github.com/Juztforkickz/psi-performance-booking-app/actions/runs/33716764581).
 * Saved tag: `checkpoint/psi-same-build-demo-2026-09-03`.
 * Verified full-history source bundle:
@@ -116,3 +123,28 @@ notifications/reminders are not deleted by this feature.
 
 Never share Gmail, Apple account or live staff passwords with reviewers. The
 dedicated Gmail address identifies the demo account; mailbox access is unnecessary.
+
+## Upload audit
+
+The exact uploaded build ID was `a3f7d3ec-0dff-4e9c-8e9c-1ea7e07e7224` at source
+`ae221aba391504c68b9c5fce82af4e90d574d2ea`. Existing API credentials were reused.
+The `production` submission profile specifies only the existing App Store Connect
+app ID; it does not rebuild the app or change its `beta` runtime/channel.
+
+The upload used `--no-auto-testflight-setup`, no `--groups`, no external-testing
+workflow and no `--what-to-test` metadata change. Before upload, Apple reported
+only build 5 as VALID / IN_BETA_TESTING internally / BETA_REJECTED externally.
+The first post-upload API check still listed only build 5. A subsequent Apple API
+check confirmed build 6: processing VALID, internal IN_BETA_TESTING, external
+READY_FOR_BETA_SUBMISSION, runtime `1.0.0-beta-demo-1`, matching the exact EAS build
+and submission IDs above. Build 5 remained available for internal testing.
+
+The App Store Connect browser session needed sign-in to inspect exact group
+membership. The later Apple API result confirmed internal testing is active, so
+the owner can first open TestFlight > PSI > Update and verify 1.0.0 (6) without
+desktop sign-in. Browser sign-in is only needed if private-group troubleshooting
+is required. Never request an Apple password in chat.
+Source/build backup checksums still match, main was clean and matched
+remote checkpoint `c1e0f0d3a6cb09594e164ed476f43b44ad899d82` before this upload.
+Live backend, current installed app, existing builds, signing credentials, OTA
+updates, public registration and external review settings were not changed.
