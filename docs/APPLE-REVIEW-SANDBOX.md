@@ -111,7 +111,10 @@ a customer request plus explicit owner confirmation. The integration worker
 records deliberately blocked delivery; it cannot email, charge or access Calendar.
 No push worker or external provider secrets are installed in the sandbox.
 
-## App/build separation
+## Historical standalone build configuration (superseded)
+
+Do not build or distribute this older profile. The current `beta` profile keeps
+normal and demo access in one binary; see `SAME-BUILD-APPLE-REVIEW.md`.
 
 | Field | Review build |
 | --- | --- |
@@ -161,7 +164,10 @@ Expo billing was checked immediately before build preparation: Free $0/month,
 if the build is resumed later. Stop rather than upgrade if the free allowance is
 unavailable. Supabase remains on Free.
 
-## Remaining handover gate
+## Historical handover gate (superseded)
+
+The following describes the earlier standalone proposal, not current instructions.
+Use the signed-iPhone checklist in `SAME-BUILD-APPLE-REVIEW.md` instead.
 
 1. Implementation checkpoint saved and pushed; automatic Pages refresh verified.
 2. Build iOS with the `apple-review` profile only; label the build and record its

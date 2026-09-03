@@ -1,5 +1,9 @@
 # PSI Apple Review Sandbox operations
 
+Current delivery uses the normal app's `beta` profile with explicit demo selection.
+See [same-build review and testing](../../docs/SAME-BUILD-APPLE-REVIEW.md); do not
+build the older standalone `apple-review` profile for the Apple handover.
+
 These files target **jwikoldibbpxyhbdrsow only**. Never move them into the root
 `supabase/migrations` or `supabase/functions` directories. The protected live
 project is **lslhfrujyuqcavsnugfx** and must not receive these overrides.

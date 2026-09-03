@@ -2,7 +2,8 @@
 
 NOT READY TO SEND until the signed review build is attached, both native logins
 are verified and private credentials have been entered in App Store Connect.
-Replace the build-number placeholder below. Never put passwords in this file.
+Build 1.0.0 (6) is signed and saved but still needs internal TestFlight upload and
+an iPhone acceptance check. Never put passwords in this file.
 
 ## Private App Store Connect information
 
@@ -19,7 +20,7 @@ Hello App Review team,
 
 Thank you for explaining the access issue under Guideline 2.1(a).
 
-We have prepared PSI build [REVIEW BUILD NUMBER] with the normal invitation-only
+We have prepared PSI version 1.0.0, build 6, with the normal invitation-only
 customer app and a clearly labelled, selectable isolated demonstration mode in
 the same binary. It uses the same customer and workshop screens. The demonstration
 contains fictional vehicles, an inspection record, a dyno graph, a sample invoice,

@@ -9,9 +9,31 @@ own invited accounts and see their own records. No post-review swap or rollback
 to a different binary is part of this plan. Apple decides whether the disclosed
 review arrangement is sufficient; approval is not guaranteed.
 
-Source, local iOS bundle and browser checks passed on 3 September 2026. A signed
-build and real-iPhone mode-switch checks are still required before review handover.
+Source, local iOS bundle and browser checks passed on 3 September 2026. The signed
+App Store-distribution build **PSI 1.0.0 (6)** finished successfully at 05:01 UTC.
+It is not uploaded to App Store Connect, distributed or submitted for review yet.
+Internal TestFlight upload and real-iPhone mode-switch checks remain required.
 Do not send the reply draft as a completed claim before those checks pass.
+
+* Source checkpoint: `ae221aba391504c68b9c5fce82af4e90d574d2ea` on main.
+* [Completed EAS build](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/a3f7d3ec-0dff-4e9c-8e9c-1ea7e07e7224).
+* [Successful Pages validation and refresh](https://github.com/Juztforkickz/psi-performance-booking-app/actions/runs/33716764581).
+* Saved tag: `checkpoint/psi-same-build-demo-2026-09-03`.
+* Verified full-history source bundle:
+  `artifacts/restore-points/PSI-SAME-BUILD-DEMO-2026-09-03.bundle`.
+  SHA-256: `B37C48E0F7D20990E20F1791534935AA0676B6A5730E0422BEE4B373B2BB8CE0`.
+* Saved signed build: `artifacts/same-build-demo/PSI-1.0.0-6-SAME-BUILD-DEMO.ipa`.
+  SHA-256: `7FE53C355B6FD8B62CCC13DA301A5EBC2A3AEB2052C7F3905A60802D3D1C037B`.
+
+The IPA itself was inspected: PSI identity and build 6, camera/library usage
+descriptions, updates enabled, beta channel and `1.0.0-beta-demo-1` runtime all
+matched. This does not replace testing reloads and uploads on a real iPhone.
+Existing signing credentials were reused; no new certificate or profile was made.
+EAS created the new beta update branch/channel, with no OTA update published.
+The public preview and authenticated QA each returned HTTP 200 after completion;
+the public UI still states account access and submissions are disabled.
+After the build, refreshed Expo billing showed Free, 1 iOS build used (14 remain
+of 15), 2 Android builds used and an estimated bill of $0.00. No upgrade occurred.
 
 ## Clearly labelled restore points
 
