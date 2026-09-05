@@ -26,13 +26,15 @@ We have prepared PSI version 1.0.0, build 6, with the normal invitation-only
 customer app and a clearly labelled, selectable isolated demonstration mode in
 the same binary. It uses the same customer and workshop screens. The demonstration
 contains fictional vehicles, an inspection record, a dyno graph, a sample invoice,
-a booking request and an event. No live customer information is included.
+completed service history, workshop recommendations, private vehicle photos, a
+booking request and an event. No live customer information is included.
 
 The customer app credentials are saved in Beta App Review Information. Open
 Account, select Open demonstration, then Enter demo and restart. After the app
 restarts, use the Apple review sign-in form with those credentials. A mailbox
 or one-time email code is not required in this review environment. You can review
-My Garage, Bookings, Reports, Settings and PSI Events, including private documents.
+My Garage, Bookings, Reports, Settings and PSI Events, including private documents,
+vehicle photos, service history, PSI odometer records and future check-in details.
 
 We have also provided separate workshop review credentials in the private review
 notes. Sign out of the customer account, sign in with the workshop account, then

@@ -98,6 +98,14 @@ notifications/reminders are not deleted by this feature.
 * Browser normal email-code sign-in remained the default.
 * Explicit demo entry, customer password login, two demo vehicles and private
   dyno image opened correctly.
+* The fictional customer garage now includes a private vehicle photo for each
+  vehicle, completed PSI service history, recorded PSI odometers, future PSI
+  check-in dates and workshop recommendations. The existing pending booking,
+  inspection, dyno result, invoice and private documents remain available.
+* Customer-scoped verification confirmed both enriched service summaries and
+  both private vehicle photos are available through the normal sandbox RLS and
+  storage paths. The existing sandbox acceptance suite still passes customer,
+  staff, isolation, ownership and anonymous-access checks.
 * Separate staff password login opened the fictional portal, booking queue,
   publishing controls, audit history and blocked external-delivery status.
 * Leaving both customer and staff demo sessions returned to normal authentication;
@@ -123,6 +131,10 @@ notifications/reminders are not deleted by this feature.
 
 Never share Gmail, Apple account or live staff passwords with reviewers. The
 dedicated Gmail address identifies the demo account; mailbox access is unnecessary.
+The customer-only Personal last service and Personal next check-in fields are
+intentionally not prefilled: they are temporary customer-entered reminders, not
+PSI workshop records. Persistent official PSI service and check-in fields are
+populated in the fictional garage.
 
 ## Upload audit
 
