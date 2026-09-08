@@ -229,7 +229,7 @@ export default function CustomerHomeScreen() {
             accessibilityLabel="PSI Performance Garage"
             resizeMode="contain"
             source={require('../../../assets/images/psi-logo.png')}
-            style={[styles.logo, compact && styles.logoCompact, activeTheme === 'bright' && styles.logoBright]}
+            style={[styles.logo, compact && styles.logoCompact, { tintColor: theme.text }]}
           />
           <View style={[styles.homeWeather, compact && styles.homeWeatherCompact]}>
             {weather ? (
@@ -741,7 +741,6 @@ const styles = StyleSheet.create({
   homeWeatherError: { color: colors.muted, fontSize: 9, fontWeight: '900', textAlign: 'center' },
   logo: { width: 126, height: 48 },
   logoCompact: { width: 96, height: 42 },
-  logoBright: { tintColor: colors.ink },
   accountButton: { width: 46, height: 46, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.white, borderRadius: 23, backgroundColor: colors.white },
   accountPhoto: { width: '100%', height: '100%' },
   intro: { gap: spacing.xs },
