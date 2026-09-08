@@ -2,6 +2,28 @@
 
 ## Plan and current status
 
+### Beta feedback build 7 — 8 September 2026
+
+The beta-feedback checkpoint `86156929cd3a1a87c44feef109c40b066dc416d3`
+was built and uploaded as **PSI 1.0.0 (7)**. Expo confirmed the signed build,
+Apple completed processing, and App Store Connect reports processing `VALID`,
+internal state `IN_BETA_TESTING`, and external state
+`READY_FOR_BETA_SUBMISSION`.
+
+* EAS build: `0036f2ad-c150-4eb9-b83f-cfbf2e0ee66a`.
+* EAS submission: `2879929e-7cd0-420b-a01b-aad682b701ed`.
+* Runtime: `1.0.0-beta-demo-1`; update channel/profile: `beta`.
+* Signed IPA: `artifacts/same-build-demo/PSI-1.0.0-7-BETA-FEEDBACK.ipa`.
+* IPA SHA-256: `8709EA60E1FB03277C6561CCF4A56937608CDE0FC9F3FFD1A6BE0CDF8A8EA1DA`.
+* Archive inspection confirmed bundle `com.psiperformance.booking`, version
+  `1.0.0`, build `7`, camera/photo descriptions, and non-exempt encryption set
+  to false.
+
+The exact signed build uses the existing PSI distribution certificate,
+provisioning profile, Apple team and App Store Connect API key. No signing
+credentials were replaced. External group selection and Beta App Review remain
+an App Store Connect action after secure owner sign-in.
+
 One PSI binary includes the normal app and an explicit isolated demonstration.
 Apple selects the demonstration and uses dedicated customer and workshop logins.
 External testers use the same Apple-approved binary, sign in normally with their

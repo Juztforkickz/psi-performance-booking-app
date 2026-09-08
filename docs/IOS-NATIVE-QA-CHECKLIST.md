@@ -1,9 +1,10 @@
 # PSI iPhone native QA checklist
 
-Status: signed QA build installed 29 August 2026 and TestFlight build `5`
-installed on the target iPhone 1 September 2026. The first Apple release is
-iPhone-only; initial authentication and session restoration passed, while
-broader real-device acceptance remains in progress.
+Status: signed QA build installed 29 August 2026, TestFlight build `5` installed
+on the target iPhone 1 September 2026, and beta-feedback build `7` uploaded and
+validated by Apple on 8 September 2026. The first Apple release is iPhone-only;
+initial authentication and session restoration passed, while Build 7 real-device
+acceptance remains in progress.
 
 ## Evidence to record
 
@@ -52,6 +53,12 @@ Apple enrolment identifiers or service credentials in this file or an issue.
   invited and the approved testing checklist is saved in App Store Connect.
 - [x] Accept the internal invitation and install build `5` through TestFlight on
   the target iPhone.
+- [x] Build and upload beta-feedback checkpoint `8615692` as TestFlight build
+  `7`; EAS build `0036f2ad-c150-4eb9-b83f-cfbf2e0ee66a` and submission
+  `2879929e-7cd0-420b-a01b-aad682b701ed` completed successfully. Apple reports
+  the binary as valid and available for internal testing.
+- [ ] Install build `7` through TestFlight and confirm the beta-feedback changes
+  on the target iPhone before replacing build `6` for external testers.
 
 ## Authentication and privacy
 
