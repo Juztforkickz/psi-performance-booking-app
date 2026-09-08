@@ -8,7 +8,7 @@ Code checkpoint: `8e761c07a4efde6f701980af1fb0196cf3ee6269`, pushed to the exist
 - [My Garage public preview](https://juztforkickz.github.io/psi-performance-booking-app/garage)
 - [Successful preview build/deployment](https://github.com/Juztforkickz/psi-performance-booking-app/actions/runs/34288136044)
 - [iOS beta build 9](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/5839004a-e7ea-435e-a7dc-cbeaf63d6e8d) — finished successfully from the code checkpoint above.
-- [Successful upload to App Store Connect for TestFlight](https://expo.dev/accounts/psi-performance/projects/matt-psi/submissions/f2c83882-557e-467d-bcfa-ec15c0631cc2) — EAS submission FINISHED on 9 September at 09:12 Sydney. Apple processing and tester availability are separate from a successful upload. No public App Store release was submitted.
+- [Successful upload to App Store Connect for TestFlight](https://expo.dev/accounts/psi-performance/projects/matt-psi/submissions/f2c83882-557e-467d-bcfa-ec15c0631cc2) — EAS submission FINISHED on 9 September at 09:12 Sydney. App Store Connect now confirms build 9 is VALID and IN_BETA_TESTING internally. External status is READY_FOR_BETA_SUBMISSION: external beta review remains. No public App Store release was submitted.
 
 The public preview uses fictional data. It cannot take payments or retrieve private customer records. The native beta uses the existing main account backend plus its existing selectable demo mode. The approved main database and function rollout is complete. The verified Matt customer/owner account has 30 days of complimentary Performance+ access until 9 October 2026 at 10:14 Sydney, with no charge or automatic renewal.
 
@@ -46,7 +46,7 @@ Main and sandbox security advice has no new vault warning. Existing notices rema
 
 **Main:** following the user's explicit target approval, all four migrations and the same five functions above are deployed. `complete-account-deletion` is version 2 and includes the new bucket. Main baseline counts remain unchanged: 7 profiles, 8 vehicles, 5 booking requests, 2 invoices, 2 dyno records. All three file buckets are private. No beta reset, account removal, paid infrastructure upgrade or Netlify deployment occurred. Only the verified Matt account was given a complimentary beta entitlement.
 
-**Apple/RevenueCat:** build 9 was built and uploaded for TestFlight. No live purchases or public App Store release are active. Product configuration, provider credentials and full device purchase testing still remain. Existing build 7 was not expired or removed. The Small Business drafts are not submitted applications.
+**Apple/RevenueCat:** build 9 is processed and in internal TestFlight testing. External beta review remains. No live purchases or public App Store release are active. Product configuration, provider credentials and full device purchase testing still remain. Existing build 7 is confirmed VALID, IN_BETA_TESTING internally and unexpired. The Small Business drafts are not submitted applications.
 
 **Xero:** no OAuth account connection, invoice-fetch worker or automatic publication is active. The signed event receiver and queue are ready for the next connection stage. No Xero invoice/customer/account was changed.
 
