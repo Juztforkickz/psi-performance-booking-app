@@ -1,6 +1,7 @@
 # AGENTS
 
 ## Project initialization
+- Quote all prices, costs, estimates and revenue in Australian dollars (AUD) only. Convert and date any foreign-currency source before quoting; do not present foreign-currency pricing as AUD.
 - This file defines the persistent instructions for this repository.
 - Continue from the current verified checkpoint; do not restart or recreate the project.
 - Preserve existing approved work unless you explicitly request changes.

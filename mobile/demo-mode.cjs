@@ -2,7 +2,7 @@
 const LIVE_URL = 'https://lslhfrujyuqcavsnugfx.supabase.co';
 const LIVE_PUBLIC_KEY = 'sb_publishable_B1fbCA2hQegGaE9JDCcp-Q_L2rvyeDN';
 const BETA_CHANNEL = 'beta';
-const BETA_RUNTIME = '1.0.0-beta-demo-1';
+const BETA_RUNTIME = '1.0.0-beta-performance-plus-1';
 
 function resolveDemoBuild(input) {
   const flag = input.demo ?? '';

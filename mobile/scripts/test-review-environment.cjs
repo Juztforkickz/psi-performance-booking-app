@@ -8,6 +8,21 @@ const valid = {
   registration: 'false', channel: REVIEW_CHANNEL,
 };
 
+test('purchase tests require the isolated profile and distinct native runtime', () => {
+  const { spawnSync } = require('node:child_process');
+  const eas = JSON.parse(readFileSync(require.resolve('../eas.json'), 'utf8'));
+  const script = "const base=require('./app.json').expo; console.log(JSON.stringify(require('./app.config.js')({config:base})))";
+  const run = (profile, override = {}) => spawnSync(process.execPath, ['-e', script], {
+    cwd: require('node:path').resolve(__dirname, '..'), encoding: 'utf8',
+    env: { ...process.env, ...eas.build['apple-review'].env, ...eas.build['performance-test'].env, EAS_BUILD_PROFILE: profile, ...override },
+  });
+  const good = run('performance-test');
+  assert.equal(good.status, 0, good.stderr);
+  assert.equal(JSON.parse(good.stdout).runtimeVersion, '1.0.0-performance-purchase-test-1');
+  for (const profile of ['production', 'beta', 'apple-review', 'qa']) assert.notEqual(run(profile).status, 0);
+  assert.notEqual(run('performance-test', { EXPO_PUBLIC_PSI_APPLE_REVIEW: 'false' }).status, 0);
+});
+
 test('live and disabled public-demo configurations are unchanged', () => {
   assert.equal(resolveReviewEnvironment({}).enabled, false);
   assert.equal(resolveReviewEnvironment({ flag: 'false', url: 'https://lslhfrujyuqcavsnugfx.supabase.co', key: 'live-public-key', auth: 'true' }).enabled, false);

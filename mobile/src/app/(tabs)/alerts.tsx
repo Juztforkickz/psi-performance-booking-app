@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { PerformanceUpdates } from '@/components/performance-updates';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_PREVIEW, type PreviewAlert } from '@/lib/customer-preview';
@@ -320,6 +321,7 @@ export default function AlertsScreen() {
           </View>
         ) : null}
 
+        <PerformanceUpdates />
       </ScrollView>
     </SafeAreaView>
   );

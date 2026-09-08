@@ -3,7 +3,7 @@ const REVIEW_PROJECT_REF = 'jwikoldibbpxyhbdrsow';
 const REVIEW_URL = `https://${REVIEW_PROJECT_REF}.supabase.co`;
 const REVIEW_PUBLIC_KEY = 'sb_publishable_ehO9_cXAkXQ6fffoDmzvZA_c8erSaqP';
 const REVIEW_CHANNEL = 'apple-review';
-const REVIEW_RUNTIME = '1.0.0-apple-review-1';
+const REVIEW_RUNTIME = '1.0.0-apple-review-performance-plus-1';
 
 function resolveReviewEnvironment(input) {
   const flag = input.flag?.trim() ?? '';

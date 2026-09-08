@@ -2,7 +2,7 @@ import "@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const OWNER_EMAIL = "matt@psiperformance.com.au";
-const PRIVATE_BUCKETS = ["vehicle-photos", "vehicle-documents"] as const;
+const PRIVATE_BUCKETS = ["vehicle-photos", "vehicle-documents", "performance-vault"] as const;
 const cors = {
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",

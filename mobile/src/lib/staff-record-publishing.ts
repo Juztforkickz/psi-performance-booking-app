@@ -16,7 +16,7 @@ import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 const PRIVATE_DOCUMENT_BUCKET = 'vehicle-documents' as const;
 const MAX_STANDARD_UPLOAD_BYTES = 6 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'] as const;
 
 type VehicleTarget = {
   customerId: string;
@@ -147,6 +147,7 @@ export async function publishPsiRecommendation(input: RecommendationPublishInput
 }
 
 export async function publishPsiDyno(input: DynoPublishInput): Promise<PublishResult<DynoRecordRow>> {
+  if (!input.image || input.image.mimeType !== 'application/pdf') throw new Error('DYNO_PDF_REQUIRED');
   const actorId = await requireAal2StaffActor();
   const recordId = Crypto.randomUUID();
   const payload: Database['public']['Tables']['dyno_records']['Insert'] = {
@@ -278,6 +279,7 @@ async function uploadPrivateImage(
 
   const response = await fetch(image.uri);
   const bytes = await response.arrayBuffer();
+  if (mimeType === 'application/pdf' && new TextDecoder().decode(bytes.slice(0, 5)) !== '%PDF-') throw new Error('INVALID_PDF_FILE');
   if (bytes.byteLength === 0) throw new Error('IMAGE_EMPTY');
   if (bytes.byteLength > MAX_STANDARD_UPLOAD_BYTES) throw new Error('IMAGE_TOO_LARGE');
 
@@ -312,6 +314,7 @@ function normalizeImageMimeType(value: string | null, uri: string) {
 }
 
 function extensionForMimeType(mimeType: typeof ALLOWED_IMAGE_TYPES[number]) {
+  if (mimeType === 'application/pdf') return 'pdf';
   if (mimeType === 'image/png') return 'png';
   if (mimeType === 'image/webp') return 'webp';
   return 'jpg';

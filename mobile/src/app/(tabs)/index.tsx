@@ -17,6 +17,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandRail } from '@/components/brand-rail';
 import { DashboardTile } from '@/components/dashboard-tile';
+import { PerformanceVaultCard } from '@/components/performance-vault-card';
+import { useGarageArtwork } from '@/components/garage-artwork-picker';
+import { useCustomerAccount } from '@/lib/customer-account-context';
 import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -64,6 +67,9 @@ const PSI_PROMISES = [
 export default function CustomerHomeScreen() {
   const router = useRouter();
   const { prepareBookingVehicle, selectedVehicleId } = useCustomerPreview();
+  const { account: garageAccount } = useCustomerAccount();
+  const homeVehicleId = garageAccount?.vehicles.find(v => v.is_primary)?.id ?? garageAccount?.vehicles[0]?.id ?? selectedVehicleId;
+  const garageArtwork = useGarageArtwork(homeVehicleId);
   const { compact, horizontalPadding, largeText, tablet, width } = useResponsiveLayout();
   const { activeTheme, theme } = useThemePreference();
   const [contactIconFontsLoaded] = useFonts({
@@ -116,7 +122,7 @@ export default function CustomerHomeScreen() {
         return (
           <DashboardTile
             accessibilityHint="Opens vehicle selection, photos, results and history"
-            image={DASHBOARD_TILES.garage}
+            image={garageArtwork.art.source}
             label="My Garage"
             onPress={() => router.push('/garage')}
           />
@@ -473,7 +479,8 @@ export default function CustomerHomeScreen() {
           </Pressable>
         </View>
 
-        <BrandRail />
+          <PerformanceVaultCard vehicleId={homeVehicleId} />
+          <BrandRail />
       </ScrollView>
 
       <Modal

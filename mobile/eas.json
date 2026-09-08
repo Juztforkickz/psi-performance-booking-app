@@ -61,6 +61,13 @@
         "EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED": "false"
       }
     },
+    "performance-test": {
+      "extends": "apple-review",
+      "distribution": "store",
+      "env": {
+        "EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST": "true"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "channel": "production",

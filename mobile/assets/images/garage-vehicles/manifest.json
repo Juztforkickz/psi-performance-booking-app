@@ -1,0 +1,127 @@
+{
+  "mode": "built-in imagegen",
+  "reference": "tile-my-garage-blue-silver.jpg",
+  "promptTemplate": "Use case: style-transfer. Generate one vehicle selection illustration for a mobile garage app. Reference image is the exact visual style/composition guide. Replace the Porsche with a clearly recognizable SUBJECT. Preserve the reference image's portrait 4:5 canvas, nearly black charcoal subtle studio backdrop and floor, photorealistic premium render quality, entire car comfortably within frame, front three-quarter view with car nose pointing toward the right, camera height, vehicle occupying lower middle canvas around x 5%-98%, y 37%-71%, large empty upper area. Silver metallic body, black wheels, subtle ice-blue brake calipers and accents, realistic shadows and dark windows. Faithfully depict the model's characteristic body design, proportions, front grille and headlights. One car only. No added words, labels, watermarks, humans or scene objects.",
+  "vehicles": [
+    {
+      "id": "porsche",
+      "label": "Porsche 911 GT3",
+      "original": "porsche-original.jpg",
+      "jpeg": "porsche.jpg"
+    },
+    {
+      "id": "hsv-gts",
+      "label": "HSV GTS Gen-F2",
+      "original": "hsv-gts.png",
+      "jpeg": "hsv-gts.jpg"
+    },
+    {
+      "id": "ford-fpv",
+      "label": "Ford FPV GT-F 351 sedan",
+      "original": "ford-fpv.png",
+      "jpeg": "ford-fpv.jpg"
+    },
+    {
+      "id": "toyota-supra",
+      "label": "Toyota Supra Mk4 A80 sports coupe",
+      "original": "toyota-supra.png",
+      "jpeg": "toyota-supra.jpg"
+    },
+    {
+      "id": "mclaren",
+      "label": "McLaren 720S supercar",
+      "original": "mclaren.png",
+      "jpeg": "mclaren.jpg"
+    },
+    {
+      "id": "nissan-skyline",
+      "label": "Nissan Skyline GT-R R34 sports coupe",
+      "original": "nissan-skyline.png",
+      "jpeg": "nissan-skyline.jpg"
+    },
+    {
+      "id": "ford-escort",
+      "label": "Ford Escort Mk2 RS2000 two-door classic",
+      "original": "ford-escort.png",
+      "jpeg": "ford-escort.jpg"
+    },
+    {
+      "id": "holden-torana",
+      "label": "Holden Torana LX A9X hatchback",
+      "original": "holden-torana.png",
+      "jpeg": "holden-torana.jpg"
+    },
+    {
+      "id": "honda-nsx",
+      "label": "Honda NSX NA1 first-generation sports car",
+      "original": "honda-nsx.png",
+      "jpeg": "honda-nsx.jpg"
+    },
+    {
+      "id": "subaru-wrx",
+      "label": "Subaru Impreza WRX STI GD 2005 sedan",
+      "original": "subaru-wrx.png",
+      "jpeg": "subaru-wrx.jpg"
+    },
+    {
+      "id": "chevrolet-impala",
+      "label": "Chevrolet Impala 1964 two-door classic coupe",
+      "original": "chevrolet-impala.png",
+      "jpeg": "chevrolet-impala.jpg"
+    },
+    {
+      "id": "corvette",
+      "label": "Chevrolet Corvette C7 Z06 sports car",
+      "original": "corvette.png",
+      "jpeg": "corvette.jpg"
+    },
+    {
+      "id": "ford-mustang",
+      "label": "Ford Mustang GT S550 fastback",
+      "original": "ford-mustang.png",
+      "jpeg": "ford-mustang.jpg"
+    },
+    {
+      "id": "chevrolet-camaro",
+      "label": "Chevrolet Camaro ZL1 sixth generation coupe",
+      "original": "chevrolet-camaro.png",
+      "jpeg": "chevrolet-camaro.jpg"
+    },
+    {
+      "id": "bmw-m3",
+      "label": "BMW M3 E46 coupe",
+      "original": "bmw-m3.png",
+      "jpeg": "bmw-m3.jpg"
+    },
+    {
+      "id": "mercedes-amg",
+      "label": "Mercedes-AMG GT coupe first generation",
+      "original": "mercedes-amg.png",
+      "jpeg": "mercedes-amg.jpg"
+    },
+    {
+      "id": "audi-rs",
+      "label": "Audi RS6 C8 Avant performance wagon",
+      "original": "audi-rs.png",
+      "jpeg": "audi-rs.jpg"
+    },
+    {
+      "id": "mitsubishi-evo",
+      "label": "Mitsubishi Lancer Evolution IX sedan",
+      "original": "mitsubishi-evo.png",
+      "jpeg": "mitsubishi-evo.jpg"
+    },
+    {
+      "id": "mazda-rx7",
+      "label": "Mazda RX-7 FD sports coupe",
+      "original": "mazda-rx7.png",
+      "jpeg": "mazda-rx7.jpg"
+    },
+    {
+      "id": "holden-monaro",
+      "label": "Holden Monaro CV8 V2 coupe",
+      "original": "holden-monaro.png",
+      "jpeg": "holden-monaro.jpg"
+    }
+  ]
+}

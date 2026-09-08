@@ -16,6 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
+import { PerformanceVaultCard } from '@/components/performance-vault-card';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { australianDateToIso, formatAustralianDate } from '@/lib/australian-date';
@@ -327,21 +328,18 @@ function VehicleReportsContent({
       if (!attachment.mimeType.startsWith('image/') && attachment.mimeType !== 'application/pdf') {
         throw new Error('PRIVATE_ATTACHMENT_TYPE_UNSUPPORTED');
       }
-      const { data, error: signedUrlError } = await getSupabaseClient()
-        .storage
-        .from(attachment.bucketId)
-        .createSignedUrl(attachment.objectPath, 60);
-      if (signedUrlError || !data?.signedUrl) throw signedUrlError ?? new Error('PRIVATE_ATTACHMENT_UNAVAILABLE');
+      const { data, error: signedUrlError } = await getSupabaseClient().functions.invoke('open-vault-file', { body: { legacyFileId: attachment.id } });
+      if (signedUrlError || !data?.url) throw signedUrlError ?? new Error('PRIVATE_ATTACHMENT_UNAVAILABLE');
 
       if (attachment.mimeType === 'application/pdf') {
-        await Linking.openURL(data.signedUrl);
+        await Linking.openURL(data.url);
         return;
       }
 
       setViewingAttachment({
         notice: 'Private account attachment · read-only link expires after 60 seconds',
         title,
-        uri: data.signedUrl,
+        uri: data.url,
       });
     } catch {
       setSecureAttachmentError('This private attachment could not be opened. Your session may have expired, or PSI may need to repair the file record.');
@@ -496,6 +494,7 @@ function VehicleReportsContent({
           <Text style={styles.previewNoticeCopy}>{accountConnected ? 'PSI records and attachments are private and read-only. Entries you add here are temporary and are not saved to your account.' : 'Example records only. Anything you add clears when the demo closes.'}</Text>
         </View>
         <FormError message={secureAttachmentError} />
+        <PerformanceVaultCard vehicleId={selectedVehicle.id} />
 
         <SectionHeading meta={`${vehicles.length} vehicles`} title="Vehicle selector" />
         <Pressable

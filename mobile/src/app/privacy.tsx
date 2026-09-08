@@ -9,7 +9,7 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 const SECTIONS = [
   {
     title: 'Who operates the app',
-    copy: 'PSI PERFORMANCE PTY LTD, trading as PSI Performance, operates the PSI Performance app and administers the workshop bookings, vehicle services and customer records shown here. The app is free and does not currently offer paid digital products or subscriptions.',
+    copy: 'PSI PERFORMANCE PTY LTD, trading as PSI Performance, operates the PSI Performance app and administers the workshop bookings, vehicle services and customer records shown here. PSI Free remains available without a subscription. Optional Performance+ vehicle vault features are being tested in this beta; paid purchases are not open yet.',
   },
   {
     title: 'Information we handle',
@@ -28,8 +28,12 @@ const SECTIONS = [
     copy: 'You can review and correct editable profile and vehicle information after secure sign-in. PSI-authored service, invoice and verified dyno records remain read-only so workshop history cannot be falsified. Contact PSI to request access to, correction of or an export of personal information that is not already available in the app.',
   },
   {
+    title: 'Performance+ vehicle records',
+    copy: 'PSI may publish private invoice PDFs, workshop photographs, documents and vehicle history linked to your account, vehicle and workshop job. Free accounts can see their own record counts; premium contents require current access. Expiration or cancellation does not delete these records. When Apple purchases are enabled, Apple processes the purchase and RevenueCat verifies subscription transactions linked to your PSI account identifier. Workshop photographs and PDFs are not sent to RevenueCat. These providers may process subscription data outside Australia.',
+  },
+  {
     title: 'Account deletion',
-    copy: 'Signed-in customers can initiate deletion from Account. PSI normally completes verified requests within 30 days. Customer profile data, login access, notification tokens and customer-uploaded files will be removed. Information that must still be retained for workshop, accounting, legal, safety or dispute purposes will be limited, protected and, where appropriate, de-identified. PSI confirms when the process is complete.',
+    copy: 'Signed-in customers can initiate deletion from Account. PSI normally completes verified requests within 30 days. Customer profile data, login access, notification tokens and customer-uploaded files will be removed. Information that must still be retained for workshop, accounting, legal, safety or dispute purposes will be limited, protected and, where appropriate, de-identified. PSI confirms when the process is complete. Deleting your PSI account or app does not cancel an Apple subscription; manage that separately in your Apple Account subscription settings.',
   },
   {
     title: 'Retention and security',
@@ -62,7 +66,7 @@ export default function PrivacyScreen() {
           </View>
         ))}
         <PrimaryButton label="Request account deletion" onPress={() => router.push('/delete-account')} variant="outline" />
-        <Text style={styles.updated}>LAST UPDATED · 25/08/2026</Text>
+        <Text style={styles.updated}>LAST UPDATED · 09/09/2026</Text>
       </ScrollView>
     </SafeAreaView>
   );

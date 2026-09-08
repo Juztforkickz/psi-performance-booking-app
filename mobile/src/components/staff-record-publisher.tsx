@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+
+import * as DocumentPicker from 'expo-document-picker';
 import { useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -60,6 +61,12 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [amountAud, setAmountAud] = useState('');
   const [image, setImage] = useState<StaffPublishImage | null>(null);
+  const choosePdf = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true, multiple: false });
+      if (!result.canceled) { const file = result.assets[0]; setImage({ uri: file.uri, fileSize: file.size ?? null, mimeType: 'application/pdf', width: 0, height: 0 }); setConfirmed(false); }
+    } catch { setFeedback({ kind: 'error', text: 'The PDF could not be selected. Please try again.' }); }
+  };
 
   const customerOptions = useMemo(() => customersWithVehicles.map((customer) => ({
     label: customerName(customer),
@@ -89,52 +96,6 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
     setImage(null);
   };
 
-  const chooseImageFromSource = async (source: 'camera' | 'library') => {
-    const requestPermission = source === 'camera'
-      ? ImagePicker.requestCameraPermissionsAsync
-      : ImagePicker.requestMediaLibraryPermissionsAsync;
-
-    setFeedback(null);
-    try {
-      const permission = await requestPermission();
-      if (permission.status !== 'granted') {
-        throw new Error(source === 'camera' ? 'CAMERA_PERMISSION_DENIED' : 'MEDIA_PERMISSION_DENIED');
-      }
-
-      const result = source === 'camera'
-        ? await ImagePicker.launchCameraAsync({
-          allowsEditing: true,
-          mediaTypes: ['images'],
-          quality: 0.9,
-        })
-        : await ImagePicker.launchImageLibraryAsync({
-          allowsEditing: false,
-          allowsMultipleSelection: false,
-          base64: false,
-          exif: false,
-          mediaTypes: ['images'],
-          quality: 0.9,
-          selectionLimit: 1,
-        });
-
-      if (result.canceled) return;
-      const asset = result.assets[0];
-      if (!asset?.uri) throw new Error('IMAGE_UNAVAILABLE');
-      if (asset.fileSize && asset.fileSize > 6 * 1024 * 1024) throw new Error('IMAGE_TOO_LARGE');
-
-      setImage({
-        fileSize: asset.fileSize ?? null,
-        height: asset.height,
-        mimeType: asset.mimeType ?? null,
-        uri: asset.uri,
-        width: asset.width,
-      });
-      setConfirmed(false);
-    } catch (error) {
-      setFeedback({ kind: 'error', text: publishingErrorMessage(error) });
-    }
-  };
-
   const publish = async () => {
     if (!customerId || !vehicleId || !confirmed || busy) return;
     setBusy(true);
@@ -150,12 +111,12 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
         const result = await publishPsiDyno({ customerId, date, fuel, image, notes, powerHp: power, torqueNm: torque, vehicleId });
         setFeedback(result.attachmentWarning
           ? { kind: 'warning', text: result.attachmentWarning }
-          : { kind: 'success', text: `PSI verified dyno result published${result.attachmentStored ? ' with a private graph image' : ''}.` });
+          : { kind: 'success', text: `PSI verified dyno result published${result.attachmentStored ? ' with a private PDF report' : ''}.` });
       } else {
         const result = await publishPsiInvoice({ amountAud, customerId, date, image, invoiceNumber, summary: notes, vehicleId });
         setFeedback(result.attachmentWarning
           ? { kind: 'warning', text: result.attachmentWarning }
-          : { kind: 'success', text: `Invoice published in AUD${result.attachmentStored ? ' with a private image attachment' : ''}.` });
+          : { kind: 'success', text: `Invoice published in AUD${result.attachmentStored ? ' with a private PDF attachment' : ''}.` });
       }
       resetPublishedFields();
     } catch (error) {
@@ -264,9 +225,10 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
             <NotesField label="Setup / run notes" onChangeText={setNotes} value={notes} />
             <PrivateImagePicker
               image={image}
-              label="Dyno graph image"
-              onChoose={() => void chooseImageFromSource('library')}
-              onTakePhoto={() => void chooseImageFromSource('camera')}
+              label="Mainline dyno PDF"
+              pdfOnly
+              onChoose={() => void choosePdf()}
+              onTakePhoto={() => void choosePdf()}
               onRemove={() => setImage(null)}
             />
           </>
@@ -280,9 +242,10 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
             <NotesField label="Completed work summary" onChangeText={setNotes} value={notes} />
             <PrivateImagePicker
               image={image}
-              label="Invoice image"
-              onChoose={() => void chooseImageFromSource('library')}
-              onTakePhoto={() => void chooseImageFromSource('camera')}
+              label="Invoice PDF"
+              pdfOnly
+              onChoose={() => void choosePdf()}
+              onTakePhoto={() => void choosePdf()}
               onRemove={() => setImage(null)}
             />
             <Text style={styles.pdfNote}>PDF publishing will be added after a reviewed private document-picker workflow. This stage accepts JPG, PNG or WebP images only.</Text>
@@ -318,14 +281,15 @@ function PrivateImagePicker({
   onChoose,
   onTakePhoto,
   onRemove,
-}: { image: StaffPublishImage | null; label: string; onChoose: () => void; onTakePhoto: () => void; onRemove: () => void }) {
+  pdfOnly = false,
+}: { image: StaffPublishImage | null; label: string; onChoose: () => void; onTakePhoto: () => void; onRemove: () => void; pdfOnly?: boolean }) {
   return (
     <View style={styles.imageSection}>
       <Text style={styles.smallLabel}>{label}</Text>
-      {image ? <Image accessibilityLabel={`Selected ${label.toLowerCase()}`} resizeMode="contain" source={{ uri: image.uri }} style={styles.imagePreview} /> : null}
+      {image?.mimeType === 'application/pdf' ? <Text style={styles.muted}>PDF selected · ready to upload</Text> : image ? <Image accessibilityLabel={`Selected ${label.toLowerCase()}`} resizeMode="contain" source={{ uri: image.uri }} style={styles.imagePreview} /> : null}
       <View style={styles.inlineChoices}>
-        <PrimaryButton label="Take photo" onPress={onTakePhoto} variant="outline" />
-        <PrimaryButton label={image ? 'Replace image' : 'Choose image'} onPress={onChoose} variant="outline" />
+        {!pdfOnly ? <PrimaryButton label="Take photo" onPress={onTakePhoto} variant="outline" /> : null}
+        <PrimaryButton label={pdfOnly ? image ? 'Replace PDF' : 'Choose PDF' : image ? 'Replace image' : 'Choose image'} onPress={onChoose} variant="outline" />
         {image ? <PrimaryButton label="Remove" onPress={onRemove} variant="outline" /> : null}
       </View>
       <Text style={styles.pdfNote}>Private upload only after Publish is pressed · maximum 6 MB · never placed in the public bucket.</Text>
@@ -349,6 +313,7 @@ function capitalize(value: string) {
 
 function publishingErrorMessage(error: unknown) {
   const code = error instanceof Error ? error.message : '';
+  if (code.includes('PDF')) return 'Select the original Mainline PDF report. The file must be a valid PDF smaller than 6 MB.';
   if (code.includes('CAMERA_PERMISSION_DENIED')) return 'Allow camera access and try again.';
   if (code.includes('MEDIA_PERMISSION_DENIED')) return 'Allow photos access and try again.';
   if (code.includes('IMAGE_TOO_LARGE')) return 'Choose an image smaller than 6 MB for this reliable private upload.';

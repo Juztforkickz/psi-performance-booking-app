@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { VehiclePhotoPicker } from '@/components/vehicle-photo-picker';
+import { PerformanceVaultCard } from '@/components/performance-vault-card';
+import { GarageArtworkPicker, useGarageArtwork } from '@/components/garage-artwork-picker';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -40,7 +43,6 @@ import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 import { getAccountDynoRecordsFromRows } from '@/lib/vehicle-reports-account';
 import type { DynoRecord, SecureVehicleAttachment } from '@/lib/vehicle-reports-preview';
 
-const GARAGE_IMAGE = require('../../../assets/images/dashboard/tile-my-garage-blue-silver.jpg');
 const REPORT_IMAGE = require('../../../assets/images/dashboard/tile-vehicle-reports-blue-silver.jpg');
 
 type MaintenanceDraft = {
@@ -159,6 +161,7 @@ function GarageContent({
   const selectedVehicleId = secureVehicles ? secureSelectedVehicleId : previewSelectedVehicleId;
 
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0];
+  const artwork = useGarageArtwork(selectedVehicle.id);
   const hasPhotoOverride = Object.prototype.hasOwnProperty.call(securePhotoFiles, selectedVehicle.id);
   const selectedSecurePhotoFile = hasPhotoOverride
     ? securePhotoFiles[selectedVehicle.id]
@@ -294,7 +297,7 @@ function GarageContent({
     else selectPreviewVehicle(vehicleId);
   };
 
-  const heroSource = selectedPhoto ? { uri: selectedPhoto.uri } : GARAGE_IMAGE;
+  const heroSource = selectedPhoto ? { uri: selectedPhoto.uri } : artwork.art.source;
 
   const openBookingForVehicle = (type: 'service' | 'dyno') => {
     if (secureVehicles) prepareBookingVehicleRecord(selectedVehicle);
@@ -441,11 +444,11 @@ function GarageContent({
               accessibilityLabel={selectedPhoto ? `Selected photo of ${vehicleLabel}` : `Generic garage artwork; no photo selected for ${vehicleLabel}`}
               resizeMode={selectedPhoto ? 'contain' : 'cover'}
               source={heroSource}
-              style={styles.fillImage}
+              style={selectedPhoto ? styles.fillImage : { width: '100%', height: '222%', position: 'absolute', top: '-70%' }}
             />
             {!selectedPhoto ? (
               <View style={styles.exampleImageLabel}>
-                <Text style={styles.exampleImageLabelText}>Example image · add your photo</Text>
+                <Text style={styles.exampleImageLabelText}>{artwork.art.label} · garage illustration</Text>
               </View>
             ) : null}
           </View>
@@ -480,6 +483,9 @@ function GarageContent({
           </View>
         </View>
 
+        <GarageArtworkPicker selectedId={artwork.art.id} onSelect={artwork.select} />
+        {artwork.error ? <Text accessibilityRole="alert" style={styles.vehiclePhotoNotice}>{artwork.error}</Text> : null}
+        <PerformanceVaultCard vehicleId={selectedVehicle.id} />
         <View style={styles.maintenanceCard}>
           <View style={styles.maintenanceHeading}>
             <View style={styles.maintenanceHeadingCopy}>
@@ -664,6 +670,10 @@ function DynoResultCard({
               )}
             </View>
             {graphError ? <Text accessibilityRole="alert" style={styles.maintenanceError}>{graphError}</Text> : null}
+            {result.secureAttachment?.mimeType === 'application/pdf' ? <PrimaryButton label="Open dyno PDF" variant="outline" onPress={() => {
+              const attachment = result.secureAttachment;
+              if (attachment) void createPrivateVehicleAttachmentSignedUrl(attachment).then(uri => Linking.openURL(uri)).catch(onOpenReports);
+            }} /> : null}
             <View style={styles.resultGrid}>
               <ResultValue label="Peak power" value={`${result.peakPowerHpAtHubs}`} unit="HP at hubs" />
               <ResultValue label="Peak torque" value={result.peakTorqueNmAtHubs == null ? '—' : `${result.peakTorqueNmAtHubs}`} unit="Nm at hubs" />
@@ -737,8 +747,8 @@ const styles = StyleSheet.create({
   vehicleDropdownChoiceSelected: { backgroundColor: colors.silver },
   vehicleCard: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
   vehicleCardWide: { flexDirection: 'row' },
-  vehicleImageFrame: { width: '100%', aspectRatio: 16 / 10, overflow: 'hidden', backgroundColor: '#090909' },
-  vehicleImageFrameWide: { width: '48%', aspectRatio: 1.1 },
+    vehicleImageFrame: { width: '100%', aspectRatio: 16 / 9, overflow: 'hidden', backgroundColor: '#090909' },
+    vehicleImageFrameWide: { width: '48%', aspectRatio: 16 / 9, alignSelf: 'center' },
   fillImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
   exampleImageLabel: { position: 'absolute', right: spacing.sm, bottom: spacing.sm, left: spacing.sm, backgroundColor: 'rgba(0,0,0,.84)', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   exampleImageLabelText: { color: colors.silver, fontSize: 8, fontWeight: '900', letterSpacing: .5, textAlign: 'center', textTransform: 'uppercase' },

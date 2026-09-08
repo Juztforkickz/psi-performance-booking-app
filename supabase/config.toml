@@ -456,3 +456,25 @@ entrypoint = "./functions/confirm-bank-transfer/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/process-booking-integrations/*.html" ]
+
+[functions.open-vault-file]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/open-vault-file/index.ts"
+
+[functions.sync-performance-subscription]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/sync-performance-subscription/index.ts"
+
+[functions.performance-subscription-webhook]
+enabled = true
+# This receiver verifies its configured provider Authorization secret.
+verify_jwt = false
+entrypoint = "./functions/performance-subscription-webhook/index.ts"
+
+[functions.xero-vault-webhook]
+enabled = true
+# Xero signs the original request bytes with HMAC-SHA256.
+verify_jwt = false
+entrypoint = "./functions/xero-vault-webhook/index.ts"

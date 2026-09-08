@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { GaragePhotoFraming } from '@/components/garage-photo-framing';
 import { type LocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 
 export type { LocalVehiclePhoto } from '@/lib/local-vehicle-photo';
@@ -35,6 +36,7 @@ export function VehiclePhotoPicker({
   vehicleLabel = 'your vehicle',
 }: VehiclePhotoPickerProps) {
   const [busy, setBusy] = useState(false);
+  const [pendingPhoto, setPendingPhoto] = useState<LocalVehiclePhoto | null>(null);
   const [error, setError] = useState('');
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
 
@@ -87,7 +89,7 @@ export function VehiclePhotoPicker({
         uri: asset.uri,
         width: asset.width,
       };
-      onChange(nextPhoto);
+      setPendingPhoto(nextPhoto);
       setQuickMenuOpen(false);
     } catch {
       setError(source === 'camera' ? 'The camera could not be opened. Try again or choose from your library.' : 'We could not open your photo library. Try again or choose a different image.');
@@ -114,6 +116,7 @@ export function VehiclePhotoPicker({
     const unavailable = busy || saving || disabled;
     return (
       <View style={styles.quickContainer}>
+        <GaragePhotoFraming photo={pendingPhoto} onCancel={() => setPendingPhoto(null)} onSave={(photo) => { setPendingPhoto(null); onChange(photo); }} />
         <Pressable
           accessibilityHint="Opens camera and photo-library choices"
           accessibilityLabel={value ? `Change photo of ${vehicleLabel}` : `Add photo of ${vehicleLabel}`}
@@ -169,6 +172,7 @@ export function VehiclePhotoPicker({
 
   return (
     <View style={styles.container}>
+      <GaragePhotoFraming photo={pendingPhoto} onCancel={() => setPendingPhoto(null)} onSave={(photo) => { setPendingPhoto(null); onChange(photo); }} />
       <Text maxFontSizeMultiplier={2} style={styles.title}>Vehicle photo</Text>
 
       <View style={styles.preview}>
@@ -340,7 +344,7 @@ const styles = StyleSheet.create({
   preview: {
     ...mobileFrame,
     width: '100%',
-    aspectRatio: 16 / 10,
+    aspectRatio: 16 / 9,
     overflow: 'hidden',
     borderRadius: 3,
     backgroundColor: colors.inkSoft,
