@@ -1,6 +1,14 @@
 # Performance+ activation checklist
 
-Prepared 9 September 2026. Prices: **A$9.99/month or A$99/year**. This checklist describes configuration and remaining launch work; it is not evidence that an external account is connected or a deployment succeeded. Confirm the final checkpoint's deployment report before testing. Preserve existing beta accounts and the sandbox. At preparation, the sandbox migrations and four new functions were deployed; main database changes remained pending target-specific approval after automatic approval review rejected that action.
+Updated 9 September 2026. Prices: **A$9.99/month or A$99/year**. This checklist records the verified rollout checkpoint and remaining activation work. Preserve existing beta accounts and the sandbox.
+
+Following explicit approval for the main rollout, all four Performance+ migrations and all four vault/provider functions are deployed to **main and sandbox**. Main `complete-account-deletion` is deployed and **ACTIVE, version 2**, including the premium storage bucket. Main authenticated endpoint checks return HTTP 401 without authentication; unconfigured provider webhooks return HTTP 503.
+
+Main data counts are unchanged: **7 customer profiles, 8 vehicles, 5 bookings, 2 invoices and 2 dyno records**. No customer deletion or reset has occurred. Apple/RevenueCat payment and Xero credentials remain absent, purchases remain disabled, and sandbox-entitlement acceptance remains false.
+
+iOS **build 9**, EAS build ID `5839004a-e7ea-435e-a7dc-cbeaf63d6e8d`, is **FINISHED and uploaded to Apple for TestFlight**. [EAS submission `f2c83882-557e-467d-bcfa-ec15c0631cc2`](https://expo.dev/accounts/psi-performance/projects/matt-psi/submissions/f2c83882-557e-467d-bcfa-ec15c0631cc2) finished on 9 September 2026 at 09:12:42 Sydney time (`2026-09-08T23:12:42Z`). Apple's processing and tester availability are not yet confirmed. No public App Store review or release has been submitted.
+
+Matt's verified customer/owner identity has a **30-day complimentary Performance+ entitlement**, expiring **9 October 2026 at 10:14 Sydney time**. Its charge is **A$0** and auto-renewal is false. This grants beta content access only; it does not activate Apple payments or prove purchase/restore behaviour.
 
 ## 1. Apple and RevenueCat configuration
 
@@ -68,7 +76,7 @@ The ordinary `apple-review` and fictional demo modes keep purchases disabled. No
 
 TestFlight purchases run in Apple's sandbox and renewal timing is accelerated. Test renewal and billing failure using Apple's supported test controls, not live charges. [Apple TestFlight purchase testing](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testing-subscriptions-and-in-app-purchases-in-testflight/)
 
-The new native purchase, document-picker and image-manipulation modules require a **new signed iOS build**. An over-the-air update to an old binary is insufficient. Confirm the EAS environment, signing identity, bundle ID, runtime and update channel; upload for TestFlight before a final public submission. App Review's sandbox purchase flow also needs a verified isolated route in the eventual submitted binary.
+The new native purchase, document-picker and image-manipulation modules require a **new signed iOS build**. An over-the-air update to an old binary is insufficient; build 9 now supplies that foundation binary and has been uploaded. Continue with Apple's processing/tester-availability check. A separately configured purchase-test build must use the intended EAS environment, signing identity, bundle ID, runtime and update channel. App Review's sandbox purchase flow also needs a verified isolated route in the eventual submitted binary.
 
 ## 4. Required acceptance checks before charging
 
