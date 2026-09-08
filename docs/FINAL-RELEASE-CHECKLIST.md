@@ -85,8 +85,9 @@ Status: controlled QA, 2 September 2026. Payments are deliberately last.
   ledger and a service-role-only confirmation transition.
 - [x] Deploy the payment migration and three payment functions; verify the
   ledger exists and public/customer roles cannot call the confirmation RPC.
-- [ ] Configure encrypted Stripe/bank secrets, expose only the signed Stripe
-  webhook endpoint without a Supabase JWT requirement, register its Stripe
+- [x] Expose only the signed Stripe webhook endpoint without a Supabase JWT
+  requirement and verify an unsigned live request receives HTTP 401.
+- [ ] Configure encrypted Stripe/bank secrets, register the webhook's Stripe
   test-mode destination and pass success/failure/expiry/replay acceptance.
 - [x] Require PSI staff AAL2 and a matched cleared-statement reference before an
   ordinary bank transfer can be recorded. Customers cannot self-confirm it.

@@ -264,11 +264,20 @@ project; the migration was also recorded in Supabase migration history. Live
 verification confirmed both ledger tables exist and neither `anon` nor
 `authenticated` can execute the privileged confirmation function.
 
-Activation still requires encrypted Stripe/bank configuration, disabling the
-Supabase legacy-JWT gateway check only on the signed Stripe webhook endpoint,
-registering that destination in Stripe test mode, and passing
-success/failure/expiry/replay acceptance. Professional review of the final
-AUD/GST/refund wording also remains required before general release. The
-current TestFlight binary does not include these source changes; Android still
-requires a new signed QA build, a physical-device QA pass and a Google Play
-production App Bundle/review.
+The Supabase legacy-JWT gateway check is disabled only on the Stripe webhook
+endpoint, as required for an external signed webhook. A live unsigned request
+was rejected by the function with HTTP 401 `invalid_signature`. Follow-up
+migration `20260908103100_optimize_booking_payment_access` added the two
+advisor-recommended foreign-key indexes and consolidated the payment read
+policies; the production advisor now reports no payment-specific unindexed
+foreign key or duplicate-policy warning.
+
+Activation still requires encrypted Stripe/bank configuration, registering the
+destination in Stripe test mode, and passing success/failure/expiry/replay
+acceptance. Professional review of the final AUD/GST/refund wording also
+remains required before general release. The current TestFlight binary does
+not include these source changes. Android QA build
+`9f2e7825-c512-483c-acfa-1e8f3eca03b3` was submitted from checkpoint
+`dcb29429ea51dd5ae92713daf9ceb6eac7209e15`; build completion and a physical
+device QA pass remain required before a Google Play production App
+Bundle/review.
