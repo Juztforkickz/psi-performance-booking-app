@@ -1,0 +1,37 @@
+# Garage artwork expansion — 9 September 2026
+
+This refinement keeps the existing app, garage photo handling, subscription split and private per-vehicle preference table. Garage personalisation remains free. No database migration, customer-record change or new dependency is needed.
+
+## Selection experience
+
+The garage shows one compact selected-artwork row. It opens a searchable library with make filters, model/generation labels and a confirmed selection. Relevant makes/models sort first using the selected vehicle's existing details; nothing is assigned automatically. An unchanged draft follows a saved choice that arrives after opening. Cancel does not save. Failed saves leave the selection available for retry.
+
+The library uses a virtualised list and separate 480 × 270 JPEG thumbnails. Full portrait artwork is used for the existing garage/dashboard composition. The header scrolls; short screens and large text get a compact footer, and the footer yields space while the keyboard is open. Existing uploaded photos take priority on the vehicle profile; illustrations still personalise the home tile.
+
+The 38 full artwork JPEGs total 4,622,928 bytes; all 38 thumbnails total 663,196 bytes. Combined library size is about 5.3 MB. The additions and thumbnails add about 2.85 MB over the original 20-illustration collection. These are app/preview assets and do not consume customer Supabase Storage capacity.
+
+The 20 existing saved IDs are retained. The expanded collection has 38 model/generation choices, including Commodore VF/VE/VY/VX, VS GTS, VF/VZ Calais, VZ Clubsport/GTO, VE/VZ/VU SS utes, VF Maloo, WK Grange, WM Caprice, 1955 Bel Air, Veloster Turbo FS and i30 N PD. This is a selectable illustration collection, not a catalogue of individual customers or exact photographed builds.
+
+## Research and coverage
+
+The user explicitly requested Commodore VF, HSV VS GTS, Hyundai Veloster and i30 N. Veloster FS Turbo and i30 N PD hatch are clearly labelled artwork options; the user's message did not establish the generation of a particular customer's vehicle. The phrase “echo nuts” was not interpreted as another model.
+
+PSI's [own website](https://psiperformance.com.au/) identifies a WM Caprice and a 2005 Clubsport in customer testimonials. Those support including the model families; personal names and vehicle registrations were not copied into the app.
+
+Indexed reproductions of PSI's captions on [FindGlocal](https://www.findglocal.com/AU/Pakenham/580648228624691/PSI-Performance) supported VF/VE/VY Commodores, SS utes, Maloo, Grange and Calais variants. [Autoyas](https://www.autoyas.com/AU/Pakenham/580648228624691/PSI-Performance) supplied additional indexed references to VX Commodore, 1955 Bel Air and VZ GTO. These are secondary mirrors with varying cached periods, not verified original social-post permalinks or a complete history. Some trim/body details remain illustration choices rather than confirmed customer specifications.
+
+Direct Instagram access returned a rate limit and Facebook was inaccessible through public retrieval. A signed-in Edge Meta Business Suite window was found, but Computer Use stopped because it could not confidently determine the browser URL. No private messages, account changes or bypass attempts were made. Direct review of that feed remains outstanding.
+
+## Artwork and reproducibility
+
+All 18 new vehicles were generated with the built-in imagegen tool, using the existing Porsche as the style/composition reference: metallic silver, charcoal studio, black wheels, restrained ice-blue accents and the same front three-quarter framing. Artwork agents inspected each output and corrected unsuitable generation details before handover.
+
+The saved JPEGs and prompt manifest are under `mobile/assets/images/garage-vehicles`. `manifest.json` preserves the generation prompts and labels. Generated PNG originals remain in the local Codex visualisation folders `garage-art-expansion` and `garage-art-workshop`; they are not bundled in the app. `mobile/scripts/prepare-garage-thumbnails.py` deterministically prepares the thumbnail set with the existing Pillow runtime. Customer uploads are never processed by this script.
+
+Implementation: `mobile/src/lib/garage-art-catalog.ts`, `garage-art-assets.ts`, `mobile/src/components/garage-artwork-picker.tsx` and its existing garage call site. Original account/vehicle ownership policies continue to enforce preference access.
+
+## Delivery and rollback
+
+Validation: mobile TypeScript and changed-file ESLint passed; all 25 web routes exported successfully; 16 existing review/demo isolation checks passed; direct catalogue checks passed for all 38 asset pairs, unique/storable IDs, make filtering, exact requested-model searches, empty results and make/model suggestion ordering. An independent source review found and then verified corrections for the asynchronous saved-choice race and short-screen layout issue. Every new generated artwork was visually inspected; no browser interaction QA was performed.
+
+The pre-subscription tag `psi-beta-before-performance-plus-2026-09-09` remains intact. The immediate pre-expansion source checkpoint is `b8d6b2a`. This change adds JavaScript and static artwork only; it requires no native module or runtime change. A beta OTA update, if published, must use the exact build-9 runtime `1.0.0-beta-performance-plus-1` and beta channel. Build 7's different runtime must remain unaffected. Public GitHub Pages continues through the existing workflow; no Netlify deployment is involved.

@@ -483,7 +483,7 @@ function GarageContent({
           </View>
         </View>
 
-        <GarageArtworkPicker selectedId={artwork.art.id} onSelect={artwork.select} />
+        <GarageArtworkPicker key={selectedVehicle.id} selectedId={artwork.art.id} onSelect={artwork.select} vehicle={selectedVehicle} hasVehiclePhoto={Boolean(selectedPhoto)} />
         {artwork.error ? <Text accessibilityRole="alert" style={styles.vehiclePhotoNotice}>{artwork.error}</Text> : null}
         <PerformanceVaultCard vehicleId={selectedVehicle.id} />
         <View style={styles.maintenanceCard}>

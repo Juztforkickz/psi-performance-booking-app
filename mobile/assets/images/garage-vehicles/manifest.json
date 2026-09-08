@@ -122,6 +122,169 @@
       "label": "Holden Monaro CV8 V2 coupe",
       "original": "holden-monaro.png",
       "jpeg": "holden-monaro.jpg"
+    },
+    {
+      "id": "holden-commodore-vf",
+      "label": "Holden Commodore VF SS V Redline",
+      "jpeg": "holden-commodore-vf.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Generate one premium vehicle selection illustration for a mobile Garage app. Input image is the EXACT style and composition reference. Replace only the pictured Porsche with Holden Commodore VF Series II SS V Redline four-door sedan, factory Holden SS front fascia with narrow horizontal upper grille, central Holden lion badge, large trapezoidal lower intake, VF-series headlights, two hood vents, black wheels; stock Redline body shape, no HSV Gen-F bumper or HSV badging. The requested make, model, body style and generation must be visibly correct. Preserve portrait 4:5 canvas, near-black charcoal studio background and floor, lighting, high-quality photorealistic automotive illustration finish, silver metallic body, black wheels, dark windows, and ice-blue brake calipers/subtle accents. Front three-quarter view, car nose points right; whole vehicle fully within frame, like original. Vehicle spans x approximately 4–97%, y approximately 36–71%, with the same large blank upper background and dark lower floor. No text labels, watermarks, people, props, scenery, extra cars or visible license plate characters. Keep authentic model body proportions and lights.",
+      "sourceCollection": "garage-art-expansion",
+      "original": "holden-commodore-vf.png"
+    },
+    {
+      "id": "hsv-vs-gts",
+      "label": "HSV VS GTS",
+      "jpeg": "hsv-vs-gts.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Generate one premium vehicle selection illustration for a mobile Garage app. Input image is the EXACT style and composition reference. Replace only the pictured Porsche with 1995–1997 HSV VS GTS four-door sedan, the 1990s VS-generation Australian Commodore body with its short rounded wedge nose, low rectangular headlights, slim split grille, period HSV bumper with fog lamps and characteristic 1990s lower air intake, curved 1990s roofline, period rear spoiler; unmistakably VS-era shape, NOT VE, VF, Gen-F, VT, VX, modern HSV or modern Commodore. The requested make, model, body style and generation must be visibly correct. Preserve portrait 4:5 canvas, near-black charcoal studio background and floor, lighting, high-quality photorealistic automotive illustration finish, silver metallic body, black wheels, dark windows, and ice-blue brake calipers/subtle accents. Front three-quarter view, car nose points right; whole vehicle fully within frame, like original. Vehicle spans x approximately 4–97%, y approximately 36–71%, with the same large blank upper background and dark lower floor. No text labels, watermarks, people, props, scenery, extra cars or visible license plate characters. Keep authentic model body proportions and lights.",
+      "sourceCollection": "garage-art-expansion",
+      "original": "hsv-vs-gts.png"
+    },
+    {
+      "id": "hyundai-veloster",
+      "label": "Hyundai Veloster Turbo",
+      "jpeg": "hyundai-veloster.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Generate one premium vehicle selection illustration for a mobile Garage app. Input image is the EXACT style and composition reference. Replace only the pictured Porsche with first-generation Hyundai Veloster Turbo FS hatchback, 2013–2017 original generation, distinctive short asymmetric three-door coupe-hatch body, rounded original-generation elongated headlights sweeping up the front fenders, large rounded hexagonal open front grille, original Turbo fascia with round fog lamps, low short roofline and compact rear; NOT the second-generation Veloster N. The requested make, model, body style and generation must be visibly correct. Preserve portrait 4:5 canvas, near-black charcoal studio background and floor, lighting, high-quality photorealistic automotive illustration finish, silver metallic body, black wheels, dark windows, and ice-blue brake calipers/subtle accents. Front three-quarter view, car nose points right; whole vehicle fully within frame, like original. Vehicle spans x approximately 4–97%, y approximately 36–71%, with the same large blank upper background and dark lower floor. No text labels, watermarks, people, props, scenery, extra cars or visible license plate characters. Keep authentic model body proportions and lights.",
+      "sourceCollection": "garage-art-expansion",
+      "original": "hyundai-veloster.png"
+    },
+    {
+      "id": "hyundai-i30n",
+      "label": "Hyundai i30 N",
+      "jpeg": "hyundai-i30n.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Generate one premium vehicle selection illustration for a mobile Garage app. Input image is the EXACT style and composition reference. Replace only the pictured Porsche with Hyundai i30 N PD facelift five-door performance hatchback, 2021-generation facelift, conventional five-door hatchback silhouette, facelift angular LED headlamps with V-shaped daytime running lights, wide black mesh front grille with Hyundai badge, large angular corner air intakes, small roof spoiler, correct compact hatchback proportions; NOT i30 sedan, Elantra, fastback, Kona or Veloster. The requested make, model, body style and generation must be visibly correct. Preserve portrait 4:5 canvas, near-black charcoal studio background and floor, lighting, high-quality photorealistic automotive illustration finish, silver metallic body, black wheels, dark windows, and ice-blue brake calipers/subtle accents. Front three-quarter view, car nose points right; whole vehicle fully within frame, like original. Vehicle spans x approximately 4–97%, y approximately 36–71%, with the same large blank upper background and dark lower floor. No text labels, watermarks, people, props, scenery, extra cars or visible license plate characters. Keep authentic model body proportions and lights.",
+      "sourceCollection": "garage-art-expansion",
+      "original": "hyundai-i30n.png"
+    },
+    {
+      "id": "holden-commodore-ve",
+      "label": "Holden Commodore VE SS",
+      "jpeg": "holden-commodore-ve.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Generate one premium vehicle selection illustration for a mobile Garage app. Input image is the EXACT style and composition reference. Replace only the pictured Porsche with Holden Commodore VE SS four-door sedan, VE generation 2006-2013, muscular broad body, squarer VE headlights, VE SS factory bumper with wide center intake and round fog lamps, small rear spoiler, no bonnet vents, explicitly the VE SS not VF nor HSV. The requested make, model, body style and generation must be visibly correct. Preserve portrait 4:5 canvas, near-black charcoal studio background and floor, lighting, high-quality photorealistic automotive illustration finish, silver metallic body, black wheels, dark windows, and ice-blue brake calipers/subtle accents. Front three-quarter view, car nose points right; whole vehicle fully within frame, like original. Vehicle spans x approximately 4–97%, y approximately 36–71%, with the same large blank upper background and dark lower floor. No text labels, watermarks, people, props, scenery, extra cars or visible license plate characters. Keep authentic model body proportions and lights.",
+      "sourceCollection": "garage-art-expansion",
+      "original": "holden-commodore-ve.png"
+    },
+    {
+      "id": "holden-commodore-vy",
+      "label": "Holden Commodore VY SS",
+      "jpeg": "holden-commodore-vy.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Generate one premium vehicle selection illustration for a mobile Garage app. Input image is the EXACT style and composition reference. Replace only the pictured Porsche with Holden Commodore VY SS four-door sedan 2002-2004, VY generation sharp rectangular angular headlights, VY SS split front grille with central Holden emblem, period VY SS sport bumper with wide lower intake and round fog lamps, rear wing, correct VY early-2000s body, not VE or VF. The requested make, model, body style and generation must be visibly correct. Preserve portrait 4:5 canvas, near-black charcoal studio background and floor, lighting, high-quality photorealistic automotive illustration finish, silver metallic body, black wheels, dark windows, and ice-blue brake calipers/subtle accents. Front three-quarter view, car nose points right; whole vehicle fully within frame, like original. Vehicle spans x approximately 4–97%, y approximately 36–71%, with the same large blank upper background and dark lower floor. No text labels, watermarks, people, props, scenery, extra cars or visible license plate characters. Keep authentic model body proportions and lights.",
+      "sourceCollection": "garage-art-expansion",
+      "original": "holden-commodore-vy.png"
+    },
+    {
+      "id": "holden-calais-vf",
+      "label": "Holden Calais VF",
+      "jpeg": "holden-calais-vf.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Generate one premium vehicle selection illustration for a mobile Garage app. Input image is the EXACT style and composition reference. Replace only the pictured Porsche with Holden Calais V VF four-door luxury sedan, VF generation, chrome horizontal luxury front grille with central Holden lion emblem, refined standard luxury bumper and chrome trim, no SS or HSV sports body kit, no hood vents or wing, correct VF Calais headlights and body silhouette. The requested make, model, body style and generation must be visibly correct. Preserve portrait 4:5 canvas, near-black charcoal studio background and floor, lighting, high-quality photorealistic automotive illustration finish, silver metallic body, black wheels, dark windows, and ice-blue brake calipers/subtle accents. Front three-quarter view, car nose points right; whole vehicle fully within frame, like original. Vehicle spans x approximately 4–97%, y approximately 36–71%, with the same large blank upper background and dark lower floor. No text labels, watermarks, people, props, scenery, extra cars or visible license plate characters. Keep authentic model body proportions and lights.",
+      "sourceCollection": "garage-art-expansion",
+      "original": "holden-calais-vf.png"
+    },
+    {
+      "id": "holden-calais-vz",
+      "label": "Holden Calais VZ",
+      "jpeg": "holden-calais-vz.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Generate one premium vehicle selection illustration for a mobile Garage app. Input image is the EXACT style and composition reference. Replace only the pictured Porsche with Holden Calais VZ four-door luxury sedan 2004-2006, unmistakable VZ rectangular headlight shape, chrome-slat luxury grille with central Holden badge and tasteful chrome window trim, refined stock luxury bumper, no HSV or SS sports body kit, correct VZ early-2000s body proportions. The requested make, model, body style and generation must be visibly correct. Preserve portrait 4:5 canvas, near-black charcoal studio background and floor, lighting, high-quality photorealistic automotive illustration finish, silver metallic body, black wheels, dark windows, and ice-blue brake calipers/subtle accents. Front three-quarter view, car nose points right; whole vehicle fully within frame, like original. Vehicle spans x approximately 4–97%, y approximately 36–71%, with the same large blank upper background and dark lower floor. No text labels, watermarks, people, props, scenery, extra cars or visible license plate characters. Keep authentic model body proportions and lights.",
+      "sourceCollection": "garage-art-expansion",
+      "original": "holden-calais-vz.png"
+    },
+    {
+      "id": "hsv-clubsport-vz",
+      "label": "HSV Clubsport VZ",
+      "jpeg": "hsv-clubsport-vz.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Generate one premium vehicle selection illustration for a mobile Garage app. Input image is the EXACT style and composition reference. Replace only the pictured Porsche with 2005 HSV VZ Clubsport four-door sports sedan, authentic VZ rectangular headlight shape, HSV VZ Clubsport front fascia with twin separate rounded grille openings and central HSV badge, deep period Clubsport sport bumper, twin round fog lights, rear wing and side skirts, distinct early-2000s VZ body, NOT modern Gen-F, VF, VE or VT. The requested make, model, body style and generation must be visibly correct. Preserve portrait 4:5 canvas, near-black charcoal studio background and floor, lighting, high-quality photorealistic automotive illustration finish, silver metallic body, black wheels, dark windows, and ice-blue brake calipers/subtle accents. Front three-quarter view, car nose points right; whole vehicle fully within frame, like original. Vehicle spans x approximately 4–97%, y approximately 36–71%, with the same large blank upper background and dark lower floor. No text labels, watermarks, people, props, scenery, extra cars or visible license plate characters. Keep authentic model body proportions and lights.",
+      "sourceCollection": "garage-art-expansion",
+      "original": "hsv-clubsport-vz.png"
+    },
+    {
+      "id": "holden-ute-ve",
+      "label": "Holden VE SS Ute",
+      "jpeg": "holden-ute-ve.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Asset type: vehicle selection illustration for the PSI mobile garage app. Input image: Porsche is a reference for exact visual style and composition; replace its subject with the requested car. Preserve portrait 4:5 canvas, nearly black charcoal subtle studio backdrop and floor, photorealistic premium automotive render quality, entire car comfortably within frame, front three-quarter view with nose pointing toward the right, camera height, and vehicle occupying lower middle canvas around x 5%-98%, y 37%-71%, with large empty upper area. Metallic silver body, black multi-spoke wheels, subtle ice-blue brake calipers, realistic contact shadows, dark windows. Car proportions must be realistic and model specific, with original factory front grille, headlights, bumper and roofline. One car only. No added words, labels, watermarks, humans, registration numbers, readable licence plates or scene objects. Subject: Holden VE SS Ute, first-generation VE front end (2007–2010), Australian two-door coupe utility with short cabin, long low cargo bed and flat silver hard tonneau. Correct sharp angular VE swept headlamps, small upper grille with central Holden lion badge, large deep rectangular lower grille, aggressive VE SS bumper with side foglamp pockets, pronounced squared broad wheel-arch shoulders. Clearly a VE SS utility, never a four-door Crewman, VZ ute, HSV or VF.",
+      "sourceCollection": "garage-art-workshop",
+      "original": "holden-ute-ve.png"
+    },
+    {
+      "id": "holden-ute-vz",
+      "label": "Holden VZ SS Ute",
+      "jpeg": "holden-ute-vz.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Asset type: vehicle selection illustration for the PSI mobile garage app. Input image: Porsche is a reference for exact visual style and composition; replace its subject with the requested car. Preserve portrait 4:5 canvas, nearly black charcoal subtle studio backdrop and floor, photorealistic premium automotive render quality, entire car comfortably within frame, front three-quarter view with nose pointing toward the right, camera height, and vehicle occupying lower middle canvas around x 5%-98%, y 37%-71%, with large empty upper area. Metallic silver body, black multi-spoke wheels, subtle ice-blue brake calipers, realistic contact shadows, dark windows. Car proportions must be realistic and model specific, with original factory front grille, headlights, bumper and roofline. One car only. No added words, labels, watermarks, humans, registration numbers, readable licence plates or scene objects. Subject: Holden VZ SS Ute (2004–2007), Australian two-door coupe utility with short cabin, long low cargo bed and flat silver hard tonneau. Precisely the sharp VZ facelift front end, angular tapering headlight housings with integrated circular reflector lamps, horizontal black grille with central Holden lion emblem, deep VZ SS front bumper with a broad lower opening and inset side lamp recesses. Earlier V-car rounded long body, smooth slightly pinched wheel arches, low slender side mirror, prominent side body moulding and flowing short cabin. Keep the authentic VZ SS body styling; never a VE, VF, HSV, VU teardrop front or four-door Crewman.",
+      "sourceCollection": "garage-art-workshop",
+      "original": "holden-ute-vz.png"
+    },
+    {
+      "id": "holden-ute-vu",
+      "label": "Holden VU SS Ute",
+      "jpeg": "holden-ute-vu.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Asset type: vehicle selection illustration for the PSI mobile garage app. Input image: Porsche is a reference for exact visual style and composition; replace its subject with the requested car. Preserve portrait 4:5 canvas, nearly black charcoal subtle studio backdrop and floor, photorealistic premium automotive render quality, entire car comfortably within frame, front three-quarter view with nose pointing toward the right, camera height, and vehicle occupying lower middle canvas around x 5%-98%, y 37%-71%, with large empty upper area. Metallic silver body, black multi-spoke wheels, subtle ice-blue brake calipers, realistic contact shadows, dark windows. Car proportions must be realistic and model specific, with original factory front grille, headlights, bumper and roofline. One car only. No added words, labels, watermarks, humans, registration numbers, readable licence plates or scene objects. Subject: Holden VU SS Ute (2000–2002), Australian two-door coupe utility based on VX. Precisely the distinctive rounded VX/VU front end with characteristic flowing teardrop headlight housings, dual round reflectors visibly enclosed under each smooth clear lens with a drooping inner corner. Rounded narrow grille with central Holden lion emblem, original VU SS bumper with broad dark lower intake and separate circular fog lights, rounded early-2000s body surfaces, long low cargo bed, short two-seat cabin, flat silver hard tonneau. Authentic smooth VU body with side mouldings. Clearly VU SS; never the angular VY/VZ, VE, VF or HSV front, never four-door Crewman.",
+      "sourceCollection": "garage-art-workshop",
+      "original": "holden-ute-vu.png"
+    },
+    {
+      "id": "hsv-maloo-vf",
+      "label": "HSV Gen-F / VF Maloo R8",
+      "jpeg": "hsv-maloo-vf.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Asset type: vehicle selection illustration for the PSI mobile garage app. Input image: Porsche is a reference for exact visual style and composition; replace its subject with the requested car. Preserve portrait 4:5 canvas, nearly black charcoal subtle studio backdrop and floor, photorealistic premium automotive render quality, entire car comfortably within frame, front three-quarter view with nose pointing toward the right, camera height, and vehicle occupying lower middle canvas around x 5%-98%, y 37%-71%, with large empty upper area. Metallic silver body, black multi-spoke wheels, subtle ice-blue brake calipers, realistic contact shadows, dark windows. Car proportions must be realistic and model specific, with original factory front grille, headlights, bumper and roofline. One car only. No added words, labels, watermarks, humans, registration numbers, readable licence plates or scene objects. Subject: HSV Gen-F Maloo R8 (VF, 2013–2015) Australian two-door sports coupe utility, precise first Gen-F front fascia. Sharp swept VF projector headlamps with black bezels, HSV's small sculpted upper grille and deep aggressive bumper with wide dark lower intake and vertical LED daytime running lamps in tall outside corner recesses. Correct long low cargo bed with closed silver hard tonneau and characteristic HSV sculpted performance sailplane behind the short cabin, flowing into bed sides. HSV fender vents, broad VE/VF platform shoulders, factory integrated front splitter and side skirts. HSV round lion-and-helmet emblem on nose if visible. Authentic VF Maloo R8; never sedan, four-door Crewman, older VE Maloo or a generic Holden SS ute.",
+      "sourceCollection": "garage-art-workshop",
+      "original": "hsv-maloo-vf.png"
+    },
+    {
+      "id": "hsv-gto-vz",
+      "label": "HSV VZ Coupe GTO",
+      "jpeg": "hsv-gto-vz.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: precise-object-edit. Edit target: supplied metallic silver HSV VZ Coupe GTO studio illustration. Change ONLY its rear spoiler: remove the tall racing wing and replace with the genuine Australian HSV VZ GTO subtle three-piece rear boot spoiler, body-colored, sculpted close to the boot lid, with short supports and modest height. The spoiler must not have upright racing endplates or Porsche GT3 shape. Preserve EVERY other element: correct HSV GTO coupe body, twin bonnet scoops, front bumper, lamps, silver finish, black wheels and blue brake calipers, full vehicle position and scale, same dark studio background and shadows, 1122x1402 portrait canvas, large empty upper area. No text, people, registration numbers or additional objects.",
+      "sourceCollection": "garage-art-workshop",
+      "original": "hsv-gto-vz-v2.png"
+    },
+    {
+      "id": "hsv-grange-wk",
+      "label": "HSV WK Grange",
+      "jpeg": "hsv-grange-wk.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Asset type: vehicle selection illustration for the PSI mobile garage app. Input image: Porsche is a reference for exact visual style and composition; replace its subject with the requested car. Preserve portrait 4:5 canvas, nearly black charcoal subtle studio backdrop and floor, photorealistic premium automotive render quality, entire car comfortably within frame, front three-quarter view with nose pointing toward the right, camera height, and vehicle occupying lower middle canvas around x 5%-98%, y 37%-71%, with large empty upper area. Metallic silver body, black multi-spoke wheels, subtle ice-blue brake calipers, realistic contact shadows, dark windows. Car proportions must be realistic and model specific, with original factory front grille, headlights, bumper and roofline. One car only. No added words, labels, watermarks, humans, registration numbers, readable licence plates or scene objects. Subject: HSV WK Grange 2003–2004 long-wheelbase four-door luxury sedan. CRITICAL INPUT ROLES: Image 1 Porsche gives only the dark studio, silver finish, composition, scale, black wheels and ice-blue brakes. Image 2 is HSV's original manufacturer photograph of the actual WK Grange; use image 2 to faithfully reproduce its specific front grille outline, headlight shapes, hood, front bumper and rectangular corner lighting. Generate an original parked three-quarter illustration facing RIGHT, never reproduce the driving scene or blue body color. The WK Grange must have the early V-car platform long, low, smooth elongated sedan body and longer rear doors. Exact front has long low headlight housings with projector lamp elements, wide upper grille with a straight top and narrower slanted lower corners, bright narrow perimeter and central HSV round emblem, the original deep fascia whose central lower intake is outlined by two pronounced diagonal silver supports, and rectangular fog/cornering lamp units low in the black outer pockets. Side mouldings, early-2000s flush door handles, slim simple mirrors, integrated subtle side skirts and lip spoiler. No VE/WM broad flared shoulders, modern VE side vents, round foglamp pair substitutes, raised wing or shortened roof.",
+      "sourceCollection": "garage-art-workshop",
+      "original": "hsv-grange-wk.png"
+    },
+    {
+      "id": "holden-caprice-wm",
+      "label": "Holden WM Caprice",
+      "jpeg": "holden-caprice-wm.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Asset type: vehicle selection illustration for the PSI mobile garage app. Input image: Porsche is a reference for exact visual style and composition; replace its subject with the requested car. Preserve portrait 4:5 canvas, nearly black charcoal subtle studio backdrop and floor, photorealistic premium automotive render quality, entire car comfortably within frame, front three-quarter view with nose pointing toward the right, camera height, and vehicle occupying lower middle canvas around x 5%-98%, y 37%-71%, with large empty upper area. Metallic silver body, black multi-spoke wheels, subtle ice-blue brake calipers, realistic contact shadows, dark windows. Car proportions must be realistic and model specific, with original factory front grille, headlights, bumper and roofline. One car only. No added words, labels, watermarks, humans, registration numbers, readable licence plates or scene objects. Subject: Holden WM Caprice (2006–2010), Australian full-size long-wheelbase four-door luxury sedan, original WM design. Large long body with limousine-like long rear doors, extended rear quarter side window, long graceful formal roof and sizeable boot, broad yet refined fenders, chrome window surrounds and discreet side trim. Correct distinctive WM Caprice front with elongated gently swept rectangular bi-xenon headlight clusters, smoothly integrated body-colored nose, broad trapezoidal upper grille with bright chrome edging and fine black horizontal/mesh slats carrying the central Holden lion roundel, subtle factory lower grille and round recessed fog lamps in smooth luxury bumper. Visibly distinct from the shorter VE Commodore and older angular WK/WL Caprice; no HSV front bumper or fender vents, no hood scoops, no spoiler wing. Subdued factory luxury exterior with requested black wheels and silver paint.",
+      "sourceCollection": "garage-art-workshop",
+      "original": "holden-caprice-wm.png"
+    },
+    {
+      "id": "holden-commodore-vx",
+      "label": "Holden Commodore VX SS",
+      "jpeg": "holden-commodore-vx.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Asset type: vehicle selection illustration for the PSI mobile garage app. Input image: Porsche is a reference for exact visual style and composition; replace its subject with the requested car. Preserve portrait 4:5 canvas, nearly black charcoal subtle studio backdrop and floor, photorealistic premium automotive render quality, entire car comfortably within frame, front three-quarter view with nose pointing toward the right, camera height, and vehicle occupying lower middle canvas around x 5%-98%, y 37%-71%, with large empty upper area. Metallic silver body, black multi-spoke wheels, subtle ice-blue brake calipers, realistic contact shadows, dark windows. Car proportions must be realistic and model specific, with original factory front grille, headlights, bumper and roofline. One car only. No added words, labels, watermarks, humans, registration numbers, readable licence plates or scene objects. Subject: Holden VX Commodore SS (2000–2002), Australian four-door sports sedan, catalog generation VX only. Correct early VX flowing rounded sedan body with four doors, flush rectangular rounded door handles, slender mirrors, simple body mouldings and curved wheel arches. Exact characteristic VX SS front with tapered flowing teardrop headlight housings enclosing multiple round reflector elements, a narrow rounded black upper grille with central Holden lion emblem, smooth body-colored SS bumper with broad curved dark central lower opening and separate circular fog lamps. Original low integrated SS side skirts and modest factory rear spoiler on short supports. No tall Porsche racing wing. Smooth sculpted bonnet without scoops. Clearly the original VX generation, never VT label, angular VY/VZ, later VE or HSV. Match the reference studio framing, entire car within edges and black wheels with subtle blue brake calipers.",
+      "sourceCollection": "garage-art-workshop",
+      "original": "holden-commodore-vx.png"
+    },
+    {
+      "id": "chevrolet-bel-air-1955",
+      "label": "1955 Chevrolet Bel Air",
+      "jpeg": "chevrolet-bel-air-1955.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Use case: style-transfer. Asset type: vehicle selection illustration for the PSI mobile garage app. Input image: Porsche is a reference for exact visual style and composition; replace its subject with the requested car. Preserve portrait 4:5 canvas, nearly black charcoal subtle studio backdrop and floor, photorealistic premium automotive render quality, entire car comfortably within frame, front three-quarter view with nose pointing toward the right, camera height, and vehicle occupying lower middle canvas around x 5%-98%, y 37%-71%, with large empty upper area. Metallic silver body, black multi-spoke wheels, subtle ice-blue brake calipers, realistic contact shadows, dark windows. Car proportions must be realistic and model specific, with original factory front grille, headlights, bumper and roofline. One car only. No added words, labels, watermarks, humans, registration numbers, readable licence plates or scene objects. Subject: 1955 Chevrolet Bel Air two-door sedan with visible B-pillar/post, classic American full-size car in a restrained restomod finish. Precisely 1955 styling: single large round headlights in protruding rounded front fenders, small modest rear fins, simple Ferrari-inspired rectangular egg-crate grille beneath a broad rounded hood, substantial bright chrome front bumper with two subtle overriders, wraparound panoramic windshield, tall classic sedan roofline and two doors with side window pillar, correct 1955 chrome side spear and rear quarter panel trim. All painted body panels and roof metallic silver, realistic bright chrome trim retained. Black multi-spoke restomod wheels with subtle ice-blue brake calipers, stance tastefully lowered while keeping believable proportions. No 1956 full-width grille, no 1957 tall tailfins, no modern front bumper. One classic car, no background props, no readable badges, plate numbers, added words or labels.",
+      "sourceCollection": "garage-art-workshop",
+      "original": "chevrolet-bel-air-1955.png"
     }
-  ]
+  ],
+  "expandedOn": "2026-09-09"
 }
