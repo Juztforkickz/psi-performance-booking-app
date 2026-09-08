@@ -1,7 +1,10 @@
 # PSI Android native QA checklist
 
 Status: signed internal QA APK prepared; physical-device acceptance remains
-outstanding. This checklist begins when a supported Android phone is available.
+outstanding. The current APK is build
+`9f2e7825-c512-483c-acfa-1e8f3eca03b3`, produced on 8 September 2026 from
+checkpoint `dcb2942`; it expires on 22 September 2026. This checklist begins
+when a supported Android phone is available.
 
 ## Evidence to record
 

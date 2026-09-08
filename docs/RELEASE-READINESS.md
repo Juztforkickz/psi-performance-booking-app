@@ -276,8 +276,9 @@ Activation still requires encrypted Stripe/bank configuration, registering the
 destination in Stripe test mode, and passing success/failure/expiry/replay
 acceptance. Professional review of the final AUD/GST/refund wording also
 remains required before general release. The current TestFlight binary does
-not include these source changes. Android QA build
-`9f2e7825-c512-483c-acfa-1e8f3eca03b3` was submitted from checkpoint
-`dcb29429ea51dd5ae92713daf9ceb6eac7209e15`; build completion and a physical
-device QA pass remain required before a Google Play production App
-Bundle/review.
+not include these source changes. Signed Android QA APK build
+`9f2e7825-c512-483c-acfa-1e8f3eca03b3` completed successfully on 8 September
+2026 from checkpoint `dcb29429ea51dd5ae92713daf9ceb6eac7209e15`, using
+package `com.psiperformance.booking`, PSI's Expo-managed keystore and the
+protected `qa` channel. It expires on 22 September 2026. A physical-device QA
+pass remains required before a Google Play production App Bundle/review.
