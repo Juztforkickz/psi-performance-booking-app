@@ -76,10 +76,20 @@ Status: controlled QA, 2 September 2026. Payments are deliberately last.
 
 ## Deliberately last: payments
 
-- [ ] Select the deposit provider and confirm AUD/GST, cancellation and refund
+- [x] Select Stripe-hosted Checkout for cards and eligible Apple Pay, Google Pay
+  and Australian BECS Direct Debit, while retaining ordinary bank transfer as a
+  separately verified option.
+- [ ] Confirm AUD/GST, cancellation and refund
   wording with PSI's professional advisers.
-- [ ] Implement a signed server-side webhook. No customer or staff client action
-  may mark a deposit paid.
+- [x] Implement raw-body Stripe signature verification, an idempotent payment
+  ledger and a service-role-only confirmation transition.
+- [x] Deploy the payment migration and three payment functions; verify the
+  ledger exists and public/customer roles cannot call the confirmation RPC.
+- [ ] Configure encrypted Stripe/bank secrets, expose only the signed Stripe
+  webhook endpoint without a Supabase JWT requirement, register its Stripe
+  test-mode destination and pass success/failure/expiry/replay acceptance.
+- [x] Require PSI staff AAL2 and a matched cleared-statement reference before an
+  ordinary bank transfer can be recorded. Customers cannot self-confirm it.
 - [ ] Verify receipt email, refund handling and the trusted payment-confirmed
   transition that creates the internal Google Calendar event.
 

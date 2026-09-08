@@ -506,7 +506,11 @@ Deno.serve(async (request) => {
         env("PSI_GOOGLE_CALENDAR_ID")
       ),
       emailConfigured: Boolean(env("RESEND_API_KEY") && env("PSI_TRANSACTIONAL_FROM_EMAIL") && env("PSI_OWNER_NOTIFICATION_EMAIL")),
-      paymentsConfigured: false,
+      paymentsConfigured: Boolean(
+        env("STRIPE_SECRET_KEY") &&
+        env("STRIPE_WEBHOOK_SECRET") &&
+        env("PSI_PAYMENT_RETURN_ORIGIN")
+      ),
     },
   });
 });

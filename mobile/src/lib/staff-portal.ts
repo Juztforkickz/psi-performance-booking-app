@@ -84,7 +84,7 @@ export type BookingIntegrationRunResult = {
   readiness: {
     calendarConfigured: boolean;
     emailConfigured: boolean;
-    paymentsConfigured: false;
+    paymentsConfigured: boolean;
   };
   results: {
     errorCode?: string;
@@ -252,6 +252,23 @@ export async function reviewBookingRequest(input: StaffBookingReviewInput) {
   await Promise.allSettled([
     dispatchBookingIntegrationNotifications(data.id),
     dispatchBookingPushNotifications(data.id),
+  ]);
+  return data;
+}
+
+export async function confirmBankTransferPayment(bookingId: string, transactionReference: string) {
+  const access = await loadStaffMfaSecurityAccess();
+  if (access.kind !== 'ready') throw new Error('STAFF_AAL2_REQUIRED');
+  const normalizedReference = transactionReference.trim().toUpperCase();
+  if (!/^[A-Z0-9 .\/-]{6,80}$/.test(normalizedReference)) throw new Error('BANK_REFERENCE_INVALID');
+  const { data, error } = await getSupabaseClient().functions.invoke<{ bookingId: string; confirmed: true }>('confirm-bank-transfer', {
+    body: { bookingId, transactionReference: normalizedReference },
+  });
+  if (error) throw error;
+  if (!data?.confirmed || data.bookingId !== bookingId) throw new Error('BANK_CONFIRMATION_RESPONSE_INVALID');
+  await Promise.allSettled([
+    dispatchBookingIntegrationNotifications(bookingId),
+    dispatchBookingPushNotifications(bookingId),
   ]);
   return data;
 }

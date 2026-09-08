@@ -438,6 +438,21 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/complete-account-deletion/deno.json"
 entrypoint = "./functions/complete-account-deletion/index.ts"
+
+[functions.create-booking-payment]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/create-booking-payment/index.ts"
+
+[functions.stripe-booking-webhook]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/stripe-booking-webhook/index.ts"
+
+[functions.confirm-bank-transfer]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/confirm-bank-transfer/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/process-booking-integrations/*.html" ]

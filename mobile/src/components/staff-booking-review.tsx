@@ -6,7 +6,7 @@ import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { isoDateToAustralian, todayAustralianDate } from '@/lib/australian-date';
 import type { BookingRequestRow } from '@/lib/database.types';
-import { reviewBookingRequest, type StaffBookingReviewInput } from '@/lib/staff-portal';
+import { confirmBankTransferPayment, reviewBookingRequest, type StaffBookingReviewInput } from '@/lib/staff-portal';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 type ReviewAction = StaffBookingReviewInput['action'];
@@ -18,6 +18,8 @@ export function StaffBookingReview({ booking, onRefresh }: { booking: BookingReq
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
+  const [bankReference, setBankReference] = useState('');
+  const [bankChecked, setBankChecked] = useState(false);
 
   if (!['pending_staff_review', 'date_proposed', 'date_approved'].includes(booking.state)) return null;
 
@@ -49,6 +51,24 @@ export function StaffBookingReview({ booking, onRefresh }: { booking: BookingReq
     }
   };
 
+  const confirmBankTransfer = async () => {
+    if (!bankChecked || busy || REVIEW_ENVIRONMENT.enabled) return;
+    setBusy(true);
+    setFeedback(null);
+    try {
+      await confirmBankTransferPayment(booking.id, bankReference);
+      setFeedback({ kind: 'success', text: 'Cleared bank transfer verified. The booking is confirmed and confirmation delivery has been queued.' });
+      setBankChecked(false);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : '';
+      setFeedback({ kind: 'error', text: detail.includes('not_found')
+        ? 'This customer has not selected bank transfer for this booking.'
+        : 'The transfer was not recorded. Recheck the bank statement, reference and protected staff session.' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <View style={styles.workspace}>
       <View style={styles.heading}>
@@ -68,6 +88,21 @@ export function StaffBookingReview({ booking, onRefresh }: { booking: BookingReq
           <PrimaryButton label="Approve requested date" onPress={() => chooseAction('approve_date')} variant="outline" />
           <PrimaryButton label="Propose another date" onPress={() => chooseAction('propose_date')} variant="outline" />
           <PrimaryButton label="Cancel request" onPress={() => chooseAction('cancel')} variant="outline" />
+          {booking.state === 'date_approved' && !REVIEW_ENVIRONMENT.enabled ? (
+            <View style={styles.bankVerification}>
+              <Text style={styles.bankTitle}>Verify cleared bank transfer</Text>
+              <Text style={styles.bankCopy}>Use only after matching the exact amount and PSI reference in the business bank statement.</Text>
+              <Field hint="Bank transaction/reference shown on the statement" label="Transaction reference">
+                <FormInput autoCapitalize="characters" maxLength={80} onChangeText={(value) => { setBankReference(value); setBankChecked(false); }} value={bankReference} />
+              </Field>
+              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: bankChecked }} onPress={() => setBankChecked((value) => !value)} style={styles.confirmRow}>
+                <View style={[styles.checkbox, bankChecked && styles.checkboxChecked]}>{bankChecked ? <Ionicons color={colors.ink} name="checkmark" size={16} /> : null}</View>
+                <Text style={styles.confirmText}>I matched the cleared deposit amount, customer payment reference and this booking in PSI’s bank statement.</Text>
+              </Pressable>
+              <PrimaryButton disabled={!bankChecked || bankReference.trim().length < 6} label="Confirm verified transfer" loading={busy} onPress={() => void confirmBankTransfer()} />
+            </View>
+          ) : null}
+          {feedback ? <Text accessibilityRole="alert" style={feedback.kind === 'error' ? styles.error : styles.success}>{feedback.text}</Text> : null}
         </View>
       ) : feedback?.kind === 'success' ? (
         <View style={styles.successBox}>
@@ -128,6 +163,9 @@ const styles = StyleSheet.create({
   title: { color: colors.white, fontSize: 18, fontWeight: '900', marginTop: 2 },
   close: { alignItems: 'center', height: 38, justifyContent: 'center', width: 38 },
   actions: { gap: spacing.sm },
+  bankVerification: { borderTopColor: colors.mutedDark, borderTopWidth: 1, gap: spacing.sm, marginTop: spacing.sm, paddingTop: spacing.md },
+  bankTitle: { color: colors.white, fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
+  bankCopy: { color: colors.muted, fontSize: 11, lineHeight: 17 },
   notes: { minHeight: 88 },
   confirmRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
   checkbox: { alignItems: 'center', borderColor: colors.accent, borderWidth: 2, height: 24, justifyContent: 'center', width: 24 },

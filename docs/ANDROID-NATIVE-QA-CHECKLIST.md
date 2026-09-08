@@ -66,9 +66,17 @@ material or private service credentials in this file or an issue.
 - [ ] PSI proposal, customer approval and cancellation states display correctly.
 - [ ] The related customer/PSI emails arrive once per event.
 - [ ] Cancellation clears any unpaid expected deposit.
-- [ ] No client or staff action can mark payment complete.
+- [ ] A customer cannot mark payment complete. Stripe confirmation requires its
+  signed webhook; ordinary bank transfer requires MFA-protected PSI statement
+  matching with a recorded transaction reference.
 - [ ] No Google Calendar event exists before the trusted future
   payment-confirmed transition.
+- [ ] Stripe Checkout opens over HTTPS and shows eligible card/Google Pay
+  options without embedding payment credentials in the app.
+- [ ] Australian BECS Direct Debit, success, delayed success, failure and expiry
+  states remain accurate when enabled on the Stripe account.
+- [ ] Ordinary bank-transfer instructions show the exact PSI reference and the
+  booking remains unconfirmed until staff verifies the cleared transaction.
 
 ## Notifications
 

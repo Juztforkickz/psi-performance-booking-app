@@ -65,6 +65,48 @@ export type Database = {
         Update: Record<never, never>;
         Relationships: [];
       };
+      booking_payment_attempts: {
+        Row: {
+          amount_cents: number;
+          bank_reference: string | null;
+          booking_request_id: string;
+          created_at: string;
+          currency: 'AUD';
+          customer_id: string;
+          expires_at: string | null;
+          id: string;
+          paid_at: string | null;
+          payment_method: 'bank_transfer' | 'stripe';
+          provider: 'manual_bank_transfer' | 'stripe';
+          provider_checkout_id: string | null;
+          provider_checkout_url: string | null;
+          provider_payment_id: string | null;
+          provider_receipt_url: string | null;
+          state: 'awaiting_payment' | 'bank_transfer_pending' | 'cancelled' | 'creating' | 'expired' | 'failed' | 'paid' | 'processing';
+          updated_at: string;
+        };
+        Insert: Record<never, never>;
+        Update: Record<never, never>;
+        Relationships: [];
+      };
+      booking_payment_events: {
+        Row: {
+          amount_cents: number | null;
+          booking_request_id: string;
+          created_at: string;
+          currency: 'AUD' | null;
+          customer_id: string;
+          event_type: 'bank_transfer_verified' | 'checkout_expired' | 'payment_failed' | 'payment_succeeded';
+          id: string;
+          payload_hash: string | null;
+          payment_attempt_id: string;
+          provider: 'manual_bank_transfer' | 'stripe';
+          provider_event_id: string;
+        };
+        Insert: Record<never, never>;
+        Update: Record<never, never>;
+        Relationships: [];
+      };
       booking_requests: {
         Row: {
           archived_at: string | null;
@@ -707,6 +749,8 @@ export type CustomerInvitationRow = Database['public']['Tables']['customer_invit
 export type CustomerProfileRow = Database['public']['Tables']['customer_profiles']['Row'];
 export type AuditEventRow = Database['public']['Tables']['audit_events']['Row'];
 export type BookingIntegrationJobRow = Database['public']['Tables']['booking_integration_jobs']['Row'];
+export type BookingPaymentAttemptRow = Database['public']['Tables']['booking_payment_attempts']['Row'];
+export type BookingPaymentEventRow = Database['public']['Tables']['booking_payment_events']['Row'];
 export type CustomerVehicleRow = Database['public']['Tables']['customer_vehicles']['Row'];
 export type BookingRequestRow = Database['public']['Tables']['booking_requests']['Row'];
 export type DynoRecordRow = Database['public']['Tables']['dyno_records']['Row'];

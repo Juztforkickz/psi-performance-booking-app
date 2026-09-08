@@ -21,7 +21,7 @@ const SECTIONS = [
   },
   {
     title: 'Storage and service providers',
-    copy: 'Private customer account records and files use PSI-controlled Supabase services configured in the Sydney region. Resend supports transactional email, Expo supports authorised app builds and opted-in push delivery, and Google Calendar receives only PSI internal booking events after the future verified-payment step. Customers cannot list or read PSI calendar contents. Providers receive only the information required to perform their service.',
+    copy: 'Private customer account records and files use PSI-controlled Supabase services configured in the Sydney region. Resend supports transactional email, Expo supports authorised app builds and opted-in push delivery, and Stripe hosts approved deposit checkout for card, eligible device-wallet and bank-debit payments. PSI does not store full payment-card or bank-account credentials in the app. Google Calendar receives only PSI internal booking events after verified payment. Customers cannot list or read PSI calendar contents. Providers receive only the information required to perform their service.',
   },
   {
     title: 'Your control and access',

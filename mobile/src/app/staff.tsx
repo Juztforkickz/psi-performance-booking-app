@@ -618,7 +618,7 @@ function StaffWorkspace({
               <Ionicons color={colors.success} name="checkmark-circle" size={20} />
               <View style={styles.flex}>
                 <Text style={styles.integrationSuccessTitle}>Queue check complete</Text>
-                <Text style={styles.integrationSuccessCopy}>{REVIEW_ENVIRONMENT.enabled ? 'Sandbox queue checked. No emails were sent and no Calendar events were created. External delivery remains disabled.' : `${integrationResult.processed === 0 ? 'No waiting jobs were found.' : `${integrationResult.processed} waiting job${integrationResult.processed === 1 ? '' : 's'} checked.`} Email ${integrationResult.readiness.emailConfigured ? 'connected' : 'needs configuration'} · Calendar ${integrationResult.readiness.calendarConfigured ? 'connected' : 'needs configuration'}.`}</Text>
+                <Text style={styles.integrationSuccessCopy}>{REVIEW_ENVIRONMENT.enabled ? 'Sandbox queue checked. No emails were sent and no Calendar events were created. External delivery remains disabled.' : `${integrationResult.processed === 0 ? 'No waiting jobs were found.' : `${integrationResult.processed} waiting job${integrationResult.processed === 1 ? '' : 's'} checked.`} Email ${integrationResult.readiness.emailConfigured ? 'connected' : 'needs configuration'} · Calendar ${integrationResult.readiness.calendarConfigured ? 'connected' : 'needs configuration'} · Payments ${integrationResult.readiness.paymentsConfigured ? 'connected' : 'needs configuration'}.`}</Text>
               </View>
             </View>
           ) : null}

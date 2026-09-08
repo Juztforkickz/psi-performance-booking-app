@@ -2,6 +2,7 @@ import type { User } from '@supabase/supabase-js';
 
 import type {
   BookingRequestRow,
+  BookingPaymentAttemptRow,
   CustomerProfileRow,
   CustomerVehicleRow,
   DynoRecordRow,
@@ -12,6 +13,7 @@ import { getSupabaseClient } from '@/lib/supabase';
 
 export type CustomerAccountSnapshot = {
   bookings: BookingRequestRow[];
+  paymentAttempts: BookingPaymentAttemptRow[];
   dynoRecords: DynoRecordRow[];
   profile: CustomerProfileRow | null;
   serviceSummaries: VehicleServiceSummaryRow[];
@@ -66,6 +68,11 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
       .is('archived_at', null)
       .order('created_at', { ascending: false }),
     supabase
+      .from('booking_payment_attempts')
+      .select('*')
+      .eq('customer_id', user.id)
+      .order('created_at', { ascending: false }),
+    supabase
       .from('dyno_records')
       .select('*')
       .eq('customer_id', user.id)
@@ -87,17 +94,19 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
     if (!error && data.session) results = await readAccount();
   }
 
-  const [profileResult, vehiclesResult, serviceSummariesResult, bookingsResult, dynoRecordsResult, vehicleFilesResult] = results;
+  const [profileResult, vehiclesResult, serviceSummariesResult, bookingsResult, paymentAttemptsResult, dynoRecordsResult, vehicleFilesResult] = results;
 
   if (profileResult.error) throw profileResult.error;
   if (vehiclesResult.error) throw vehiclesResult.error;
   if (serviceSummariesResult.error) throw serviceSummariesResult.error;
   if (bookingsResult.error) throw bookingsResult.error;
+  if (paymentAttemptsResult.error) throw paymentAttemptsResult.error;
   if (dynoRecordsResult.error) throw dynoRecordsResult.error;
   if (vehicleFilesResult.error) throw vehicleFilesResult.error;
 
   return {
     bookings: bookingsResult.data ?? [],
+    paymentAttempts: paymentAttemptsResult.data ?? [],
     dynoRecords: dynoRecordsResult.data ?? [],
     profile: profileResult.data,
     serviceSummaries: serviceSummariesResult.data ?? [],

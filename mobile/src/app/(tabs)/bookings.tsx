@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
+  AppState,
   Modal,
   Pressable,
   ScrollView,
@@ -20,7 +22,10 @@ import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { CUSTOMER_PREVIEW } from '@/lib/customer-preview';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { loadWorkshopWeather, normaliseDateOnly, type WeatherItem, type WorkshopWeather } from '@/lib/weather';
-import type { BookingRequestRow, CustomerVehicleRow } from '@/lib/database.types';
+import type { BookingPaymentAttemptRow, BookingRequestRow, CustomerVehicleRow } from '@/lib/database.types';
+import { displayMoney } from '@/lib/booking';
+import { beginBookingPayment, openStripeCheckout, type BankTransferInstructions } from '@/lib/payments';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const;
 const SEPTEMBER_2026 = [null, ...Array.from({ length: 30 }, (_, index) => index + 1), null, null, null, null];
@@ -35,6 +40,9 @@ export default function BookingsScreen() {
   const [pendingBookingType, setPendingBookingType] = useState<'service' | 'dyno' | null>(null);
   const [workshopWeather, setWorkshopWeather] = useState<WorkshopWeather | null>(null);
   const [weatherError, setWeatherError] = useState(false);
+  const [paymentBusyId, setPaymentBusyId] = useState<string | null>(null);
+  const [paymentFeedback, setPaymentFeedback] = useState('');
+  const [bankInstructions, setBankInstructions] = useState<BankTransferInstructions | null>(null);
 
   const privateAccountMode = CUSTOMER_AUTH.enabled;
   const displayBookings = privateAccountMode
@@ -79,6 +87,29 @@ export default function BookingsScreen() {
     setPendingBookingType(null);
   };
 
+  const startPayment = async (bookingId: string, method: 'bank_transfer' | 'stripe') => {
+    if (paymentBusyId || REVIEW_ENVIRONMENT.enabled) return;
+    setPaymentBusyId(bookingId);
+    setPaymentFeedback('');
+    try {
+      const result = await beginBookingPayment(bookingId, method);
+      if (result.paymentMethod === 'stripe') {
+        await openStripeCheckout(result);
+        setPaymentFeedback('Stripe opened securely. Return here after payment and refresh your bookings.');
+      } else {
+        setBankInstructions(result);
+      }
+      refreshAccount();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : '';
+      setPaymentFeedback(detail.includes('already_selected')
+        ? 'A payment method is already active for this booking. Refresh to continue it.'
+        : 'Payment setup is not available yet. Nothing was charged. Please contact PSI or try again later.');
+    } finally {
+      setPaymentBusyId(null);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     let controller: AbortController | null = null;
@@ -101,6 +132,14 @@ export default function BookingsScreen() {
       controller?.abort();
     };
   }, []);
+
+  useEffect(() => {
+    if (!privateAccountMode) return;
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshAccount();
+    });
+    return () => subscription.remove();
+  }, [privateAccountMode, refreshAccount]);
 
   const weatherForDate = useMemo(() => {
     const weatherLookup = new Map<string, WeatherItem>();
@@ -254,7 +293,18 @@ export default function BookingsScreen() {
           </Pressable>
         </View>
         <View style={styles.bookingList}>
-          {upcoming.length === 0 ? <EmptyBookingState copy={privateAccountMode ? 'No active booking requests are currently shown.' : 'No example bookings are currently shown.'} /> : upcoming.map((booking) => <BookingCard booking={booking} key={booking.id} />)}
+          {upcoming.length === 0 ? <EmptyBookingState copy={privateAccountMode ? 'No active booking requests are currently shown.' : 'No example bookings are currently shown.'} /> : upcoming.map((booking) => (
+            <BookingCard
+              booking={booking}
+              key={booking.id}
+              onPayment={privateAccountMode && !REVIEW_ENVIRONMENT.enabled ? startPayment : undefined}
+              paymentAttempt={(account?.paymentAttempts ?? []).find((attempt) =>
+                attempt.booking_request_id === booking.id
+                && ['creating', 'awaiting_payment', 'bank_transfer_pending', 'processing'].includes(attempt.state))}
+              paymentBusy={paymentBusyId === booking.id}
+            />
+          ))}
+          {paymentFeedback ? <Text accessibilityRole="alert" style={styles.paymentFeedback}>{paymentFeedback}</Text> : null}
         </View>
 
         <View style={styles.callout}>
@@ -312,6 +362,36 @@ export default function BookingsScreen() {
                 : 'Add a vehicle in My Garage first.'
               : 'Explore the flow with demonstration data. Submission is disabled.'}</Text>
             </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal animationType="fade" onRequestClose={() => setBankInstructions(null)} transparent visible={Boolean(bankInstructions)}>
+        <SafeAreaView edges={['top', 'right', 'bottom', 'left']} style={styles.modalSafeArea}>
+          <ScrollView contentContainerStyle={styles.modalBackdrop} showsVerticalScrollIndicator={false}>
+            <Pressable accessibilityLabel="Close bank transfer instructions" accessibilityRole="button" onPress={() => setBankInstructions(null)} style={StyleSheet.absoluteFill} />
+            {bankInstructions ? (
+              <View accessibilityViewIsModal style={styles.modalSheet}>
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalHeaderCopy}>
+                    <Text style={styles.eyebrow}>Bank transfer</Text>
+                    <Text style={styles.modalTitle}>Deposit instructions</Text>
+                  </View>
+                  <Pressable accessibilityLabel="Close" accessibilityRole="button" onPress={() => setBankInstructions(null)} style={styles.closeButton}>
+                    <Ionicons color={colors.white} name="close" size={24} />
+                  </Pressable>
+                </View>
+                <View style={styles.bankDetails}>
+                  <PaymentDetail label="Amount" value={displayMoney(bankInstructions.amountCents)} />
+                  <PaymentDetail label="Account name" value={bankInstructions.bank.accountName} />
+                  <PaymentDetail label="BSB" value={bankInstructions.bank.bsb} />
+                  <PaymentDetail label="Account number" value={bankInstructions.bank.accountNumber} />
+                  <PaymentDetail label="Required reference" value={bankInstructions.reference} />
+                </View>
+                <Text style={styles.modalNote}>Use the exact reference. Your booking stays unconfirmed until PSI matches the cleared transfer against its bank statement.</Text>
+                <PrimaryButton label="Done" onPress={() => setBankInstructions(null)} />
+              </View>
+            ) : null}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -391,7 +471,7 @@ type BookingDisplay = {
   vehicle: string;
 };
 
-function BookingCard({ booking }: { booking: BookingDisplay }) {
+function BookingCard({ booking, onPayment, paymentAttempt, paymentBusy }: { booking: BookingDisplay; onPayment?: (bookingId: string, method: 'bank_transfer' | 'stripe') => void; paymentAttempt?: BookingPaymentAttemptRow; paymentBusy?: boolean }) {
   const confirmed = booking.state === 'confirmed';
   const statusLabel = bookingStatusLabel(booking.state);
   const icon = booking.service === 'Dyno Tuning' ? 'speedometer-outline' : 'construct-outline';
@@ -410,10 +490,33 @@ function BookingCard({ booking }: { booking: BookingDisplay }) {
         <Text style={styles.bodyCopy}>{booking.vehicle}</Text>
         <Text style={styles.bookingDate}>{booking.date ? formatBookingDate(booking.date) : 'Preferred date awaits PSI review'}</Text>
         {booking.staffNote ? <Text style={styles.bookingStaffNote}>PSI note · {booking.staffNote}</Text> : null}
+        {booking.state === 'date_approved' && onPayment ? (
+          <View style={styles.paymentActions}>
+            <Text style={styles.paymentPrompt}>{paymentAttempt?.payment_method === 'bank_transfer'
+              ? 'Bank transfer is pending PSI verification. Your booking is not confirmed yet.'
+              : paymentAttempt?.payment_method === 'stripe'
+                ? 'Your secure Stripe checkout is ready. The booking confirms only after Stripe verifies payment.'
+                : `Choose how to pay the approved ${displayMoney(booking.service === 'Dyno Tuning' ? 30_000 : 10_000)} deposit.`}</Text>
+            {paymentBusy ? <ActivityIndicator color={colors.accent} /> : (
+              paymentAttempt?.payment_method === 'bank_transfer'
+                ? <PrimaryButton label="View bank transfer details" onPress={() => onPayment(booking.id, 'bank_transfer')} variant="outline" />
+                : paymentAttempt?.payment_method === 'stripe'
+                  ? <PrimaryButton label="Resume secure checkout" onPress={() => onPayment(booking.id, 'stripe')} />
+                  : <>
+                      <PrimaryButton label="Card / Apple Pay / Google Pay" onPress={() => onPayment(booking.id, 'stripe')} />
+                      <PrimaryButton label="Bank transfer" onPress={() => onPayment(booking.id, 'bank_transfer')} variant="outline" />
+                    </>
+            )}
+          </View>
+        ) : null}
       </View>
       <Ionicons color={colors.muted} name="chevron-forward" size={18} />
     </View>
   );
+}
+
+function PaymentDetail({ label, value }: { label: string; value: string }) {
+  return <View style={styles.paymentDetail}><Text style={styles.paymentDetailLabel}>{label}</Text><Text selectable style={styles.paymentDetailValue}>{value}</Text></View>;
 }
 
 function EmptyBookingState({ copy }: { copy: string }) {
@@ -559,6 +662,13 @@ const styles = StyleSheet.create({
   bodyCopy: { color: colors.muted, fontSize: 11, lineHeight: 17 },
   bookingDate: { color: colors.silver, fontSize: 10, fontWeight: '800' },
   bookingStaffNote: { color: colors.muted, fontSize: 10, lineHeight: 15, marginTop: 2 },
+  paymentActions: { gap: spacing.sm, marginTop: spacing.sm },
+  paymentPrompt: { color: colors.silver, fontSize: 11, lineHeight: 17 },
+  paymentFeedback: { color: colors.accent, fontSize: 11, fontWeight: '800', lineHeight: 17 },
+  bankDetails: { gap: spacing.sm },
+  paymentDetail: { borderBottomColor: colors.mutedDark, borderBottomWidth: 1, gap: 3, paddingBottom: spacing.sm },
+  paymentDetailLabel: { color: colors.muted, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
+  paymentDetailValue: { color: colors.white, fontSize: 16, fontWeight: '900' },
   emptyBooking: { ...mobileFrame, backgroundColor: colors.panel, padding: spacing.md },
   callout: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.lg },
   calloutCopy: { gap: spacing.xs },

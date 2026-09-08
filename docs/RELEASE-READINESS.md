@@ -247,6 +247,28 @@ photo metadata to each customer profile. Images remain in the existing private
 the existing owner-only Storage policies and complete-account-deletion cleanup
 continue to apply. No public image URL or new public Storage policy was added.
 
-## Deliberately last
+## Payments and Android release gate
 
-Select the deposit provider, confirm PSI legal/GST/refund wording, implement and verify its signed webhook, and only then test the trusted payment-confirmed transition that creates the internal Google Calendar event. No manual client or staff action may mark a deposit paid.
+Stripe-hosted Checkout is now the selected implementation for card and eligible
+Apple Pay, Google Pay and Australian BECS Direct Debit deposits. Ordinary bank
+transfer remains a separate option because Stripe Checkout does not provide an
+Australian AUD bank-transfer rail. Customers receive a unique PSI reference;
+only AAL2 staff can record a cleared statement match. That exception is audited
+and the customer cannot self-confirm payment.
+
+Migration `20260908103000_booking_payments` and the `create-booking-payment`,
+`stripe-booking-webhook` and `confirm-bank-transfer` Edge Functions implement
+the fail-closed ledger and confirmation boundary. On 8 September 2026 the
+migration and all three functions were deployed to the production Supabase
+project; the migration was also recorded in Supabase migration history. Live
+verification confirmed both ledger tables exist and neither `anon` nor
+`authenticated` can execute the privileged confirmation function.
+
+Activation still requires encrypted Stripe/bank configuration, disabling the
+Supabase legacy-JWT gateway check only on the signed Stripe webhook endpoint,
+registering that destination in Stripe test mode, and passing
+success/failure/expiry/replay acceptance. Professional review of the final
+AUD/GST/refund wording also remains required before general release. The
+current TestFlight binary does not include these source changes; Android still
+requires a new signed QA build, a physical-device QA pass and a Google Play
+production App Bundle/review.
