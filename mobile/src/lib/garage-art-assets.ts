@@ -45,4 +45,3 @@ const images: Record<string, { source: ImageSourcePropType; thumbnail: ImageSour
 
 export const GARAGE_ART = GARAGE_ART_CATALOG.map(entry => ({ ...entry, label: garageArtLabel(entry), ...images[entry.id] }));
 export const garageArtById = (id: string) => GARAGE_ART.find(entry => entry.id === id) ?? GARAGE_ART[0];
-
