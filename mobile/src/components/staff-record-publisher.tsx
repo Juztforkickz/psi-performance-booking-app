@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
+import { StaffScrollSelect } from '@/components/staff-scroll-select';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { todayAustralianDate } from '@/lib/australian-date';
 import type { StaffPortalSnapshot } from '@/lib/staff-portal';
@@ -28,7 +29,13 @@ const RECORD_TYPES: { icon: keyof typeof Ionicons.glyphMap; label: string; value
 const TODAY = todayAustralianDate();
 
 export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapshot }) {
-  const firstCustomerWithVehicle = snapshot.customers.find((customer) => snapshot.vehicles.some((vehicle) => vehicle.customer_id === customer.user_id));
+  const customersWithVehicles = useMemo(
+    () => snapshot.customers
+      .filter((customer) => snapshot.vehicles.some((vehicle) => vehicle.customer_id === customer.user_id))
+      .sort((left, right) => customerName(left).localeCompare(customerName(right), 'en-AU')),
+    [snapshot.customers, snapshot.vehicles],
+  );
+  const firstCustomerWithVehicle = customersWithVehicles[0];
   const [customerId, setCustomerId] = useState(firstCustomerWithVehicle?.user_id ?? '');
   const availableVehicles = useMemo(
     () => snapshot.vehicles.filter((vehicle) => vehicle.customer_id === customerId),
@@ -53,6 +60,20 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [amountAud, setAmountAud] = useState('');
   const [image, setImage] = useState<StaffPublishImage | null>(null);
+
+  const customerOptions = useMemo(() => customersWithVehicles.map((customer) => ({
+    label: customerName(customer),
+    sublabel: customer.email,
+    value: customer.user_id,
+  })), [customersWithVehicles]);
+  const vehicleOptions = useMemo(() => availableVehicles
+    .slice()
+    .sort((left, right) => `${left.year} ${left.make} ${left.model}`.localeCompare(`${right.year} ${right.make} ${right.model}`, 'en-AU'))
+    .map((vehicle) => ({
+      label: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+      sublabel: vehicle.registration,
+      value: vehicle.id,
+    })), [availableVehicles]);
 
   const selectCustomer = (nextCustomerId: string) => {
     setCustomerId(nextCustomerId);
@@ -180,34 +201,19 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
       </View>
 
       <Text style={styles.label}>1 · Customer</Text>
-      <View style={styles.choiceGrid}>
-        {snapshot.customers.filter((customer) => snapshot.vehicles.some((vehicle) => vehicle.customer_id === customer.user_id)).map((customer) => (
-          <ChoiceButton
-            key={customer.user_id}
-            label={customerName(customer)}
-            onPress={() => selectCustomer(customer.user_id)}
-            selected={customer.user_id === customerId}
-            sublabel={customer.email}
-          />
-        ))}
-      </View>
+      <StaffScrollSelect label="Choose customer" onChange={selectCustomer} options={customerOptions} searchable value={customerId} />
 
       <Text style={styles.label}>2 · Vehicle</Text>
-      <View style={styles.choiceGrid}>
-        {availableVehicles.map((vehicle) => (
-          <ChoiceButton
-            key={vehicle.id}
-            label={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
-            onPress={() => {
-              setVehicleId(vehicle.id);
-              setConfirmed(false);
-              setFeedback(null);
-            }}
-            selected={vehicle.id === vehicleId}
-            sublabel={vehicle.registration}
-          />
-        ))}
-      </View>
+      <StaffScrollSelect
+        label="Choose vehicle"
+        onChange={(nextVehicleId) => {
+          setVehicleId(nextVehicleId);
+          setConfirmed(false);
+          setFeedback(null);
+        }}
+        options={vehicleOptions}
+        value={vehicleId}
+      />
 
       <Text style={styles.label}>3 · PSI record type</Text>
       <View style={styles.recordGrid}>
@@ -298,15 +304,6 @@ export function StaffRecordPublisher({ snapshot }: { snapshot: StaffPortalSnapsh
   );
 }
 
-function ChoiceButton({ label, onPress, selected, sublabel }: { label: string; onPress: () => void; selected: boolean; sublabel: string }) {
-  return (
-    <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected }} onPress={onPress} style={[styles.choice, selected && styles.selectedChoice]}>
-      <Text style={[styles.choiceTitle, selected && styles.selectedChoiceText]}>{label}</Text>
-      <Text numberOfLines={1} style={[styles.choiceSub, selected && styles.selectedChoiceSub]}>{sublabel}</Text>
-    </Pressable>
-  );
-}
-
 function SmallChoice({ label, onPress, selected }: { label: string; onPress: () => void; selected: boolean }) {
   return <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected }} onPress={onPress} style={[styles.smallChoice, selected && styles.selectedChoice]}><Text style={[styles.smallChoiceText, selected && styles.selectedChoiceText]}>{label}</Text></Pressable>;
 }
@@ -375,10 +372,6 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted, fontSize: 13, lineHeight: 19 },
   label: { color: colors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 1.2, marginTop: spacing.sm, textTransform: 'uppercase' },
   smallLabel: { color: colors.silver, fontSize: 13, fontWeight: '800' },
-  choiceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  choice: { ...mobileFrame, backgroundColor: colors.inkSoft, flexGrow: 1, minWidth: 210, padding: spacing.md },
-  choiceTitle: { color: colors.white, fontSize: 14, fontWeight: '900' },
-  choiceSub: { color: colors.muted, fontSize: 11, marginTop: 3 },
   selectedChoice: { backgroundColor: colors.accent, borderColor: colors.accent },
   selectedChoiceText: { color: colors.ink },
   selectedChoiceSub: { color: '#0C3444' },

@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, Image, Linking, Modal, Platform, Pressable, S
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
+import { StaffScrollSelect } from '@/components/staff-scroll-select';
 import { StaffRecordPublisher } from '@/components/staff-record-publisher';
 import { StaffBookingReview } from '@/components/staff-booking-review';
 import { StaffEventsManager } from '@/components/staff-events-manager';
@@ -327,8 +328,12 @@ function StaffWorkspace({
   const [vehiclePhotoUris, setVehiclePhotoUris] = useState<Record<string, string>>({});
   const [auditPeriod, setAuditPeriod] = useState('');
   const [integrationHistoryOpen, setIntegrationHistoryOpen] = useState(false);
+  const [bookingArchiveOpen, setBookingArchiveOpen] = useState(false);
+  const [invitationListOpen, setInvitationListOpen] = useState(false);
+  const [lookupCustomerId, setLookupCustomerId] = useState(snapshot.customers[0]?.user_id ?? '');
   const [integrationPeriod, setIntegrationPeriod] = useState('');
   const activeBookings = snapshot.bookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
+  const archivedBookings = snapshot.bookings.filter((booking) => ['cancelled', 'completed'].includes(booking.state));
   const waitingIntegrationJobs = snapshot.integrationJobs.filter((job) => ['blocked_configuration', 'failed', 'pending', 'processing'].includes(job.status));
   const completedIntegrationJobs = snapshot.integrationJobs.filter((job) => ['cancelled', 'succeeded'].includes(job.status));
   const auditPeriods = useMemo(() => historyPeriods(snapshot.auditEvents.map((event) => event.occurred_at)), [snapshot.auditEvents]);
@@ -337,14 +342,22 @@ function StaffWorkspace({
   const selectedIntegrationPeriod = resolveHistoryPeriod(integrationPeriod, integrationPeriods);
   const visibleAuditEvents = snapshot.auditEvents.filter((event) => historyPeriodValue(event.occurred_at) === selectedAuditPeriod).slice(0, 24);
   const visibleIntegrationHistory = completedIntegrationJobs.filter((job) => historyPeriodValue(job.completed_at ?? job.created_at) === selectedIntegrationPeriod).slice(0, 24);
-  const visibleInvitations = latestInvitation
+  const visibleInvitations = (latestInvitation
     ? [latestInvitation, ...snapshot.invitations.filter((invitation) => invitation.id !== latestInvitation.id)]
-    : snapshot.invitations;
+    : snapshot.invitations)
+    .slice()
+    .sort((left, right) => invitationCustomerLabel(left.email, snapshot.customers).localeCompare(invitationCustomerLabel(right.email, snapshot.customers), 'en-AU'));
   const vehiclesByCustomer = useMemo(() => {
     const grouped = new Map<string, StaffPortalSnapshot['vehicles']>();
     snapshot.vehicles.forEach((vehicle) => grouped.set(vehicle.customer_id, [...(grouped.get(vehicle.customer_id) ?? []), vehicle]));
     return grouped;
   }, [snapshot.vehicles]);
+  const lookupCustomerOptions = useMemo(() => snapshot.customers
+    .slice()
+    .sort((left, right) => customerName(left).localeCompare(customerName(right), 'en-AU'))
+    .map((customer) => ({ label: customerName(customer), sublabel: customer.email, value: customer.user_id })), [snapshot.customers]);
+  const selectedLookupCustomer = snapshot.customers.find((customer) => customer.user_id === lookupCustomerId) ?? snapshot.customers[0];
+  const selectedLookupVehicles = selectedLookupCustomer ? vehiclesByCustomer.get(selectedLookupCustomer.user_id) ?? [] : [];
 
   useEffect(() => {
     let active = true;
@@ -490,16 +503,34 @@ function StaffWorkspace({
               />
               </> : null}
             </View>
-            <Text style={styles.invitationCount}>{visibleInvitations.length} approved customer email{visibleInvitations.length === 1 ? '' : 's'}</Text>
-            {visibleInvitations.slice(0, 8).map((invitation) => (
-              <View key={invitation.id} style={styles.invitationRow}>
+            <View style={styles.approvedAccountsPanel}>
+              <Pressable
+                accessibilityLabel={`${visibleInvitations.length} approved customer accounts`}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: invitationListOpen }}
+                onPress={() => setInvitationListOpen((current) => !current)}
+                style={({ pressed }) => [styles.historyHeading, pressed && styles.pressed]}
+              >
                 <View style={styles.flex}>
-                  <Text style={styles.cardTitle}>{invitation.email}</Text>
-                  <Text style={styles.cardMeta}>Approved {formatDateTime(invitation.invited_at)}</Text>
+                  <Text style={styles.historyTitle}>Approved customer accounts</Text>
+                  <Text style={styles.historyMeta}>{visibleInvitations.length} account{visibleInvitations.length === 1 ? '' : 's'} · alphabetical</Text>
                 </View>
-                <Text style={styles.badge}>{invitation.status === 'profile_complete' ? 'Profile ready' : 'Profile pending'}</Text>
-              </View>
-            ))}
+                <Ionicons color={colors.accent} name={invitationListOpen ? 'chevron-up' : 'chevron-down'} size={22} />
+              </Pressable>
+              {invitationListOpen ? visibleInvitations.map((invitation) => {
+                const profileLabel = invitationCustomerLabel(invitation.email, snapshot.customers);
+                return (
+                  <View key={invitation.id} style={styles.invitationRow}>
+                    <View style={styles.flex}>
+                      <Text style={styles.cardTitle}>{profileLabel}</Text>
+                      {profileLabel !== invitation.email ? <Text style={styles.cardCopy}>{invitation.email}</Text> : null}
+                      <Text style={styles.cardMeta}>Approved {formatDateTime(invitation.invited_at)}</Text>
+                    </View>
+                    <Text style={styles.badge}>{invitation.status === 'profile_complete' ? 'Profile ready' : 'Profile pending'}</Text>
+                  </View>
+                );
+              }) : null}
+            </View>
           </>
         ) : null}
 
@@ -542,6 +573,35 @@ function StaffWorkspace({
             </View>
           );
         })}
+
+        <View style={styles.historyPanel}>
+          <Pressable
+            accessibilityLabel={`Booking archive, ${archivedBookings.length} bookings`}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: bookingArchiveOpen }}
+            onPress={() => setBookingArchiveOpen((current) => !current)}
+            style={({ pressed }) => [styles.historyHeading, pressed && styles.pressed]}
+          >
+            <View style={styles.flex}>
+              <Text style={styles.historyTitle}>Completed & cancelled bookings</Text>
+              <Text style={styles.historyMeta}>{archivedBookings.length} archived booking{archivedBookings.length === 1 ? '' : 's'}</Text>
+            </View>
+            <Ionicons color={colors.accent} name={bookingArchiveOpen ? 'chevron-up' : 'chevron-down'} size={22} />
+          </Pressable>
+          {bookingArchiveOpen ? archivedBookings.length ? archivedBookings.map((booking) => {
+            const vehicle = snapshot.vehicles.find((item) => item.id === booking.vehicle_id);
+            const customer = snapshot.customers.find((item) => item.user_id === booking.customer_id);
+            return (
+              <View key={booking.id} style={styles.compactHistoryRow}>
+                <Ionicons color={booking.state === 'completed' ? colors.success : colors.muted} name={booking.state === 'completed' ? 'checkmark-circle' : 'close-circle-outline'} size={19} />
+                <View style={styles.flex}>
+                  <Text style={styles.auditTitle}>{customerName(customer)} · {booking.booking_type === 'dyno' ? 'Dyno tuning' : 'Service & report'}</Text>
+                  <Text style={styles.contextLine}>{BOOKING_STATUS_LABELS[booking.state]} · {vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle unavailable'}{booking.approved_date ? ` · ${formatDate(booking.approved_date)}` : ''}</Text>
+                </View>
+              </View>
+            );
+          }) : <Text style={styles.contextLine}>No completed or cancelled bookings are archived yet.</Text> : null}
+        </View>
 
         <SectionHeading copy="Check jobs that need attention. Completed delivery records stay available in a compact month-by-month history." title="Email & Calendar queue" />
         <View style={styles.integrationControls}>
@@ -622,29 +682,36 @@ function StaffWorkspace({
         )}
 
         <SectionHeading copy="Customer contact and vehicle ownership remain read-only in this stage." title="Customer and vehicle lookup" />
-        {snapshot.customers.length === 0 ? <EmptyState>No active customer accounts are currently shown.</EmptyState> : snapshot.customers.map((customer) => {
-          const vehicles = vehiclesByCustomer.get(customer.user_id) ?? [];
-          return (
-            <View key={customer.user_id} style={styles.card}>
-              <Text style={styles.cardTitle}>{customerName(customer)}</Text>
-              <Text style={styles.cardCopy}>{customer.email}</Text>
-              {customer.mobile ? <Text style={styles.cardCopy}>{customer.mobile}</Text> : null}
-              <View style={styles.vehicleList}>
-                {vehicles.length === 0 ? <Text style={styles.cardMeta}>No active vehicles.</Text> : vehicles.map((vehicle) => (
-                  <View key={vehicle.id} style={styles.vehicleRow}>
-                    {vehiclePhotoUris[vehicle.id] ? (
-                      <Image accessibilityLabel={`Private customer photo of ${vehicle.year} ${vehicle.make} ${vehicle.model}`} source={{ uri: vehiclePhotoUris[vehicle.id] }} style={styles.vehiclePhoto} />
-                    ) : <Ionicons color={colors.accent} name="car-sport" size={18} />}
-                    <View style={styles.flex}>
-                      <Text style={styles.vehicleTitle}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
-                      <Text style={styles.cardMeta}>{vehicle.registration}{vehicle.is_primary ? ' · Primary vehicle' : ''}</Text>
-                    </View>
+        {snapshot.customers.length === 0 ? <EmptyState>No active customer accounts are currently shown.</EmptyState> : (
+          <View style={styles.lookupPanel}>
+            <StaffScrollSelect label="Find customer" onChange={setLookupCustomerId} options={lookupCustomerOptions} searchable value={selectedLookupCustomer?.user_id ?? ''} />
+            {selectedLookupCustomer ? (
+              <View style={styles.lookupCustomerCard}>
+                <View style={styles.lookupIdentity}>
+                  <View style={styles.lookupInitials}><Text style={styles.lookupInitialsText}>{customerInitials(selectedLookupCustomer)}</Text></View>
+                  <View style={styles.flex}>
+                    <Text style={styles.cardTitle}>{customerName(selectedLookupCustomer)}</Text>
+                    <Text style={styles.cardCopy}>{selectedLookupCustomer.email}</Text>
+                    {selectedLookupCustomer.mobile ? <Text style={styles.cardCopy}>{selectedLookupCustomer.mobile}</Text> : null}
                   </View>
-                ))}
+                </View>
+                <View style={styles.vehicleList}>
+                  {selectedLookupVehicles.length === 0 ? <Text style={styles.cardMeta}>No active vehicles.</Text> : selectedLookupVehicles.map((vehicle) => (
+                    <View key={vehicle.id} style={styles.vehicleRow}>
+                      {vehiclePhotoUris[vehicle.id] ? (
+                        <Image accessibilityLabel={`Private customer photo of ${vehicle.year} ${vehicle.make} ${vehicle.model}`} source={{ uri: vehiclePhotoUris[vehicle.id] }} style={styles.vehiclePhoto} />
+                      ) : <Ionicons color={colors.accent} name="car-sport" size={18} />}
+                      <View style={styles.flex}>
+                        <Text style={styles.vehicleTitle}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
+                        <Text style={styles.cardMeta}>{vehicle.registration}{vehicle.is_primary ? ' · Primary vehicle' : ''}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
               </View>
-            </View>
-          );
-        })}
+            ) : null}
+          </View>
+        )}
         <Text style={styles.footer}>{REVIEW_ENVIRONMENT.enabled ? 'ISOLATED REVIEW · PRIVATE STORAGE · EXTERNAL DELIVERY AND PAYMENTS DISABLED' : 'AAL2 STAFF ACCESS · PRIVATE STORAGE · AUDITED EMAIL/CALENDAR QUEUE · PAYMENTS DISABLED'}</Text>
       </ScrollView>
     </SafeAreaView>
@@ -845,6 +912,21 @@ function customerName(customer: StaffPortalSnapshot['customers'][number] | undef
   return [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.email;
 }
 
+function invitationCustomerLabel(email: string, customers: StaffPortalSnapshot['customers']) {
+  const customer = customers.find((item) => item.email.toLocaleLowerCase('en-AU') === email.toLocaleLowerCase('en-AU'));
+  return customer ? customerName(customer) : email;
+}
+
+function customerInitials(customer: StaffPortalSnapshot['customers'][number]) {
+  const initials = [customer.first_name, customer.last_name]
+    .filter(Boolean)
+    .map((value) => value?.charAt(0) ?? '')
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+  return initials || customer.email.charAt(0).toUpperCase();
+}
+
 function formatDate(value: string) {
   return formatAustralianDate(value, value);
 }
@@ -956,8 +1038,14 @@ const styles = StyleSheet.create({
   invitationNotice: { color: colors.success, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   testFlightStep: { alignItems: 'flex-start', backgroundColor: colors.inkSoft, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
   invitationCount: { color: colors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 0.8, marginBottom: spacing.sm, marginTop: spacing.md, textTransform: 'uppercase' },
+  approvedAccountsPanel: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.xs, marginTop: spacing.md, padding: spacing.md },
   invitationRow: { ...mobileFrame, alignItems: 'center', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xs, padding: spacing.md },
   badge: { borderColor: colors.accentDark, borderWidth: 1, color: colors.accent, fontSize: 10, fontWeight: '900', paddingHorizontal: 8, paddingVertical: 5, textTransform: 'uppercase' },
+  lookupPanel: { ...mobileFrame, backgroundColor: colors.panel, gap: spacing.md, padding: spacing.md },
+  lookupCustomerCard: { ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.md },
+  lookupIdentity: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  lookupInitials: { width: 48, height: 48, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: colors.silver },
+  lookupInitialsText: { color: colors.ink, fontSize: 14, fontWeight: '900' },
   vehicleList: { gap: spacing.sm, marginTop: spacing.md },
   vehicleRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.sm },
   vehicleTitle: { color: colors.white, fontSize: 14, fontWeight: '800' },

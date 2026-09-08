@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,8 +8,10 @@ import { PlanBuildSelect } from '@/components/plan-build-select';
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_PREVIEW, type BuildPlanStage } from '@/lib/customer-preview';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
+import type { CustomerVehicleRow } from '@/lib/database.types';
 import {
   BUDGET_OPTIONS,
   buildPlanEmailUrl,
@@ -65,10 +67,28 @@ const STARTER_PLAN_STAGES: readonly BuildPlanStage[] = [
 
 export default function PlanBuildScreen() {
   const router = useRouter();
-  const { selectedVehicleId, vehicles } = useCustomerPreview();
+  const params = useLocalSearchParams<{ vehicleId?: string | string[] }>();
+  const { account, status: accountStatus } = useCustomerAccount();
+  const { selectedVehicleId: previewSelectedVehicleId, selectVehicle: selectPreviewVehicle, vehicles: previewVehicles } = useCustomerPreview();
   const { compact, horizontalPadding, largeText, short, tablet } = useResponsiveLayout();
   const [draft, setDraft] = useState<PlanBuildDraft>(() => createEmptyPlanBuildDraft());
   const [handoffStatus, setHandoffStatus] = useState('');
+  const [secureSelectedVehicleId, setSecureSelectedVehicleId] = useState('');
+  const secureVehicles = useMemo(
+    () => accountStatus === 'ready' ? (account?.vehicles ?? []).map(accountVehiclePreview) : [],
+    [account?.vehicles, accountStatus],
+  );
+  const secureAccountMode = secureVehicles.length > 0;
+  const vehicles = secureAccountMode ? secureVehicles : previewVehicles;
+  const requestedVehicleId = Array.isArray(params.vehicleId) ? params.vehicleId[0] : params.vehicleId;
+
+  const selectedVehicleId = secureAccountMode
+    ? secureVehicles.some((vehicle) => vehicle.id === secureSelectedVehicleId)
+      ? secureSelectedVehicleId
+      : secureVehicles.find((vehicle) => vehicle.id === requestedVehicleId)?.id
+        ?? secureVehicles.find((vehicle) => vehicle.isPrimary)?.id
+        ?? secureVehicles[0].id
+    : previewSelectedVehicleId;
   const vehicle = vehicles.find((item) => item.id === selectedVehicleId) ?? vehicles[0];
   const plan = CUSTOMER_PREVIEW.buildPlans.find((item) => item.vehicleId === vehicle.id);
   const planTitle = plan?.title ?? 'Start a staged PSI plan';
@@ -79,6 +99,16 @@ export default function PlanBuildScreen() {
   const handoffIssue = useMemo(() => getPlanBuildDraftIssue(draft), [draft]);
   const canOpenHandoff = handoffIssue === null;
   const stackAreaCards = compact || largeText;
+  const vehicleOptions = useMemo(() => vehicles.map((item) => ({
+    label: `${item.year} ${item.make} ${item.model} · ${item.registration}`,
+    value: item.id,
+  })), [vehicles]);
+
+  const selectVehicle = (vehicleId: string) => {
+    setHandoffStatus('');
+    if (secureAccountMode) setSecureSelectedVehicleId(vehicleId);
+    else selectPreviewVehicle(vehicleId);
+  };
 
   const updateDraft = <Key extends keyof PlanBuildDraft>(key: Key, value: PlanBuildDraft[Key]) => {
     setHandoffStatus('');
@@ -193,7 +223,7 @@ export default function PlanBuildScreen() {
           <View style={[styles.heroImageFrame, tablet && styles.heroImageFrameWide]}>
             <Image
               accessibilityLabel="Illustrated engine, turbo and staged vehicle build plan"
-              resizeMode="contain"
+              resizeMode="cover"
               source={require('../../assets/images/dashboard/tile-plan-build-blue-silver.jpg')}
               style={[styles.fillImage, styles.heroImage]}
             />
@@ -216,9 +246,15 @@ export default function PlanBuildScreen() {
 
         <View style={styles.builderCard}>
           <BuilderHeading
-            copy="Uses the vehicle selected in My Garage."
+            copy="Uses one of your saved My Garage vehicles. You can change it here."
             number="01"
             title="Your vehicle"
+          />
+          <PlanBuildSelect
+            label="Vehicle from My Garage"
+            onChange={selectVehicle}
+            options={vehicleOptions}
+            value={vehicle.id}
           />
           <View style={styles.vehicleBrief}>
             <View style={styles.vehicleBriefIcon}>
@@ -227,7 +263,7 @@ export default function PlanBuildScreen() {
             <View style={styles.vehicleBriefCopy}>
               <Text style={styles.vehicleBriefLabel}>Selected from My Garage</Text>
               <Text style={styles.vehicleBriefTitle}>{vehicleLabel}</Text>
-              <Text style={styles.vehicleBriefMeta}>{vehicle.registration} · Example vehicle data</Text>
+              <Text style={styles.vehicleBriefMeta}>{vehicle.registration} · {secureAccountMode ? 'Private customer vehicle' : 'Example vehicle data'}</Text>
             </View>
           </View>
         </View>
@@ -575,6 +611,21 @@ function PlanStage({ index, stage }: { index: number; stage: BuildPlanStage }) {
   );
 }
 
+function accountVehiclePreview(vehicle: CustomerVehicleRow) {
+  return {
+    id: vehicle.id,
+    isPrimary: vehicle.is_primary,
+    lastVisit: null,
+    make: vehicle.make,
+    model: vehicle.model,
+    nextDue: null,
+    odometerKm: vehicle.odometer_km,
+    registration: vehicle.registration,
+    vinLastFour: vehicle.vin_last_four,
+    year: vehicle.year,
+  };
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.ink },
   header: { width: '100%', maxWidth: 980, minHeight: 70, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: colors.line },
@@ -586,7 +637,7 @@ const styles = StyleSheet.create({
   scrollShort: { paddingTop: spacing.lg, paddingBottom: spacing.xl },
   hero: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
   heroWide: { flexDirection: 'row' },
-  heroImageFrame: { width: '100%', aspectRatio: 4 / 5, overflow: 'hidden', backgroundColor: colors.inkSoft },
+  heroImageFrame: { width: '100%', aspectRatio: 16 / 10, overflow: 'hidden', backgroundColor: colors.inkSoft },
   heroImageFrameWide: { width: '44%', aspectRatio: 1 },
   heroImage: {},
   fillImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },

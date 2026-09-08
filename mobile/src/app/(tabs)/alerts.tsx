@@ -51,6 +51,8 @@ export default function AlertsScreen() {
   const [preferences, setPreferences] = useState<Record<AlertPreference, boolean>>({ booking: true, event: true, reminder: true, vehicle: true });
   const [notificationFeedback, setNotificationFeedback] = useState('');
   const [notificationSaving, setNotificationSaving] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveCutoff] = useState(() => Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const privateMode = CUSTOMER_AUTH.enabled;
   const signedIn = auth.status === 'signed_in';
@@ -60,6 +62,11 @@ export default function AlertsScreen() {
     [readIds],
   );
   const unreadCount = privateMode ? notifications.unreadCount : previewUnreadCount;
+  const currentSecureEvents = notifications.events.filter((event) => !event.read_at);
+  const archivedSecureEvents = notifications.events.filter((event) => event.read_at && new Date(event.read_at).getTime() >= archiveCutoff);
+  const currentPreviewAlerts = CUSTOMER_PREVIEW.alerts.filter((alert) => !readIds.has(alert.id));
+  const archivedPreviewAlerts = CUSTOMER_PREVIEW.alerts.filter((alert) => readIds.has(alert.id));
+  const archiveCount = privateMode ? archivedSecureEvents.length : archivedPreviewAlerts.length;
 
   const markRead = (id: string) => {
     setReadIds((current) => new Set([...current, id]));
@@ -193,17 +200,42 @@ export default function AlertsScreen() {
         <View style={styles.alertList}>
           {privateMode
             ? signedIn
-              ? notifications.events.length
-                ? notifications.events.map((event) => <SecureAlertCard event={event} key={event.id} onPress={() => {
+              ? currentSecureEvents.length
+                ? currentSecureEvents.map((event) => <SecureAlertCard event={event} key={event.id} onPress={() => {
                   void notifications.markRead(event.id);
                   router.push(event.deep_link as Href);
                 }} />)
-                : <View style={styles.emptyState}><Text style={styles.bodyCopy}>No notifications yet.</Text></View>
+                : <View style={styles.emptyState}><Text style={styles.bodyCopy}>{notifications.events.length ? 'You’re up to date. Read notifications are in the 30-day archive below.' : 'No notifications yet.'}</Text></View>
               : <View style={styles.emptyState}><Text style={styles.bodyCopy}>Sign in through Account to see your notifications.</Text></View>
-            : CUSTOMER_PREVIEW.alerts.map((alert) => (
+            : currentPreviewAlerts.length ? currentPreviewAlerts.map((alert) => (
               <AlertCard alert={alert} key={alert.id} onPress={() => markRead(alert.id)} read={readIds.has(alert.id)} />
-            ))}
+            )) : <View style={styles.emptyState}><Text style={styles.bodyCopy}>You’re up to date. Read demo notifications are in the archive below.</Text></View>}
         </View>
+
+        {signedIn || !privateMode ? (
+          <View style={styles.archivePanel}>
+            <Pressable
+              accessibilityLabel={`Read notification archive, ${archiveCount} notifications`}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: archiveOpen }}
+              onPress={() => setArchiveOpen((current) => !current)}
+              style={({ pressed }) => [styles.archiveHeading, pressed && styles.pressed]}
+            >
+              <View style={styles.archiveHeadingCopy}>
+                <Text style={styles.archiveTitle}>Read archive</Text>
+                <Text style={styles.archiveMeta}>{privateMode ? `${archiveCount} read notification${archiveCount === 1 ? '' : 's'} kept here for 30 days` : `${archiveCount} read demo notification${archiveCount === 1 ? '' : 's'}`}</Text>
+              </View>
+              <Ionicons color={colors.accent} name={archiveOpen ? 'chevron-up' : 'chevron-down'} size={22} />
+            </Pressable>
+            {archiveOpen ? (
+              <View style={styles.alertList}>
+                {archiveCount === 0 ? <Text style={styles.archiveEmpty}>No read notifications are currently archived.</Text> : privateMode
+                  ? archivedSecureEvents.map((event) => <SecureAlertCard event={event} key={event.id} onPress={() => router.push(event.deep_link as Href)} />)
+                  : archivedPreviewAlerts.map((alert) => <AlertCard alert={alert} key={alert.id} onPress={() => undefined} read />)}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={[styles.sectionHeading, styles.preferenceSectionHeading]}>
           <Text style={styles.sectionTitle}>{privateMode ? 'Notification preferences' : 'What you could receive'}</Text>
@@ -433,6 +465,12 @@ const styles = StyleSheet.create({
   themeModeTitle: { color: colors.white, fontSize: 10, fontWeight: '900', letterSpacing: .9, textTransform: 'uppercase' },
   themeModeNotice: { fontSize: 10, lineHeight: 16, fontStyle: 'italic' },
   alertList: { gap: spacing.sm },
+  archivePanel: { ...mobileFrame, gap: spacing.sm, backgroundColor: colors.inkSoft, padding: spacing.md },
+  archiveHeading: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  archiveHeadingCopy: { flex: 1, minWidth: 0, gap: 3 },
+  archiveTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
+  archiveMeta: { color: colors.muted, fontSize: 10, lineHeight: 15 },
+  archiveEmpty: { color: colors.muted, fontSize: 11, lineHeight: 17, paddingVertical: spacing.sm },
   emptyState: { ...mobileFrame, backgroundColor: colors.panel, padding: spacing.md },
   alertCard: { ...mobileFrame, minHeight: 116, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, backgroundColor: colors.panel, padding: spacing.md },
   alertCardUnread: { backgroundColor: colors.inkSoft },

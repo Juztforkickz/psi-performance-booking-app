@@ -533,7 +533,7 @@ function GarageContent({
           <View style={[styles.buildImageFrame, (tablet && !largeText) && styles.buildImageFrameWide]}>
             <Image
               accessibilityLabel="Illustrated engine and performance build plan"
-              resizeMode="contain"
+              resizeMode="cover"
               source={require('../../../assets/images/dashboard/tile-plan-build-blue-silver.jpg')}
               style={[styles.fillImage, styles.planBuildImage]}
             />
@@ -557,7 +557,7 @@ function GarageContent({
                 ))}
               </View>
             ) : null}
-            <PrimaryButton label="Open Plan & Build" onPress={() => router.push('/parts')} />
+            <PrimaryButton label="Open Plan & Build" onPress={() => router.push({ pathname: '/parts', params: { vehicleId: selectedVehicle.id } })} />
           </View>
         </View>
 
@@ -796,7 +796,7 @@ const styles = StyleSheet.create({
   disclaimer: { color: colors.mutedDark, fontSize: 10, lineHeight: 16 },
   buildCard: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
   buildCardWide: { flexDirection: 'row' },
-  buildImageFrame: { width: '100%', aspectRatio: 4 / 5, overflow: 'hidden', backgroundColor: colors.inkSoft },
+  buildImageFrame: { width: '100%', aspectRatio: 16 / 10, overflow: 'hidden', backgroundColor: colors.inkSoft },
   buildImageFrameWide: { width: '44%', aspectRatio: 1 },
   planBuildImage: {},
   buildBody: { flex: 1, gap: spacing.md, padding: spacing.lg },

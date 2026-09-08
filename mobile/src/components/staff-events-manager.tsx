@@ -29,6 +29,10 @@ export function StaffEventsManager() {
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState('');
   const [feedback, setFeedback] = useState<{ error: boolean; text: string } | null>(null);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiveReferenceTime] = useState(Date.now);
+  const currentEvents = events.filter((event) => !eventIsArchived(event, archiveReferenceTime));
+  const archivedEvents = events.filter((event) => eventIsArchived(event, archiveReferenceTime)).sort((left, right) => right.starts_at.localeCompare(left.starts_at));
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -190,13 +194,13 @@ export function StaffEventsManager() {
       </View>
 
       <View style={styles.listHeader}>
-        <Text style={styles.heading}>Event list</Text>
+        <Text style={styles.heading}>Current events</Text>
         <Pressable accessibilityLabel="Refresh staff PSI Events" accessibilityRole="button" onPress={() => void refresh()} style={({ pressed }) => [styles.refresh, pressed && styles.pressed]}>
           {loading ? <ActivityIndicator color={colors.accent} size="small" /> : <Ionicons color={colors.accent} name="refresh" size={18} />}
         </Pressable>
       </View>
-      {!loading && events.length === 0 ? <Text style={styles.empty}>No PSI Events have been created.</Text> : null}
-      {events.map((event) => (
+      {!loading && currentEvents.length === 0 ? <Text style={styles.empty}>{events.length ? 'No current PSI Events. Finished and cancelled events are in the archive.' : 'No PSI Events have been created.'}</Text> : null}
+      {currentEvents.map((event) => (
         <View key={event.id} style={styles.eventCard}>
           <View style={styles.headingRow}>
             <View style={styles.flex}>
@@ -212,8 +216,39 @@ export function StaffEventsManager() {
           {event.status !== 'cancelled' ? <PrimaryButton label="Cancel event" loading={busyAction === `cancel:${event.id}`} onPress={() => void changeStatus(event, 'cancel')} variant="outline" /> : null}
         </View>
       ))}
+
+      <View style={styles.archivePanel}>
+        <Pressable
+          accessibilityLabel={`Event archive, ${archivedEvents.length} events`}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: archiveOpen }}
+          onPress={() => setArchiveOpen((current) => !current)}
+          style={({ pressed }) => [styles.archiveHeading, pressed && styles.pressed]}
+        >
+          <View style={styles.flex}>
+            <Text style={styles.heading}>Event archive</Text>
+            <Text style={styles.archiveMeta}>{archivedEvents.length} finished or cancelled event{archivedEvents.length === 1 ? '' : 's'}</Text>
+          </View>
+          <Ionicons color={colors.accent} name={archiveOpen ? 'chevron-up' : 'chevron-down'} size={22} />
+        </Pressable>
+        {archiveOpen ? archivedEvents.length ? archivedEvents.map((event) => (
+          <View key={event.id} style={styles.archivedEventRow}>
+            <Ionicons color={event.status === 'cancelled' ? colors.muted : colors.success} name={event.status === 'cancelled' ? 'close-circle-outline' : 'checkmark-circle-outline'} size={19} />
+            <View style={styles.flex}>
+              <Text style={styles.archivedEventTitle}>{event.title}</Text>
+              <Text style={styles.archiveMeta}>{event.status === 'cancelled' ? 'Cancelled' : 'Finished'} · {formatAustralianDateTime(event.starts_at)}</Text>
+            </View>
+          </View>
+        )) : <Text style={styles.archiveEmpty}>No events are archived yet.</Text> : null}
+      </View>
     </View>
   );
+}
+
+function eventIsArchived(event: PsiEventRow, referenceTime: number) {
+  if (event.status === 'cancelled') return true;
+  const finishTime = event.ends_at ? new Date(event.ends_at).getTime() : new Date(event.starts_at).getTime() + 3 * 60 * 60 * 1000;
+  return finishTime < referenceTime;
 }
 
 function eventErrorMessage(error: unknown) {
@@ -246,5 +281,11 @@ const styles = StyleSheet.create({
   eventLocation: { color: colors.white, fontSize: 11, fontWeight: '800' },
   badge: { color: colors.muted, borderColor: colors.line, borderWidth: 1, fontSize: 9, fontWeight: '900', paddingHorizontal: spacing.sm, paddingVertical: 5, textTransform: 'uppercase' },
   badgePublished: { color: colors.success, borderColor: colors.success },
+  archivePanel: { ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.md },
+  archiveHeading: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  archiveMeta: { color: colors.muted, fontSize: 10, lineHeight: 16, marginTop: 3 },
+  archivedEventRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: spacing.sm },
+  archivedEventTitle: { color: colors.white, fontSize: 12, fontWeight: '900' },
+  archiveEmpty: { color: colors.muted, fontSize: 11, lineHeight: 17, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.sm },
   pressed: { opacity: 0.72 },
 });
