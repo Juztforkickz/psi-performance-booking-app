@@ -234,14 +234,14 @@ export default function CustomerHomeScreen() {
           <View style={[styles.homeWeather, compact && styles.homeWeatherCompact]}>
             {weather ? (
               <>
-                <Ionicons color={colors.accent} name={weather.current.icon} size={18} />
+                <Ionicons color={theme.accent} name={weather.current.icon} size={18} />
                 <View style={styles.homeWeatherCopy}>
-                  <Text style={styles.homeWeatherTemp}>{weather.current.temperatureC}°C</Text>
-                  <Text style={styles.homeWeatherDate}>{new Intl.DateTimeFormat('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${weather.current.date}T12:00:00`))}</Text>
+                  <Text style={[styles.homeWeatherTemp, { color: theme.text }]}>{weather.current.temperatureC}°C</Text>
+                  <Text style={[styles.homeWeatherDate, { color: theme.textMuted }]}>{new Intl.DateTimeFormat('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${weather.current.date}T12:00:00`))}</Text>
                 </View>
               </>
             ) : (
-              <Text style={styles.homeWeatherError}>{weatherError ? 'Weather unavailable' : 'Loading weather...'}</Text>
+              <Text style={[styles.homeWeatherError, { color: theme.textMuted }]}>{weatherError ? 'Weather unavailable' : 'Loading weather...'}</Text>
             )}
           </View>
           <Pressable
@@ -719,7 +719,7 @@ function WorkshopFact({
       <Ionicons color={theme.accent} name={icon} size={20} />
       <View style={styles.workshopFactCopy}>
         <Text style={[styles.workshopFactLabel, { color: theme.accent }]}>{label}</Text>
-        <Text style={[styles.workshopFactValue, { color: colors.white }]}>{value}</Text>
+        <Text style={[styles.workshopFactValue, { color: theme.text }]}>{value}</Text>
       </View>
     </View>
   );
