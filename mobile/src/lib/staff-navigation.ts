@@ -2,6 +2,7 @@ export type StaffTab = 'dashboard' | 'bookings' | 'customers' | 'records' | 'men
 
 export const STAFF_SECTIONS = {
   dashboard: { title: 'Workshop dashboard', description: 'Your workshop at a glance.', tab: 'dashboard' },
+  alerts: { title: 'Alerts', description: 'Workshop enquiries and customer-account updates.', tab: 'dashboard' },
   bookings: { title: 'Bookings', description: 'Review requests and complete workshop visits.', tab: 'bookings' },
   customers: { title: 'Customers', description: 'Find customer contact details and vehicles.', tab: 'customers' },
   records: { title: 'Workshop records', description: 'Publish reports and manage private vehicle files.', tab: 'records' },

@@ -31,6 +31,8 @@ const THEME_PREFERENCES: readonly { value: ThemePreference; label: string }[] = 
 ];
 
 const BOOKING_ALERT_IMAGE = require('../../../assets/images/dashboard/tile-my-bookings-blue-silver.jpg');
+const WORKSHOP_ALERT_COLOR = '#2D9CDB';
+const CUSTOMER_ALERT_COLOR = '#D92D20';
 
 type AlertPreference = 'booking' | 'event' | 'reminder' | 'vehicle';
 
@@ -99,10 +101,13 @@ export default function AlertsScreen() {
         <View style={styles.header}>
           <View style={styles.headerTopline}>
             <Text style={styles.eyebrow}>Your preferences</Text>
-            <View accessibilityLabel={`${unreadCount} unread notifications`} style={styles.countBadge}>
-              <Ionicons color={colors.ink} name="notifications" size={18} />
-              <Text style={styles.countNumber}>{unreadCount}</Text>
-            </View>
+            {staffMode ? <View style={styles.headerAlertCounts}>
+              <View accessibilityLabel={`${notifications.staffUnreadCount} unread PSI workshop alerts`} style={[styles.roleCountBadge, { borderColor: WORKSHOP_ALERT_COLOR }]}><View style={[styles.roleCountDot, { backgroundColor: WORKSHOP_ALERT_COLOR }]} /><Text style={styles.roleCountText}>PSI {notifications.staffUnreadCount}</Text></View>
+              <View accessibilityLabel={`${notifications.customerUnreadCount} unread customer alerts`} style={[styles.roleCountBadge, { borderColor: CUSTOMER_ALERT_COLOR }]}><View style={[styles.roleCountDot, { backgroundColor: CUSTOMER_ALERT_COLOR }]} /><Text style={styles.roleCountText}>ME {notifications.customerUnreadCount}</Text></View>
+            </View> : <View accessibilityLabel={`${unreadCount} unread notifications`} style={[styles.countBadge, privateMode && styles.customerCountBadge]}>
+              <Ionicons color={privateMode ? colors.white : colors.ink} name="notifications" size={18} />
+              <Text style={[styles.countNumber, privateMode && styles.customerCountNumber]}>{unreadCount}</Text>
+            </View>}
           </View>
           <View accessible accessibilityLabel="Settings & Notifications" accessibilityRole="header" style={styles.headerCopy}>
             {['Settings &', 'Notifications'].map((line) => (
@@ -207,7 +212,7 @@ export default function AlertsScreen() {
               ? currentSecureEvents.length
                 ? currentSecureEvents.map((event) => <SecureAlertCard event={event} key={event.id} onPress={() => {
                   void notifications.markRead(event.id);
-                  router.push(event.deep_link as Href);
+                  router.push(notificationHref(event));
                 }} />)
                 : <View style={styles.emptyState}><Text style={styles.bodyCopy}>{notifications.events.length ? 'You’re up to date. Read notifications are in the 30-day archive below.' : 'No notifications yet.'}</Text></View>
               : <View style={styles.emptyState}><Text style={styles.bodyCopy}>Sign in through Account to see your notifications.</Text></View>
@@ -234,7 +239,7 @@ export default function AlertsScreen() {
             {archiveOpen ? (
               <View style={styles.alertList}>
                 {archiveCount === 0 ? <Text style={styles.archiveEmpty}>No read notifications are currently archived.</Text> : privateMode
-                  ? archivedSecureEvents.map((event) => <SecureAlertCard event={event} key={event.id} onPress={() => router.push(event.deep_link as Href)} />)
+                  ? archivedSecureEvents.map((event) => <SecureAlertCard event={event} key={event.id} onPress={() => router.push(notificationHref(event))} />)
                   : archivedPreviewAlerts.map((alert) => <AlertCard alert={alert} key={alert.id} onPress={() => undefined} read />)}
               </View>
             ) : null}
@@ -375,24 +380,25 @@ function SecureAlertCard({ event, onPress }: { event: NotificationEventRow; onPr
   const read = Boolean(event.read_at);
   const staffNotification = event.deep_link === '/staff';
   const eventNotification = event.deep_link === '/events';
+  const roleColor = staffNotification ? WORKSHOP_ALERT_COLOR : CUSTOMER_ALERT_COLOR;
   return (
     <Pressable
       accessibilityHint={`Marks this notification as read and opens ${eventNotification ? 'PSI Events' : staffNotification ? 'the staff portal' : 'Bookings'}`}
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => [styles.alertCard, !read && styles.alertCardUnread, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.alertCard, !read && styles.alertCardUnread, { borderLeftColor: roleColor, borderLeftWidth: 4 }, pressed && styles.pressed]}
     >
-      <View style={[styles.alertIcon, !read && styles.alertIconUnread]}>
+      <View style={[styles.alertIcon, !read && { backgroundColor: roleColor, borderColor: roleColor }]}>
         {eventNotification
-          ? <Ionicons color={!read ? colors.ink : colors.accent} name="flag" size={23} />
+          ? <Ionicons color={!read ? colors.white : CUSTOMER_ALERT_COLOR} name="flag" size={23} />
           : staffNotification
-          ? <Ionicons color={!read ? colors.ink : colors.accent} name="construct-outline" size={23} />
+          ? <Ionicons color={!read ? colors.white : WORKSHOP_ALERT_COLOR} name="construct-outline" size={23} />
           : <Image accessible={false} resizeMode="cover" source={BOOKING_ALERT_IMAGE} style={styles.alertArtwork} />}
       </View>
       <View style={styles.alertCopy}>
         <View style={styles.alertTopline}>
-          <Text style={styles.alertType}>{eventNotification ? 'PSI Event' : staffNotification ? 'Workshop' : 'Booking'}</Text>
-          {!read ? <View accessibilityLabel="Unread" style={styles.unreadDot} /> : <Text style={styles.readLabel}>Read</Text>}
+          <Text style={[styles.alertType, { color: roleColor }]}>{eventNotification ? 'Customer · PSI event' : staffNotification ? 'PSI workshop' : 'Customer · Booking'}</Text>
+          {!read ? <View accessibilityLabel="Unread" style={[styles.unreadDot, { backgroundColor: roleColor }]} /> : <Text style={styles.readLabel}>Read</Text>}
         </View>
         <Text style={styles.alertTitle}>{event.title}</Text>
         <Text style={styles.bodyCopy}>{event.body}</Text>
@@ -400,6 +406,13 @@ function SecureAlertCard({ event, onPress }: { event: NotificationEventRow; onPr
       </View>
     </Pressable>
   );
+}
+
+function notificationHref(event: NotificationEventRow): Href {
+  if (event.deep_link === '/staff') return event.booking_request_id
+    ? { pathname: '/staff', params: { section: 'bookings', bookingId: event.booking_request_id } }
+    : { pathname: '/staff', params: { section: 'bookings', view: 'review' } };
+  return event.deep_link === '/events' ? '/events' : '/bookings';
 }
 
 function PreferenceRow({
@@ -450,6 +463,12 @@ const styles = StyleSheet.create({
   titleCompact: { fontSize: 33, lineHeight: 35 },
   countBadge: { ...mobileFrame, minWidth: 62, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, backgroundColor: colors.silver, padding: spacing.sm },
   countNumber: { color: colors.ink, fontSize: 18, fontWeight: '900' },
+  customerCountBadge: { backgroundColor: CUSTOMER_ALERT_COLOR, borderColor: CUSTOMER_ALERT_COLOR },
+  customerCountNumber: { color: colors.white },
+  headerAlertCounts: { alignItems: 'flex-end', gap: 5 },
+  roleCountBadge: { alignItems: 'center', backgroundColor: colors.panel, borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: 5, minHeight: 25, paddingHorizontal: 8 },
+  roleCountDot: { borderRadius: 4, height: 8, width: 8 },
+  roleCountText: { color: colors.white, fontSize: 9, fontWeight: '900' },
   previewNotice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.noticeSurface, padding: spacing.md },
   previewNoticeTitle: { color: colors.onNotice, fontSize: 11, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   previewNoticeCopy: { color: colors.onNoticeMuted, fontSize: 11, lineHeight: 17 },

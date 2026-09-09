@@ -76,7 +76,18 @@ Deno.serve(async (request) => {
       await admin.from("push_notification_jobs").update({ status: "cancelled", completed_at: now, last_error_code: !allowed ? "preference_disabled" : "no_registered_device", updated_at: now }).eq("id", queued.id);
       continue;
     }
-    const messages = devices.map((device) => ({ to: device.expo_push_token, title: event.title, body: event.body, data: { url: event.deep_link, eventId: event.id }, badge: count ?? 0, sound: preference?.sound_enabled === false ? null : "default", channelId: "psi-bookings", priority: "high" }));
+    const workshopAlert = event.deep_link === "/staff";
+    const messages = devices.map((device) => ({
+      to: device.expo_push_token,
+      title: "PSI update received",
+      subtitle: workshopAlert ? "PSI workshop" : "Customer account",
+      body: workshopAlert ? "Open the protected workshop portal to review it." : "Open PSI to view your private update.",
+      data: { url: event.deep_link },
+      badge: count ?? 0,
+      sound: preference?.sound_enabled === false ? null : "default",
+      channelId: workshopAlert ? "psi-workshop" : "psi-customer",
+      priority: "high",
+    }));
     const response = await fetch("https://exp.host/--/api/v2/push/send", { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json" }, body: JSON.stringify(messages) });
     const result = await response.json().catch(() => null) as { data?: Array<{ id?: string; status?: string; details?: { error?: string } }> } | null;
     const tickets = result?.data ?? [];

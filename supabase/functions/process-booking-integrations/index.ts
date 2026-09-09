@@ -36,6 +36,7 @@ type BookingContext = {
     preferred_date: string | null;
     approved_date: string | null;
     request_notes: string | null;
+    request_context: Record<string, unknown>;
     state: string;
   };
   customer: {
@@ -126,6 +127,27 @@ const customerName = (context: BookingContext) =>
 const bookingLabel = (context: BookingContext) =>
   context.booking.booking_type === "dyno" ? "Dyno tuning" : "Service & Workshop";
 
+const humanize = (value: string) => value
+  .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+  .replaceAll("_", " ")
+  .replace(/\b\w/g, (character) => character.toUpperCase());
+
+const requestContextLines = (context: Record<string, unknown>) => {
+  const lines: string[] = [];
+  if (typeof context.arrivalArrangement === "string") lines.push(`Arrival: ${humanize(context.arrivalArrangement)}`);
+  if (context.afterHoursCollection === true) lines.push("Collection: After-hours requested");
+  if (context.notifyEarlierAvailability === true) lines.push("Earlier opening: Customer requested contact");
+  if (context.serviceReminderConsent === true) lines.push("Service reminders: Customer opted in");
+  if (typeof context.setupConfidence === "string") lines.push(`Dyno setup: ${humanize(context.setupConfidence)}`);
+  if (context.tuningDetails && typeof context.tuningDetails === "object" && !Array.isArray(context.tuningDetails)) {
+    Object.entries(context.tuningDetails as Record<string, unknown>)
+      .filter(([, value]) => typeof value === "string" && value.trim())
+      .slice(0, 12)
+      .forEach(([key, value]) => lines.push(`${humanize(key)}: ${humanize(value as string)}`));
+  }
+  return lines;
+};
+
 const isJobStillApplicable = (job: IntegrationJob, context: BookingContext) => {
   switch (job.job_kind) {
     case "notify_customer_date_proposed":
@@ -152,7 +174,26 @@ const buildEmail = (job: IntegrationJob, context: BookingContext) => {
   const ownerJob = job.job_kind.startsWith("notify_psi_");
   const recipient = ownerJob ? env("PSI_OWNER_NOTIFICATION_EMAIL") : context.customer.email;
   const greeting = ownerJob ? "PSI booking desk" : customerName(context);
-  const common = `Booking: ${booking}\nVehicle: ${vehicle}\nReference: ${context.booking.id}`;
+  const enquiry = context.booking.request_notes?.trim() || "No additional enquiry notes supplied.";
+  const visitDetails = requestContextLines(context.booking.request_context);
+  const commonLines = ownerJob
+    ? [
+        `Customer: ${customerName(context)}`,
+        `Email: ${context.customer.email}`,
+        `Mobile: ${context.customer.mobile || "Not supplied"}`,
+        `Booking: ${booking}`,
+        `Vehicle: ${vehicle}`,
+        `Enquiry: ${enquiry}`,
+        ...visitDetails,
+        `Reference: ${context.booking.id}`,
+      ]
+    : [
+        `Booking: ${booking}`,
+        `Vehicle: ${vehicle}`,
+        `Your enquiry: ${enquiry}`,
+        `Reference: ${context.booking.id}`,
+      ];
+  const common = commonLines.join("\n");
 
   let subject: string;
   let heading: string;
@@ -162,7 +203,7 @@ const buildEmail = (job: IntegrationJob, context: BookingContext) => {
     case "notify_psi_request_received":
       subject = `New ${booking} request · ${context.vehicle.registration}`;
       heading = "New private booking request";
-      message = `A customer booking request is ready for review. Preferred date: ${preferredDate}.`;
+      message = `${customerName(context)} sent a booking enquiry. Preferred date: ${preferredDate}. Their contact details and full request are below.`;
       break;
     case "notify_customer_request_received":
       subject = "PSI has received your booking request";
@@ -207,10 +248,9 @@ const buildEmail = (job: IntegrationJob, context: BookingContext) => {
         <p>Hi ${escapeHtml(greeting)},</p>
         <p style="line-height:1.6">${escapeHtml(message)}</p>
         <div style="border-top:1px solid #333;margin-top:22px;padding-top:18px;line-height:1.7">
-          <strong>${escapeHtml(booking)}</strong><br>
-          ${escapeHtml(vehicle)}<br>
-          <span style="color:#aaa">Reference ${escapeHtml(context.booking.id)}</span>
+          ${commonLines.map((line, index) => `${index === 0 ? "<strong>" : ""}${escapeHtml(line)}${index === 0 ? "</strong>" : ""}<br>`).join("\n")}
         </div>
+        ${ownerJob ? `<p style="margin-top:22px"><a href="mailto:${escapeHtml(context.customer.email)}" style="background:#65CFF8;color:#050505;display:inline-block;font-weight:700;padding:12px 18px;text-decoration:none">Reply to ${escapeHtml(customerName(context))}</a></p>` : ""}
         <p style="color:#aaa;font-size:12px;margin-top:24px">PSI Performance · 21 Exchange Drive, Pakenham VIC 3810 · 0433431781</p>
       </div>
     </div>`;
@@ -220,7 +260,7 @@ const buildEmail = (job: IntegrationJob, context: BookingContext) => {
 
 const loadBookingContext = async (admin: SupabaseClient, job: IntegrationJob): Promise<BookingContext> => {
   const [bookingResult, customerResult] = await Promise.all([
-    admin.from("booking_requests").select("id, booking_type, preferred_date, approved_date, request_notes, state, vehicle_id, customer_id").eq("id", job.booking_request_id).eq("customer_id", job.customer_id).single(),
+    admin.from("booking_requests").select("id, booking_type, preferred_date, approved_date, request_notes, request_context, state, vehicle_id, customer_id").eq("id", job.booking_request_id).eq("customer_id", job.customer_id).single(),
     admin.from("customer_profiles").select("email, first_name, last_name, mobile").eq("user_id", job.customer_id).single(),
   ]);
   if (bookingResult.error || !bookingResult.data) throw new Error("booking_not_found");
@@ -235,7 +275,7 @@ const loadBookingContext = async (admin: SupabaseClient, job: IntegrationJob): P
   if (vehicleResult.error || !vehicleResult.data) throw new Error("vehicle_not_found");
 
   return {
-    booking: bookingResult.data as BookingContext["booking"],
+    booking: { ...bookingResult.data, request_context: bookingResult.data.request_context ?? {} } as BookingContext["booking"],
     customer: customerResult.data as BookingContext["customer"],
     vehicle: vehicleResult.data as BookingContext["vehicle"],
   };
@@ -257,6 +297,7 @@ const sendEmail = async (job: IntegrationJob, context: BookingContext) => {
     body: JSON.stringify({
       from,
       to: [email.recipient],
+      reply_to: job.job_kind.startsWith("notify_psi_") ? context.customer.email : ownerEmail,
       subject: email.subject,
       html: email.html,
       text: email.text,

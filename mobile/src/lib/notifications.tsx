@@ -12,7 +12,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import type { NotificationEventRow, NotificationPreferenceRow } from '@/lib/database.types';
@@ -21,6 +21,7 @@ import { appModeRuntime, environmentStorageKey, REVIEW_ENVIRONMENT } from '@/lib
 
 type PushStatus = 'disabled' | 'not_enabled' | 'ready' | 'unsupported';
 type NotificationContextValue = {
+  customerUnreadCount: number;
   disablePush: () => Promise<void>;
   enablePush: () => Promise<void>;
   events: NotificationEventRow[];
@@ -30,6 +31,7 @@ type NotificationContextValue = {
   pushStatus: PushStatus;
   refresh: () => Promise<void>;
   setPreference: (key: PreferenceKey, value: boolean) => Promise<void>;
+  staffUnreadCount: number;
   unreadCount: number;
 };
 type PreferenceKey = 'booking_reminders_enabled' | 'booking_updates_enabled' | 'event_alerts_enabled' | 'sound_enabled' | 'workshop_alerts_enabled';
@@ -38,6 +40,36 @@ const NotificationContext = createContext<NotificationContextValue | null>(null)
 let registeredToken = '';
 const PUSH_TOKEN_STORAGE_KEY = environmentStorageKey('psi-notifications.expo-push-token');
 const PUSH_ENABLED_STORAGE_KEY = environmentStorageKey('psi-notifications.device-alerts-enabled');
+
+async function ensureAndroidNotificationChannels() {
+  if (Platform.OS !== 'android') return;
+  await Promise.all([
+    Notifications.setNotificationChannelAsync('psi-workshop', {
+      name: 'PSI workshop enquiries',
+      description: 'New customer enquiries and workshop actions.',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 150, 250],
+      lightColor: '#65CFF8',
+      sound: 'default',
+    }),
+    Notifications.setNotificationChannelAsync('psi-customer', {
+      name: 'My PSI updates',
+      description: 'Updates about your bookings, events and vehicle records.',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 150, 250],
+      lightColor: '#D92D20',
+      sound: 'default',
+    }),
+  ]);
+}
+
+function responseHref(data: Record<string, unknown> | undefined): Href | null {
+  const url = data?.url;
+  const bookingId = typeof data?.bookingId === 'string' ? data.bookingId : '';
+  if (url === '/staff') return bookingId ? { pathname: '/staff', params: { bookingId, section: 'bookings' } } : '/staff';
+  if (url === '/bookings' || url === '/events') return url;
+  return null;
+}
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -99,6 +131,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
           if (active) setPushStatus('unsupported');
           return;
         }
+        await ensureAndroidNotificationChannels();
         const permission = await Notifications.getPermissionsAsync();
         if (permission.status !== 'granted') {
           if (active) setPushStatus('not_enabled');
@@ -131,18 +164,32 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     if (REVIEW_ENVIRONMENT.enabled || Platform.OS === 'web') return;
     const received = Notifications.addNotificationReceivedListener(() => { void refresh(); });
     const responded = Notifications.addNotificationResponseReceivedListener((response) => {
-      const url = response.notification.request.content.data?.url;
-      if (url === '/bookings' || url === '/events' || url === '/staff') router.push(url as Href);
+      const href = responseHref(response.notification.request.content.data);
+      if (href) router.push(href);
       void refresh();
     });
     void Notifications.getLastNotificationResponseAsync().then((response) => {
-      const url = response?.notification.request.content.data?.url;
-      if (url === '/bookings' || url === '/events' || url === '/staff') router.push(url as Href);
+      const href = responseHref(response?.notification.request.content.data);
+      if (href) router.push(href);
     });
     return () => { received.remove(); responded.remove(); };
   }, [refresh, router]);
 
+  useEffect(() => {
+    if (auth.status !== 'signed_in') return;
+    let active = AppState.currentState === 'active';
+    const refreshWhileActive = () => { if (active) void refresh().catch(() => undefined); };
+    const interval = setInterval(refreshWhileActive, 30_000);
+    const appState = AppState.addEventListener('change', (state) => {
+      active = state === 'active';
+      if (active) refreshWhileActive();
+    });
+    return () => { clearInterval(interval); appState.remove(); };
+  }, [auth.status, refresh]);
+
   const unreadCount = useMemo(() => events.filter((event) => !event.read_at).length, [events]);
+  const staffUnreadCount = useMemo(() => events.filter((event) => !event.read_at && event.deep_link === '/staff').length, [events]);
+  const customerUnreadCount = unreadCount - staffUnreadCount;
   useEffect(() => {
     if (!REVIEW_ENVIRONMENT.enabled && Platform.OS !== 'web') void Notifications.setBadgeCountAsync(pushStatus === 'ready' ? unreadCount : 0).catch(() => undefined);
   }, [pushStatus, unreadCount]);
@@ -153,11 +200,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       setPushStatus('unsupported');
       throw new Error('NATIVE_DEVICE_REQUIRED');
     }
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('psi-bookings', {
-        name: 'PSI bookings', importance: Notifications.AndroidImportance.HIGH, vibrationPattern: [0, 250, 250, 250], lightColor: '#65CFF8', sound: 'default',
-      });
-    }
+    await ensureAndroidNotificationChannels();
     const existing = await Notifications.getPermissionsAsync();
     const permission = existing.status === 'granted' ? existing : await Notifications.requestPermissionsAsync();
     if (permission.status !== 'granted') throw new Error('NOTIFICATION_PERMISSION_DENIED');
@@ -225,7 +268,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     setEvents((current) => current.map((event) => ({ ...event, read_at: event.read_at ?? now })));
   }, [events]);
 
-  const value = useMemo<NotificationContextValue>(() => ({ disablePush, enablePush, events, markAllRead, markRead, preferences, pushStatus, refresh, setPreference, unreadCount }), [disablePush, enablePush, events, markAllRead, markRead, preferences, pushStatus, refresh, setPreference, unreadCount]);
+  const value = useMemo<NotificationContextValue>(() => ({ customerUnreadCount, disablePush, enablePush, events, markAllRead, markRead, preferences, pushStatus, refresh, setPreference, staffUnreadCount, unreadCount }), [customerUnreadCount, disablePush, enablePush, events, markAllRead, markRead, preferences, pushStatus, refresh, setPreference, staffUnreadCount, unreadCount]);
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;
 }
 

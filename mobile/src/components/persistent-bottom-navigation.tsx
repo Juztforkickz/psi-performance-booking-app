@@ -83,7 +83,7 @@ export function PersistentBottomNavigation() {
   const router = useRouter();
   const { navigateToSection } = useStaffNavigation();
   const { theme } = useThemePreference();
-  const { unreadCount } = useNotifications();
+  const { customerUnreadCount, staffUnreadCount } = useNotifications();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const isStaffWorkspace = pathname === '/staff' || pathname === '/staff-security';
   const currentStaffSection = resolveStaffSection(section);
@@ -133,9 +133,14 @@ export function PersistentBottomNavigation() {
                 name={selected ? item.activeIcon : item.inactiveIcon}
                 size={21}
               />
-              {'href' in item && item.href === '/alerts' && unreadCount > 0 ? (
-                <View accessibilityLabel={`${unreadCount} unread notifications`} style={[styles.notificationBadge, { backgroundColor: theme.accent }]}>
-                  <Text style={[styles.notificationBadgeText, { color: theme.textInverse }]}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+              {'section' in item && item.section === 'dashboard' && staffUnreadCount > 0 ? (
+                <View accessibilityLabel={`${staffUnreadCount} unread workshop alerts`} style={[styles.notificationBadge, styles.staffNotificationBadge]}>
+                  <Text style={styles.notificationBadgeText}>{staffUnreadCount > 99 ? '99+' : staffUnreadCount}</Text>
+                </View>
+              ) : null}
+              {'href' in item && item.href === '/alerts' && customerUnreadCount > 0 ? (
+                <View accessibilityLabel={`${customerUnreadCount} unread customer notifications`} style={[styles.notificationBadge, styles.customerNotificationBadge]}>
+                  <Text style={styles.notificationBadgeText}>{customerUnreadCount > 99 ? '99+' : customerUnreadCount}</Text>
                 </View>
               ) : null}
               <Text
@@ -188,7 +193,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   notificationBadge: { position: 'absolute', right: 8, top: 2, minWidth: 17, height: 17, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
-  notificationBadgeText: { fontSize: 8, fontWeight: '900' },
+  staffNotificationBadge: { backgroundColor: '#2D9CDB' },
+  customerNotificationBadge: { backgroundColor: '#D92D20' },
+  notificationBadgeText: { color: '#FFFFFF', fontSize: 8, fontWeight: '900' },
   label: {
     width: '100%',
     fontSize: 9,
