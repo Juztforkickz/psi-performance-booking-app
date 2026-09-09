@@ -33,7 +33,7 @@ This audit verifies the existing PSI beta after the Performance+ rollout. It doe
 
 - The text-heavy full-width Home promotion has been replaced with a normal dashboard tile so Performance+ does not dominate the customer Home screen.
 - `Performance+` is selected by default immediately before `Settings & Notifications`; saved copies of either earlier default shortcut set migrate to this order while genuinely customised selections remain respected.
-- The tile uses compressed charcoal, silver, ice-blue and deep-petrol vehicle-vault artwork and opens the existing Performance+ benefits, monthly/annual pricing, purchase and restore controls.
+- The tile uses a large brushed-silver plus symbol over restrained charcoal, ice-blue and deep-petrol vault imagery, avoiding any one vehicle model as its centrepiece. It opens the existing Performance+ benefits, monthly/annual pricing, purchase and restore controls.
 - The Garage and Vehicle Reports keep their contextual Performance+ entry points.
 
 ## Remaining launch work

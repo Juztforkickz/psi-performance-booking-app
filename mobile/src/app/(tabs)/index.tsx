@@ -43,7 +43,7 @@ const DASHBOARD_TILES = {
   psiEvents: require('../../../assets/images/dashboard/tile-events-blue-silver-v2.jpg'),
   planBuild: require('../../../assets/images/dashboard/tile-plan-build-blue-silver.jpg'),
   trustedPartners: require('../../../assets/images/dashboard/tile-trusted-partners-blue-silver.jpg'),
-  performancePlus: require('../../../assets/images/dashboard/tile-performance-plus-blue-silver.jpg'),
+  performancePlus: require('../../../assets/images/dashboard/tile-performance-plus-symbol-blue-silver.jpg'),
 } as const;
 
 const HOME_TILE_LABELS: Readonly<Record<HomeTileId, string>> = {
@@ -212,6 +212,7 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Opens Performance Plus vehicle vault access and subscription options"
             image={DASHBOARD_TILES.performancePlus}
+            imageStyle={styles.performancePlusTileImage}
             label="Performance+"
             onPress={() => router.push({ pathname: '/performance-plus', params: homeVehicleId ? { vehicleId: homeVehicleId } : {} })}
           />
@@ -776,6 +777,7 @@ const styles = StyleSheet.create({
   lowerRequestedTileImage: { transform: [{ scale: 1.55 }, { translateY: 10 }] },
   lowerPlanBuildTileImage: { transform: [{ scale: 1.55 }, { translateY: 3 }] },
   raiseEventsTileImage: { transform: [{ scale: 1.55 }, { translateY: 3 }] },
+  performancePlusTileImage: { transform: [{ scale: 1.08 }, { translateY: 2 }] },
   standardPanel: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
   standardImageFrame: { width: '100%', aspectRatio: 1746 / 901, overflow: 'hidden', backgroundColor: colors.inkSoft },
   standardImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
