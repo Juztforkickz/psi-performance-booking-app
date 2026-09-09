@@ -38,6 +38,7 @@ This audit verifies the existing PSI beta after the Performance+ rollout. It doe
 - The tile uses a large brushed-silver plus symbol over restrained charcoal, ice-blue and deep-petrol vault imagery, avoiding any one vehicle model as its centrepiece. It opens the existing Performance+ benefits, monthly/annual pricing, purchase and restore controls.
 - The Garage and Vehicle Reports keep their contextual Performance+ entry points.
 - The complete current interface was republished to the exact build-9 beta runtime from commit `7b82bf3`: update group `1aff1fb2-45c2-41fb-ad36-33c73c321d07`, iOS update `01a08578-b12f-70f1-9a4f-57de4d4f48d5`. It includes the plus-symbol Home tile, 54-car Garage selector and complete bright-theme refinements.
+- The Settings-only owner refinement was published from commit `51100f6` to the same build-9 beta runtime: update group `931a90ab-c21d-40a1-bd12-b2abac84eed1`. Accounts with permanent complimentary Performance+ access no longer see the redundant current-plan promotion in Settings; their entitlement and Performance+ access remain unchanged.
 
 ## Remaining launch work
 
