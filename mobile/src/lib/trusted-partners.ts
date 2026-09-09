@@ -128,7 +128,7 @@ const PARTNERS: readonly TrustedPartner[] = [
     category: 'Car Audio & Security',
     businessName: 'Fab Car Audio',
     summary: 'Professional car audio system design, installation, DSP tuning and vehicle security.',
-    address: '7/19–21 Sharnet Circuit, Pakenham VIC 3810',
+    address: '19 Exchange Drive, Pakenham VIC 3810',
     phoneDisplay: '0423 522 124',
     phoneUrl: 'tel:+61423522124',
     email: 'sales@fabcaraudio.com.au',
