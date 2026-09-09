@@ -96,6 +96,8 @@ Record the actual build ID, project, test identities, test results and webhook t
 
 ## 5. Xero: remaining connection and development work
 
+**9 September follow-up:** The standard OAuth app, encrypted credential settings, owner/MFA connection flow and organisation-confirmation backend are now implemented. See [Xero connection setup](XERO-CONNECTION-SETUP.md) for the current status and exact new environment names. The older preparation notes below describe the original gap; invoice fetching/publication, rotation and live consent remain incomplete.
+
 The intended login is `info@psiperformance.com.au`; Matt must consent to the correct organisation. The implemented receiver only verifies and queues invoice events. It does **not** fetch invoices or automatically publish them.
 
 Register a standard OAuth app, implement its callback and secure refresh-token storage/rotation, then request minimal read-only invoice/contact permissions plus offline access using Xero's [current scopes](https://developer.xero.com/documentation/guides/oauth2/scopes/). OAuth client ID, secret and redirect URI configuration do not yet have implemented environment names in this repository. Adding invented variables will not connect Xero.

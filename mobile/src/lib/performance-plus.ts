@@ -27,6 +27,9 @@ type VaultDatabase = { public: { Tables: {
 }; Views: Record<never, never>; Functions: {
   performance_vault_overview: { Args: { p_vehicle_id: string }; Returns: VaultOverview };
   grant_performance_beta: { Args: { p_customer_id: string; p_days: number }; Returns: undefined };
+  xero_connection_status: { Args: Record<string, never>; Returns: { tenant_id: string; connected_at: string; updated_at: string }[] };
+  xero_connection_candidates: { Args: Record<string, never>; Returns: { tenant_id: string; tenant_name: string }[] };
+  confirm_xero_organisation: { Args: { p_tenant_id: string }; Returns: undefined };
 }; Enums: Record<never, never>; CompositeTypes: Record<never, never> } };
 // Same authenticated connection and RLS boundary as the existing app.
 export function vaultClient() { return getSupabaseClient() as unknown as SupabaseClient<VaultDatabase>; }

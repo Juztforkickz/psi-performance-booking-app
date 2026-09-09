@@ -8,6 +8,7 @@ import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { StaffScrollSelect } from '@/components/staff-scroll-select';
 import { StaffRecordPublisher } from '@/components/staff-record-publisher';
 import { StaffVaultPublisher } from '@/components/staff-vault-publisher';
+import { StaffXeroConnection } from '@/components/staff-xero-connection';
 import { StaffBookingReview } from '@/components/staff-booking-review';
 import { StaffEventsManager } from '@/components/staff-events-manager';
 import { StaffServiceCompletion } from '@/components/staff-service-completion';
@@ -547,6 +548,7 @@ function StaffWorkspace({
         <SectionHeading copy="Create customer-visible PSI records only after checking the selected customer and vehicle." title="Publish workshop records" />
         <StaffRecordPublisher snapshot={snapshot} />
         <StaffVaultPublisher snapshot={snapshot} />
+        {role === 'owner' && !REVIEW_ENVIRONMENT.enabled ? <StaffXeroConnection /> : null}
 
         <SectionHeading copy={REVIEW_ENVIRONMENT.enabled ? 'Fictional requests for testing the workshop workflow.' : 'Recent requests visible through the existing MFA-gated staff policies.'} title="Booking queue" />
         {activeBookings.length === 0 ? <EmptyState>No active booking requests are currently shown.</EmptyState> : activeBookings.slice(0, 12).map((booking) => {

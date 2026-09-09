@@ -478,3 +478,14 @@ enabled = true
 # Xero signs the original request bytes with HMAC-SHA256.
 verify_jwt = false
 entrypoint = "./functions/xero-vault-webhook/index.ts"
+
+[functions.start-xero-connection]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/start-xero-connection/index.ts"
+
+[functions.xero-oauth-callback]
+enabled = true
+# Xero redirects here without a PSI JWT; a single-use owner-created state is required.
+verify_jwt = false
+entrypoint = "./functions/xero-oauth-callback/index.ts"
