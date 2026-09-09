@@ -100,6 +100,29 @@ const PARTNERS: readonly TrustedPartner[] = [
     websiteUrl: 'https://www.elitedetailingstudio.com.au/',
     instagramUrl: 'https://www.instagram.com/elitecardetailingstudio_/',
   },
+  {
+    id: 'trb-visuals',
+    category: 'Automotive Photography',
+    businessName: 'TRB Visuals Photography',
+    summary: 'Automotive photography and visual content for vehicle builds, events and features.',
+    address: 'Pakenham VIC 3810',
+    phoneDisplay: '0493 530 347',
+    phoneUrl: 'tel:+61493530347',
+    email: 'trbvisualsphotography@gmail.com',
+    emailUrl: 'mailto:trbvisualsphotography@gmail.com',
+  },
+  {
+    id: 'martini-racing-products',
+    category: 'Performance Fluids & Lubricants',
+    businessName: 'Martini Racing Products',
+    summary: 'Australian performance oils, coolants, brake fluids, race fuels and workshop additives.',
+    address: '38 Henderson Road, Rowville VIC 3178',
+    phoneDisplay: '03 9763 0977',
+    phoneUrl: 'tel:+61397630977',
+    email: 'sales@martiniracing.com.au',
+    emailUrl: 'mailto:sales@martiniracing.com.au',
+    websiteUrl: 'https://www.martiniracing.com.au/',
+  },
 ];
 
 export const TRUSTED_PARTNERS: readonly TrustedPartner[] = [...PARTNERS].sort(
