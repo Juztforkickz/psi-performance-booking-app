@@ -17,7 +17,7 @@ export type VaultAsset = {
   phase: 'before' | 'progress' | 'after' | null; ready: boolean; created_at: string; created_by: string | null;
 };
 export type WorkshopJob = { id: string; customer_id: string; vehicle_id: string; reference: string; title: string; job_date: string; created_at: string; created_by: string | null };
-export type VaultOverview = { plan: 'free' | 'performance_plus'; counts: Partial<Record<VaultKind, number>>; expires_at: string | null };
+export type VaultOverview = { plan: 'free' | 'performance_plus'; counts: Partial<Record<VaultKind, number>>; expires_at: string | null; is_permanent: boolean };
 type Table<T> = { Row: T; Insert: Partial<T>; Update: Partial<T>; Relationships: [] };
 type VaultDatabase = { public: { Tables: {
   vault_records: Table<VaultRecord>; vault_assets: Table<VaultAsset>; workshop_jobs: Table<WorkshopJob>;

@@ -12,7 +12,7 @@ Follow-on refinement: the [54-car library and compact picker](GARAGE-ARTWORK-EXP
 - [iOS beta build 9](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/5839004a-e7ea-435e-a7dc-cbeaf63d6e8d) — finished successfully from the code checkpoint above.
 - [Successful upload to App Store Connect for TestFlight](https://expo.dev/accounts/psi-performance/projects/matt-psi/submissions/f2c83882-557e-467d-bcfa-ec15c0631cc2) — EAS submission FINISHED on 9 September at 09:12 Sydney. App Store Connect now confirms build 9 is VALID and IN_BETA_TESTING internally. External status is READY_FOR_BETA_SUBMISSION: external beta review remains. No public App Store release was submitted.
 
-The public preview uses fictional data. It cannot take payments or retrieve private customer records. The native beta uses the existing main account backend plus its existing selectable demo mode. The approved main database and function rollout is complete. The verified Matt customer/owner account has 30 days of complimentary Performance+ access until 9 October 2026 at 10:14 Sydney, with no charge or automatic renewal.
+The public preview uses fictional data. It cannot take payments or retrieve private customer records. The native beta uses the existing main account backend plus its existing selectable demo mode. The approved main database and function rollout is complete. Matt's verified owner/customer account (`matt@psiperformance.com.au`) has permanent complimentary PSI Performance+ access at **A$0**, with no purchase, renewal or expiry. Its former 30-day beta row remains revoked for audit.
 
 ## Included changes
 
@@ -25,7 +25,7 @@ The public preview uses fictional data. It cannot take payments or retrieve priv
 - New isolated Apple purchase-test profile and distinct native runtimes; no paid purchase configuration activated.
 - AUD-only pricing preference saved in `AGENTS.md`; application/support drafts and activation instructions supplied.
 
-Main entry files are under `mobile/src/app`, reusable vault/purchase/upload logic under `mobile/src/lib`, portal/photo components under `mobile/src/components`, and the PC tool under `operations/workshop-pc`. Database changes are the four `20260908...performance_plus...sql` migrations; private access/provider functions are under `supabase/functions`.
+Main entry files are under `mobile/src/app`, reusable vault/purchase/upload logic under `mobile/src/lib`, portal/photo components under `mobile/src/components`, and the PC tool under `operations/workshop-pc`. Database changes are the four `20260908...performance_plus...sql` migrations plus `20260909004916_permanent_complimentary_performance_access.sql`; private access/provider functions are under `supabase/functions`.
 
 ## Verified
 
@@ -35,18 +35,18 @@ Main entry files are under `mobile/src/app`, reusable vault/purchase/upload logi
 - Review/demo/purchase-test environment checks: 16 passed.
 - Provider entitlement interpretation: 8 passed, covering expiry, cancellation, grace, refund, identity mismatch, sandbox and unsupported purchases.
 - PC importer: 9 passed, covering image preparation, original retention, PDF rejection, missing/incorrect manifests and safe upload resume.
-- Main and sandbox SQL acceptance: passed, including free vs paid/expired access, legacy invoice protection, forged grants/server RPC denial, cross-account denial, private storage, deleted identities and stale provider response protection. Fixtures ran inside a rollback transaction; no fixture accounts remain on main.
+- Main and sandbox SQL acceptance: passed, including free, paid, expired and permanent access; invalid permanent-row shapes and revocation; legacy invoice protection; forged grants/server RPC denial; cross-account denial; private storage; deleted identities; and stale provider response protection. Fixtures ran inside a rollback transaction; no fixture accounts remain on main.
 - Main and sandbox endpoint probes: anonymous customer requests returned 401; unconfigured provider webhooks returned 503. No private files or purchases were exposed.
 - Full root suite: 78 passed, 7 failed. The same seven failures were reproduced against the prior `8ec070d` source checkpoint: stale copy/layout expectations in booking preview, account preview/setup, maintenance preview, responsive layout and partner categories. They were not silently changed to make this work appear fully green.
-- Independent read-only review found no concrete cross-customer retrieval or customer entitlement-write bypass. Its expiry-screen and PC retry findings were corrected.
+- Independent read-only review found no concrete cross-customer retrieval or customer entitlement-write bypass. Its expiry-screen, PC retry and initial purchase-control gating findings were corrected.
 
 Main and sandbox security advice has no new vault warning. Existing notices remain for deliberately service-only tables without customer policies and disabled leaked-password protection. Review [Supabase's password-protection guidance](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) before public account expansion. This does not replace device or penetration testing.
 
 ## Deployment boundaries and blockers
 
-**Sandbox:** all four new migrations and `open-vault-file`, `sync-performance-subscription`, `performance-subscription-webhook`, `xero-vault-webhook` deployed. `complete-account-deletion` updated to include the new private bucket. Provider secrets are absent, and sandbox purchase acceptance remains closed until deliberate setup.
+**Sandbox:** the four Stage 4 foundation migrations, permanent-owner schema update and `open-vault-file`, `sync-performance-subscription`, `performance-subscription-webhook`, `xero-vault-webhook` are deployed. `complete-account-deletion` includes the new private bucket. Provider secrets are absent, and sandbox purchase acceptance remains closed until deliberate setup.
 
-**Main:** following the user's explicit target approval, all four migrations and the same five functions above are deployed. `complete-account-deletion` is version 2 and includes the new bucket. Main baseline counts remain unchanged: 7 profiles, 8 vehicles, 5 booking requests, 2 invoices, 2 dyno records. All three file buckets are private. No beta reset, account removal, paid infrastructure upgrade or Netlify deployment occurred. Only the verified Matt account was given a complimentary beta entitlement.
+**Main:** following the user's explicit target approval, the foundation migrations, permanent-owner update and the same five functions above are deployed. `complete-account-deletion` is version 2 and includes the new bucket. Main baseline counts remain unchanged: 7 profiles, 8 vehicles, 5 booking requests, 2 invoices, 2 dyno records. All three file buckets are private. No beta reset, account removal, paid infrastructure upgrade or Netlify deployment occurred. Only Matt's verified owner/customer account has the permanent complimentary owner entitlement; other accounts remain governed by their free, bounded beta or verified paid entitlement.
 
 **Apple/RevenueCat:** build 9 is processed and in internal TestFlight testing. External beta review remains. No live purchases or public App Store release are active. Product configuration, provider credentials and full device purchase testing still remain. Existing build 7 is confirmed VALID, IN_BETA_TESTING internally and unexpired. The Small Business drafts are not submitted applications.
 

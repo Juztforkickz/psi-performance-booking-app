@@ -39,7 +39,7 @@ Basic reminders and kilometre recording must never depend on premium entitlement
 
 `customer → vehicle → workshop job → vault record → assets` is the main relationship. Record/job/asset composite foreign keys prevent mixing a job with a different customer or vehicle. Staff confirm the customer, registration and job before publication. A plate alone is not a permanent vehicle identity, and the existing partial-VIN field is insufficient for full-VIN matching.
 
-`performance_subscriptions` is server controlled. Clients may read their own status; they cannot insert, update or grant entitlements. Active and verified grace-period records require a future expiry. Turning off renewal retains the paid period. Expiry returns records to locked state without deletion. Sandbox receipts cannot activate the main project. Only the MFA-verified owner can grant a bounded complimentary beta period.
+`performance_subscriptions` is server controlled. Clients may read their own status; they cannot insert, update or grant entitlements. Paid, grace-period and beta records require an expiry. Turning off renewal retains the paid period. Expiry returns records to locked state without deletion. Sandbox receipts cannot activate the main project. The verified PSI owner/customer account is represented separately by a production-only permanent complimentary entitlement at A$0 with no renewal or expiry. Other complimentary grants remain bounded to a 1–90 day beta period controlled by the MFA-verified owner.
 
 Premium database rows have RLS ownership and entitlement checks. Free users receive only safe counts through a narrowly scoped RPC that verifies vehicle ownership. They cannot read titles, notes, paths, amounts or premium assets by changing request IDs.
 
@@ -98,7 +98,7 @@ This checkpoint has compile/build and automated checks. It still needs hands-on 
 5. Connect Xero OAuth, implement and test the explicit matching/review worker using sample invoices. First test one known vehicle, then ambiguous/multiple-vehicle cases and corrected invoices.
 6. Run workshop-PC watch mode with one selected job, verify every photo/customer association, then expand gradually. Keep backups and monitor storage/download usage.
 7. Update privacy/store disclosures and subscription metadata; test all free workflows and account deletion; submit a new app version and first subscription products for Apple review. An existing approved version does not automatically approve these native/subscription changes.
-8. Only after beta completion, prepare a separate approved reset with exported backups and a reviewed allowlist of retained **user IDs**. `matt@…` and `Matt@…` are not reliable separate identities. Preserve the actual portal role and personal customer identity. Never wipe by email spelling. Keep a fictional demo; a free signup does not replace App Review/test environments.
+8. Only after beta completion, prepare a separate approved reset with exported backups and a reviewed allowlist of retained **user IDs**. `matt@…` and `Matt@…` are not reliable separate identities. Preserve the actual portal role, personal customer identity and the permanent `performance_subscriptions` row bound to that customer UUID. If the personal profile must be recreated, restore its verified permanent owner entitlement before reopening the app. Never wipe by email spelling. Keep a fictional demo; a free signup does not replace App Review/test environments.
 
 ## H. Cost and risk
 
@@ -145,6 +145,6 @@ No further architecture decisions are needed to view/test the beta foundation. A
 - Apple legal entity/Team ID and confirmation of associated developer accounts for the Small Business form; Apple subscription product setup and a RevenueCat project with server credentials supplied through secure configuration.
 - Xero OAuth consent for the correct organisation, then one representative invoice showing where the PSI job reference is recorded. Do not send passwords or secret keys in chat.
 - The actual PC upload-root location, staff login/MFA for the first run and one selected job's photos/PDFs.
-- Before any future reset, the exact two retained account/role IDs and a reviewed backup/retention decision.
+- Before any future reset, the exact retained Auth UUID, its portal-owner and customer-profile records, its permanent entitlement row, and a reviewed backup/retention decision.
 
 See [Apple drafts](APPLE-SMALL-BUSINESS-DRAFTS.md) and [activation checklist](PERFORMANCE-PLUS-ACTIVATION.md). Messages are drafts only and have not been sent.

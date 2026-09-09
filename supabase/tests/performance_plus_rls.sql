@@ -65,17 +65,46 @@ do $$ begin
  if exists(select 1 from public.vault_records where id='a4400000-0000-4000-8000-000000000001') or exists(select 1 from public.vault_assets where id='a4500000-0000-4000-8000-000000000001') then raise exception 'cross account premium exposed'; end if;
 end $$;
 reset role;
-update public.performance_subscriptions set expires_at=now()-interval '1 second' where customer_id='a4100000-0000-4000-8000-000000000001';
-set local role authenticated; select set_config('request.jwt.claim.sub','a4100000-0000-4000-8000-000000000001',true); select set_config('request.jwt.claims','{"sub":"a4100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}',true);
+update public.performance_subscriptions set expires_at=now()-interval '1 second' where customer_id='a4100000-0000-4000-8000-000000000001' and provider_reference='test-active';
 do $$ begin
- if exists(select 1 from public.vault_records where id='a4400000-0000-4000-8000-000000000001') then raise exception 'expired subscriber still reads'; end if;
+ begin
+  insert into public.performance_subscriptions(customer_id,provider,provider_reference,environment,status,expires_at,auto_renews,is_permanent)
+  values('a4100000-0000-4000-8000-000000000001','apple','permanent:a4100000-0000-4000-8000-000000000001','production','active',null,false,true);
+  raise exception 'apple permanent access accepted'; exception when check_violation then null; end;
+ begin
+  insert into public.performance_subscriptions(customer_id,provider,provider_reference,environment,status,expires_at,auto_renews,is_permanent)
+  values('a4100000-0000-4000-8000-000000000001','complimentary','wrong-reference','production','active',null,false,true);
+  raise exception 'unbound permanent access accepted'; exception when check_violation then null; end;
+ begin
+  insert into public.performance_subscriptions(customer_id,provider,provider_reference,environment,status,expires_at,auto_renews,is_permanent)
+  values('a4100000-0000-4000-8000-000000000001','complimentary','permanent:a4100000-0000-4000-8000-000000000001','sandbox','active',null,false,true);
+  raise exception 'sandbox permanent access accepted'; exception when check_violation then null; end;
+ begin
+  insert into public.performance_subscriptions(customer_id,provider,provider_reference,environment,status,expires_at,auto_renews,is_permanent)
+  values('a4100000-0000-4000-8000-000000000001','complimentary','permanent:a4100000-0000-4000-8000-000000000001','production','active',null,true,true);
+  raise exception 'renewing permanent access accepted'; exception when check_violation then null; end;
+end $$;
+insert into public.performance_subscriptions(customer_id,provider,provider_reference,environment,status,expires_at,auto_renews,is_permanent)
+values('a4100000-0000-4000-8000-000000000001','complimentary','permanent:a4100000-0000-4000-8000-000000000001','production','active',null,false,true);
+set local role authenticated; select set_config('request.jwt.claim.sub','a4100000-0000-4000-8000-000000000001',true); select set_config('request.jwt.claims','{"sub":"a4100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}',true);
+do $$ declare overview jsonb; begin
+ overview:=public.performance_vault_overview('a4200000-0000-4000-8000-000000000001');
+ if overview->>'plan'<>'performance_plus' or (overview->>'is_permanent')::boolean is not true or overview->>'expires_at' is not null then raise exception 'permanent overview incorrect'; end if;
+ if not exists(select 1 from public.vault_records where id='a4400000-0000-4000-8000-000000000001') then raise exception 'permanent subscriber cannot read'; end if;
 end $$;
 reset role;
-update public.performance_subscriptions set expires_at=now()+interval '1 day',environment='sandbox' where customer_id='a4100000-0000-4000-8000-000000000001';
+update public.performance_subscriptions set status='revoked' where customer_id='a4100000-0000-4000-8000-000000000001' and is_permanent;
+set local role authenticated; select set_config('request.jwt.claim.sub','a4100000-0000-4000-8000-000000000001',true); select set_config('request.jwt.claims','{"sub":"a4100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}',true);
+do $$ begin
+ if exists(select 1 from public.vault_records where id='a4400000-0000-4000-8000-000000000001') then raise exception 'expired subscriber or revoked permanent grant still reads'; end if;
+end $$;
+reset role;
+update public.performance_subscriptions set expires_at=now()+interval '1 day',environment='sandbox' where customer_id='a4100000-0000-4000-8000-000000000001' and provider_reference='test-active';
 set local role authenticated; select set_config('request.jwt.claim.sub','a4100000-0000-4000-8000-000000000001',true); select set_config('request.jwt.claims','{"sub":"a4100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}',true);
 do $$ begin if private.has_performance_plus() then raise exception 'sandbox activated production'; end if; end $$;
 reset role;
-update public.performance_subscriptions set environment='production' where customer_id='a4100000-0000-4000-8000-000000000001';
+update public.performance_subscriptions set environment='production' where customer_id='a4100000-0000-4000-8000-000000000001' and provider_reference='test-active';
+update public.performance_subscriptions set status='active' where customer_id='a4100000-0000-4000-8000-000000000001' and is_permanent;
 insert into private.deleted_customer_identities(user_id,deletion_requested_at,completed_by) values('a4100000-0000-4000-8000-000000000001',now(),'a4100000-0000-4000-8000-000000000002');
 set local role authenticated; select set_config('request.jwt.claim.sub','a4100000-0000-4000-8000-000000000001',true); select set_config('request.jwt.claims','{"sub":"a4100000-0000-4000-8000-000000000001","role":"authenticated","aal":"aal1"}',true);
 do $$ begin if private.has_performance_plus() or exists(select 1 from public.vault_assets where id='a4500000-0000-4000-8000-000000000001') then raise exception 'deleted identity stale JWT read'; end if; end $$;
@@ -86,5 +115,5 @@ do $$ begin
  if not exists(select 1 from public.performance_subscriptions where customer_id='a4100000-0000-4000-8000-000000000001' and provider='apple' and status='revoked' and not auto_renews) then
  raise exception 'stale provider response restored revoked access'; end if;
 end $$;
-select 'PASS: free counts, entitlement forgery, paid access, cross-account denial, cancellation, expiry, sandbox, private storage, deleted identity' as result;
+select 'PASS: free counts, entitlement forgery, paid/permanent access, cross-account denial, cancellation, expiry/revocation, sandbox, private storage, deleted identity' as result;
 rollback;

@@ -2,13 +2,15 @@
 
 Updated 9 September 2026. Prices: **A$9.99/month or A$99/year**. This checklist records the verified rollout checkpoint and remaining activation work. Preserve existing beta accounts and the sandbox.
 
-Following explicit approval for the main rollout, all four Performance+ migrations and all four vault/provider functions are deployed to **main and sandbox**. Main `complete-account-deletion` is deployed and **ACTIVE, version 2**, including the premium storage bucket. Main authenticated endpoint checks return HTTP 401 without authentication; unconfigured provider webhooks return HTTP 503.
+Following explicit approval for the main rollout, the Performance+ foundation migrations, including the permanent complimentary owner-access update, and all four vault/provider functions are deployed to **main and sandbox**. Main `complete-account-deletion` is deployed and **ACTIVE, version 2**, including the premium storage bucket. Main authenticated endpoint checks return HTTP 401 without authentication; unconfigured provider webhooks return HTTP 503.
 
 Main data counts are unchanged: **7 customer profiles, 8 vehicles, 5 bookings, 2 invoices and 2 dyno records**. No customer deletion or reset has occurred. Apple/RevenueCat payment and Xero credentials remain absent, purchases remain disabled, and sandbox-entitlement acceptance remains false.
 
 iOS **build 9**, EAS build ID `5839004a-e7ea-435e-a7dc-cbeaf63d6e8d`, is **FINISHED and uploaded to Apple for TestFlight**. [EAS submission `f2c83882-557e-467d-bcfa-ec15c0631cc2`](https://expo.dev/accounts/psi-performance/projects/matt-psi/submissions/f2c83882-557e-467d-bcfa-ec15c0631cc2) finished on 9 September 2026 at 09:12:42 Sydney time (`2026-09-08T23:12:42Z`). App Store Connect subsequently confirmed **VALID / IN_BETA_TESTING** for internal testing. Its external status is **READY_FOR_BETA_SUBMISSION**, so external beta review remains. Build 7 remains valid, in internal testing and unexpired. No public App Store review or release has been submitted.
 
-Matt's verified customer/owner identity has a **30-day complimentary Performance+ entitlement**, expiring **9 October 2026 at 10:14 Sydney time**. Its charge is **A$0** and auto-renewal is false. This grants beta content access only; it does not activate Apple payments or prove purchase/restore behaviour.
+Matt's verified owner/customer account (`matt@psiperformance.com.au`) has **permanent complimentary PSI Performance+ access**. Cost: **A$0**. It has no purchase, renewal, billing period or expiry and is excluded from Apple/RevenueCat billing. The former 30-day beta row is retained in revoked state for audit. This owner entitlement does not replace Apple purchase and restore testing.
+
+For a permanent account, the app shows the A$0/no-expiry owner status and omits subscribe, restore and Apple subscription-management controls. Paid controls remain hidden while entitlement status is loading or unavailable, and the app rechecks the server immediately before any future Apple purchase call.
 
 ## 1. Apple and RevenueCat configuration
 

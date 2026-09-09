@@ -29,7 +29,7 @@ export default function PerformancePlusScreen() {
   const [busy, setBusy] = useState(false);
   const [revision, setRevision] = useState(0);
   const key = `${auth.user?.id ?? 'preview'}:${vehicle?.id}`;
-  const overview = demo ? { plan: 'free' as const, counts: { invoice: 7, media: 3, dyno: 2, service: 4, document: 2, modification: 3 }, expires_at: null } : state?.key === key ? state.overview : null;
+  const overview = demo ? { plan: 'free' as const, counts: { invoice: 7, media: 3, dyno: 2, service: 4, document: 2, modification: 3 }, expires_at: null, is_permanent: false } : state?.key === key ? state.overview : null;
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 15000);
     const sub = AppState.addEventListener('change', value => { if (value === 'active') setRevision(v => v + 1); });
@@ -42,10 +42,12 @@ export default function PerformancePlusScreen() {
     return () => { active = false; };
   }, [demo, vehicleId, auth.status, key, revision]);
   const activePlus = overview?.plan === 'performance_plus' && (!overview.expires_at || Date.parse(overview.expires_at) > now);
+  const permanentPlus = activePlus && overview?.is_permanent;
+  const entitlementReady = demo || !!overview;
   const refresh = async () => {
     if (busy) return;
     setBusy(true);
-    try { if (subscriptionPurchasesAvailable() && auth.user) await verifyWithServer(); setMessage(''); }
+    try { if (!permanentPlus && subscriptionPurchasesAvailable() && auth.user) await verifyWithServer(); setMessage(''); }
     catch { setMessage('Apple status could not be verified right now. Your last verified access remains in effect until its expiry.'); }
     finally { setRevision(v => v + 1); setBusy(false); }
   };
@@ -54,6 +56,13 @@ export default function PerformancePlusScreen() {
     setBusy(true); setMessage('');
     try {
       if (!auth.user) { router.push('/account'); return; }
+      if (!vehicleId) throw new Error('Add a vehicle to My Garage before choosing Performance+.');
+      const currentOverview = await loadVaultOverview(vehicleId);
+      setState({ key, overview: currentOverview });
+      if (currentOverview.is_permanent) {
+        setMessage('Performance+ is permanently included with this PSI owner account. No purchase is required.');
+        return;
+      }
       if (period === 'restore') await restorePerformancePlus(auth.user.id);
       else await purchasePerformancePlus(auth.user.id, period);
       setRevision(v => v + 1);
@@ -65,6 +74,7 @@ export default function PerformancePlusScreen() {
     <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={s.link}>‹ Back</Text></Pressable>
     <View style={s.heading}><Text style={s.eyebrow}>PSI PERFORMANCE+</Text><Text style={s.title}>YOUR CAR.\nITS COMPLETE STORY.</Text><Text style={s.copy}>Every service. Every build. Every important milestone. Your PSI vehicle record, in one place.</Text></View>
     <View style={s.badge}><Ionicons name={activePlus ? 'shield-checkmark' : 'car-sport-outline'} color={colors.accent} size={20} /><Text style={s.badgeText}>{activePlus ? 'Performance+ active' : 'PSI Free'}</Text></View>
+    {permanentPlus ? <Text style={s.muted}>Permanent complimentary PSI owner access · A$0 · no renewal or expiry.</Text> : null}
     {activePlus && overview?.expires_at ? <Text style={s.muted}>Access through {new Date(overview.expires_at).toLocaleDateString('en-AU')}. Turning off renewal retains access until expiry.</Text> : null}
     <Text style={s.section}>Your vehicle vault</Text>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.choices}>{vehicles.map(v => <Pressable accessibilityRole="button" accessibilityState={{ selected: v.id === vehicle?.id }} key={v.id} onPress={() => { setSelected(v.id); setMessage(''); }} style={[s.choice, v.id === vehicle?.id && s.chosen]}><Text style={s.choiceText}>{v.make} {v.model}</Text></Pressable>)}</ScrollView>
@@ -75,15 +85,15 @@ export default function PerformancePlusScreen() {
       <Text style={s.vaultTitle}>{VAULT_LABELS[kind]}</Text><Text style={s.copy}>{overview ? `${overview.counts[kind] ?? 0} PSI records available` : 'Your private PSI records'}</Text>
     </Pressable>)}</View>
     {vehicle ? <PrimaryButton label={demo ? 'Explore sample vehicle history' : 'Open vehicle history'} onPress={() => router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle.id } })} variant="outline" /> : null}
-    {!activePlus ? <View style={s.pricing}><Text style={s.section}>Unlock Performance+</Text><Text style={s.copy}>One subscription for every vehicle in your PSI account.</Text><Text style={s.price}>{aud(PERFORMANCE_PRICING.monthly)}<Text style={s.copy}> / month</Text></Text><Text style={s.copy}>or {aud(PERFORMANCE_PRICING.annual)} billed annually · save {aud(PERFORMANCE_PRICING.monthly * 12 - PERFORMANCE_PRICING.annual)} a year.</Text>
+    {!activePlus && entitlementReady ? <View style={s.pricing}><Text style={s.section}>Unlock Performance+</Text><Text style={s.copy}>One subscription for every vehicle in your PSI account.</Text><Text style={s.price}>{aud(PERFORMANCE_PRICING.monthly)}<Text style={s.copy}> / month</Text></Text><Text style={s.copy}>or {aud(PERFORMANCE_PRICING.annual)} billed annually · save {aud(PERFORMANCE_PRICING.monthly * 12 - PERFORMANCE_PRICING.annual)} a year.</Text>
       <PrimaryButton disabled={busy || !subscriptionPurchasesAvailable()} label="Subscribe monthly" onPress={() => void subscribe('monthly')} />
       <PrimaryButton disabled={busy || !subscriptionPurchasesAvailable()} label="Subscribe annually" onPress={() => void subscribe('annual')} variant="outline" />
       {!subscriptionPurchasesAvailable() ? <Text style={s.muted}>{demo ? 'Preview only · no payment will be taken.' : 'Purchases are not open in this beta yet. PSI can grant complimentary beta access.'}</Text> : null}
       <Text style={s.muted}>Subscriptions renew automatically unless cancelled before renewal. Cancellation keeps your records safe and locks premium access after the paid period ends.</Text>
     </View> : null}
-    <PrimaryButton disabled={busy || !subscriptionPurchasesAvailable()} label="Restore purchases" onPress={() => void subscribe('restore')} variant="outline" />
-    {Platform.OS === 'ios' ? <PrimaryButton label="Manage Apple subscription" variant="outline" onPress={() => void Linking.openURL('https://apps.apple.com/account/subscriptions').catch(() => setMessage('Open iPhone Settings, your Apple Account, then Subscriptions.'))} /> : null}
-    <PrimaryButton disabled={busy} label="Refresh subscription status" onPress={() => void refresh()} variant="outline" />
+    {entitlementReady && !permanentPlus ? <PrimaryButton disabled={busy || !subscriptionPurchasesAvailable()} label="Restore purchases" onPress={() => void subscribe('restore')} variant="outline" /> : null}
+    {entitlementReady && !permanentPlus && Platform.OS === 'ios' ? <PrimaryButton label="Manage Apple subscription" variant="outline" onPress={() => void Linking.openURL('https://apps.apple.com/account/subscriptions').catch(() => setMessage('Open iPhone Settings, your Apple Account, then Subscriptions.'))} /> : null}
+    <PrimaryButton disabled={busy} label={permanentPlus ? 'Refresh access status' : 'Refresh subscription status'} onPress={() => void refresh()} variant="outline" />
     {message ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
     <View style={s.free}><Text style={s.section}>Always part of PSI Free</Text><Text style={s.copy}>Your account and garage, vehicle photos, bookings, kilometre recording, maintenance reminders, current dyno results, notifications and contacting PSI.</Text></View>
     <View style={s.row}><Pressable accessibilityRole="link" onPress={() => router.push('/privacy')}><Text style={s.link}>Privacy</Text></Pressable><Pressable accessibilityRole="link" onPress={() => router.push('/subscription-terms')}><Text style={s.link}>Subscription terms</Text></Pressable></View>
