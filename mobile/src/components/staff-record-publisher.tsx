@@ -28,7 +28,7 @@ const RECORD_TYPES: { icon: keyof typeof Ionicons.glyphMap; label: string; value
   { icon: 'receipt', label: 'Invoice', value: 'invoice' },
 ];
 
-export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, initialVehicleId, onDirtyChange, onBusyChange, fixedIdentity = false, compact = false }: {
+export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, initialVehicleId, onDirtyChange, onBusyChange, fixedIdentity = false, compact = false, previewMode = false }: {
   snapshot: StaffPortalSnapshot;
   fixedType?: StaffRecordType;
   initialCustomerId?: string;
@@ -37,6 +37,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
   onBusyChange?: (busy: boolean) => void;
   fixedIdentity?: boolean;
   compact?: boolean;
+  previewMode?: boolean;
 }) {
   const customersWithVehicles = useMemo(
     () => snapshot.customers
@@ -75,7 +76,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
   useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
   const edit = <T,>(setter: (value: T) => void) => (value: T) => { setter(value); setConfirmed(false); };
   const choosePdf = async () => {
-    if (busy) return;
+    if (previewMode || busy) return;
     setBusy(true);
     try {
       const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true, multiple: false });
@@ -116,7 +117,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
   };
 
   const publish = async () => {
-    if (!customerId || !vehicleId || !confirmed || busy || !snapshot.customers.some(c => c.user_id === customerId) || !availableVehicles.some(v => v.id === vehicleId)) return;
+    if (previewMode || !customerId || !vehicleId || !confirmed || busy || !snapshot.customers.some(c => c.user_id === customerId) || !availableVehicles.some(v => v.id === vehicleId)) return;
     setBusy(true);
     setFeedback(null);
     try {
@@ -179,6 +180,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
   }
   return (
     <View pointerEvents={busy ? 'none' : 'auto'} style={styles.publisher}>
+      {previewMode ? <Text style={styles.muted}>Preview only · Try entering a record. Uploads and publishing are unavailable.</Text> : null}
       {REVIEW_ENVIRONMENT.enabled && !compact ? <View style={styles.notice}>
         <Ionicons color={colors.accent} name="shield-checkmark" size={22} />
         <View style={styles.flex}>
@@ -252,7 +254,8 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
             <Field hint="Optional" label="Fuel"><FormInput editable={!busy} onChangeText={edit(setFuel)} placeholder="98 RON" value={fuel} /></Field>
             <NotesField disabled={busy} label="Run notes" onChangeText={edit(setNotes)} value={notes} />
             <PrivateImagePicker
-              disabled={busy}
+              disabled={previewMode || busy}
+              previewMode={previewMode}
               image={image}
               label="Dyno PDF"
               pdfOnly
@@ -270,7 +273,8 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
             <Field hint="Optional · AUD" label="Amount"><FormInput editable={!busy} keyboardType="decimal-pad" onChangeText={edit(setAmountAud)} placeholder="423.50" value={amountAud} /></Field>
             <NotesField disabled={busy} label="Summary" onChangeText={edit(setNotes)} value={notes} />
             <PrivateImagePicker
-              disabled={busy}
+              disabled={previewMode || busy}
+              previewMode={previewMode}
               image={image}
               label="Invoice PDF"
               pdfOnly
@@ -290,7 +294,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
           <Text style={styles.confirmText}>I checked the customer, registration and record details.</Text>
         </Pressable>
         {feedback ? <Text accessibilityRole="alert" style={[styles.feedback, feedback.kind === 'error' && styles.feedbackError, feedback.kind === 'warning' && styles.feedbackWarning]}>{feedback.text}</Text> : null}
-        <PrimaryButton disabled={!confirmed || !vehicleId || busy} label="Publish" loading={busy} onPress={() => void publish()} />
+        <PrimaryButton disabled={previewMode || !confirmed || !vehicleId || busy} label={previewMode ? 'Preview only · Publish' : 'Publish'} loading={busy} onPress={() => void publish()} />
       </View>
     </View>
   );
@@ -312,7 +316,8 @@ function PrivateImagePicker({
   onRemove,
   pdfOnly = false,
   disabled = false,
-}: { image: StaffPublishImage | null; label: string; onChoose: () => void; onTakePhoto: () => void; onRemove: () => void; pdfOnly?: boolean; disabled?: boolean }) {
+  previewMode = false,
+}: { image: StaffPublishImage | null; label: string; onChoose: () => void; onTakePhoto: () => void; onRemove: () => void; pdfOnly?: boolean; disabled?: boolean; previewMode?: boolean }) {
   return (
     <View style={styles.imageSection}>
       <Text style={styles.smallLabel}>{label}</Text>
@@ -322,7 +327,7 @@ function PrivateImagePicker({
         <PrimaryButton disabled={disabled} label={pdfOnly ? image ? 'Replace PDF' : 'Choose PDF' : image ? 'Replace image' : 'Choose image'} onPress={onChoose} variant="outline" />
         {image ? <PrimaryButton disabled={disabled} label="Remove" onPress={onRemove} variant="outline" /> : null}
       </View>
-      <Text style={styles.pdfNote}>PDF up to 6 MB. Uploaded when you publish.</Text>
+      <Text style={styles.pdfNote}>{previewMode ? 'Preview only · File selection is unavailable.' : 'PDF up to 6 MB. Uploaded when you publish.'}</Text>
     </View>
   );
 }

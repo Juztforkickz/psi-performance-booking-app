@@ -85,7 +85,7 @@ export function PersistentBottomNavigation() {
   const { theme } = useThemePreference();
   const { customerUnreadCount, staffUnreadCount } = useNotifications();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const isStaffWorkspace = pathname === '/staff' || pathname === '/staff-security';
+  const isStaffWorkspace = pathname === '/staff' || pathname === '/staff-security' || pathname === '/portal-preview';
   const currentStaffSection = resolveStaffSection(section);
   const hasBookingDetail = currentStaffSection === 'bookings' && Boolean(Array.isArray(bookingId) ? bookingId[0] : bookingId);
   const hasCustomerDetail = currentStaffSection === 'customers' && Boolean(Array.isArray(customerId) ? customerId[0] : customerId);
@@ -106,9 +106,9 @@ export function PersistentBottomNavigation() {
   return (
     <SafeAreaView
       edges={['right', 'bottom', 'left']}
-      style={[styles.safeArea, { backgroundColor: theme.surfaceRaised, borderTopColor: theme.frame }]}
+      style={[styles.safeArea, { backgroundColor: theme.surfaceRaised, borderTopColor: theme.frame }, isStaffWorkspace && { borderTopWidth: 1, borderTopColor: theme.border }]}
     >
-      <View accessibilityLabel={isStaffWorkspace ? 'Staff workspace navigation' : 'Customer app navigation'} accessibilityRole="tablist" style={styles.navigationRow}>
+      <View accessibilityLabel={isStaffWorkspace ? 'Staff workspace navigation' : 'Customer app navigation'} accessibilityRole="tablist" style={[styles.navigationRow, isStaffWorkspace && styles.staffNavigationRow]}>
         {navigationItems.map((item) => {
           const selected = 'section' in item ? currentStaffTab === item.section : item.isActive(pathname);
           return (
@@ -192,6 +192,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
     paddingVertical: 4,
   },
+  staffNavigationRow: { alignSelf: 'center', width: '100%', maxWidth: 880 },
   notificationBadge: { position: 'absolute', right: 8, top: 2, minWidth: 17, height: 17, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
   staffNotificationBadge: { backgroundColor: '#2D9CDB' },
   customerNotificationBadge: { backgroundColor: '#D92D20' },

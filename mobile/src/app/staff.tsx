@@ -19,6 +19,8 @@ import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useNotifications } from '@/lib/notifications';
+import { STAFF_PORTAL_PREVIEW_NOTIFICATIONS } from '@/lib/staff-portal-preview';
+import { StaffEventsPreview } from '@/components/staff-events-preview';
 import { resolveStaffSection, STAFF_SECTIONS, staffTabForSection, type StaffSection } from '@/lib/staff-navigation';
 import { useStaffNavigation } from '@/lib/staff-navigation-context';
 import { useStaffExitGuard } from '@/hooks/use-staff-exit-guard';
@@ -97,8 +99,10 @@ export default function StaffPortalScreen() {
   if (!CUSTOMER_AUTH.enabled) {
     return (
       <PortalState
-        copy="The PSI staff portal is unavailable in the public preview. No workshop or customer records are loaded."
-        title="Private staff workspace"
+        actionLabel="Preview workshop portal"
+        copy="Explore the redesigned workshop with fictional enquiries, customers and records. No sign-in is needed for the design preview."
+        onAction={() => router.replace('/portal-preview')}
+        title="Explore the workshop portal"
       />
     );
   }
@@ -309,21 +313,37 @@ function PortalState({
   );
 }
 
-function StaffWorkspace({
+export function StaffWorkspace({
   horizontalPadding,
   onRefresh,
+  previewMode = false,
   role,
   snapshot,
   verifiedTotpFactors,
 }: {
   horizontalPadding: number;
   onRefresh: () => void;
+  previewMode?: boolean;
   role: 'owner' | 'staff';
   snapshot: StaffPortalSnapshot;
   verifiedTotpFactors: Extract<StaffPortalAccess, { kind: 'ready' }>['verifiedTotpFactors'];
 }) {
   const router = useRouter();
-  const notifications = useNotifications();
+  const liveNotifications = useNotifications();
+  const [previewReadIds, setPreviewReadIds] = useState<string[]>([]);
+  const notifications = useMemo(() => {
+    if (!previewMode) return liveNotifications;
+    const previewEvents = STAFF_PORTAL_PREVIEW_NOTIFICATIONS.map(event => ({ ...event, read_at: previewReadIds.includes(event.id) ? event.created_at : null }));
+    return {
+      ...liveNotifications,
+      events: previewEvents,
+      staffUnreadCount: previewEvents.filter(event => !event.read_at && event.deep_link === '/staff').length,
+      customerUnreadCount: previewEvents.filter(event => !event.read_at && event.deep_link !== '/staff').length,
+      pushStatus: 'unsupported' as const,
+      markRead: async (id: string) => { setPreviewReadIds(ids => ids.includes(id) ? ids : [...ids, id]); },
+      refresh: async () => {},
+    };
+  }, [liveNotifications, previewMode, previewReadIds]);
   const portalProfilePhotoUri = useCustomerProfilePhotoUri();
   const params = useLocalSearchParams<{ section?: string; bookingId?: string; customerId?: string; vehicleId?: string; tool?: string; view?: string }>();
   const section = resolveStaffSection(params.section);
@@ -350,6 +370,11 @@ function StaffWorkspace({
   const bookingFilter = requestedBookingView === 'review' || requestedBookingView === 'history' ? requestedBookingView : 'active';
   const [bookingPage, setBookingPage] = useState(0);
   const [expandedBookingDetailsId, setExpandedBookingDetailsId] = useState<string | null>(null);
+  const [bookingActionId, setBookingActionId] = useState<string | null>(null);
+  const bookingPanel = bookingActionId === paramValue(params.bookingId) ? 'actions' : 'enquiry';
+  const setBookingPanel = (panel: 'enquiry' | 'actions') => setBookingActionId(panel === 'actions' ? paramValue(params.bookingId) : null);
+  const [alertRole, setAlertRole] = useState<'workshop' | 'customer'>('workshop');
+  const [requestedAlertPage, setAlertPage] = useState(0);
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerPage, setCustomerPage] = useState(0);
   const [invitationSearch, setInvitationSearch] = useState('');
@@ -408,6 +433,8 @@ function StaffWorkspace({
   const waitingBookings = activeBookings.filter(b => b.state === 'pending_staff_review');
   const workshopAlerts = notifications.events.filter(event => !event.read_at && event.deep_link === '/staff');
   const customerAlerts = notifications.events.filter(event => !event.read_at && event.deep_link !== '/staff');
+  const filteredAlerts = alertRole === 'workshop' ? workshopAlerts : customerAlerts;
+  const alertPage = Math.min(requestedAlertPage, Math.max(0, Math.ceil(filteredAlerts.length / 4) - 1));
   const pendingDeletions = snapshot.accountDeletionRequests.filter(request => request.status !== 'completed');
   const filteredDeletions = snapshot.accountDeletionRequests.filter(request => deletionFilter === 'pending' ? request.status !== 'completed' : request.status === 'completed');
   const selectedBooking = section === 'bookings' ? snapshot.bookings.find(b => b.id === paramValue(params.bookingId)) : undefined;
@@ -418,7 +445,7 @@ function StaffWorkspace({
     return matchesSearch(`${customerName(customer)} ${customer?.email ?? ''} ${vehicle?.registration ?? ''} ${vehicle?.make ?? ''} ${vehicle?.model ?? ''}`, bookingSearch);
   });
   const visibleBookings = filteredBookings.slice(bookingPage * 8, bookingPage * 8 + 8);
-  const actionBusy = recordBusy || bookingBusy || completionBusy || eventBusy || invitationBusy || integrationBusy || Object.values(deletionActions).some(Boolean);
+  const actionBusy = notificationSaving || recordBusy || bookingBusy || completionBusy || eventBusy || invitationBusy || integrationBusy || Object.values(deletionActions).some(Boolean);
   const dirty = recordDirty || bookingDirty || completionDirty || eventDirty || Boolean(invitationEmail.trim()) || Object.values(deletionDrafts).some(Boolean);
   const confirmLeaving = useCallback((action: () => void) => {
     if (actionBusy) {
@@ -432,6 +459,10 @@ function StaffWorkspace({
   useStaffExitGuard({ dirty, busy: actionBusy, onConfirmLeave: confirmLeaving });
   const navigate = useCallback((next: StaffSection, extra: Record<string, string> = {}) => {
     confirmLeaving(() => {
+      if (next !== 'bookings' || extra.bookingId !== paramValue(params.bookingId)) {
+        setBookingActionId(null);
+        setExpandedBookingDetailsId(null);
+      }
       const resetBookingView = next === 'bookings' && !extra.bookingId && (section !== 'bookings' || Boolean(extra.view));
       if (resetBookingView) {
         setBookingSearch(''); setBookingPage(0);
@@ -439,17 +470,19 @@ function StaffWorkspace({
       const nextBookingView = extra.view === 'review' || extra.view === 'history' ? extra.view : 'active';
       router.setParams({ section: next, bookingId: '', customerId: '', vehicleId: '', tool: '', ...extra, view: next === 'bookings' ? resetBookingView ? nextBookingView : bookingFilter : '' });
     });
-  }, [bookingFilter, confirmLeaving, router, section]);
+  }, [bookingFilter, confirmLeaving, params.bookingId, router, section]);
   const openPortalAlert = useCallback((event: (typeof notifications.events)[number]) => {
     void notifications.markRead(event.id).catch(() => undefined);
     if (event.deep_link === '/staff') {
       navigate('bookings', event.booking_request_id ? { bookingId: event.booking_request_id } : { view: 'review' });
+    } else if (previewMode) {
+      navigate(event.deep_link === '/events' ? 'events' : 'bookings', event.booking_request_id ? { bookingId: event.booking_request_id } : {});
     } else if (event.deep_link === '/events') {
       confirmLeaving(() => router.push('/events'));
     } else {
       confirmLeaving(() => router.push('/bookings'));
     }
-  }, [confirmLeaving, navigate, notifications, router]);
+  }, [confirmLeaving, navigate, notifications, previewMode, router]);
   const goBack = useCallback(() => {
     if (section === 'records' && recordBackRef.current) { recordBackRef.current(); return; }
     if (selectedBooking) navigate('bookings');
@@ -459,7 +492,7 @@ function StaffWorkspace({
     else navigate('dashboard');
   }, [connectionTool, navigate, params.customerId, section, selectedBooking]);
   useFocusEffect(useCallback(() => registerNavigationHandler(navigate), [navigate, registerNavigationHandler]));
-  useEffect(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [section, params.bookingId, params.customerId, params.tool, bookingPage, customerPage, auditPage, deletionPage]);
+  useEffect(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [section, params.bookingId, params.customerId, params.tool, bookingPage, customerPage, auditPage, deletionPage, alertPage]);
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -472,7 +505,7 @@ function StaffWorkspace({
 
 
   useEffect(() => {
-    if (section !== 'customers') return;
+    if (previewMode || section !== 'customers') return;
     let active = true;
     void loadStaffVehiclePhotoUrls(snapshot.vehicleFiles)
       .then((urls) => {
@@ -482,10 +515,10 @@ function StaffWorkspace({
         if (active) setVehiclePhotoUris({});
       });
     return () => { active = false; };
-  }, [section, snapshot.vehicleFiles]);
+  }, [previewMode, section, snapshot.vehicleFiles]);
 
   const processIntegrationQueue = async () => {
-    if (integrationBusy) return;
+    if (previewMode || integrationBusy) return;
     setIntegrationBusy(true);
     setIntegrationError('');
     try {
@@ -499,7 +532,7 @@ function StaffWorkspace({
   };
 
   const approveCustomerAccess = async () => {
-    if (invitationBusy) return;
+    if (previewMode || invitationBusy) return;
     const normalizedEmail = invitationEmail.trim().toLowerCase();
     if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
       setInvitationError('Enter the customer’s complete email address.');
@@ -527,13 +560,14 @@ function StaffWorkspace({
 
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
-      <View style={[styles.workspaceHeader, { paddingHorizontal: horizontalPadding }]}>
-        <View style={styles.headerIdentity}>
+      <View style={styles.workspaceHeader}>
+        <View style={[styles.headerIdentity, { paddingHorizontal: horizontalPadding }]}>
           <Ionicons color={colors.accent} name="construct-outline" size={23} />
           <View style={styles.flex}>
             <Text style={styles.workspaceBrand}>PSI Workshop</Text>
-            <Text style={styles.workspaceStatus}>{REVIEW_ENVIRONMENT.enabled ? 'Demo' : 'Live'} · {role === 'owner' ? 'Owner' : 'Staff'}</Text>
+            <Text style={styles.workspaceStatus}>{previewMode ? 'Preview · Sample data' : `${REVIEW_ENVIRONMENT.enabled ? 'Demo' : 'Live'} · ${role === 'owner' ? 'Owner' : 'Staff'}`}</Text>
           </View>
+          {previewMode ? <Pressable accessibilityRole="button" accessibilityLabel="Close portal preview" onPress={() => confirmLeaving(() => router.replace('/'))} style={styles.headerButton}><Ionicons name="close-outline" color={colors.accent} size={23} /></Pressable> : null}
           <Pressable accessibilityRole="button" accessibilityLabel="Portal settings" onPress={() => navigate('settings')} style={styles.headerButton}>
             {portalProfilePhotoUri ? <Image source={{ uri: portalProfilePhotoUri }} style={styles.headerAvatar} /> : <Ionicons color={colors.accent} name="settings-outline" size={23} />}
           </Pressable>
@@ -543,7 +577,7 @@ function StaffWorkspace({
         <View style={styles.pageHeading}>
           {section !== 'dashboard' ? <Pressable accessibilityRole="button" accessibilityLabel="Back in workshop portal" onPress={goBack} style={styles.pageBack}><Ionicons name="chevron-back" color={colors.accent} size={22} /></Pressable> : null}
           <Text accessibilityRole="header" style={styles.pageTitle}>{selectedBooking ? 'Booking details' : selectedLookupCustomer ? 'Customer details' : connectionTool ? { xero: 'Xero invoices', calendar: 'Email & Calendar', payments: 'Payments', uploads: 'PC uploads' }[connectionTool] : STAFF_SECTIONS[section].title}</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Refresh this workspace" disabled={actionBusy} onPress={() => confirmLeaving(() => { onRefresh(); void notifications.refresh(); })} style={styles.headerButton}><Ionicons name="refresh-outline" color={colors.accent} size={21} /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Refresh this workspace" disabled={actionBusy} onPress={() => confirmLeaving(() => { onRefresh(); void notifications.refresh().catch(() => setActionNotice('Alerts could not be refreshed. Please try again.')); })} style={styles.headerButton}><Ionicons name="refresh-outline" color={colors.accent} size={21} /></Pressable>
         </View>
         {actionNotice ? <Text accessibilityRole="alert" style={styles.cardMeta}>{actionNotice}</Text> : null}
 
@@ -552,7 +586,7 @@ function StaffWorkspace({
             <DashboardMetric label="To review" value={waitingBookings.length} onPress={() => navigate('bookings', { view: 'review' })} />
             <DashboardMetric label="Active bookings" value={activeBookings.length} onPress={() => navigate('bookings', { view: 'active' })} />
           </View>
-          <PortalAlertSummary customerCount={notifications.customerUnreadCount} onPress={() => navigate('alerts')} pushReady={notifications.pushStatus === 'ready'} staffCount={notifications.staffUnreadCount} />
+          <PortalAlertSummary customerCount={notifications.customerUnreadCount} onPress={() => navigate('alerts')} statusLabel={previewMode ? 'Sample workshop and account updates' : Platform.OS === 'web' ? 'Workshop and account updates' : notifications.pushStatus === 'ready' ? 'Device registered' : 'Set up alerts on this phone'} staffCount={notifications.staffUnreadCount} />
           <PrimaryButton label="Add vehicle record" onPress={() => navigate('records')} />
           <WorkspaceLink title="Find customer or vehicle" detail="Search name, email or registration" icon="search-outline" onPress={() => navigate('customers')} />
           {waitingIntegrationJobs.length || (role === 'owner' && pendingDeletions.length) ? <>
@@ -566,11 +600,11 @@ function StaffWorkspace({
           <View style={[styles.notificationSetup, notifications.pushStatus === 'ready' && styles.notificationSetupReady]}>
             <Ionicons color={notifications.pushStatus === 'ready' ? colors.success : colors.accent} name={notifications.pushStatus === 'ready' ? 'notifications' : 'notifications-outline'} size={24} />
             <View style={styles.flex}>
-              <Text style={styles.cardTitle}>{notifications.pushStatus === 'ready' ? 'Device alerts are on' : 'Turn on device alerts'}</Text>
-              <Text style={styles.cardCopy}>{notifications.pushStatus === 'ready' ? 'This phone can show banners, sounds and app-icon badges.' : 'Register this phone so new enquiries are visible even when PSI is closed.'}</Text>
+              <Text style={styles.cardTitle}>{previewMode || REVIEW_ENVIRONMENT.enabled ? 'Sample alerts' : Platform.OS === 'web' ? 'Your workshop inbox' : notifications.pushStatus === 'ready' ? 'Device registered' : 'Turn on device alerts'}</Text>
+              <Text style={styles.cardCopy}>{previewMode || REVIEW_ENVIRONMENT.enabled ? 'Open an alert to explore its enquiry. No messages are sent from this preview.' : Platform.OS === 'web' ? 'Enable phone banners and sounds from the installed PSI app.' : notifications.pushStatus === 'ready' ? 'Delivery follows your sound preference and phone notification settings.' : 'Register this phone to receive new enquiry notifications.'}</Text>
             </View>
           </View>
-          {notifications.pushStatus !== 'ready' && !REVIEW_ENVIRONMENT.enabled ? <PrimaryButton label={notificationSaving ? 'Enabling alerts…' : 'Enable device alerts'} loading={notificationSaving} onPress={() => {
+          {notifications.pushStatus !== 'ready' && !previewMode && !REVIEW_ENVIRONMENT.enabled && Platform.OS !== 'web' ? <PrimaryButton label={notificationSaving ? 'Enabling alerts…' : 'Enable device alerts'} loading={notificationSaving} onPress={() => {
             setNotificationSaving(true);
             setActionNotice('');
             void notifications.enablePush()
@@ -578,21 +612,18 @@ function StaffWorkspace({
               .catch((error) => setActionNotice(portalNotificationError(error)))
               .finally(() => setNotificationSaving(false));
           }} /> : null}
-          <View style={styles.alertLegend}>
-            <AlertCountBadge color="#2D9CDB" label="PSI workshop" value={notifications.staffUnreadCount} />
-            <AlertCountBadge color="#D92D20" label="My account" value={notifications.customerUnreadCount} />
-          </View>
+          <View accessibilityRole="tablist" accessibilityLabel="Alert inbox" style={styles.filterRow}>{(['workshop', 'customer'] as const).map(inbox => <Pressable key={inbox} accessibilityRole="tab" accessibilityState={{ selected: alertRole === inbox }} accessibilityLabel={inbox === 'workshop' ? 'PSI workshop alerts' : 'My customer alerts'} onPress={() => { setAlertRole(inbox); setAlertPage(0); }} style={[styles.filterButton, alertRole === inbox && styles.filterSelected]}><AlertCountBadge color={inbox === 'workshop' ? '#2D9CDB' : '#D92D20'} label={inbox === 'workshop' ? 'PSI' : 'My account'} value={inbox === 'workshop' ? notifications.staffUnreadCount : notifications.customerUnreadCount} compact /></Pressable>)}</View>
           <View style={styles.sectionHeadingRow}>
-            <Text style={styles.groupLabel}>Workshop enquiries</Text>
-            {notifications.staffUnreadCount ? <Pressable accessibilityRole="button" onPress={() => void Promise.all(workshopAlerts.map(event => notifications.markRead(event.id)))}><Text style={styles.inlineActionText}>Mark PSI read</Text></Pressable> : null}
+            <Text style={styles.cardCopy}>{filteredAlerts.length} unread</Text>
+            {filteredAlerts.length ? <Pressable accessibilityRole="button" style={styles.inlineAction} onPress={() => void Promise.all(filteredAlerts.map(event => notifications.markRead(event.id))).catch(() => setActionNotice('Could not update read status. Please try again.'))}><Text style={styles.inlineActionText}>Mark inbox read</Text></Pressable> : null}
           </View>
-          {workshopAlerts.length ? workshopAlerts.slice(0, 8).map(event => <PortalAlertRow color="#2D9CDB" event={event} key={event.id} onPress={() => openPortalAlert(event)} />) : <EmptyState>No workshop alerts need attention.</EmptyState>}
-          <Text style={styles.groupLabel}>My customer account</Text>
-          {customerAlerts.length ? customerAlerts.slice(0, 6).map(event => <PortalAlertRow color="#D92D20" event={event} key={event.id} onPress={() => openPortalAlert(event)} />) : <EmptyState>No personal account alerts need attention.</EmptyState>}
-          <WorkspaceLink title="All alerts & preferences" detail="Read history, sounds and notification choices" icon="options-outline" onPress={() => confirmLeaving(() => router.push('/alerts'))} />
+          {filteredAlerts.length ? filteredAlerts.slice(alertPage * 4, alertPage * 4 + 4).map(event => <PortalAlertRow color={alertRole === 'workshop' ? '#2D9CDB' : '#D92D20'} event={event} key={event.id} onPress={() => openPortalAlert(event)} />) : <EmptyState>You’re up to date in this inbox.</EmptyState>}
+          <Pagination page={alertPage} pageSize={4} total={filteredAlerts.length} onChange={setAlertPage} />
+          <WorkspaceLink title={previewMode ? 'About this preview' : 'All alerts & preferences'} detail={previewMode ? 'Sample data and available controls' : 'Read history, sounds and notification choices'} icon="options-outline" onPress={() => previewMode ? navigate('settings') : confirmLeaving(() => router.push('/alerts'))} />
         </> : null}
 
         {section === 'bookings' ? selectedBooking ? <>
+          <View accessibilityRole="tablist" accessibilityLabel="Booking detail view" style={styles.filterRow}>{(['enquiry', 'actions'] as const).map(panel => <Pressable key={panel} accessibilityRole="tab" accessibilityState={{ selected: bookingPanel === panel }} onPress={() => confirmLeaving(() => setBookingPanel(panel))} style={[styles.filterButton, styles.detailTab, bookingPanel === panel && styles.filterSelected]}><Text style={[styles.filterText, { textAlign: 'center' }]}>{panel === 'enquiry' ? 'Enquiry & contact' : 'Workshop actions'}</Text></Pressable>)}</View>
           {[selectedBooking].map((booking) => {
           const vehicle = snapshot.vehicles.find((item) => item.id === booking.vehicle_id);
           const customer = snapshot.customers.find((item) => item.user_id === booking.customer_id);
@@ -603,18 +634,19 @@ function StaffWorkspace({
                 <Text style={styles.badge}>{BOOKING_STATUS_LABELS[booking.state]}</Text>
               </View>
               <Text style={styles.cardPrimary}>{customerName(customer)}</Text>
+              <Text style={styles.cardCopy}>{vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable'}</Text>
+              <Text style={styles.cardMeta}>{booking.approved_date ? `Workshop date ${formatDate(booking.approved_date)}` : booking.preferred_date ? `Requested ${formatDate(booking.preferred_date)}` : 'Flexible date'}</Text>
+              {bookingPanel === 'enquiry' ? <>
               <View style={styles.contactPanel}>
                 <View style={styles.flex}>
                   <Text selectable style={styles.contactValue}>{customer?.email ?? 'Email not supplied'}</Text>
                   <Text selectable style={styles.contactValue}>{customer?.mobile || 'Mobile not supplied'}</Text>
                 </View>
                 <View style={styles.contactActions}>
-                  {customer?.email ? <ContactAction icon="mail-outline" label="Email" onPress={() => void openCustomerEmail(customer.email, booking.id, booking.request_notes)} /> : null}
-                  {customer?.mobile ? <ContactAction icon="call-outline" label="Call" onPress={() => void Linking.openURL(`tel:${customer.mobile!.replace(/[^+\d]/g, '')}`)} /> : null}
+                  {customer?.email ? <ContactAction icon="mail-outline" label="Email customer" disabled={previewMode} onPress={() => void openCustomerEmail(customer.email, booking.id, booking.request_notes).catch(() => setActionNotice('No email app could be opened. Copy the email address above to reply.'))} /> : null}
+                  {customer?.mobile ? <ContactAction icon="call-outline" label="Call" disabled={previewMode} onPress={() => void Linking.openURL(`tel:${customer.mobile!.replace(/[^+\d]/g, '')}`).catch(() => setActionNotice('No phone app could be opened. Copy the phone number above.'))} /> : null}
                 </View>
               </View>
-              <Text style={styles.cardCopy}>{vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable'}</Text>
-              <Text style={styles.cardMeta}>{booking.approved_date ? `Workshop date ${formatDate(booking.approved_date)}` : booking.preferred_date ? `Requested ${formatDate(booking.preferred_date)}` : 'Flexible date'}</Text>
               <Text style={styles.enquiryLabel}>Customer enquiry</Text>
               <Text style={styles.enquiryCopy}>{booking.request_notes || 'No additional enquiry notes supplied.'}</Text>
               <Pressable accessibilityRole="button" accessibilityState={{ expanded: bookingDetailsOpen }} onPress={() => setExpandedBookingDetailsId(bookingDetailsOpen ? null : selectedBooking.id)} style={styles.disclosure}>
@@ -625,15 +657,18 @@ function StaffWorkspace({
                 {bookingContextLines(booking.request_context).map((line, index) => <Text key={`${booking.id}-context-${index}`} style={styles.contextLine}>{line}</Text>)}
                 {booking.staff_note ? <Text style={styles.staffNote}>PSI note · {booking.staff_note}</Text> : <Text style={styles.contextLine}>No staff note added.</Text>}
               </View> : null}
-              <StaffBookingReview booking={booking} onRefresh={onRefresh} onDirtyChange={setBookingDirty} onBusyChange={setBookingBusy} />
-              <StaffServiceCompletion
+              <PrimaryButton label="Open workshop actions" onPress={() => setBookingPanel('actions')} />
+              </> : <>
+              <StaffBookingReview previewMode={previewMode} booking={booking} onRefresh={onRefresh} onDirtyChange={setBookingDirty} onBusyChange={setBookingBusy} />
+              {previewMode ? booking.state === 'confirmed' ? <PreviewNotice title="Complete service">Record completed work and publish it to this vehicle. Completion is disabled in the design preview.</PreviewNotice> : ['cancelled', 'completed'].includes(booking.state) ? <PreviewNotice title="Archived booking">This visit is kept in the booking history.</PreviewNotice> : null : <StaffServiceCompletion
                 booking={booking}
                 onDirtyChange={setCompletionDirty}
                 onBusyChange={setCompletionBusy}
                 customerLabel={customerName(customer)}
                 onRefresh={onRefresh}
                 vehicleLabel={vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable'}
-              />
+              />}
+              </>}
             </View>
           );
         })}
@@ -662,6 +697,7 @@ function StaffWorkspace({
                     {selectedLookupCustomer.mobile ? <Text selectable style={styles.cardCopy}>{selectedLookupCustomer.mobile}</Text> : null}
                   </View>
                 </View>
+                <View style={[styles.contactActions, { marginTop: 14 }]}><ContactAction icon="mail-outline" label="Email customer" disabled={previewMode} onPress={() => void Linking.openURL(`mailto:${selectedLookupCustomer.email}`).catch(() => setActionNotice('No email app could be opened. Copy the email address above.'))} />{selectedLookupCustomer.mobile ? <ContactAction icon="call-outline" label="Call" disabled={previewMode} onPress={() => void Linking.openURL(`tel:${selectedLookupCustomer.mobile!.replace(/[^+\d]/g, '')}`).catch(() => setActionNotice('No phone app could be opened. Copy the phone number above.'))} /> : null}</View>
               </View>
                 <Text style={styles.groupLabel}>Vehicles</Text>
                 <View style={styles.vehicleList}>
@@ -698,11 +734,11 @@ function StaffWorkspace({
         </> : null}
 
         {section === 'records' ? <>
-          <StaffRecordWorkflow snapshot={snapshot} customerId={paramValue(params.customerId)} vehicleId={paramValue(params.vehicleId)} onBackHandlerChange={registerRecordBack} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} />
+          <StaffRecordWorkflow previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} vehicleId={paramValue(params.vehicleId)} onBackHandlerChange={registerRecordBack} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} />
           {!recordHasSteps ? <WorkspaceLink title="Imports & drafts" icon="file-tray-outline" onPress={() => navigate('imports')} /> : null}
         </> : null}
-        {section === 'imports' ? <StaffVaultReview /> : null}
-        {section === 'access' ? role === 'owner' ? <StaffPerformanceAccess snapshot={snapshot} customerId={paramValue(params.customerId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} /> : <EmptyState>Owner access is required.</EmptyState> : null}
+        {section === 'imports' ? <StaffVaultReview previewMode={previewMode} /> : null}
+        {section === 'access' ? role === 'owner' ? <StaffPerformanceAccess previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} /> : <EmptyState>Owner access is required.</EmptyState> : null}
         {section === 'invitations' ? role === 'owner' ? <>
                   {role === 'owner' ? (
           <>
@@ -725,7 +761,7 @@ function StaffWorkspace({
                   value={invitationEmail}
                 />
               </Field>
-              <PrimaryButton label="Approve PSI account" loading={invitationBusy} onPress={() => void approveCustomerAccess()} />
+              <PrimaryButton disabled={previewMode} label={previewMode ? 'Approve account · Preview only' : 'Approve PSI account'} loading={invitationBusy} onPress={() => void approveCustomerAccess()} />
               {invitationNotice ? <Text accessibilityLiveRegion="polite" style={styles.invitationNotice}>{invitationNotice}</Text> : null}
               {!REVIEW_ENVIRONMENT.enabled ? <><View style={styles.testFlightStep}>
                 <Ionicons color={colors.accent} name="logo-apple" size={22} />
@@ -735,6 +771,7 @@ function StaffWorkspace({
                 </View>
               </View>
               <PrimaryButton
+                disabled={previewMode}
                 label="Open TestFlight setup"
                 onPress={() => void Linking.openURL('https://appstoreconnect.apple.com/apps/6806902732/testflight')}
                 variant="outline"
@@ -788,7 +825,7 @@ function StaffWorkspace({
             customer={customer}
             key={`${request.user_id}:${expanded ? 'open' : 'closed'}`}
             expanded={expanded}
-            disabled={actionBusy}
+            disabled={actionBusy || previewMode}
             onToggleExpanded={() => confirmLeaving(() => setActiveDeletionId(expanded ? '' : request.user_id))}
             onComplete={onRefresh}
             onDirtyChange={reportDeletionDirty}
@@ -800,7 +837,7 @@ function StaffWorkspace({
         <Pagination page={deletionPage} total={filteredDeletions.length} onChange={page => confirmLeaving(() => { setDeletionPage(page); setActiveDeletionId(''); })} />
 
         </> : <EmptyState>Owner access is required.</EmptyState> : null}
-        {section === 'events' ? <StaffEventsManager onDirtyChange={setEventDirty} onBusyChange={setEventBusy} /> : null}
+        {section === 'events' ? previewMode ? <StaffEventsPreview onDirtyChange={setEventDirty} /> : <StaffEventsManager onDirtyChange={setEventDirty} onBusyChange={setEventBusy} /> : null}
 
         {section === 'menu' ? <>
           <WorkspaceLink title="PSI events" detail="Upcoming events and customer announcements" icon="flag-outline" onPress={() => navigate('events')} />
@@ -815,7 +852,7 @@ function StaffWorkspace({
           <WorkspaceLink title="Email & Calendar" detail={`${waitingIntegrationJobs.length} waiting delivery jobs`} icon="calendar-outline" onPress={() => navigate('connections', { tool: 'calendar' })} />
           <WorkspaceLink title="Payments" detail="Setup pending" icon="card-outline" onPress={() => navigate('connections', { tool: 'payments' })} />
           <WorkspaceLink title="Workshop PC uploads" detail="Verified folders for photos and dyno PDFs" icon="desktop-outline" onPress={() => navigate('connections', { tool: 'uploads' })} />
-        </> : connectionTool === 'xero' ? role === 'owner' && !REVIEW_ENVIRONMENT.enabled ? <StaffXeroConnection /> : <EmptyState>Xero setup is available to the owner in the live portal.</EmptyState> : connectionTool === 'calendar' ? <>
+        </> : connectionTool === 'xero' ? previewMode ? <PreviewNotice title="Xero invoices">Connect the workshop organisation, then check the customer, vehicle and job before importing an invoice. Live connections are available only in the private portal.</PreviewNotice> : role === 'owner' && !REVIEW_ENVIRONMENT.enabled ? <StaffXeroConnection /> : <EmptyState>Xero setup is available to the owner in the live portal.</EmptyState> : connectionTool === 'calendar' ? <>
         <View style={styles.integrationControls}>
           <View style={styles.queueStatusRow}>
             <Ionicons color={waitingIntegrationJobs.length ? colors.danger : colors.success} name={waitingIntegrationJobs.length ? 'alert-circle' : 'checkmark-circle'} size={22} />
@@ -824,7 +861,7 @@ function StaffWorkspace({
               <Text style={styles.securityCopy}>{REVIEW_ENVIRONMENT.enabled ? 'External email and Calendar delivery are deliberately disabled. Queue entries demonstrate the workflow without contacting anyone or creating appointments.' : 'Confirmed bookings can create email and Calendar jobs. Processing checks the current connection status.'}</Text>
             </View>
           </View>
-          <PrimaryButton label="Process waiting deliveries" loading={integrationBusy} onPress={() => void processIntegrationQueue()} variant="outline" />
+          <PrimaryButton disabled={previewMode} label={previewMode ? 'Process deliveries · Preview only' : 'Process waiting deliveries'} loading={integrationBusy} onPress={() => void processIntegrationQueue()} variant="outline" />
           {integrationResult ? (
             <View accessibilityLiveRegion="polite" style={styles.integrationSuccess}>
               <Ionicons color={colors.success} name="checkmark-circle" size={20} />
@@ -914,10 +951,10 @@ function StaffWorkspace({
 
         {section === 'settings' ? <>
           <View style={styles.settingsCard}>
-            <Text style={styles.cardTitle}>{REVIEW_ENVIRONMENT.enabled ? 'Demo workspace' : 'Verified workshop access'}</Text>
-            <Text style={styles.cardCopy}>{REVIEW_ENVIRONMENT.enabled ? 'Fictional accounts and records. External delivery and payments are disabled.' : 'Customer records and publishing remain protected by staff authentication and vehicle ownership checks.'}</Text>
+            <Text style={styles.cardTitle}>{previewMode || REVIEW_ENVIRONMENT.enabled ? 'Demo workspace' : 'Verified workshop access'}</Text>
+            <Text style={styles.cardCopy}>{previewMode || REVIEW_ENVIRONMENT.enabled ? 'Fictional accounts and records. Publishing, contacts and external connections are disabled.' : 'Customer records and publishing remain protected by staff authentication and vehicle ownership checks.'}</Text>
           </View>
-                  {!REVIEW_ENVIRONMENT.enabled ? <View style={styles.securityManagement}>
+                  {!previewMode && !REVIEW_ENVIRONMENT.enabled ? <View style={styles.securityManagement}>
           <View style={styles.securityManagementHeading}>
             <View style={styles.flex}>
               <Text style={styles.securityTitle}>Authenticator security</Text>
@@ -959,10 +996,10 @@ function DashboardMetric({ label, value, onPress }: { label: string; value: numb
   return <Pressable accessibilityRole="button" accessibilityLabel={`${value} ${label}`} style={[styles.dashboardMetric, largeText && styles.metricStacked]} onPress={onPress}><Text style={styles.dashboardValue}>{value}</Text><Text style={styles.linkDetail}>{label}</Text></Pressable>;
 }
 
-function PortalAlertSummary({ customerCount, onPress, pushReady, staffCount }: { customerCount: number; onPress: () => void; pushReady: boolean; staffCount: number }) {
+function PortalAlertSummary({ customerCount, onPress, statusLabel, staffCount }: { customerCount: number; onPress: () => void; statusLabel: string; staffCount: number }) {
   return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.alertSummary, pressed && styles.pressed]}>
     <View style={styles.alertSummaryIcon}><Ionicons color={colors.accent} name="notifications-outline" size={22} /></View>
-    <View style={styles.flex}><Text style={styles.cardTitle}>Alerts</Text><Text style={styles.linkDetail}>{pushReady ? 'Device alerts on' : 'Device alerts need setup'}</Text></View>
+    <View style={styles.flex}><Text style={styles.cardTitle}>Alerts</Text><Text style={styles.linkDetail}>{statusLabel}</Text></View>
     <View style={styles.alertSummaryCounts}><AlertCountBadge color="#2D9CDB" label="PSI" value={staffCount} compact /><AlertCountBadge color="#D92D20" label="Me" value={customerCount} compact /></View>
     <Ionicons color={colors.accent} name="chevron-forward" size={19} />
   </Pressable>;
@@ -976,12 +1013,16 @@ function PortalAlertRow({ color, event, onPress }: { color: string; event: (Retu
   return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.portalAlertRow, { borderLeftColor: color }, pressed && styles.pressed]}><View style={styles.flex}><Text style={styles.portalAlertTitle}>{event.title}</Text><Text numberOfLines={2} style={styles.cardCopy}>{event.body}</Text><Text style={styles.cardMeta}>{formatAustralianDateTime(event.created_at, true)}</Text></View><Ionicons color={color} name="chevron-forward" size={18} /></Pressable>;
 }
 
-function ContactAction({ icon, label, onPress }: { icon: ComponentProps<typeof Ionicons>['name']; label: string; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.contactAction, pressed && styles.pressed]}><Ionicons color={colors.ink} name={icon} size={16} /><Text style={styles.contactActionText}>{label}</Text></Pressable>;
+function ContactAction({ icon, label, onPress, disabled = false }: { icon: ComponentProps<typeof Ionicons>['name']; label: string; onPress: () => void; disabled?: boolean }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={disabled ? `${label} · Preview only` : label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.contactAction, disabled && styles.contactDisabled, pressed && styles.pressed]}><Ionicons color={colors.accent} name={icon} size={18} /><Text style={styles.contactActionText}>{icon === 'mail-outline' ? 'Email' : label}</Text></Pressable>;
 }
 
-function Pagination({ page, total, onChange }: { page: number; total: number; onChange: (page: number) => void }) {
-  const pages = Math.ceil(total / 8);
+function PreviewNotice({ title, children }: { title: string; children: string }) {
+  return <View style={styles.previewNotice}><Ionicons name="information-circle-outline" color={colors.accent} size={22} /><View style={styles.flex}><Text style={styles.cardTitle}>{title}</Text><Text style={styles.cardCopy}>{children}</Text></View></View>;
+}
+
+function Pagination({ page, pageSize = 8, total, onChange }: { page: number; pageSize?: number; total: number; onChange: (page: number) => void }) {
+  const pages = Math.ceil(total / pageSize);
   if (pages < 2) return null;
   return <View style={styles.pagination}>
     <Pressable accessibilityRole="button" accessibilityLabel="Previous page" disabled={page === 0} onPress={() => onChange(page - 1)} style={[styles.pageControl, page === 0 && styles.disabled]}><Ionicons name="chevron-back" color={colors.accent} size={23} /></Pressable>
@@ -1283,13 +1324,15 @@ const styles = StyleSheet.create({
   alertCountText: { color: colors.white, fontSize: 11, fontWeight: '800' },
   notificationSetup: { ...portalFrame, alignItems: 'flex-start', backgroundColor: colors.inkSoft, borderLeftColor: colors.accent, borderLeftWidth: 3, flexDirection: 'row', gap: spacing.md, padding: spacing.md },
   notificationSetupReady: { borderLeftColor: colors.success },
-  sectionHeadingRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  sectionHeadingRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },
+  previewNotice: { backgroundColor: colors.inkSoft, borderRadius: 10, flexDirection: 'row', gap: 12, padding: 16, marginTop: 14 },
   portalAlertRow: { ...portalFrame, alignItems: 'center', backgroundColor: colors.panel, borderLeftWidth: 4, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
   portalAlertTitle: { color: colors.white, fontSize: 14, fontWeight: '800' },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   filterButton: { minHeight: 44, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.line, borderRadius: 8 },
   filterSelected: { borderColor: colors.accent, backgroundColor: colors.panelRaised },
   filterText: { color: colors.white, fontSize: 13, fontWeight: '700' },
+  detailTab: { flex: 1, minWidth: 100, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
   pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   pageControl: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, borderRadius: 8 },
   disabled: { opacity: 0.35 },
@@ -1325,11 +1368,12 @@ const styles = StyleSheet.create({
   cardHeading: { alignItems: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between' },
   cardTitle: { color: colors.white, flex: 1, minWidth: 0, fontSize: 17, fontWeight: '700' },
   cardPrimary: { color: colors.white, fontSize: 15, fontWeight: '800', marginTop: spacing.sm },
-  contactPanel: { alignItems: 'center', backgroundColor: colors.inkSoft, borderRadius: 8, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm, padding: spacing.sm },
-  contactValue: { color: colors.silver, fontSize: 12, lineHeight: 19 },
-  contactActions: { flexDirection: 'row', gap: spacing.xs },
-  contactAction: { alignItems: 'center', backgroundColor: colors.accent, borderRadius: 7, flexDirection: 'row', gap: 5, minHeight: 38, paddingHorizontal: 11 },
-  contactActionText: { color: colors.ink, fontSize: 11, fontWeight: '900' },
+  contactPanel: { alignItems: 'stretch', backgroundColor: colors.inkSoft, borderRadius: 10, gap: 12, marginTop: 14, padding: 14 },
+  contactValue: { color: colors.silver, fontSize: 14, lineHeight: 22 },
+  contactActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  contactAction: { alignItems: 'center', borderWidth: 1, borderColor: colors.accent, borderRadius: 8, flexDirection: 'row', gap: 7, minHeight: 44, paddingHorizontal: 14 },
+  contactDisabled: { opacity: .6 },
+  contactActionText: { color: colors.accent, fontSize: 13, fontWeight: '700' },
   enquiryLabel: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: .8, marginTop: spacing.md, textTransform: 'uppercase' },
   enquiryCopy: { color: colors.white, fontSize: 14, lineHeight: 21, marginTop: spacing.xs },
   cardCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 2 },

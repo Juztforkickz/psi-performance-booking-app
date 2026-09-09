@@ -36,13 +36,14 @@ const formats: Partial<Record<Category, { title: string; description: string; de
   ],
 };
 
-export function StaffRecordWorkflow({ snapshot, customerId: shortcutCustomerId, vehicleId: shortcutVehicleId, onDirtyChange, onBusyChange, onBackHandlerChange }: {
+export function StaffRecordWorkflow({ snapshot, customerId: shortcutCustomerId, vehicleId: shortcutVehicleId, onDirtyChange, onBusyChange, onBackHandlerChange, previewMode = false }: {
   snapshot: StaffPortalSnapshot;
   customerId?: string;
   vehicleId?: string;
   onDirtyChange?: (dirty: boolean) => void;
   onBusyChange?: (busy: boolean) => void;
   onBackHandlerChange?: (handler: (() => void) | null) => void;
+  previewMode?: boolean;
 }) {
   const [customerId, setCustomerId] = useState(() => snapshot.customers.some(customer => customer.user_id === shortcutCustomerId) ? shortcutCustomerId! : '');
   const [vehicleId, setVehicleId] = useState(() => snapshot.vehicles.some(vehicle => vehicle.id === shortcutVehicleId && vehicle.customer_id === customerId) ? shortcutVehicleId! : '');
@@ -116,8 +117,8 @@ export function StaffRecordWorkflow({ snapshot, customerId: shortcutCustomerId, 
     </View> : <Text style={styles.muted}>Add to this vehicle</Text>}
     {!category ? categories.map(option => <Row key={option.id} icon={option.icon} title={option.title} onPress={() => chooseCategory(option.id)} />) : null}
     {category && !destination ? formats[category]?.map(option => <Row key={option.title} title={option.title} description={option.description} icon="document-text-outline" onPress={() => setDestination(option.destination)} />) : null}
-    {destination?.legacy ? <StaffRecordPublisher key={`legacy:${destination.legacy}:${customerId}:${vehicleId}`} compact fixedIdentity fixedType={destination.legacy} initialCustomerId={customerId} initialVehicleId={vehicleId} onBusyChange={busyChanged} onDirtyChange={dirtyChanged} snapshot={snapshot} /> : null}
-    {destination?.vault ? <StaffVaultPublisher key={`vault:${destination.vault}:${customerId}:${vehicleId}`} compact fixedIdentity fixedKind={destination.vault} initialCustomerId={customerId} initialVehicleId={vehicleId} onBusyChange={busyChanged} onDirtyChange={dirtyChanged} snapshot={snapshot} /> : null}
+    {destination?.legacy ? <StaffRecordPublisher key={`legacy:${destination.legacy}:${customerId}:${vehicleId}`} compact fixedIdentity fixedType={destination.legacy} initialCustomerId={customerId} initialVehicleId={vehicleId} onBusyChange={busyChanged} onDirtyChange={dirtyChanged} previewMode={previewMode} snapshot={snapshot} /> : null}
+    {destination?.vault ? <StaffVaultPublisher key={`vault:${destination.vault}:${customerId}:${vehicleId}`} compact fixedIdentity fixedKind={destination.vault} initialCustomerId={customerId} initialVehicleId={vehicleId} onBusyChange={busyChanged} onDirtyChange={dirtyChanged} previewMode={previewMode} snapshot={snapshot} /> : null}
     </>}
     <Modal animationType="fade" transparent visible={pendingAction !== null} onRequestClose={() => setPendingAction(null)}>
       <View style={styles.backdrop}><ScrollView contentContainerStyle={styles.modalScroll}><View accessibilityViewIsModal style={styles.modalCard}>

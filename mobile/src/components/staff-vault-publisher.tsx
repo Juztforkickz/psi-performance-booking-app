@@ -14,13 +14,14 @@ import { SUPABASE_CONNECTION } from '@/lib/supabase';
 
 type ChangeCallbacks = { onDirtyChange?: (dirty: boolean) => void; onBusyChange?: (busy: boolean) => void };
 
-export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, initialVehicleId, onDirtyChange, onBusyChange, fixedIdentity = false, compact = false }: {
+export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, initialVehicleId, onDirtyChange, onBusyChange, fixedIdentity = false, compact = false, previewMode = false }: {
   snapshot: StaffPortalSnapshot;
   fixedKind?: VaultKind;
   initialCustomerId?: string;
   initialVehicleId?: string;
   fixedIdentity?: boolean;
   compact?: boolean;
+  previewMode?: boolean;
 } & ChangeCallbacks) {
   const [customerId, setCustomerId] = useState(() => snapshot.customers.some(c => c.user_id === initialCustomerId) ? initialCustomerId! : '');
   const [vehicleId, setVehicleId] = useState(() => snapshot.vehicles.some(v => v.id === initialVehicleId && v.customer_id === customerId) ? initialVehicleId! : '');
@@ -45,6 +46,7 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
   useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
 
   const validatedJob = async () => {
+    if (previewMode) throw new Error('Preview only. Workshop jobs cannot be created.');
     const iso = australianDateToIso(date);
     if (!iso || !confirmed || !selectedCustomer || !selectedVehicle || !title.trim()) {
       throw new Error('Choose the customer and vehicle, enter a title and valid date, then confirm the match.');
@@ -53,7 +55,7 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
   };
 
   const downloadManifest = async () => {
-    if (Platform.OS !== 'web' || busy) return;
+    if (previewMode || Platform.OS !== 'web' || busy) return;
     setBusy(true);
     setMessage('');
     try {
@@ -72,7 +74,7 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
   };
 
   const selectFiles = async () => {
-    if (busy) return;
+    if (previewMode || busy) return;
     setBusy(true);
     try {
       const result = await DocumentPicker.getDocumentAsync({ type: kind === 'dyno' || kind === 'invoice' ? 'application/pdf' : ['image/*', 'application/pdf'], multiple: true, copyToCacheDirectory: true });
@@ -82,7 +84,7 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
   };
 
   const publish = async () => {
-    if (busy || !confirmed) return;
+    if (previewMode || busy || !confirmed) return;
     setBusy(true);
     setMessage('');
     try {
@@ -103,6 +105,7 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
   }
   return (
     <View pointerEvents={busy ? 'none' : 'auto'} style={styles.stack}>
+      {previewMode ? <Text style={styles.muted}>Preview only · Try entering job details. Uploads and publishing are unavailable.</Text> : null}
       {!fixedIdentity ? <><StaffScrollSelect label="Customer" value={customerId} options={customerOptions(snapshot)} searchable onChange={id => { if (busy) return; setCustomerId(id); setVehicleId(''); setFiles([]); setConfirmed(false); setMessage(''); }} />
       <StaffScrollSelect label="Vehicle" value={vehicleId} options={vehicles.map(v => ({ value: v.id, label: `${v.year} ${v.make} ${v.model}`, sublabel: v.registration }))} searchable onChange={id => { if (busy) return; setVehicleId(id); setFiles([]); setConfirmed(false); setMessage(''); }} /></> : null}
       <View style={styles.card}>
@@ -113,8 +116,8 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
         {kind === 'media' || kind === 'dyno' ? <View style={styles.choices}>{(['before', 'progress', 'after'] as const).map(value => <Choice disabled={busy} key={value} label={value === 'progress' && kind === 'dyno' ? 'Baseline' : `${value[0].toUpperCase()}${value.slice(1)}`} selected={phase === value} onPress={() => { setPhase(value); setConfirmed(false); }} />)}</View> : null}
         {kind === 'dyno' ? <><Field label="Power · HP at hubs" hint="Optional"><FormInput editable={!busy} value={power} onChangeText={value => { setPower(value); setConfirmed(false); }} keyboardType="decimal-pad" /></Field><Field label="Torque · Nm at hubs" hint="Optional"><FormInput editable={!busy} value={torque} onChangeText={value => { setTorque(value); setConfirmed(false); }} keyboardType="decimal-pad" /></Field></> : null}
         <Field label="Notes" hint="Optional"><FormInput editable={!busy} value={notes} onChangeText={value => { setNotes(value); setConfirmed(false); }} multiline style={styles.notes} textAlignVertical="top" /></Field>
-        <PrimaryButton disabled={busy} label={kind === 'dyno' || kind === 'invoice' ? 'Choose PDFs' : 'Choose files'} variant="outline" onPress={() => void selectFiles()} />
-        <Text style={styles.muted}>{files.length ? `${files.length} ${files.length === 1 ? 'file' : 'files'} selected` : 'No files selected'}{compact ? '' : ' · Photos resized automatically; PDFs kept intact.'}</Text>
+        <PrimaryButton disabled={previewMode || busy} label={kind === 'dyno' || kind === 'invoice' ? 'Choose PDFs' : 'Choose files'} variant="outline" onPress={() => void selectFiles()} />
+        <Text style={styles.muted}>{previewMode ? 'Preview only · File selection is unavailable.' : <>{files.length ? `${files.length} ${files.length === 1 ? 'file' : 'files'} selected` : 'No files selected'}{compact ? '' : ' · Photos resized automatically; PDFs kept intact.'}</>}</Text>
         {files.length ? <PrimaryButton disabled={busy} label="Clear files" variant="outline" onPress={() => { setFiles([]); setConfirmed(false); }} /> : null}
       </View>
       <View style={styles.review}>
@@ -124,21 +127,22 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
           <Ionicons color={colors.accent} name={confirmed ? 'checkbox' : 'square-outline'} size={25} />
           <Text style={styles.confirmText}>I checked the customer, registration and job. These records belong to this vehicle.</Text>
         </Pressable>
-        <PrimaryButton disabled={!confirmed || busy || !selectedVehicle} label="Publish" loading={busy} onPress={() => void publish()} />
-        {Platform.OS === 'web' ? <PrimaryButton disabled={!confirmed || busy || !selectedVehicle} label="Download PC folder file" variant="outline" onPress={() => void downloadManifest()} /> : null}
+        <PrimaryButton disabled={previewMode || !confirmed || busy || !selectedVehicle} label={previewMode ? 'Preview only · Publish' : 'Publish'} loading={busy} onPress={() => void publish()} />
+        {Platform.OS === 'web' ? <PrimaryButton disabled={previewMode || !confirmed || busy || !selectedVehicle} label="Download PC folder file" variant="outline" onPress={() => void downloadManifest()} /> : null}
         {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
       </View>
     </View>
   );
 }
 
-export function StaffVaultReview() {
+export function StaffVaultReview({ previewMode = false }: { previewMode?: boolean } = {}) {
   const [imports, setImports] = useState<{ id: string; reason: string; source: string; source_key: string }[]>([]);
   const [drafts, setDrafts] = useState<{ id: string; title: string; created_at: string }[]>([]);
-  const [busy, setBusy] = useState(true);
+  const [busy, setBusy] = useState(!previewMode);
   const [error, setError] = useState('');
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(previewMode);
   const review = useCallback(async () => {
+    if (previewMode) return;
     setBusy(true); setError('');
     try {
       const [queue, records] = await Promise.all([
@@ -149,11 +153,11 @@ export function StaffVaultReview() {
       setImports(queue.data ?? []); setDrafts(records.data ?? []); setLoaded(true);
     } catch { setError('Imports and drafts could not be loaded. Check your staff session and try again.'); }
     finally { setBusy(false); }
-  }, []);
-  useEffect(() => { const task = setTimeout(() => void review(), 0); return () => clearTimeout(task); }, [review]);
+  }, [previewMode]);
+  useEffect(() => { if (previewMode) return; const task = setTimeout(() => void review(), 0); return () => clearTimeout(task); }, [review, previewMode]);
   return <View style={styles.stack}>
-    <Text style={styles.muted}>Private imports and drafts. Reviewing this list does not publish records.</Text>
-    <PrimaryButton disabled={busy} loading={busy} label={loaded ? 'Refresh' : 'Load records'} variant="outline" onPress={() => void review()} />
+    <Text style={styles.muted}>{previewMode ? 'Preview only · This example shows an empty imports and drafts queue.' : 'Private imports and drafts. Reviewing this list does not publish records.'}</Text>
+    <PrimaryButton disabled={previewMode || busy} loading={busy} label={loaded ? 'Refresh' : 'Load records'} variant="outline" onPress={() => void review()} />
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
     {loaded && !error ? <>
       <Text style={styles.title}>Imports needing review</Text>
@@ -166,9 +170,10 @@ export function StaffVaultReview() {
   </View>;
 }
 
-export function StaffPerformanceAccess({ snapshot, customerId: initialCustomerId, onDirtyChange, onBusyChange }: {
+export function StaffPerformanceAccess({ snapshot, customerId: initialCustomerId, onDirtyChange, onBusyChange, previewMode = false }: {
   snapshot: StaffPortalSnapshot;
   customerId?: string;
+  previewMode?: boolean;
 } & ChangeCallbacks) {
   const [customerId, setCustomerId] = useState(() => snapshot.customers.some(c => c.user_id === initialCustomerId) ? initialCustomerId! : '');
   const [confirmed, setConfirmed] = useState(false);
@@ -177,7 +182,7 @@ export function StaffPerformanceAccess({ snapshot, customerId: initialCustomerId
   useEffect(() => { onDirtyChange?.(confirmed); }, [confirmed, onDirtyChange]);
   useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
   const grant = async () => {
-    if (busy || !confirmed || !snapshot.customers.some(c => c.user_id === customerId)) return;
+    if (previewMode || busy || !confirmed || !snapshot.customers.some(c => c.user_id === customerId)) return;
     setBusy(true); setMessage('');
     try {
       const { error } = await vaultClient().rpc('grant_performance_beta', { p_customer_id: customerId, p_days: 30 });
@@ -188,10 +193,10 @@ export function StaffPerformanceAccess({ snapshot, customerId: initialCustomerId
     finally { setBusy(false); }
   };
   return <View pointerEvents={busy ? 'none' : 'auto'} style={styles.stack}>
-    <Text style={styles.muted}>Give a customer 30 days of complimentary Performance+ access.</Text>
+    <Text style={styles.muted}>{previewMode ? 'Preview only · Explore the access form. Customer access cannot be changed.' : 'Give a customer 30 days of complimentary Performance+ access.'}</Text>
     <StaffScrollSelect label="Customer" value={customerId} options={customerOptions(snapshot)} searchable onChange={id => { if (busy) return; setCustomerId(id); setConfirmed(false); setMessage(''); }} />
     <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: confirmed }} disabled={busy || !customerId} onPress={() => setConfirmed(value => !value)} style={styles.confirm}><Ionicons color={colors.accent} name={confirmed ? 'checkbox' : 'square-outline'} size={25} /><Text style={styles.confirmText}>Grant complimentary access to this customer.</Text></Pressable>
-    <PrimaryButton disabled={!confirmed || !customerId || busy} loading={busy} label="Grant 30 days access" onPress={() => void grant()} />
+    <PrimaryButton disabled={previewMode || !confirmed || !customerId || busy} loading={busy} label={previewMode ? 'Preview only · Grant access' : 'Grant 30 days access'} onPress={() => void grant()} />
     {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
   </View>;
 }

@@ -12,11 +12,12 @@ import { useStaffDiscardConfirmation } from '@/hooks/use-staff-discard-confirmat
 
 type ReviewAction = StaffBookingReviewInput['action'];
 
-export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyChange }: {
+export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyChange, previewMode = false }: {
   booking: BookingRequestRow;
   onRefresh: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   onBusyChange?: (busy: boolean) => void;
+  previewMode?: boolean;
 }) {
   const { confirmDiscard, discardDialog } = useStaffDiscardConfirmation();
   const [action, setAction] = useState<ReviewAction | null>(null);
@@ -61,7 +62,7 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
   };
 
   const submit = async () => {
-    if (!action || !confirmed || busy) return;
+    if (previewMode || !action || !confirmed || busy) return;
     setBusy(true);
     setFeedback(null);
     try {
@@ -84,7 +85,7 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
   };
 
   const confirmBankTransfer = async () => {
-    if (!bankChecked || busy || REVIEW_ENVIRONMENT.enabled) return;
+    if (previewMode || !bankChecked || busy || REVIEW_ENVIRONMENT.enabled) return;
     setBusy(true);
     setFeedback(null);
     try {
@@ -114,6 +115,7 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
           </Pressable>
         ) : null}
       </View>
+      {previewMode ? <Text style={styles.bankCopy}>Preview only · Try the review steps. Changes and payments cannot be submitted.</Text> : null}
 
       {feedback?.kind === 'success' ? (
         <View style={styles.successBox}>
@@ -137,7 +139,7 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
                 <View style={[styles.checkbox, bankChecked && styles.checkboxChecked]}>{bankChecked ? <Ionicons color={colors.ink} name="checkmark" size={16} /> : null}</View>
                 <Text style={styles.confirmText}>I matched the cleared deposit amount, customer payment reference and this booking in PSI’s bank statement.</Text>
               </Pressable>
-              <PrimaryButton disabled={!bankChecked || bankReference.trim().length < 6} label="Confirm bank transfer" loading={busy} onPress={() => void confirmBankTransfer()} />
+              <PrimaryButton disabled={previewMode || !bankChecked || bankReference.trim().length < 6} label={previewMode ? 'Preview only · Confirm bank transfer' : 'Confirm bank transfer'} loading={busy} onPress={() => void confirmBankTransfer()} />
             </View>
           ) : null}
           {feedback ? <Text accessibilityRole="alert" style={styles.error}>{feedback.text}</Text> : null}
@@ -161,7 +163,7 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
                 : 'I checked the request and cancellation reason.'}</Text>
           </Pressable>
           {feedback ? <Text accessibilityRole="alert" style={styles.error}>{feedback.text}</Text> : null}
-          <PrimaryButton disabled={!confirmed || (action === 'cancel' && !staffNote.trim())} label={actionLabel(action)} loading={busy} onPress={() => void submit()} />
+          <PrimaryButton disabled={previewMode || !confirmed || (action === 'cancel' && !staffNote.trim())} label={previewMode ? `Preview only · ${actionLabel(action)}` : actionLabel(action)} loading={busy} onPress={() => void submit()} />
         </>
       )}
     </View>

@@ -43,7 +43,7 @@ function ThemeAwareRootShell() {
           <NotificationProvider>
             <CustomerPreviewProvider>
               <StaffNavigationProvider>
-                <UiToneProvider tone={pathname === '/staff' || pathname === '/staff-security' ? 'staff' : 'brand'}>
+                <UiToneProvider tone={pathname === '/staff' || pathname === '/staff-security' || pathname === '/portal-preview' ? 'staff' : 'brand'}>
                 <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
                 <View style={styles.shell}>
                   <AppleReviewBanner />

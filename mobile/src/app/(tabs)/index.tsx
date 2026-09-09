@@ -314,6 +314,11 @@ export default function CustomerHomeScreen() {
             <Text style={[styles.shortcutButtonText, { color: activeTheme === 'dark' ? theme.accent : theme.accentAlt }]}>Customise</Text>
           </Pressable>
         </View>
+        {!privateAccountMode ? <Pressable accessibilityRole="button" accessibilityLabel="Preview workshop portal" onPress={() => router.push('/portal-preview')} style={({ pressed }) => [styles.portalPreviewLink, { backgroundColor: theme.surface, borderColor: theme.accent }, pressed && styles.pressed]}>
+          <Ionicons name="construct-outline" size={22} color={theme.accent} />
+          <View style={{ flex: 1 }}><Text style={{ color: theme.text, fontSize: 15, fontWeight: '800' }}>Preview workshop portal</Text><Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 3 }}>Explore the new layout with sample records</Text></View>
+          <Ionicons name="chevron-forward" size={18} color={theme.accent} />
+        </Pressable> : null}
         <View style={styles.tileGrid}>
           {shortcutIds.map((id) => (
             <TileCell key={id} threeColumns={threeColumns}>
@@ -743,6 +748,7 @@ function WorkshopFact({
 }
 
 const styles = StyleSheet.create({
+  portalPreviewLink: { alignItems: 'center', flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 12, padding: 16, minHeight: 72 },
   screen: { flex: 1, backgroundColor: colors.ink },
   scroll: { width: '100%', maxWidth: 1120, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   demoBanner: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.silver, padding: spacing.md },

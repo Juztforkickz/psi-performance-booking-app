@@ -69,7 +69,21 @@ The pushed rollback marker `codex/psi-portal-before-polish-2026-09-09` preserves
 
 Six new component-state tests cover explicit customer/vehicle selection, invalid shortcuts, keep/discard behavior, publishing navigation guards, and both fixed-identity publishers. The combined focused suite has 42 passing tests. Phone-sized browser QA checks the workflow and bright-theme form at 320px, plus the dashboard and draft guards at 390px, using fictional sandbox data. Final validation and update publication are recorded in the release receipt and task completion report.
 
-## Still separate from this release
+## Direct public preview and operator refinements · 10 September 2026
+
+The workshop design is now accessible at `https://juztforkickz.github.io/psi-performance-booking-app/portal-preview` without staff sign-in. The demo home and public `/staff` entry both link to it. It uses the shared `StaffWorkspace` and publishing/review components with fictional fixtures; authenticated builds retain the protected staff gate. No real records, contact destinations, files or connected services are loaded from this preview. Form entry, search, navigation and draft guards work; final writes, file pickers, external contacts and connection actions are disabled in both controls and handlers.
+
+Bookings now separate **Enquiry & contact** from **Workshop actions**. Email and mobile have a full-width contact block, with email/call shortcuts in the private portal and complete enquiry text alongside them. Alerts separate the blue PSI inbox from the red customer inbox, show four unread items per page, and open the selected enquiry. Phone-registration copy distinguishes a registered device from a verified delivery result.
+
+Notification state is scoped to the signed-in account, stale refresh responses cannot restore old unread badges, and repeated native notification taps navigate once. Returning to the app checks OS permission and registration, while explicit enable/disable takes precedence. Generic staff pushes open the portal Alerts page. These client fixes require an updated installed app; browser QA does not verify native sound, banners or delivery.
+
+Relevant files: `mobile/src/app/staff.tsx`, `mobile/src/app/portal-preview.tsx`, the demo home and shared navigation, `staff-portal-preview.ts`, `staff-events-preview.tsx`, the staff review/record/vault components, and the notification provider/lifecycle helper. Focused validation passes 55 tests, mobile TypeScript and targeted ESLint. The web export includes the new route. The existing broad-suite wording failures on unrelated customer screens were not part of this pass.
+
+Browser checks at 320px and 390px cover dashboard scale, booking tabs/contact, alert-to-enquiry navigation, registration search, customer-to-record identity, and booking/record/event draft keep/discard. Desktop layout and the bright theme were also inspected. These checks use sample data and do not submit workshop records or test physical phone delivery.
+
+The rollback marker `codex/psi-portal-before-visible-preview-2026-09-10` points to `cd7f9911aa6198437177d9051d76b110627d5a60`, preserving the approved notification/contact checkpoint before this preview pass. Publishing remains the existing GitHub Pages workflow after the checkpoint push. This pass does not deploy native updates or change Supabase, Xero, payments or Apple review services.
+
+## Work still separate from this release
 
 - First verified Xero customer/vehicle/job match and end-to-end automatic invoice import.
 - Apple subscription activation, purchase/restore/renewal testing and store review.

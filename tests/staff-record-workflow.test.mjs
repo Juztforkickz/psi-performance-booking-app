@@ -22,7 +22,7 @@ const snapshot = {
 // Exercise the actual TSX exports with a small host adapter. This tests workflow
 // state and actions without native modules, network calls or customer records;
 // browser/device checks still cover React scheduling and rendered layout.
-function mountComponent(filename, exportName, props) {
+function mountComponent(filename, exportName, props, moduleOverrides = {}) {
   const slots = [];
   let cursor = 0;
   let effects = [];
@@ -52,12 +52,15 @@ function mountComponent(filename, exportName, props) {
     '@/components/staff-record-publisher': { StaffRecordPublisher: 'LegacyPublisher' },
     '@/components/staff-vault-publisher': { StaffVaultPublisher: 'VaultPublisher' },
     '@/constants/brand': { colors: {}, spacing: { sm: 8, md: 16, lg: 24 } },
-    '@/lib/australian-date': { todayAustralianDate: () => '09/09/2026', australianDateToIso: () => '2026-09-09' },
+    '@/lib/australian-date': { todayAustralianDate: () => '09/09/2026', australianDateToIso: () => '2026-09-09', isoDateToAustralian: () => '09/09/2026' },
     '@/lib/review-environment': { REVIEW_ENVIRONMENT: { enabled: false } },
     '@/lib/staff-record-publishing': {},
     '@/lib/staff-vault': {},
     '@/lib/performance-plus': { VAULT_KINDS: ['invoice', 'media', 'dyno', 'service', 'document', 'modification'], VAULT_LABELS: {} },
     '@/lib/supabase': { SUPABASE_CONNECTION: {} },
+    '@/lib/staff-portal': {},
+    '@/hooks/use-staff-discard-confirmation': { useStaffDiscardConfirmation: () => ({ confirmDiscard: action => action(), discardDialog: null }) },
+    ...moduleOverrides,
   };
   const result = { exports: {} };
   const source = ts.transpileModule(readFileSync(new URL(filename, componentRoot), 'utf8'), {
@@ -211,5 +214,118 @@ for (const [filename, exportName, extra] of [
     const invalid = mountComponent(filename, exportName, { ...props, initialVehicleId: 'vehicle-b' });
     invalid.render();
     assert.equal(invalid.count('Button'), 0);
+  });
+}
+
+test('preview record workflow passes preview protection to both publishing destinations', () => {
+  const flow = workflow({ customerId: 'customer-a', vehicleId: 'vehicle-a', previewMode: true });
+  flow.press('Invoice');
+  flow.press('Invoice details & PDF');
+  assert.equal(flow.find('LegacyPublisher').props.previewMode, true);
+  flow.press('Options');
+  flow.press('Job invoice files');
+  assert.equal(flow.find('VaultPublisher').props.previewMode, true);
+});
+
+for (const fixedType of ['repair', 'recommendation', 'dyno', 'invoice']) {
+  test(`preview ${fixedType} records allow form editing but cannot publish or open a file picker`, () => {
+    let operations = 0;
+    const forbidden = () => { operations++; throw new Error('Preview performed a protected operation'); };
+    const component = mountComponent('staff-record-publisher.tsx', 'StaffRecordPublisher', {
+      snapshot, initialCustomerId: 'customer-a', initialVehicleId: 'vehicle-a', fixedIdentity: true, fixedType, previewMode: true,
+    }, {
+      'expo-document-picker': { getDocumentAsync: forbidden },
+      '@/lib/staff-record-publishing': { publishPsiDyno: forbidden, publishPsiInvoice: forbidden, publishPsiRecommendation: forbidden, publishPsiRepair: forbidden },
+    });
+    component.render();
+    const input = component.find('Input');
+    assert.equal(input.props.editable, true);
+    input.props.onChangeText('Example record');
+    component.render();
+    component.press('I checked the customer');
+    const publish = component.find('Button', node => node.props.label === 'Preview only · Publish');
+    assert.equal(publish.props.disabled, true);
+    publish.props.onPress(); // Handler must remain safe even if a host invokes a disabled control.
+    const picker = component.find('Button', node => node.props.label === 'Choose PDF');
+    if (picker) { assert.equal(picker.props.disabled, true); picker.props.onPress(); }
+    assert.equal(operations, 0);
+  });
+}
+
+test('preview vault forms cannot pick files, create a job, publish, or download a job manifest', () => {
+  let operations = 0;
+  const forbidden = () => { operations++; throw new Error('Preview performed a protected operation'); };
+  const component = mountComponent('staff-vault-publisher.tsx', 'StaffVaultPublisher', {
+    snapshot, initialCustomerId: 'customer-a', initialVehicleId: 'vehicle-a', fixedIdentity: true, fixedKind: 'media', previewMode: true,
+  }, {
+    'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', Platform: { OS: 'web' }, StyleSheet: { create: styles => styles } },
+    'expo-document-picker': { getDocumentAsync: forbidden },
+    '@/lib/staff-vault': { createOrFindWorkshopJob: forbidden, publishVaultRecord: forbidden },
+  });
+  component.render();
+  component.find('Input', node => node.props.placeholder === 'Major service').props.onChangeText('Example service');
+  component.render();
+  component.press('I checked the customer');
+  for (const label of ['Choose files', 'Preview only · Publish', 'Download PC folder file']) {
+    const control = component.find('Button', node => node.props.label === label);
+    assert.equal(control.props.disabled, true);
+    control.props.onPress();
+  }
+  assert.equal(operations, 0);
+});
+
+test('preview imports never load protected records, including their mount effect', async () => {
+  let operations = 0;
+  const component = mountComponent('staff-vault-publisher.tsx', 'StaffVaultReview', { previewMode: true }, {
+    '@/lib/performance-plus': { vaultClient: () => { operations++; throw new Error('Preview queried protected records'); } },
+  });
+  component.render();
+  const refresh = component.find('Button', node => node.props.label === 'Refresh');
+  assert.equal(refresh.props.disabled, true);
+  refresh.props.onPress();
+  await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal(operations, 0);
+});
+
+test('preview complimentary access can be selected but cannot be granted', () => {
+  let operations = 0;
+  const component = mountComponent('staff-vault-publisher.tsx', 'StaffPerformanceAccess', {
+    snapshot, customerId: 'customer-a', previewMode: true,
+  }, {
+    '@/lib/performance-plus': { vaultClient: () => { operations++; throw new Error('Preview changed customer access'); } },
+  });
+  component.render();
+  component.press('Grant complimentary access');
+  const grant = component.find('Button', node => node.props.label === 'Preview only · Grant access');
+  assert.equal(grant.props.disabled, true);
+  grant.props.onPress();
+  assert.equal(operations, 0);
+});
+
+for (const [state, action, label] of [
+  ['pending_staff_review', 'Approve requested date', 'Preview only · Approve date'],
+  ['pending_staff_review', 'Propose another date', 'Preview only · Propose date'],
+  ['pending_staff_review', 'Cancel request', 'Preview only · Confirm cancellation'],
+  ['date_approved', 'Verify bank transfer', 'Preview only · Confirm bank transfer'],
+]) {
+  test(`preview booking action ${action} cannot send a decision or verify a payment`, () => {
+    let operations = 0;
+    const forbidden = () => { operations++; throw new Error('Preview changed a booking or payment'); };
+    const component = mountComponent('staff-booking-review.tsx', 'StaffBookingReview', {
+      booking: { id: 'example-booking', state, preferred_date: '2026-09-09', staff_note: '' }, onRefresh: () => {}, previewMode: true,
+    }, {
+      '@/lib/staff-portal': { reviewBookingRequest: forbidden, confirmBankTransferPayment: forbidden },
+    });
+    component.render();
+    component.press(action);
+    const input = component.find('Input');
+    assert.equal(input.props.editable, true);
+    input.props.onChangeText(action === 'Verify bank transfer' ? 'EXAMPLE-ONLY' : '10/09/2026');
+    component.find('Pressable', node => node.props.accessibilityRole === 'checkbox').props.onPress();
+    component.render();
+    const submit = component.find('Button', node => node.props.label === label);
+    assert.equal(submit.props.disabled, true);
+    submit.props.onPress();
+    assert.equal(operations, 0);
   });
 }

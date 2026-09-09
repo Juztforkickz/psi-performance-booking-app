@@ -25,7 +25,7 @@ export function StaffNavigationProvider({ children }: PropsWithChildren) {
   }, []);
 
   const navigateToSection = useCallback((section: StaffSection) => {
-    if (pathname === '/staff') {
+    if (pathname === '/staff' || pathname === '/portal-preview') {
       if (handlerRef.current) handlerRef.current(section);
       else router.setParams({ section });
       return;
