@@ -6,9 +6,13 @@ These functions implement the signed mobile-app deposit boundary:
   `date_approved` booking. It creates Stripe-hosted Checkout or returns an
   ordinary bank-transfer reference and instructions.
 - `stripe-booking-webhook` accepts no customer JWT. It verifies Stripe's raw
-  request signature and confirms only a paid, amount-matched AUD session.
-- `confirm-bank-transfer` requires active PSI staff with AAL2 MFA and records a
-  cleared business-bank-statement match.
+  request signature, confirms only a paid, amount-matched AUD session, and then
+  starts the booking-scoped email and Google Calendar integration jobs. A
+  transient worker failure returns a retryable response to Stripe while the
+  durable jobs remain queued.
+- `confirm-bank-transfer` requires active PSI staff with AAL2 MFA, records a
+  cleared business-bank-statement match, and starts the same booking-scoped
+  confirmation email and Calendar jobs as a verified Stripe payment.
 
 Required encrypted Edge Function secrets (never `EXPO_PUBLIC_*`):
 

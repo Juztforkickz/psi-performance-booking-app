@@ -18,6 +18,11 @@ before using the service role:
 2. Authenticator Assurance Level 2 from the validated access-token claims; and
 3. an active `staff_members` row visible through the current RLS policy.
 
+The signed Stripe webhook may also invoke this worker internally with the
+server-only service credential and a required booking ID. This narrowly scoped
+path starts the already-queued confirmation email and Calendar jobs immediately
+after Stripe confirms the deposit; it cannot process the unscoped queue.
+
 The function is safe to deploy without provider credentials. Affected jobs move
 to `blocked_configuration`; no success is claimed and no customer data is sent.
 Configure values only as encrypted Supabase Edge Function secrets—never as

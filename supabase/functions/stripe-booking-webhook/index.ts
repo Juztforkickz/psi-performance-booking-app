@@ -1,6 +1,27 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+type StripeCheckoutSession = {
+  amount_total?: number | null;
+  client_reference_id?: string | null;
+  currency?: string | null;
+  id: string;
+  metadata?: {
+    booking_request_id?: string;
+    payment_attempt_id?: string;
+  } | null;
+  payment_intent?: string | { id?: string } | null;
+  payment_status?: string | null;
+};
+
+type StripeWebhookEvent = {
+  created: number;
+  data: { object: StripeCheckoutSession };
+  id: string;
+  livemode: boolean;
+  type: string;
+};
+
 const env = (name: string) => Deno.env.get(name)?.trim() ?? "";
 const json = (body: unknown, status = 200) => Response.json(body, { headers: { "Cache-Control": "no-store" }, status });
 const bytesToHex = (bytes: ArrayBuffer) => [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -9,6 +30,19 @@ const safeEqual = (left: string, right: string) => {
   let difference = 0;
   for (let index = 0; index < left.length; index += 1) difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
   return difference === 0;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const isStripeWebhookEvent = (value: unknown): value is StripeWebhookEvent => {
+  if (!isRecord(value) || !isRecord(value.data) || !isRecord(value.data.object)) return false;
+  return typeof value.id === "string"
+    && typeof value.type === "string"
+    && typeof value.livemode === "boolean"
+    && typeof value.created === "number"
+    && Number.isFinite(value.created)
+    && typeof value.data.object.id === "string";
 };
 
 async function verifyStripeSignature(rawBody: string, signatureHeader: string, secret: string) {
@@ -21,6 +55,19 @@ async function verifyStripeSignature(rawBody: string, signatureHeader: string, s
   return signatures.some((signature) => /^[a-f0-9]{64}$/u.test(signature) && safeEqual(signature, expected));
 }
 
+async function processConfirmedBooking(supabaseUrl: string, serviceKey: string, bookingId: string) {
+  const response = await fetch(`${supabaseUrl}/functions/v1/process-booking-integrations`, {
+    method: "POST",
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ bookingId, limit: 10 }),
+  });
+  if (!response.ok) throw new Error(`booking_integrations_${response.status}`);
+}
+
 Deno.serve(async (request) => {
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   const webhookSecret = env("STRIPE_WEBHOOK_SECRET");
@@ -29,13 +76,14 @@ Deno.serve(async (request) => {
   if (!webhookSecret || rawBody.length > 512_000 || !await verifyStripeSignature(rawBody, signature, webhookSecret)) {
     return json({ error: "invalid_signature" }, 401);
   }
-  let event: any;
-  try { event = JSON.parse(rawBody); } catch { return json({ error: "invalid_json" }, 400); }
-  if (!event?.id || !event?.type || !event?.data?.object) return json({ error: "invalid_event" }, 400);
+  let parsedEvent: unknown;
+  try { parsedEvent = JSON.parse(rawBody); } catch { return json({ error: "invalid_json" }, 400); }
+  if (!isStripeWebhookEvent(parsedEvent)) return json({ error: "invalid_event" }, 400);
+  const event = parsedEvent;
   const expectedLiveMode = env("STRIPE_LIVE_MODE") === "true";
   if (Boolean(event.livemode) !== expectedLiveMode) return json({ error: "stripe_mode_mismatch" }, 409);
 
-  const session = event.data.object as any;
+  const session = event.data.object;
   const attemptId = session.metadata?.payment_attempt_id;
   const bookingId = session.metadata?.booking_request_id;
   if (!attemptId || !bookingId || session.client_reference_id !== bookingId) return json({ received: true, ignored: true });
@@ -68,6 +116,13 @@ Deno.serve(async (request) => {
       p_provider_receipt_url: null,
     });
     if (error) return json({ error: "payment_confirmation_failed" }, 409);
+    try {
+      await processConfirmedBooking(supabaseUrl, serviceKey, bookingId);
+    } catch {
+      // A non-2xx response makes Stripe retry this idempotent event. The payment
+      // remains safely confirmed and the durable integration jobs remain queued.
+      return json({ error: "booking_integrations_pending" }, 503);
+    }
     return json({ received: true, confirmed: true });
   }
 

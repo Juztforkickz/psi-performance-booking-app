@@ -5,11 +5,12 @@ import test from "node:test";
 const read = (path) => readFile(new URL(path, import.meta.url), "utf8");
 
 test("mobile payments remain approval-first and server-confirmed", async () => {
-  const [migration, creator, webhook, bankVerifier] = await Promise.all([
+  const [migration, creator, webhook, bankVerifier, integrationWorker] = await Promise.all([
     read("../supabase/migrations/20260908103000_booking_payments.sql"),
     read("../supabase/functions/create-booking-payment/index.ts"),
     read("../supabase/functions/stripe-booking-webhook/index.ts"),
     read("../supabase/functions/confirm-bank-transfer/index.ts"),
+    read("../supabase/functions/process-booking-integrations/index.ts"),
   ]);
 
   assert.match(creator, /booking\.state !== "date_approved"/u);
@@ -23,9 +24,15 @@ test("mobile payments remain approval-first and server-confirmed", async () => {
   assert.match(webhook, /checkout\.session\.async_payment_succeeded/u);
   assert.match(webhook, /session\.payment_status === "paid"/u);
   assert.match(webhook, /confirm_booking_payment/u);
+  assert.match(webhook, /processConfirmedBooking\(supabaseUrl, serviceKey, bookingId\)/u);
+  assert.match(webhook, /booking_integrations_pending/u);
+  assert.match(integrationWorker, /isInternalServiceCall = accessToken === serviceRoleKey/u);
+  assert.match(integrationWorker, /internal_booking_id_required/u);
 
   assert.match(bankVerifier, /claims\?\.claims\?\.aal !== "aal2"/u);
   assert.match(bankVerifier, /bank_transfer_pending/u);
+  assert.match(bankVerifier, /processConfirmedBooking\(supabaseUrl, serviceKey, bookingId\)/u);
+  assert.match(bankVerifier, /booking_integrations_pending/u);
   assert.match(migration, /security definer/u);
   assert.match(migration, /old\.state = 'date_approved'|p_payment_attempt_id/u);
   assert.doesNotMatch(migration, /\b(?:drop table|truncate)\b/iu);

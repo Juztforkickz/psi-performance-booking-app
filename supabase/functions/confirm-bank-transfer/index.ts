@@ -1,9 +1,27 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+type BankVerificationRequest = {
+  bookingId?: unknown;
+  transactionReference?: unknown;
+};
+
 const env = (name: string) => Deno.env.get(name)?.trim() ?? "";
 const headers = { "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" };
 const json = (body: unknown, status = 200) => Response.json(body, { headers, status });
+
+async function processConfirmedBooking(supabaseUrl: string, serviceKey: string, bookingId: string) {
+  const response = await fetch(`${supabaseUrl}/functions/v1/process-booking-integrations`, {
+    method: "POST",
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ bookingId, limit: 10 }),
+  });
+  if (!response.ok) throw new Error(`booking_integrations_${response.status}`);
+}
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers });
@@ -22,11 +40,11 @@ Deno.serve(async (request) => {
   ]);
   if (!staff || claims?.claims?.aal !== "aal2") return json({ error: "aal2_staff_access_required" }, 403);
 
-  let body: any;
+  let body: BankVerificationRequest;
   try { body = await request.json(); } catch { return json({ error: "invalid_json" }, 400); }
   const bookingId = typeof body.bookingId === "string" ? body.bookingId : "";
   const transactionReference = typeof body.transactionReference === "string" ? body.transactionReference.trim().toUpperCase() : "";
-  if (!/^[0-9a-f-]{36}$/iu.test(bookingId) || !/^[A-Z0-9 .\/-]{6,80}$/u.test(transactionReference)) return json({ error: "invalid_bank_verification" }, 400);
+  if (!/^[0-9a-f-]{36}$/iu.test(bookingId) || !/^[A-Z0-9 ./-]{6,80}$/u.test(transactionReference)) return json({ error: "invalid_bank_verification" }, 400);
 
   const admin = createClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
   const { data: attempt, error: attemptError } = await admin.from("booking_payment_attempts").select("*").eq("booking_request_id", bookingId).eq("provider", "manual_bank_transfer").eq("state", "bank_transfer_pending").maybeSingle();
@@ -40,5 +58,12 @@ Deno.serve(async (request) => {
     p_provider_payment_id: transactionReference, p_provider_receipt_url: null,
   });
   if (error) return json({ error: "bank_transfer_confirmation_failed" }, 409);
+  try {
+    await processConfirmedBooking(supabaseUrl, serviceKey, bookingId);
+  } catch {
+    // The deposit is already confirmed and the durable jobs remain queued.
+    // Returning a retryable response lets PSI run the same idempotent action again.
+    return json({ error: "booking_integrations_pending", bookingId, confirmed: true }, 503);
+  }
   return json({ bookingId, confirmed: true });
 });

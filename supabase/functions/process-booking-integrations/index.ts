@@ -426,13 +426,6 @@ Deno.serve(async (request) => {
   if (!supabaseUrl || !anonKey || !serviceRoleKey) return json({ error: "server_configuration_unavailable" }, 503);
   if (!accessToken) return json({ error: "authentication_required" }, 401);
 
-  const userClient = createClient(supabaseUrl, anonKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-  });
-  const { data: userData, error: userError } = await userClient.auth.getUser(accessToken);
-  if (userError || !userData.user) return json({ error: "invalid_session" }, 401);
-
   let body: WorkerRequest = {};
   try {
     body = await request.json();
@@ -443,32 +436,45 @@ Deno.serve(async (request) => {
   const bookingId = body.bookingId ?? null;
   const requestedLimit = typeof body.limit === "number" && Number.isFinite(body.limit) ? Math.trunc(body.limit) : 10;
   const limit = Math.min(10, Math.max(1, requestedLimit));
+  const isInternalServiceCall = accessToken === serviceRoleKey;
+  let isAal2Staff = isInternalServiceCall;
 
-  const [{ data: claimsData }, { data: staff, error: staffError }] = await Promise.all([
-    userClient.auth.getClaims(accessToken),
-    userClient
-      .from("staff_members")
-      .select("id, role, status")
-      .eq("user_id", userData.user.id)
-      .eq("status", "active")
-      .maybeSingle(),
-  ]);
-  const isAal2Staff = Boolean(
-    !staffError &&
-    staff &&
-    claimsData?.claims?.sub === userData.user.id &&
-    claimsData.claims.aal === "aal2",
-  );
+  if (isInternalServiceCall) {
+    if (!bookingId) return json({ error: "internal_booking_id_required" }, 400);
+  } else {
+    const userClient = createClient(supabaseUrl, anonKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    });
+    const { data: userData, error: userError } = await userClient.auth.getUser(accessToken);
+    if (userError || !userData.user) return json({ error: "invalid_session" }, 401);
 
-  if (!bookingId && !isAal2Staff) return json({ error: "aal2_staff_access_required" }, 403);
-  if (bookingId && !isAal2Staff) {
-    const { data: ownedBooking, error: ownedBookingError } = await userClient
-      .from("booking_requests")
-      .select("id")
-      .eq("id", bookingId)
-      .eq("customer_id", userData.user.id)
-      .maybeSingle();
-    if (ownedBookingError || !ownedBooking) return json({ error: "booking_access_denied" }, 403);
+    const [{ data: claimsData }, { data: staff, error: staffError }] = await Promise.all([
+      userClient.auth.getClaims(accessToken),
+      userClient
+        .from("staff_members")
+        .select("id, role, status")
+        .eq("user_id", userData.user.id)
+        .eq("status", "active")
+        .maybeSingle(),
+    ]);
+    isAal2Staff = Boolean(
+      !staffError &&
+      staff &&
+      claimsData?.claims?.sub === userData.user.id &&
+      claimsData.claims.aal === "aal2",
+    );
+
+    if (!bookingId && !isAal2Staff) return json({ error: "aal2_staff_access_required" }, 403);
+    if (bookingId && !isAal2Staff) {
+      const { data: ownedBooking, error: ownedBookingError } = await userClient
+        .from("booking_requests")
+        .select("id")
+        .eq("id", bookingId)
+        .eq("customer_id", userData.user.id)
+        .maybeSingle();
+      if (ownedBookingError || !ownedBooking) return json({ error: "booking_access_denied" }, 403);
+    }
   }
 
   const admin = createClient(supabaseUrl, serviceRoleKey, {

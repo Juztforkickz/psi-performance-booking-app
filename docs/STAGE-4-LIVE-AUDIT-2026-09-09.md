@@ -47,3 +47,10 @@ This audit verifies the existing PSI beta after the Performance+ rollout. It doe
 - Perform the first supervised workshop-PC import using a real job manifest, then decide whether to install the watcher for routine use.
 - Test Dyno PDF ingestion and checked manual power/torque entry with real Mainline exports.
 - Add archive pagination, operational monitoring, backup restore rehearsal and the final public-launch beta data reset.
+
+## Booking payment and Calendar handoff
+
+- The main beta now has active backend functions for approval-first Stripe or verified bank-transfer deposits. Provider credentials remain separate from the app and Stripe charging stays unavailable until its secure account configuration is supplied.
+- A successful Stripe deposit or an AAL2 staff-verified bank transfer now moves the approved booking to `confirmed` and immediately starts the existing booking-scoped confirmation email and private PSI Google Calendar jobs.
+- The handoff is idempotent. If email or Calendar delivery is unavailable, the confirmed payment is retained and its durable integration jobs remain queued for a safe retry.
+- Existing booking integration history was unchanged during this rollout. The live queue contained only previously succeeded request, proposal, approval and cancellation notifications; there were no waiting or confirmed-booking jobs to send.
