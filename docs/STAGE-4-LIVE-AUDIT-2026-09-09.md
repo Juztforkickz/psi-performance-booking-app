@@ -7,6 +7,7 @@ This audit verifies the existing PSI beta after the Performance+ rollout. It doe
 - The remote pre-Stage 4 recovery tag is `psi-beta-before-performance-plus-2026-09-09`, resolving to `8ec070d8c1264d7ac2017da86085ae8b5c1ff016`.
 - The current beta source is on `main`. Existing unrelated uncommitted booking-payment changes remain preserved and excluded from this work.
 - iOS build 9 is the current successful Store-distribution beta binary. It uses channel `beta` and runtime `1.0.0-beta-performance-plus-1`. Build 8 was cancelled and never supplied to testers.
+- Build 9 is assigned to both the internal `Team (Expo)` group and the existing external `PSI Beta Testing` group. App Store Connect shows `Testing`, with automatic tester notification enabled.
 - The beta-tester recording supplied on 9 September showed the older build-7 Home and Garage screens. This is an installed-build mismatch rather than an account or entitlement fault: build 7 cannot receive build-9 updates because it uses runtime `1.0.0-beta-demo-1`.
 
 ## Live Supabase
