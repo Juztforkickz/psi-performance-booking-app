@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     opacity: 0.98,
   },
   brandName: {
-    color: colors.accent,
+    color: '#65CFF8',
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 1.05,

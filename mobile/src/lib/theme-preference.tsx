@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
 import { Appearance, type ColorSchemeName } from 'react-native';
+import { Platform } from 'react-native';
 
 export type ThemePreference = 'automatic' | 'bright' | 'dark';
 export type ResolvedTheme = 'bright' | 'dark';
@@ -114,6 +115,44 @@ function themeForMode(mode: ResolvedTheme): AppThemePalette {
   return mode === 'bright' ? BRIGHT_THEME : DARK_THEME;
 }
 
+const WEB_THEME_VARIABLES: Record<ResolvedTheme, Record<string, string>> = {
+  dark: {
+    'ink': '#050505', 'ink-soft': '#111111', 'panel': '#171717', 'panel-raised': '#202020',
+    'line': 'rgba(255, 255, 255, 0.18)', 'line-light': '#DBE3E7', 'silver': '#DBE3E7', 'white': '#FFFFFF',
+    'muted': '#AAB1B5', 'muted-dark': '#555D61', 'on-silver-muted': '#464646', 'notice-surface': '#DBE3E7',
+    'on-notice': '#050505', 'on-notice-muted': '#464646', 'accent': '#65CFF8', 'accent-dark': '#155D78',
+    'danger': '#FF9F91', 'success': '#82D6A0', 'booking-background': '#000000', 'booking-raised': '#050505',
+    'booking-surface': '#0D0D0D', 'booking-surface-alt': '#111111', 'booking-text': '#FFFFFF',
+    'booking-text-secondary': '#B9C0C4', 'booking-text-muted': '#9CA4A8', 'booking-placeholder': '#8F999E',
+    'booking-label': '#DBE3E7', 'booking-border': 'rgba(255, 255, 255, 0.18)',
+    'booking-border-strong': 'rgba(255, 255, 255, 0.42)', 'booking-input-border': '#DBE3E7',
+    'booking-ghost-border': '#495055', 'booking-accent': '#65CFF8', 'booking-accent-bright': '#DBE3E7',
+    'booking-accent-dark': '#155D78', 'booking-accent-text': '#050505', 'booking-selected-secondary': '#0C3444',
+    'booking-error': '#FF9F91', 'booking-error-surface': 'rgba(180, 35, 24, 0.12)', 'booking-error-text': '#FFD7D1',
+  },
+  bright: {
+    'ink': '#FFFFFF', 'ink-soft': '#E7EDF0', 'panel': '#F4F7F8', 'panel-raised': '#DBE3E7',
+    'line': 'rgba(5, 5, 5, 0.2)', 'line-light': '#050505', 'silver': '#050505', 'white': '#0A0A0A',
+    'muted': '#495055', 'muted-dark': '#555D61', 'on-silver-muted': '#DBE3E7', 'notice-surface': '#E7EDF0',
+    'on-notice': '#050505', 'on-notice-muted': '#495055', 'accent': '#155D78', 'accent-dark': '#65CFF8',
+    'danger': '#B42318', 'success': '#198F55', 'booking-background': '#EAF0F2', 'booking-raised': '#FFFFFF',
+    'booking-surface': '#FFFFFF', 'booking-surface-alt': '#E7EDF0', 'booking-text': '#111111',
+    'booking-text-secondary': '#495055', 'booking-text-muted': '#555D61', 'booking-placeholder': '#5D666B',
+    'booking-label': '#111111', 'booking-border': 'rgba(5, 5, 5, 0.2)',
+    'booking-border-strong': 'rgba(5, 5, 5, 0.42)', 'booking-input-border': '#41474A',
+    'booking-ghost-border': '#6B7479', 'booking-accent': '#155D78', 'booking-accent-bright': '#050505',
+    'booking-accent-dark': '#155D78', 'booking-accent-text': '#FFFFFF', 'booking-selected-secondary': '#D8F3FD',
+    'booking-error': '#B42318', 'booking-error-surface': 'rgba(180, 35, 24, 0.08)', 'booking-error-text': '#7A1D14',
+  },
+};
+
+function applyWebThemeVariables(mode: ResolvedTheme) {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+  const root = document.documentElement;
+  Object.entries(WEB_THEME_VARIABLES[mode]).forEach(([name, value]) => root.style.setProperty(`--psi-${name}`, value));
+  root.style.colorScheme = mode === 'bright' ? 'light' : 'dark';
+}
+
 export function ThemePreferenceProvider({ children }: PropsWithChildren) {
   const [themePreference, setThemePreference] = useState<ThemePreference>('automatic');
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() => {
@@ -123,6 +162,13 @@ export function ThemePreferenceProvider({ children }: PropsWithChildren) {
 
   const activeTheme = getResolvedTheme(themePreference, systemTheme);
   const theme = useMemo(() => themeForMode(activeTheme), [activeTheme]);
+
+  useEffect(() => {
+    applyWebThemeVariables(activeTheme);
+    if (Platform.OS !== 'web') {
+      Appearance.setColorScheme(themePreference === 'automatic' ? 'unspecified' : activeTheme === 'bright' ? 'light' : 'dark');
+    }
+  }, [activeTheme, themePreference]);
 
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {

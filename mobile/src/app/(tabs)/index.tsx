@@ -221,11 +221,11 @@ export default function CustomerHomeScreen() {
             style={[
               styles.demoBanner,
               compact && styles.compactFrame,
-              { backgroundColor: activeTheme === 'dark' ? colors.silver : theme.surfaceRaised, borderColor: theme.frame },
+              { backgroundColor: colors.noticeSurface, borderColor: theme.frame },
             ]}
           >
-            <Text style={[styles.demoTitle, { color: activeTheme === 'dark' ? colors.ink : theme.textInverse }]}>{PUBLIC_DEMO.label}</Text>
-            <Text style={[styles.demoCopy, { color: activeTheme === 'dark' ? '#464646' : '#555D61' }]}>Explore the app with demonstration data. Account access and submissions are disabled.</Text>
+            <Text style={[styles.demoTitle, { color: colors.onNotice }]}>{PUBLIC_DEMO.label}</Text>
+            <Text style={[styles.demoCopy, { color: colors.onNoticeMuted }]}>Explore the app with demonstration data. Account access and submissions are disabled.</Text>
           </View>
         ) : null}
 
@@ -477,7 +477,7 @@ export default function CustomerHomeScreen() {
             onPress={() => void Linking.openURL(contact.privacy)}
             style={({ pressed }) => [styles.footerLinkTarget, pressed && styles.pressed]}
           >
-            <Text style={[styles.footerLink, { color: activeTheme === 'dark' ? theme.accent : theme.accentAlt }]}>Privacy policy ↗</Text>
+            <Text style={[styles.footerLink, { color: colors.accent }]}>Privacy policy ↗</Text>
           </Pressable>
         </View>
 
@@ -795,7 +795,7 @@ const styles = StyleSheet.create({
   qrImageFrame: { width: 118, aspectRatio: 1, flexShrink: 0, overflow: 'hidden', backgroundColor: colors.white },
   qrImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
   qrCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
-  qrKicker: { color: colors.accentDark, fontSize: 9, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
+  qrKicker: { color: '#155D78', fontSize: 9, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   qrTitle: { color: colors.ink, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
   qrDescription: { color: '#555D61', fontSize: 10, lineHeight: 16 },
   footer: { minHeight: 64, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line },

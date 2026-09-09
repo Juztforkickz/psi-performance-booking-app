@@ -14,7 +14,7 @@ export function PerformanceVaultCard({ vehicleId }: { vehicleId?: string }) {
   </Pressable>;
 }
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#0B2029', borderColor: colors.accentDark, borderWidth: 1, borderRadius: 8, padding: 20, gap: 12 },
+  card: { backgroundColor: colors.inkSoft, borderColor: colors.accentDark, borderWidth: 1, borderRadius: 8, padding: 20, gap: 12 },
   pressed: { opacity: .82 },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   heading: { flexDirection: 'row', alignItems: 'center', gap: 8 },

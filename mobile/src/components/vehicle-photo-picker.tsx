@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     ...mobileFrame,
     width: '100%',
     overflow: 'hidden',
-    backgroundColor: 'rgba(9,9,9,.96)',
+    backgroundColor: colors.panel,
   },
   quickChoice: {
     minHeight: 42,
