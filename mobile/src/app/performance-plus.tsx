@@ -12,6 +12,24 @@ import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { aud, loadVaultOverview, PERFORMANCE_PRICING, VAULT_KINDS, VAULT_LABELS, type VaultOverview } from '@/lib/performance-plus';
 import { purchasePerformancePlus, restorePerformancePlus, subscriptionPurchasesAvailable, verifyWithServer } from '@/lib/performance-purchases';
 
+const VAULT_DESCRIPTIONS = {
+  invoice: 'Itemised PSI invoices and supporting paperwork.',
+  media: 'Before, progress and after workshop galleries.',
+  dyno: 'Mainline PDFs, figures and before/after results.',
+  service: 'Complete PSI service and repair records.',
+  document: 'Reports and private vehicle documentation.',
+  modification: 'A lasting record of each build milestone.',
+} as const;
+
+const VAULT_ICONS = {
+  invoice: 'receipt-outline',
+  media: 'images-outline',
+  dyno: 'speedometer-outline',
+  service: 'construct-outline',
+  document: 'documents-outline',
+  modification: 'build-outline',
+} as const;
+
 export default function PerformancePlusScreen() {
   const router = useRouter();
   const auth = useCustomerAuth();
@@ -73,21 +91,32 @@ export default function PerformancePlusScreen() {
   return <SafeAreaView edges={['top', 'left', 'right']} style={s.screen}><ScrollView contentContainerStyle={s.content}>
     <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={s.link}>‹ Back</Text></Pressable>
     <View style={s.heading}><Text style={s.eyebrow}>PSI PERFORMANCE+</Text><Text style={s.title}>{'YOUR CAR.\nITS COMPLETE STORY.'}</Text><Text style={s.copy}>Every service. Every build. Every important milestone. Your PSI vehicle record, in one place.</Text></View>
-    <View style={s.badge}><Ionicons name={activePlus ? 'shield-checkmark' : 'car-sport-outline'} color={colors.accent} size={20} /><Text style={s.badgeText}>{activePlus ? 'Performance+ active' : 'PSI Free'}</Text></View>
+    <View style={s.planCard}>
+      <View style={s.row}>
+        <View style={s.planHeading}><Ionicons name={activePlus ? 'shield-checkmark' : 'car-sport-outline'} color={colors.accent} size={22} /><View><Text style={s.planLabel}>CURRENT PLAN</Text><Text style={s.planName}>{activePlus ? 'PSI Performance+' : 'PSI Free'}</Text></View></View>
+        <View style={[s.badge, activePlus && s.activeBadge]}><Text style={[s.badgeText, activePlus && s.activeBadgeText]}>{activePlus ? 'ACTIVE' : 'FREE'}</Text></View>
+      </View>
+      <Text style={s.copy}>{activePlus ? 'Your complete private PSI vehicle record is unlocked.' : 'Your everyday PSI account remains free. Upgrade whenever you want the complete digital history.'}</Text>
+    </View>
     {permanentPlus ? <Text style={s.muted}>Permanent complimentary PSI owner access · A$0 · no renewal or expiry.</Text> : null}
     {activePlus && overview?.expires_at ? <Text style={s.muted}>Access through {new Date(overview.expires_at).toLocaleDateString('en-AU')}. Turning off renewal retains access until expiry.</Text> : null}
     <Text style={s.section}>Your vehicle vault</Text>
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.choices}>{vehicles.map(v => <Pressable accessibilityRole="button" accessibilityState={{ selected: v.id === vehicle?.id }} key={v.id} onPress={() => { setSelected(v.id); setMessage(''); }} style={[s.choice, v.id === vehicle?.id && s.chosen]}><Text style={s.choiceText}>{v.make} {v.model}</Text></Pressable>)}</ScrollView>
     {demo ? <Text style={s.muted}>Demo records · explore a sample vault without making a purchase.</Text> : null}
     {!demo && !overview && vehicle && !message ? <ActivityIndicator color={colors.accent} /> : null}
-    <View style={s.grid}>{VAULT_KINDS.map(kind => <Pressable accessibilityRole="button" key={kind} onPress={() => { if (demo || activePlus) router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle?.id ?? '', kind } }); else setMessage('Choose Performance+ below to unlock your private vehicle archive. Your free PSI features remain available.'); }} style={s.vault}>
-      <View style={s.row}><Ionicons name={kind === 'media' ? 'images-outline' : kind === 'dyno' ? 'speedometer-outline' : 'documents-outline'} color={colors.accent} size={26} /><Ionicons name={activePlus ? 'arrow-forward' : 'lock-closed-outline'} color={colors.silver} size={18} /></View>
-      <Text style={s.vaultTitle}>{VAULT_LABELS[kind]}</Text><Text style={s.copy}>{overview ? `${overview.counts[kind] ?? 0} PSI records available` : 'Your private PSI records'}</Text>
+    <View style={s.grid}>{VAULT_KINDS.map(kind => <Pressable accessibilityRole="button" key={kind} onPress={() => { if (demo || activePlus) router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle?.id ?? '', kind } }); else setMessage('Choose Performance+ below to unlock your private vehicle archive. Your free PSI features remain available.'); }} style={({ pressed }) => [s.vault, pressed && s.pressed]}>
+      <View style={s.row}><View style={s.vaultIcon}><Ionicons name={VAULT_ICONS[kind]} color={colors.accent} size={24} /></View><Ionicons name={activePlus || demo ? 'arrow-forward' : 'lock-closed'} color={colors.accent} size={18} /></View>
+      <View style={s.vaultCopy}><Text style={s.vaultTitle}>{VAULT_LABELS[kind]}</Text><Text style={s.recordCount}>{overview ? `${overview.counts[kind] ?? 0} PSI records available` : 'Your private PSI records'}</Text><Text style={s.vaultDescription}>{VAULT_DESCRIPTIONS[kind]}</Text></View>
+      <View style={s.vaultAction}><Text style={s.vaultActionText}>{activePlus || demo ? 'Open vault' : 'Unlock with Performance+'}</Text><Ionicons name="chevron-forward" color={colors.accent} size={15} /></View>
     </Pressable>)}</View>
     {vehicle ? <PrimaryButton label={demo ? 'Explore sample vehicle history' : 'Open vehicle history'} onPress={() => router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle.id } })} variant="outline" /> : null}
-    {!activePlus && entitlementReady ? <View style={s.pricing}><Text style={s.section}>Unlock Performance+</Text><Text style={s.copy}>One subscription for every vehicle in your PSI account.</Text><Text style={s.price}>{aud(PERFORMANCE_PRICING.monthly)}<Text style={s.copy}> / month</Text></Text><Text style={s.copy}>or {aud(PERFORMANCE_PRICING.annual)} billed annually · save {aud(PERFORMANCE_PRICING.monthly * 12 - PERFORMANCE_PRICING.annual)} a year.</Text>
-      <PrimaryButton disabled={busy || !subscriptionPurchasesAvailable()} label="Subscribe monthly" onPress={() => void subscribe('monthly')} />
-      <PrimaryButton disabled={busy || !subscriptionPurchasesAvailable()} label="Subscribe annually" onPress={() => void subscribe('annual')} variant="outline" />
+    {!activePlus && entitlementReady ? <View style={s.pricing}><Text style={s.pricingEyebrow}>UNLOCK YOUR COMPLETE VEHICLE STORY</Text><Text style={s.section}>Choose Performance+</Text><Text style={s.copy}>One subscription covers every vehicle in your PSI account.</Text>
+      <View style={s.priceGrid}>
+        <View style={s.priceOption}><Text style={s.priceLabel}>MONTHLY</Text><Text style={s.price}>{aud(PERFORMANCE_PRICING.monthly)}</Text><Text style={s.priceMeta}>per month</Text></View>
+        <View style={[s.priceOption, s.bestValue]}><Text style={s.bestValueLabel}>BEST VALUE</Text><Text style={s.priceLabel}>ANNUAL</Text><Text style={s.price}>{aud(PERFORMANCE_PRICING.annual)}</Text><Text style={s.priceMeta}>per year · save {aud(PERFORMANCE_PRICING.monthly * 12 - PERFORMANCE_PRICING.annual)}</Text></View>
+      </View>
+      <PrimaryButton disabled={busy || !subscriptionPurchasesAvailable()} label="Unlock annually" onPress={() => void subscribe('annual')} />
+      <PrimaryButton disabled={busy || !subscriptionPurchasesAvailable()} label="Choose monthly" onPress={() => void subscribe('monthly')} variant="outline" />
       {!subscriptionPurchasesAvailable() ? <Text style={s.muted}>{demo ? 'Preview only · no payment will be taken.' : 'Purchases are not open in this beta yet. PSI can grant complimentary beta access.'}</Text> : null}
       <Text style={s.muted}>Subscriptions renew automatically unless cancelled before renewal. Cancellation keeps your records safe and locks premium access after the paid period ends.</Text>
     </View> : null}
@@ -99,4 +128,48 @@ export default function PerformancePlusScreen() {
     <View style={s.row}><Pressable accessibilityRole="link" onPress={() => router.push('/privacy')}><Text style={s.link}>Privacy</Text></Pressable><Pressable accessibilityRole="link" onPress={() => router.push('/subscription-terms')}><Text style={s.link}>Subscription terms</Text></Pressable></View>
   </ScrollView></SafeAreaView>;
 }
-export const s = StyleSheet.create({ screen: { flex: 1, backgroundColor: colors.ink }, content: { width: '100%', maxWidth: 960, alignSelf: 'center', padding: 22, paddingBottom: 48, gap: 20 }, heading: { gap: 14, paddingVertical: 16 }, eyebrow: { color: colors.accent, fontSize: 14, fontWeight: '900', letterSpacing: 2 }, title: { color: colors.white, fontSize: 34, fontWeight: '900', letterSpacing: -.8 }, copy: { color: colors.silver, fontSize: 15, lineHeight: 23 }, muted: { color: colors.muted, fontSize: 13, lineHeight: 21 }, section: { color: colors.white, fontSize: 21, fontWeight: '800' }, badge: { alignSelf: 'flex-start', flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: colors.inkSoft, padding: 12, borderRadius: 6 }, badgeText: { color: colors.silver, fontWeight: '700' }, link: { color: colors.accent, fontSize: 15, paddingVertical: 8 }, choices: { gap: 10 }, choice: { padding: 13, borderWidth: 1, borderColor: colors.line, borderRadius: 5 }, chosen: { borderColor: colors.accent, backgroundColor: colors.inkSoft }, choiceText: { color: colors.white, fontSize: 14 }, grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, vault: { flexGrow: 1, flexBasis: '45%', minWidth: 140, padding: 18, backgroundColor: colors.panel, borderColor: colors.accentDark, borderWidth: 1, borderRadius: 8, gap: 16 }, row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }, vaultTitle: { color: colors.white, fontSize: 18, fontWeight: '800' }, pricing: { backgroundColor: colors.panel, borderRadius: 8, padding: 20, gap: 16 }, price: { color: colors.white, fontSize: 30, fontWeight: '800' }, notice: { color: colors.accent, fontSize: 15, lineHeight: 23 }, free: { borderTopWidth: 1, borderColor: colors.line, paddingTop: 22, gap: 12 } });
+export const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.ink },
+  content: { width: '100%', maxWidth: 960, alignSelf: 'center', padding: 22, paddingBottom: 48, gap: 20 },
+  heading: { gap: 14, paddingVertical: 16 },
+  eyebrow: { color: colors.accent, fontSize: 14, fontWeight: '900', letterSpacing: 2 },
+  title: { color: colors.white, fontSize: 34, fontWeight: '900', letterSpacing: -.8 },
+  copy: { color: colors.silver, fontSize: 15, lineHeight: 23 },
+  muted: { color: colors.muted, fontSize: 13, lineHeight: 21 },
+  section: { color: colors.white, fontSize: 21, fontWeight: '800' },
+  planCard: { backgroundColor: colors.panel, borderColor: colors.line, borderWidth: 1, borderRadius: 8, padding: 18, gap: 14 },
+  planHeading: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+  planLabel: { color: colors.muted, fontSize: 9, fontWeight: '900', letterSpacing: 1 },
+  planName: { color: colors.white, fontSize: 17, fontWeight: '900' },
+  badge: { alignSelf: 'flex-start', backgroundColor: colors.inkSoft, borderColor: colors.line, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 3 },
+  badgeText: { color: colors.silver, fontSize: 9, fontWeight: '900', letterSpacing: .8 },
+  activeBadge: { backgroundColor: colors.accent, borderColor: colors.accent },
+  activeBadgeText: { color: colors.ink },
+  link: { color: colors.accent, fontSize: 15, paddingVertical: 8 },
+  choices: { gap: 10 },
+  choice: { padding: 13, borderWidth: 1, borderColor: colors.line, borderRadius: 5 },
+  chosen: { borderColor: colors.accent, backgroundColor: colors.inkSoft },
+  choiceText: { color: colors.white, fontSize: 14 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  vault: { flexGrow: 1, flexBasis: '45%', minWidth: 150, padding: 17, backgroundColor: colors.panel, borderColor: colors.accentDark, borderWidth: 1, borderRadius: 8, gap: 14 },
+  pressed: { opacity: .76 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  vaultIcon: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.inkSoft, borderRadius: 21 },
+  vaultCopy: { flex: 1, gap: 5 },
+  vaultTitle: { color: colors.white, fontSize: 18, fontWeight: '800' },
+  recordCount: { color: colors.accent, fontSize: 12, fontWeight: '900' },
+  vaultDescription: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  vaultAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 11 },
+  vaultActionText: { flex: 1, color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: .35, textTransform: 'uppercase' },
+  pricing: { backgroundColor: colors.panel, borderColor: colors.line, borderWidth: 1, borderRadius: 8, padding: 20, gap: 16 },
+  pricingEyebrow: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.25 },
+  priceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  priceOption: { flex: 1, minWidth: 140, borderColor: colors.line, borderWidth: 1, padding: 15, gap: 4 },
+  bestValue: { borderColor: colors.accent },
+  bestValueLabel: { alignSelf: 'flex-start', color: colors.ink, backgroundColor: colors.accent, paddingHorizontal: 7, paddingVertical: 4, fontSize: 8, fontWeight: '900', letterSpacing: .7 },
+  priceLabel: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
+  price: { color: colors.white, fontSize: 25, fontWeight: '900' },
+  priceMeta: { color: colors.muted, fontSize: 11, lineHeight: 16 },
+  notice: { color: colors.accent, fontSize: 15, lineHeight: 23 },
+  free: { borderTopWidth: 1, borderColor: colors.line, paddingTop: 22, gap: 12 },
+});

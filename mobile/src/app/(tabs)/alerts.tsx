@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { PerformancePlanCard } from '@/components/performance-plan-card';
 import { PerformanceUpdates } from '@/components/performance-updates';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAustralianDateTime } from '@/lib/australian-date';
@@ -130,6 +131,8 @@ export default function AlertsScreen() {
               : 'Example alerts only. This demo does not register or notify your device.'}
           </Text>
         </View>
+
+        <PerformancePlanCard />
 
         <View style={[styles.themePanel, { borderColor: theme.border, backgroundColor: theme.surface }]}>
           <Text style={[styles.themeModeTitle, { color: theme.text }]}>Theme preference</Text>
