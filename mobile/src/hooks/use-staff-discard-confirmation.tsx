@@ -2,7 +2,7 @@ import { type ReactNode, useCallback, useRef, useState } from 'react';
 import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { colors, spacing } from '@/constants/brand';
 
 type DiscardConfirmationOptions = {
   title?: string;
@@ -62,12 +62,12 @@ export function useStaffDiscardConfirmation({
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,.82)', padding: spacing.md },
-  card: { ...mobileFrame, width: '100%', maxWidth: 480, maxHeight: '90%', backgroundColor: colors.panel },
+  card: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, width: '100%', maxWidth: 480, maxHeight: '90%', backgroundColor: colors.panel },
   scroll: { flexGrow: 0 },
   content: { gap: spacing.md, padding: spacing.lg },
   title: { color: colors.white, fontSize: 20, fontWeight: '900' },
   body: { color: colors.muted, fontSize: 15, lineHeight: 23 },
-  button: { ...mobileFrame, width: '100%', minHeight: 48, alignItems: 'center', justifyContent: 'center', padding: spacing.md },
+  button: { borderWidth: 1, borderColor: colors.line, borderRadius: 8, width: '100%', minHeight: 48, alignItems: 'center', justifyContent: 'center', padding: spacing.md },
   keepButton: { backgroundColor: colors.silver },
   keepText: { color: colors.ink, fontSize: 15, fontWeight: '800', textAlign: 'center' },
   discardButton: { borderColor: colors.danger, backgroundColor: colors.inkSoft },

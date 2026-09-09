@@ -79,7 +79,7 @@ const STAFF_NAVIGATION_ITEMS: readonly {
 
 export function PersistentBottomNavigation() {
   const pathname = usePathname();
-  const { section, bookingId } = useGlobalSearchParams<{ section?: string | string[]; bookingId?: string | string[] }>();
+  const { section, bookingId, customerId } = useGlobalSearchParams<{ section?: string | string[]; bookingId?: string | string[]; customerId?: string | string[] }>();
   const router = useRouter();
   const { navigateToSection } = useStaffNavigation();
   const { theme } = useThemePreference();
@@ -88,6 +88,7 @@ export function PersistentBottomNavigation() {
   const isStaffWorkspace = pathname === '/staff' || pathname === '/staff-security';
   const currentStaffSection = resolveStaffSection(section);
   const hasBookingDetail = currentStaffSection === 'bookings' && Boolean(Array.isArray(bookingId) ? bookingId[0] : bookingId);
+  const hasCustomerDetail = currentStaffSection === 'customers' && Boolean(Array.isArray(customerId) ? customerId[0] : customerId);
   const currentStaffTab = pathname === '/staff-security' ? 'menu' : staffTabForSection(currentStaffSection);
   const navigationItems = isStaffWorkspace ? STAFF_NAVIGATION_ITEMS : NAVIGATION_ITEMS;
 
@@ -118,7 +119,7 @@ export function PersistentBottomNavigation() {
               key={item.label}
               onPress={() => {
                 if ('section' in item) {
-                  if (pathname !== '/staff' || currentStaffSection !== item.section || (item.section === 'bookings' && hasBookingDetail)) navigateToSection(item.section);
+                  if (pathname !== '/staff' || currentStaffSection !== item.section || (item.section === 'bookings' && hasBookingDetail) || (item.section === 'customers' && hasCustomerDetail)) navigateToSection(item.section);
                 } else if (pathname !== item.href) router.replace(item.href);
               }}
               style={({ pressed }) => [

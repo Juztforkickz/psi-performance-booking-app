@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
-import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { colors, spacing } from '@/constants/brand';
 import { formatAustralianDateTime } from '@/lib/australian-date';
 import type { PsiEventRow } from '@/lib/database.types';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
@@ -55,7 +55,7 @@ export function StaffEventsManager({ onDirtyChange, onBusyChange }: {
     try {
       setEvents(await loadStaffPsiEvents());
     } catch {
-      setFeedback({ error: true, text: 'PSI Events could not be loaded. Staff access remains protected.' });
+      setFeedback({ error: true, text: 'Events could not be loaded. Try refreshing.' });
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export function StaffEventsManager({ onDirtyChange, onBusyChange }: {
     try {
       await createPsiEvent({ description, location, startsAt: startsAt.toISOString(), title }, publish);
       resetForm();
-      setFeedback({ error: false, text: publish ? 'Event published and customer alerts queued.' : 'Draft event saved privately.' });
+      setFeedback({ error: false, text: publish ? 'Event published. Customer alerts queued.' : 'Draft saved.' });
       await refresh();
     } catch (error) {
       setFeedback({ error: true, text: eventErrorMessage(error) });
@@ -89,7 +89,7 @@ export function StaffEventsManager({ onDirtyChange, onBusyChange }: {
     try {
       await updatePsiEvent(editingId, { description, location, startsAt: startsAt.toISOString(), title });
       resetForm();
-      setFeedback({ error: false, text: 'Event details saved. Published-event alerts were queued when required.' });
+      setFeedback({ error: false, text: 'Changes saved. Customer updates queued where needed.' });
       await refresh();
     } catch (error) {
       setFeedback({ error: true, text: eventErrorMessage(error) });
@@ -153,13 +153,13 @@ export function StaffEventsManager({ onDirtyChange, onBusyChange }: {
       {formOpen ? <View style={styles.formCard}>
         <View style={styles.headingRow}>
           <View style={styles.flex}>
-            <Text style={styles.heading}>{editingId ? 'Edit PSI Event' : 'Create PSI Event'}</Text>
-            <Text style={styles.copy}>{REVIEW_ENVIRONMENT.enabled ? 'Sandbox event only. External notifications are off.' : editingId ? 'Changes to a published event notify customers.' : 'Save a private draft, or publish and notify customers.'}</Text>
+            <Text style={styles.heading}>{editingId ? 'Edit event' : 'New event'}</Text>
+            <Text style={styles.copy}>{REVIEW_ENVIRONMENT.enabled ? 'Demo event. Customer notifications are off.' : editingEvent?.status === 'published' ? 'Saving changes notifies customers.' : 'Drafts stay private. Publishing notifies customers.'}</Text>
           </View>
-          <Ionicons color={colors.accent} name="flag" size={24} />
+          <Pressable disabled={busy} accessibilityLabel="Back to events" accessibilityRole="button" onPress={closeForm} style={styles.refresh}><Ionicons color={colors.muted} name="close" size={21} /></Pressable>
         </View>
 
-        <Field label="Event title" hint="Required · max 80 characters">
+        <Field label="Event title">
           <FormInput editable={!busy} maxLength={80} onChangeText={setTitle} placeholder="Cars & Coffee" value={title} />
         </Field>
         <Field label="Location" hint="Optional">
@@ -215,16 +215,14 @@ export function StaffEventsManager({ onDirtyChange, onBusyChange }: {
         {editingId ? (
           <View style={styles.actions}>
             <PrimaryButton disabled={busy || !dirty} label="Save changes" loading={busyAction === 'save-edit'} onPress={() => void saveChanges()} />
-            {editingEvent?.status === 'draft' ? <PrimaryButton disabled={busy || dirty} label="Publish & alert customers" loading={busyAction === `publish:${editingId}`} onPress={() => void changeStatus(editingEvent, 'publish')} /> : null}
+            {editingEvent?.status === 'draft' ? <PrimaryButton disabled={busy || dirty} label="Publish & notify customers" loading={busyAction === `publish:${editingId}`} onPress={() => void changeStatus(editingEvent, 'publish')} variant="outline" /> : null}
             {dirty ? <Text style={styles.copy}>Save changes before publishing or cancelling the event.</Text> : null}
-            {editingEvent && editingEvent.status !== 'cancelled' ? <PrimaryButton disabled={busy || dirty} label="Cancel event & alert customers" loading={busyAction === `cancel:${editingId}`} onPress={() => void changeStatus(editingEvent, 'cancel')} variant="outline" /> : null}
-            <PrimaryButton disabled={busy} label="Back to events" onPress={closeForm} variant="outline" />
+            {editingEvent && editingEvent.status !== 'cancelled' ? <PrimaryButton disabled={busy || dirty} label="Cancel & notify customers" loading={busyAction === `cancel:${editingId}`} onPress={() => void changeStatus(editingEvent, 'cancel')} variant="outline" /> : null}
           </View>
         ) : (
           <View style={styles.actions}>
-            <PrimaryButton disabled={busy} label="Save private draft" loading={busyAction === 'create-draft'} onPress={() => void create(false)} variant="outline" />
-            <PrimaryButton disabled={busy} label="Publish & alert customers" loading={busyAction === 'create-publish'} onPress={() => void create(true)} />
-            <PrimaryButton disabled={busy} label="Back to events" onPress={closeForm} variant="outline" />
+            <PrimaryButton disabled={busy} label="Save draft" loading={busyAction === 'create-draft'} onPress={() => void create(false)} />
+            <PrimaryButton disabled={busy} label="Publish & notify customers" loading={busyAction === 'create-publish'} onPress={() => void create(true)} variant="outline" />
           </View>
         )}
       </View> : <>
@@ -237,22 +235,21 @@ export function StaffEventsManager({ onDirtyChange, onBusyChange }: {
           {loading ? <ActivityIndicator color={colors.accent} size="small" /> : <Ionicons color={colors.accent} name="refresh" size={18} />}
         </Pressable>
       </View>
-      {!loading && currentEvents.length === 0 ? <Text style={styles.empty}>{events.length ? 'No current PSI Events. Finished and cancelled events are in the archive.' : 'No PSI Events have been created.'}</Text> : null}
+      {!loading && currentEvents.length === 0 ? <Text style={styles.empty}>{events.length ? 'No current events. Past events are below.' : 'No events yet.'}</Text> : null}
       {currentEvents.map((event) => (
         <Pressable disabled={busy} accessibilityRole="button" accessibilityLabel={`Open event ${event.title}`} key={event.id} onPress={() => edit(event)} style={({ pressed }) => [styles.eventCard, pressed && styles.pressed]}>
           <View style={styles.headingRow}>
             <View style={styles.flex}>
               <Text style={styles.eventTitle}>{event.title}</Text>
               <Text style={styles.eventDate}>{formatAustralianDateTime(event.starts_at)}</Text>
-              {event.location ? <Text style={styles.eventLocation}>{event.location}</Text> : null}
+              <Text style={styles.eventLocation}>{event.status === 'published' ? 'Published' : 'Draft'}{event.location ? ` · ${event.location}` : ''}</Text>
             </View>
             <Ionicons color={colors.accent} name="chevron-forward" size={20} />
           </View>
-          <Text style={[styles.badge, event.status === 'published' && styles.badgePublished]}>{event.status}</Text>
         </Pressable>
       ))}
 
-      <View style={styles.archivePanel}>
+      {archivedEvents.length ? <View style={styles.archivePanel}>
         <Pressable
           accessibilityLabel={`Event archive, ${archivedEvents.length} events`}
           accessibilityRole="button"
@@ -261,8 +258,8 @@ export function StaffEventsManager({ onDirtyChange, onBusyChange }: {
           style={({ pressed }) => [styles.archiveHeading, pressed && styles.pressed]}
         >
           <View style={styles.flex}>
-            <Text style={styles.heading}>Event archive</Text>
-            <Text style={styles.archiveMeta}>{archivedEvents.length} finished or cancelled event{archivedEvents.length === 1 ? '' : 's'}</Text>
+            <Text style={styles.heading}>Past events</Text>
+            <Text style={styles.archiveMeta}>{archivedEvents.length} finished or cancelled</Text>
           </View>
           <Ionicons color={colors.accent} name={archiveOpen ? 'chevron-up' : 'chevron-down'} size={22} />
         </Pressable>
@@ -275,7 +272,7 @@ export function StaffEventsManager({ onDirtyChange, onBusyChange }: {
             </View>
           </View>
         )) : <Text style={styles.archiveEmpty}>No events are archived yet.</Text> : null}
-      </View>
+      </View> : null}
       </>}
     </View>
   );
@@ -296,32 +293,30 @@ function eventErrorMessage(error: unknown) {
 
 const styles = StyleSheet.create({
   workspace: { gap: spacing.md },
-  formCard: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.md, padding: spacing.md },
+  formCard: { gap: spacing.md },
   headingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   flex: { flex: 1, minWidth: 0 },
-  heading: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: 0.5, textTransform: 'uppercase' },
-  copy: { color: colors.muted, fontSize: 11, lineHeight: 17 },
+  heading: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  copy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 3 },
   textArea: { minHeight: 94, paddingTop: spacing.sm },
   dateRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  dateButton: { ...mobileFrame, minHeight: 46, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderColor: colors.accent, paddingHorizontal: spacing.md },
-  dateButtonText: { color: colors.white, fontSize: 11, fontWeight: '900' },
+  dateButton: { borderWidth: 1, borderColor: colors.line, borderRadius: 8, minHeight: 46, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  dateButtonText: { color: colors.white, fontSize: 13, fontWeight: '600', flexShrink: 1 },
   actions: { gap: spacing.sm },
-  success: { color: colors.success, fontSize: 11, fontWeight: '800', lineHeight: 17 },
-  error: { color: colors.danger, fontSize: 11, fontWeight: '800', lineHeight: 17 },
+  success: { color: colors.success, fontSize: 13, lineHeight: 19 },
+  error: { color: colors.danger, fontSize: 13, lineHeight: 19 },
   listHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  refresh: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  empty: { ...mobileFrame, color: colors.muted, backgroundColor: colors.inkSoft, fontSize: 11, lineHeight: 17, padding: spacing.md },
-  eventCard: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.sm, padding: spacing.md },
-  eventTitle: { color: colors.white, fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
-  eventDate: { color: colors.accent, fontSize: 11, fontWeight: '900', marginTop: 3 },
-  eventLocation: { color: colors.white, fontSize: 11, fontWeight: '800' },
-  badge: { alignSelf: 'flex-start', color: colors.muted, borderColor: colors.line, borderWidth: 1, fontSize: 9, fontWeight: '900', paddingHorizontal: spacing.sm, paddingVertical: 5, textTransform: 'uppercase' },
-  badgePublished: { color: colors.success, borderColor: colors.success },
-  archivePanel: { ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.md },
+  refresh: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  empty: { color: colors.muted, fontSize: 13, lineHeight: 19, paddingVertical: spacing.sm },
+  eventCard: { borderWidth: 1, borderColor: colors.line, borderRadius: 10, backgroundColor: colors.panel, padding: spacing.md },
+  eventTitle: { color: colors.white, fontSize: 15, fontWeight: '600' },
+  eventDate: { color: colors.accent, fontSize: 12, marginTop: 4 },
+  eventLocation: { color: colors.muted, fontSize: 12, marginTop: 4 },
+  archivePanel: { borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.sm },
   archiveHeading: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  archiveMeta: { color: colors.muted, fontSize: 10, lineHeight: 16, marginTop: 3 },
+  archiveMeta: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 3 },
   archivedEventRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: spacing.sm },
-  archivedEventTitle: { color: colors.white, fontSize: 12, fontWeight: '900' },
+  archivedEventTitle: { color: colors.white, fontSize: 13, fontWeight: '600' },
   archiveEmpty: { color: colors.muted, fontSize: 11, lineHeight: 17, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.sm },
   pressed: { opacity: 0.72 },
 });

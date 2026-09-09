@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PersistentBottomNavigation } from '@/components/persistent-bottom-navigation';
 import { AppleReviewBanner } from '@/components/apple-review-banner';
 import { AppModeGate } from '@/components/app-mode-gate';
+import { UiToneProvider } from '@/components/ui';
 import { colors } from '@/constants/brand';
 import { CustomerAccountProvider } from '@/lib/customer-account-context';
 import { CustomerAuthProvider } from '@/lib/customer-auth-context';
@@ -18,6 +19,7 @@ import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme-prefere
 import { startSupabaseAuthLifecycle } from '@/lib/supabase';
 
 function ThemeAwareRootShell() {
+  const pathname = usePathname();
   const { activeTheme, theme } = useThemePreference();
   const baseTheme = activeTheme === 'bright' ? DefaultTheme : DarkTheme;
   const shellTheme = {
@@ -41,6 +43,7 @@ function ThemeAwareRootShell() {
           <NotificationProvider>
             <CustomerPreviewProvider>
               <StaffNavigationProvider>
+                <UiToneProvider tone={pathname === '/staff' || pathname === '/staff-security' ? 'staff' : 'brand'}>
                 <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
                 <View style={styles.shell}>
                   <AppleReviewBanner />
@@ -55,6 +58,7 @@ function ThemeAwareRootShell() {
                   </View>
                   <PersistentBottomNavigation />
                 </View>
+                </UiToneProvider>
               </StaffNavigationProvider>
             </CustomerPreviewProvider>
           </NotificationProvider>

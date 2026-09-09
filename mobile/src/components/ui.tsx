@@ -1,4 +1,4 @@
-import { createContext, useContext, type PropsWithChildren, type ReactNode } from 'react';
+import { createContext, useContext, useState, type PropsWithChildren, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -13,11 +13,15 @@ import {
 import { bookingColors, colors, mobileFrame, spacing } from '@/constants/brand';
 
 const FieldLabelContext = createContext<string | undefined>(undefined);
-type UiTone = 'brand' | 'booking';
+type UiTone = 'brand' | 'booking' | 'staff';
 const UiToneContext = createContext<UiTone>('brand');
 
 export function UiToneProvider({ children, tone }: PropsWithChildren<{ tone: UiTone }>) {
   return <UiToneContext.Provider value={tone}>{children}</UiToneContext.Provider>;
+}
+
+export function useUiTone() {
+  return useContext(UiToneContext);
 }
 
 export function Eyebrow({ children, dark = false }: PropsWithChildren<{ dark?: boolean }>) {
@@ -26,7 +30,7 @@ export function Eyebrow({ children, dark = false }: PropsWithChildren<{ dark?: b
   return (
     <Text
       maxFontSizeMultiplier={2}
-      style={[styles.eyebrow, tone === 'booking' && styles.eyebrowBooking, dark && styles.eyebrowDark]}
+      style={[styles.eyebrow, tone === 'booking' && styles.eyebrowBooking, dark && styles.eyebrowDark, tone === 'staff' && styles.eyebrowStaff]}
     >
       {children}
     </Text>
@@ -53,12 +57,13 @@ export function PrimaryButton({
   const contextTone = useContext(UiToneContext);
   const tone = toneOverride ?? contextTone;
   const bookingTone = tone === 'booking';
+  const staffTone = tone === 'staff';
 
   return (
     <Pressable
       accessibilityLabel={label}
       accessibilityRole="button"
-      accessibilityState={{ disabled, busy: loading }}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       disabled={disabled || loading}
       onPress={onPress}
       style={({ pressed }) => [
@@ -66,14 +71,18 @@ export function PrimaryButton({
         variant === 'light' && styles.buttonLight,
         variant === 'outline' && styles.buttonOutline,
         bookingTone && variant === 'accent' && styles.buttonBooking,
+        staffTone && styles.buttonStaff,
         pressed && styles.buttonPressed,
-        (disabled || loading) && styles.buttonDisabled,
+        !staffTone && (disabled || loading) && styles.buttonDisabled,
         style,
         mobileFrame,
+        staffTone && styles.staffFrame,
+        staffTone && variant === 'accent' && styles.buttonStaffAccent,
+        staffTone && disabled && styles.buttonStaffDisabled,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' ? colors.white : colors.ink} />
+        <ActivityIndicator color={staffTone && disabled ? colors.muted : variant === 'outline' ? colors.white : colors.ink} />
       ) : (
         <Text
           maxFontSizeMultiplier={2}
@@ -81,6 +90,8 @@ export function PrimaryButton({
             styles.buttonText,
             variant === 'light' && styles.buttonTextDark,
             variant === 'outline' && styles.buttonTextOutline,
+            staffTone && styles.buttonTextStaff,
+            staffTone && disabled && styles.buttonTextStaffDisabled,
           ]}
         >
           {label}
@@ -98,13 +109,14 @@ export function Field({
 }: PropsWithChildren<{ label: string; hint?: string; error?: string }>) {
   const tone = useContext(UiToneContext);
   const bookingTone = tone === 'booking';
+  const staffTone = tone === 'staff';
 
   return (
     <FieldLabelContext.Provider value={label}>
-      <View style={styles.field}>
-        <View style={styles.fieldLabelRow}>
-          <Text maxFontSizeMultiplier={2} style={[styles.fieldLabel, bookingTone && styles.fieldLabelBooking]}>{label}</Text>
-          {hint ? <Text maxFontSizeMultiplier={2} style={[styles.fieldHint, bookingTone && styles.fieldHintBooking]}>{hint}</Text> : null}
+      <View style={[styles.field, staffTone && styles.fieldStaff]}>
+        <View style={[styles.fieldLabelRow, staffTone && styles.fieldLabelRowStaff]}>
+          <Text maxFontSizeMultiplier={2} style={[styles.fieldLabel, bookingTone && styles.fieldLabelBooking, staffTone && styles.fieldLabelStaff]}>{label}</Text>
+          {hint ? <Text maxFontSizeMultiplier={2} style={[styles.fieldHint, bookingTone && styles.fieldHintBooking, staffTone && styles.fieldHintStaff]}>{hint}</Text> : null}
         </View>
         {children}
         {error ? (
@@ -117,27 +129,35 @@ export function Field({
   );
 }
 
-export function FormInput({ error, style, accessibilityLabel, ...props }: TextInputProps & { error?: string }) {
+export function FormInput({ error, style, accessibilityLabel, onFocus, onBlur, ...props }: TextInputProps & { error?: string }) {
   const fieldLabel = useContext(FieldLabelContext);
   const tone = useContext(UiToneContext);
   const bookingTone = tone === 'booking';
+  const staffTone = tone === 'staff';
+  const [focused, setFocused] = useState(false);
 
   return (
     <TextInput
       accessibilityLabel={accessibilityLabel ?? fieldLabel}
       autoCorrect={false}
       maxFontSizeMultiplier={2}
-      placeholderTextColor={bookingTone ? bookingColors.placeholder : colors.mutedDark}
+      placeholderTextColor={bookingTone ? bookingColors.placeholder : staffTone ? colors.muted : colors.mutedDark}
       selectionColor={bookingTone ? bookingColors.accent : colors.accent}
       style={[
         styles.input,
         bookingTone && styles.inputBooking,
         error ? styles.inputError : null,
         bookingTone && error ? styles.inputErrorBooking : null,
+        staffTone && styles.inputStaff,
         style,
         mobileFrame,
+        staffTone && styles.staffFrame,
+        staffTone && focused && styles.inputStaffFocused,
+        staffTone && error ? styles.inputStaffError : null,
       ]}
       {...props}
+      onFocus={event => { setFocused(true); onFocus?.(event); }}
+      onBlur={event => { setFocused(false); onBlur?.(event); }}
     />
   );
 }
@@ -226,6 +246,45 @@ export function ChoiceCard({
 }
 
 const styles = StyleSheet.create({
+  staffFrame: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 8,
+  },
+  eyebrowStaff: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0,
+    textTransform: 'none',
+  },
+  buttonStaff: {
+    minHeight: 48,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  buttonStaffAccent: { borderColor: colors.accent },
+  buttonStaffDisabled: { backgroundColor: colors.panelRaised, borderColor: colors.line },
+  buttonTextStaff: {
+    fontSize: 15,
+    fontWeight: '700',
+    lineHeight: 21,
+    letterSpacing: 0,
+    textTransform: 'none',
+  },
+  buttonTextStaffDisabled: { color: colors.muted },
+  fieldStaff: { gap: 8 },
+  fieldLabelRowStaff: { justifyContent: 'flex-start', columnGap: 10, rowGap: 3 },
+  fieldLabelStaff: { color: colors.white, fontSize: 14, fontWeight: '600', textTransform: 'none' },
+  fieldHintStaff: { fontSize: 12, flexShrink: 1 },
+  inputStaff: {
+    minHeight: 48,
+    fontSize: 15,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: colors.ink,
+  },
+  inputStaffFocused: { borderColor: colors.accent },
+  inputStaffError: { borderColor: colors.danger },
   eyebrow: {
     color: colors.accent,
     fontSize: 12,

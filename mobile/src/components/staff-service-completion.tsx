@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
-import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { colors, spacing } from '@/constants/brand';
 import { todayAustralianDate } from '@/lib/australian-date';
 import type { BookingRequestRow } from '@/lib/database.types';
 import { completePsiService } from '@/lib/staff-record-publishing';
@@ -50,16 +50,7 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
     confirmDiscard(discard);
   };
 
-  if (booking.booking_type !== 'service') return null;
-  if (booking.state === 'completed' || booking.state === 'cancelled') return null;
-  if (booking.state !== 'confirmed') {
-    return (
-      <View style={styles.waiting}>
-        <Ionicons color={colors.muted} name="lock-closed" size={15} />
-        <Text style={styles.waitingText}>Complete Service becomes available only after this service booking is confirmed.</Text>
-      </View>
-    );
-  }
+  if (booking.booking_type !== 'service' || booking.state !== 'confirmed') return null;
 
   const completeService = async () => {
     if (!confirmed || busy) return;
@@ -80,7 +71,7 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
       setSavedValues(values);
       setFeedback({
         kind: 'success',
-        text: 'Service completed. The booking is closed and the customer’s PSI history and maintenance details are updated.',
+        text: 'Service completed. Booking closed and customer service history updated.',
       });
     } catch (error) {
       setFeedback({ kind: 'error', text: completionErrorMessage(error) });
@@ -92,8 +83,7 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
   if (!open) {
     return (
       <View style={styles.launch}>
-        <Text style={styles.launchCopy}>Ready to record the completed service.</Text>
-        <PrimaryButton label="Complete Service" onPress={() => setOpen(true)} variant="outline" />
+        <PrimaryButton label="Complete service" onPress={() => setOpen(true)} />
       </View>
     );
   }
@@ -102,10 +92,7 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
     <View style={styles.workspace}>
       {discardDialog}
       <View style={styles.heading}>
-        <View style={styles.flex}>
-          <Text style={styles.kicker}>Service record</Text>
-          <Text style={styles.title}>Complete Service</Text>
-        </View>
+        <Text style={styles.title}>{feedback?.kind === 'success' ? 'Service completed' : 'Complete service'}</Text>
         {!feedback || feedback.kind === 'error' ? (
           <Pressable accessibilityLabel="Close service completion" accessibilityRole="button" disabled={busy} onPress={close} style={styles.close}>
             <Ionicons color={colors.white} name="close" size={20} />
@@ -113,29 +100,30 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
         ) : null}
       </View>
 
-      <Text style={styles.identity}>{customerLabel}</Text>
-      <Text style={styles.vehicle}>{vehicleLabel}</Text>
-      <Text style={styles.warning}>This closes the booking and creates a permanent PSI service record. Corrections must be recorded separately.</Text>
-
       {feedback?.kind !== 'success' ? (
         <View pointerEvents={busy ? 'none' : 'auto'} style={styles.actions}>
+          <View style={styles.identityBlock}>
+            <Text style={styles.identity}>{customerLabel}</Text>
+            <Text style={styles.vehicle}>{vehicleLabel}</Text>
+          </View>
+          <Text style={styles.warning}>Creates a permanent service record and closes this booking.</Text>
           <Field hint="DD/MM/YYYY" label="Completed date">
             <FormInput editable={!busy} keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(value) => { setCompletedDate(value); setConfirmed(false); }} value={completedDate} />
           </Field>
-          <Field hint="Optional · whole kilometres" label="Odometer at PSI">
+          <Field hint="Optional · whole kilometres" label="Odometer">
             <FormInput editable={!busy} keyboardType="number-pad" maxLength={8} onChangeText={(value) => { setOdometerKm(value.replace(/\D/gu, '')); setConfirmed(false); }} placeholder="84210" value={odometerKm} />
           </Field>
-          <Field label="Completed work summary">
+          <Field label="Work completed">
             <FormInput editable={!busy} multiline numberOfLines={4} onChangeText={(value) => { setSummary(value); setConfirmed(false); }} placeholder="Work completed, inspections and workshop findings" style={styles.notes} textAlignVertical="top" value={summary} />
           </Field>
           <View style={styles.twoColumn}>
             <View style={styles.column}>
-              <Field hint="Optional · DD/MM/YYYY" label="Next PSI check-in date">
+              <Field hint="Optional · DD/MM/YYYY" label="Next check-in date">
                 <FormInput editable={!busy} keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(value) => { setNextCheckInDate(value); setConfirmed(false); }} placeholder="DD/MM/YYYY" value={nextCheckInDate} />
               </Field>
             </View>
             <View style={styles.column}>
-              <Field hint="Optional · whole kilometres" label="Next PSI check-in odometer">
+              <Field hint="Optional · whole kilometres" label="Next check-in odometer">
                 <FormInput editable={!busy} keyboardType="number-pad" maxLength={8} onChangeText={(value) => { setNextCheckInOdometerKm(value.replace(/\D/gu, '')); setConfirmed(false); }} placeholder="94210" value={nextCheckInOdometerKm} />
               </Field>
             </View>
@@ -143,16 +131,15 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
 
           <Pressable disabled={busy} accessibilityRole="checkbox" accessibilityState={{ checked: confirmed, disabled: busy }} onPress={() => setConfirmed((value) => !value)} style={styles.confirmRow}>
             <View style={[styles.checkbox, confirmed && styles.checkboxChecked]}>{confirmed ? <Ionicons color={colors.ink} name="checkmark" size={16} /> : null}</View>
-            <Text style={styles.confirmText}>I checked the customer, vehicle, completed date, odometer and work summary. Create the official read-only PSI history and close this booking.</Text>
+            <Text style={styles.confirmText}>I checked the customer, vehicle, date, odometer and work summary. Corrections must be recorded separately.</Text>
           </Pressable>
           {feedback ? <Text accessibilityRole="alert" style={styles.error}>{feedback.text}</Text> : null}
           <PrimaryButton disabled={!confirmed || !summary.trim()} label="Complete service" loading={busy} onPress={() => void completeService()} />
         </View>
       ) : (
         <View style={styles.successBox}>
-          <Ionicons color={colors.success} name="checkmark-circle" size={26} />
           <Text accessibilityRole="alert" style={styles.success}>{feedback.text}</Text>
-          <PrimaryButton label="Refresh booking queue" onPress={onRefresh} />
+          <PrimaryButton label="Refresh booking" onPress={onRefresh} />
         </View>
       )}
     </View>
@@ -177,28 +164,24 @@ function completionErrorMessage(error: unknown) {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  waiting: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.xs, marginTop: spacing.md, paddingTop: spacing.sm },
-  waitingText: { color: colors.muted, flex: 1, fontSize: 11, lineHeight: 17 },
   launch: { alignItems: 'stretch', borderTopColor: colors.line, borderTopWidth: 1, gap: spacing.sm, marginTop: spacing.md, paddingTop: spacing.md },
-  launchCopy: { color: colors.silver, fontSize: 12, lineHeight: 18 },
-  workspace: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.md, marginTop: spacing.md, padding: spacing.md },
+  workspace: { borderTopWidth: 1, borderTopColor: colors.line, gap: spacing.md, marginTop: spacing.md, paddingTop: spacing.md },
   heading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
-  kicker: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.1, textTransform: 'uppercase' },
-  title: { color: colors.white, fontSize: 20, fontWeight: '900', marginTop: 2 },
-  close: { alignItems: 'center', height: 38, justifyContent: 'center', width: 38 },
-  identity: { color: colors.white, fontSize: 14, fontWeight: '900' },
-  vehicle: { color: colors.accent, fontSize: 12, fontWeight: '800', marginTop: -spacing.sm },
-  warning: { color: colors.silver, fontSize: 11, lineHeight: 17 },
-  notes: { minHeight: 104 },
+  title: { flex: 1, color: colors.white, fontSize: 16, fontWeight: '700' },
+  close: { alignItems: 'center', minHeight: 44, justifyContent: 'center', width: 44 },
+  identityBlock: { gap: spacing.xs },
+  identity: { color: colors.white, fontSize: 14, fontWeight: '600' },
+  vehicle: { color: colors.muted, fontSize: 13 },
+  warning: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  notes: { minHeight: 88 },
   twoColumn: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   column: { flexGrow: 1, flexBasis: 220, minWidth: 0 },
   actions: { gap: spacing.md },
   confirmRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
-  checkbox: { alignItems: 'center', borderColor: colors.accent, borderWidth: 2, height: 24, justifyContent: 'center', width: 24 },
+  checkbox: { alignItems: 'center', borderColor: colors.accent, borderWidth: 1, borderRadius: 4, height: 24, justifyContent: 'center', width: 24 },
   checkboxChecked: { backgroundColor: colors.accent },
   confirmText: { color: colors.silver, flex: 1, fontSize: 12, lineHeight: 18 },
-  error: { color: colors.danger, fontSize: 12, fontWeight: '800', lineHeight: 18 },
-  successBox: { alignItems: 'flex-start', gap: spacing.md },
-  success: { color: colors.success, fontSize: 12, fontWeight: '800', lineHeight: 19 },
+  error: { color: colors.danger, fontSize: 13, lineHeight: 19 },
+  successBox: { gap: spacing.md },
+  success: { color: colors.success, fontSize: 13, lineHeight: 19 },
 });

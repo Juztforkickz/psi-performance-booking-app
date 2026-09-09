@@ -10,15 +10,15 @@ The main staff navigation is Dashboard, Bookings, Customers, Records and Menu. C
 
 | Area | Tasks |
 | --- | --- |
-| Dashboard | Active booking/customer counts, work needing attention, shortcuts |
-| Bookings | Search active or archived bookings; open one request for review, transfer verification or service completion |
+| Dashboard | To-review and active-booking counts, add a vehicle record, find a customer, and work needing attention |
+| Bookings | Search Active, To review or History; open one request for review, transfer verification or service completion |
 | Customers | Find customers by name, email, registration or vehicle model; view vehicles; start a record with the selected customer and vehicle |
-| Records | Choose service/repairs, recommended work, invoices, workshop photos, dyno results, documents or build history; open one relevant form |
+| Records | Select customer and vehicle, then choose service/repairs, recommended work, invoices, workshop photos, dyno results, documents or build history; open one relevant form |
 | Records → Imports & drafts | Existing import-review entries and unfinished vault drafts |
 | Customers → Owner controls | Invitations, approved accounts, temporary beta access and deletion requests |
 | Menu → PSI events | Short event list, then create/edit one event |
 | Menu → Connections | Xero, email/Calendar delivery and payment setup status |
-| Menu → Workshop PC uploads | Current folder/import setup status |
+| Menu → Connections → Workshop PC uploads | Current folder/import setup status |
 | Menu → Activity history | Search the loaded audit snapshot by month; eight entries per page |
 | Menu → Settings | Account and existing authenticator management |
 
@@ -42,7 +42,7 @@ Record formats retain their existing destinations. Invoice details/PDF, service 
 
 ## Checkpoints and release
 
-Validation passed: mobile TypeScript, targeted ESLint, 36 navigation/layout/entitlement/environment/account-isolation tests and an iOS production-bundle export. Browser checks used fictional sandbox accounts at 320px, 390px and desktop widths; these are not physical-iPhone tests. Booking detail navigation, customer-to-record identity selection, draft keep/discard, events, customer artwork selection and light-theme vault labels were checked without submitting workshop records, payments or deletions.
+The first restructure passed mobile TypeScript, targeted ESLint, 36 navigation/layout/entitlement/environment/account-isolation tests and an iOS production-bundle export. Browser checks used fictional sandbox accounts at 320px, 390px and desktop widths; these are not physical-iPhone tests. Booking detail navigation, customer-to-record identity selection, draft keep/discard, events, customer artwork selection and light-theme vault labels were checked without submitting workshop records, payments or deletions.
 
 During QA, the sandbox customer loader was found to request a live-only payment table. The review environment now skips only that unavailable payment query; the existing live query and error handling remain intact. Five regression tests cover both modes. The repaired sandbox customer profile, vehicles and garage loaded successfully in the browser.
 
@@ -53,6 +53,21 @@ The earlier pre-subscription checkpoint remains `psi-beta-before-performance-plu
 Recovery should use a reviewed revert or a republished compatible update from the selected checkpoint. Do not reset the live database or force-push main as a UI rollback.
 
 The release uses the existing beta update channel and runtime. Publication identifiers and final validation are recorded in the task's completion report. Installed compatible builds must download the update and reopen before displaying it; a website refresh alone does not update an installed app.
+
+## Portal refinement — 10 September 2026
+
+The second pass reduces the dashboard to daily work, replaces heavy frames with thin cards, and applies readable sentence-case buttons and fields only to the staff workspace. Customer screens keep their established styling.
+
+- Customers begins with a searchable list, with no customer selected automatically. Open one customer to see their contact details and vehicles. Tapping the Customers tab returns to that list.
+- Records chooses customer and vehicle before the record type. A validated customer/vehicle shortcut carries that identity into one focused form, with one visible identity summary and a guarded Change vehicle action.
+- Header and hardware Back step through the record flow. Leaving entered details prompts to keep or discard the draft; publishing blocks navigation. Existing ownership confirmations and backend publishing calls remain intact.
+- Booking lists retain their selected Active, To review or History filter when refreshed. Visit details and notes open on demand. Approval, verified transfer and service-completion controls are shown at the relevant stage.
+- Approved accounts are searchable and paginated. Account requests separate pending from completed. Events and connections use compact lists; Settings remains last in Menu.
+- No new database, payment, subscription or integration changes are included.
+
+The pushed rollback marker `codex/psi-portal-before-polish-2026-09-09` preserves the first release at `483176b224061c7ff074c69d1f3e422f55c6873b` before this refinement.
+
+Six new component-state tests cover explicit customer/vehicle selection, invalid shortcuts, keep/discard behavior, publishing navigation guards, and both fixed-identity publishers. The combined focused suite has 42 passing tests. Phone-sized browser QA checks the workflow and bright-theme form at 320px, plus the dashboard and draft guards at 390px, using fictional sandbox data. Final validation and update publication are recorded in the release receipt and task completion report.
 
 ## Still separate from this release
 

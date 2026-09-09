@@ -1,20 +1,22 @@
 import { useState } from 'react';
-import { Linking, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton } from '@/components/ui';
+import { colors, spacing } from '@/constants/brand';
 import { getSupabaseClient } from '@/lib/supabase';
 import { vaultClient } from '@/lib/performance-plus';
-import { s } from '@/app/performance-plus';
 
 export function StaffXeroConnection() {
-  const [busy, setBusy] = useState(false);
+  const [busyAction, setBusyAction] = useState('');
+  const busy = !!busyAction;
   const [message, setMessage] = useState('');
   const [candidates, setCandidates] = useState<{ tenant_id: string; tenant_name: string }[]>([]);
   async function connect() {
-    setBusy(true);
+    if (busy) return;
+    setBusyAction('connect');
     try {
       const { data, error } = await getSupabaseClient().functions.invoke('start-xero-connection');
       if (error || !data?.authorizationUrl) {
-        setMessage('Xero setup is not ready, or owner verification has expired. No invoices have been imported.');
+        setMessage('Connection unavailable. Check Xero setup or sign in again as the owner.');
         return;
       }
       const url = new URL(data.authorizationUrl);
@@ -22,37 +24,48 @@ export function StaffXeroConnection() {
       await Linking.openURL(url.toString());
       setMessage('Complete the Xero connection, then check the status here.');
     } catch { setMessage('Could not open the secure Xero connection. Please try again.'); }
-    finally { setBusy(false); }
+    finally { setBusyAction(''); }
   }
   async function check() {
-    setBusy(true);
+    if (busy) return;
+    setBusyAction('check');
     try {
       const { data, error } = await vaultClient().rpc('xero_connection_status');
       if (error) throw error;
       const pending = await vaultClient().rpc('xero_connection_candidates');
       if (pending.error) throw pending.error;
       setCandidates(pending.data ?? []);
-      setMessage(pending.data?.length ? 'Confirm the PSI organisation below. Do not choose a demonstration or unrelated business.' : Array.isArray(data) && data.length ? 'Connection saved. Automatic invoice importing is not active yet.' : 'Xero is not connected yet.');
+      setMessage(pending.data?.length ? 'Select PSI’s organisation below. Check the business name carefully.' : Array.isArray(data) && data.length ? 'Connected. Automatic invoice imports are off.' : 'Not connected.');
     } catch { setMessage('Connection status is unavailable. Check setup and your owner verification.'); }
-    finally { setBusy(false); }
+    finally { setBusyAction(''); }
   }
-  return <View style={s.pricing}>
-    <Text style={s.section}>Xero invoices</Text>
-    <Text style={s.copy}>Connect PSI’s Xero organisation securely. Customer and vehicle matching must be checked before importing.</Text>
-    <PrimaryButton label="Connect Xero" disabled={busy} loading={busy} onPress={() => void connect()} />
-    <PrimaryButton label="Check connection" variant="outline" disabled={busy} onPress={() => void check()} />
-    {candidates.map(candidate => <View key={candidate.tenant_id}>
-      <Text style={s.copy}>{candidate.tenant_name}</Text>
-      <PrimaryButton label={`Confirm ${candidate.tenant_name}`} variant="outline" disabled={busy} onPress={async () => {
-        setBusy(true);
+  return <View style={styles.workspace}>
+    <Text style={styles.title}>Xero invoices</Text>
+    <Text style={styles.copy}>Connect PSI’s organisation. Automatic invoice imports remain off.</Text>
+    <PrimaryButton label="Connect" disabled={busy} loading={busyAction === 'connect'} onPress={() => void connect()} />
+    <PrimaryButton label="Check status" variant="outline" disabled={busy} loading={busyAction === 'check'} onPress={() => void check()} />
+    {candidates.map(candidate => <View key={candidate.tenant_id} style={styles.candidate}>
+      <Text style={styles.businessName}>{candidate.tenant_name}</Text>
+      <PrimaryButton label={`Confirm ${candidate.tenant_name}`} variant="outline" disabled={busy} loading={busyAction === candidate.tenant_id} onPress={async () => {
+        if (busy) return;
+        setBusyAction(candidate.tenant_id);
         try {
           const { error } = await vaultClient().rpc('confirm_xero_organisation', { p_tenant_id: candidate.tenant_id });
           if (error) throw error;
-          setCandidates([]); setMessage('PSI organisation confirmed. Automatic invoice importing remains off until the first vehicle/job match is checked.');
+          setCandidates([]); setMessage('Organisation confirmed. Invoice imports remain off pending customer and vehicle matching.');
         } catch { setMessage('Could not confirm the organisation. Check owner verification or reconnect if the confirmation expired.'); }
-        finally { setBusy(false); }
+        finally { setBusyAction(''); }
       }} />
     </View>)}
-    {message ? <Text style={s.notice} accessibilityRole="alert">{message}</Text> : null}
+    {message ? <Text style={styles.notice} accessibilityRole="alert">{message}</Text> : null}
   </View>;
 }
+
+const styles = StyleSheet.create({
+  workspace: { gap: spacing.md },
+  title: { color: colors.white, fontSize: 16, fontWeight: '700' },
+  copy: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  candidate: { borderWidth: 1, borderColor: colors.line, borderRadius: 10, padding: spacing.md, gap: spacing.sm, backgroundColor: colors.panel },
+  businessName: { color: colors.white, fontSize: 14, fontWeight: '600' },
+  notice: { color: colors.muted, fontSize: 13, lineHeight: 19, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md },
+});

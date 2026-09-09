@@ -14,11 +14,13 @@ import { SUPABASE_CONNECTION } from '@/lib/supabase';
 
 type ChangeCallbacks = { onDirtyChange?: (dirty: boolean) => void; onBusyChange?: (busy: boolean) => void };
 
-export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, initialVehicleId, onDirtyChange, onBusyChange }: {
+export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, initialVehicleId, onDirtyChange, onBusyChange, fixedIdentity = false, compact = false }: {
   snapshot: StaffPortalSnapshot;
   fixedKind?: VaultKind;
   initialCustomerId?: string;
   initialVehicleId?: string;
+  fixedIdentity?: boolean;
+  compact?: boolean;
 } & ChangeCallbacks) {
   const [customerId, setCustomerId] = useState(() => snapshot.customers.some(c => c.user_id === initialCustomerId) ? initialCustomerId! : '');
   const [vehicleId, setVehicleId] = useState(() => snapshot.vehicles.some(v => v.id === initialVehicleId && v.customer_id === customerId) ? initialVehicleId! : '');
@@ -96,30 +98,33 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
     } finally { setBusy(false); }
   };
 
+  if (fixedIdentity && (!selectedCustomer || !selectedVehicle || customerId !== initialCustomerId || vehicleId !== initialVehicleId)) {
+    return <Text accessibilityRole="alert" style={styles.error}>Choose a valid customer and vehicle before adding this record.</Text>;
+  }
   return (
     <View pointerEvents={busy ? 'none' : 'auto'} style={styles.stack}>
-      <StaffScrollSelect label="Customer" value={customerId} options={customerOptions(snapshot)} searchable onChange={id => { if (busy) return; setCustomerId(id); setVehicleId(''); setFiles([]); setConfirmed(false); setMessage(''); }} />
-      <StaffScrollSelect label="Vehicle" value={vehicleId} options={vehicles.map(v => ({ value: v.id, label: `${v.year} ${v.make} ${v.model}`, sublabel: v.registration }))} searchable onChange={id => { if (busy) return; setVehicleId(id); setFiles([]); setConfirmed(false); setMessage(''); }} />
+      {!fixedIdentity ? <><StaffScrollSelect label="Customer" value={customerId} options={customerOptions(snapshot)} searchable onChange={id => { if (busy) return; setCustomerId(id); setVehicleId(''); setFiles([]); setConfirmed(false); setMessage(''); }} />
+      <StaffScrollSelect label="Vehicle" value={vehicleId} options={vehicles.map(v => ({ value: v.id, label: `${v.year} ${v.make} ${v.model}`, sublabel: v.registration }))} searchable onChange={id => { if (busy) return; setVehicleId(id); setFiles([]); setConfirmed(false); setMessage(''); }} /></> : null}
       <View style={styles.card}>
         <Field label="PSI job reference"><FormInput editable={!busy} value={reference} onChangeText={value => { setReference(value); setConfirmed(false); }} placeholder="PSI-2026-0123" /></Field>
-        <Field label="Record title"><FormInput editable={!busy} value={title} onChangeText={value => { setTitle(value); setConfirmed(false); }} placeholder="Major service" /></Field>
+        <Field label="Title"><FormInput editable={!busy} value={title} onChangeText={value => { setTitle(value); setConfirmed(false); }} placeholder="Major service" /></Field>
         <Field label="Job date" hint="DD/MM/YYYY"><FormInput editable={!busy} value={date} maxLength={10} keyboardType="numbers-and-punctuation" onChangeText={value => { setDate(value); setConfirmed(false); }} /></Field>
-        {!fixedKind ? <View style={styles.choices}>{VAULT_KINDS.map(value => <Choice key={value} label={VAULT_LABELS[value]} selected={kind === value} onPress={() => { setKind(value); setFiles([]); setConfirmed(false); }} />)}</View> : null}
-        {kind === 'media' || kind === 'dyno' ? <View style={styles.choices}>{(['before', 'progress', 'after'] as const).map(value => <Choice key={value} label={value === 'progress' && kind === 'dyno' ? 'Baseline' : `${value[0].toUpperCase()}${value.slice(1)}`} selected={phase === value} onPress={() => { setPhase(value); setConfirmed(false); }} />)}</View> : null}
+        {!fixedKind ? <View style={styles.choices}>{VAULT_KINDS.map(value => <Choice disabled={busy} key={value} label={VAULT_LABELS[value]} selected={kind === value} onPress={() => { setKind(value); setFiles([]); setConfirmed(false); }} />)}</View> : null}
+        {kind === 'media' || kind === 'dyno' ? <View style={styles.choices}>{(['before', 'progress', 'after'] as const).map(value => <Choice disabled={busy} key={value} label={value === 'progress' && kind === 'dyno' ? 'Baseline' : `${value[0].toUpperCase()}${value.slice(1)}`} selected={phase === value} onPress={() => { setPhase(value); setConfirmed(false); }} />)}</View> : null}
         {kind === 'dyno' ? <><Field label="Power · HP at hubs" hint="Optional"><FormInput editable={!busy} value={power} onChangeText={value => { setPower(value); setConfirmed(false); }} keyboardType="decimal-pad" /></Field><Field label="Torque · Nm at hubs" hint="Optional"><FormInput editable={!busy} value={torque} onChangeText={value => { setTorque(value); setConfirmed(false); }} keyboardType="decimal-pad" /></Field></> : null}
-        <Field label="Workshop notes" hint="Optional"><FormInput editable={!busy} value={notes} onChangeText={value => { setNotes(value); setConfirmed(false); }} multiline style={styles.notes} textAlignVertical="top" /></Field>
+        <Field label="Notes" hint="Optional"><FormInput editable={!busy} value={notes} onChangeText={value => { setNotes(value); setConfirmed(false); }} multiline style={styles.notes} textAlignVertical="top" /></Field>
         <PrimaryButton disabled={busy} label={kind === 'dyno' || kind === 'invoice' ? 'Choose PDFs' : 'Choose files'} variant="outline" onPress={() => void selectFiles()} />
-        <Text style={styles.muted}>{files.length ? `${files.length} ${files.length === 1 ? 'file' : 'files'} selected` : 'No files selected'} · Photos resized automatically; PDFs kept intact.</Text>
-        {files.length ? <PrimaryButton disabled={busy} label="Clear selected files" variant="outline" onPress={() => { setFiles([]); setConfirmed(false); }} /> : null}
+        <Text style={styles.muted}>{files.length ? `${files.length} ${files.length === 1 ? 'file' : 'files'} selected` : 'No files selected'}{compact ? '' : ' · Photos resized automatically; PDFs kept intact.'}</Text>
+        {files.length ? <PrimaryButton disabled={busy} label="Clear files" variant="outline" onPress={() => { setFiles([]); setConfirmed(false); }} /> : null}
       </View>
-      <View style={styles.card}>
-        <Text style={styles.title}>Check and publish</Text>
-        {selectedCustomer && selectedVehicle ? <Text style={styles.copy}>{displayName(selectedCustomer)}{'\n'}{selectedVehicle.year} {selectedVehicle.make} {selectedVehicle.model} · {selectedVehicle.registration}</Text> : <Text style={styles.muted}>Select the customer and vehicle above.</Text>}
+      <View style={styles.review}>
+        {!compact ? <Text style={styles.title}>Check and publish</Text> : null}
+        {!fixedIdentity ? selectedCustomer && selectedVehicle ? <Text style={styles.copy}>{displayName(selectedCustomer)}{'\n'}{selectedVehicle.year} {selectedVehicle.make} {selectedVehicle.model} · {selectedVehicle.registration}</Text> : <Text style={styles.muted}>Select the customer and vehicle above.</Text> : null}
         <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: confirmed }} disabled={busy} onPress={() => setConfirmed(value => !value)} style={styles.confirm}>
           <Ionicons color={colors.accent} name={confirmed ? 'checkbox' : 'square-outline'} size={25} />
           <Text style={styles.confirmText}>I checked the customer, registration and job. These records belong to this vehicle.</Text>
         </Pressable>
-        <PrimaryButton disabled={!confirmed || busy || !selectedVehicle} label="Publish to vault" loading={busy} onPress={() => void publish()} />
+        <PrimaryButton disabled={!confirmed || busy || !selectedVehicle} label="Publish" loading={busy} onPress={() => void publish()} />
         {Platform.OS === 'web' ? <PrimaryButton disabled={!confirmed || busy || !selectedVehicle} label="Download PC folder file" variant="outline" onPress={() => void downloadManifest()} /> : null}
         {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
       </View>
@@ -147,15 +152,15 @@ export function StaffVaultReview() {
   }, []);
   useEffect(() => { const task = setTimeout(() => void review(), 0); return () => clearTimeout(task); }, [review]);
   return <View style={styles.stack}>
-    <Text style={styles.muted}>Unmatched imports and unfinished uploads stay private. This list is for review; it does not approve or publish records.</Text>
-    <PrimaryButton disabled={busy} loading={busy} label={loaded ? 'Refresh list' : 'Load imports and drafts'} variant="outline" onPress={() => void review()} />
+    <Text style={styles.muted}>Private imports and drafts. Reviewing this list does not publish records.</Text>
+    <PrimaryButton disabled={busy} loading={busy} label={loaded ? 'Refresh' : 'Load records'} variant="outline" onPress={() => void review()} />
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
     {loaded && !error ? <>
       <Text style={styles.title}>Imports needing review</Text>
       {!imports.length ? <Text style={styles.muted}>No imports need review.</Text> : imports.map(item => <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.source} · {item.source_key}</Text><Text style={styles.muted}>{item.reason}</Text></View>)}
       {imports.length === 50 ? <Text style={styles.muted}>Showing the latest 50 imports.</Text> : null}
       <Text style={styles.title}>Unpublished drafts</Text>
-      {!drafts.length ? <Text style={styles.muted}>No unfinished vault drafts.</Text> : drafts.map(item => <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.title}</Text><Text selectable style={styles.muted}>Draft reference: {item.id}</Text><Text style={styles.muted}>Check the original upload before retrying to avoid duplicates.</Text></View>)}
+      {!drafts.length ? <Text style={styles.muted}>No unfinished vault drafts.</Text> : <><Text style={styles.muted}>Check the original upload before retrying to avoid duplicates.</Text>{drafts.map(item => <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.title}</Text><Text selectable style={styles.muted}>Draft reference: {item.id}</Text></View>)}</>}
       {drafts.length === 50 ? <Text style={styles.muted}>Showing the latest 50 drafts.</Text> : null}
     </> : null}
   </View>;
@@ -197,15 +202,16 @@ function displayName(customer: StaffPortalSnapshot['customers'][number]) {
 function customerOptions(snapshot: StaffPortalSnapshot) {
   return [...snapshot.customers].sort((a, b) => displayName(a).localeCompare(displayName(b), 'en-AU')).map(c => ({ value: c.user_id, label: displayName(c), sublabel: c.email }));
 }
-function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
-  return <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected }} onPress={onPress} style={[styles.choice, selected && styles.selected]}><Text style={[styles.copy, selected && styles.selectedText]}>{label}</Text></Pressable>;
+function Choice({ label, selected, onPress, disabled = false }: { label: string; selected: boolean; onPress: () => void; disabled?: boolean }) {
+  return <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected, disabled }} disabled={disabled} onPress={onPress} style={[styles.choice, selected && styles.selected]}><Text style={[styles.copy, selected && styles.selectedText]}>{label}</Text></Pressable>;
 }
 const styles = StyleSheet.create({
   stack: { gap: spacing.md },
   card: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: colors.panel, padding: spacing.md, gap: spacing.md },
-  title: { color: colors.white, fontSize: 18, fontWeight: '800', flexShrink: 1 },
+  review: { gap: spacing.md, paddingVertical: spacing.sm },
+  title: { color: colors.white, fontSize: 16, fontWeight: '700', flexShrink: 1 },
   copy: { color: colors.white, fontSize: 14, lineHeight: 21, flexShrink: 1 },
-  muted: { color: colors.muted, fontSize: 13, lineHeight: 20, flexShrink: 1 },
+  muted: { color: colors.muted, fontSize: 14, lineHeight: 21, flexShrink: 1 },
   message: { color: colors.accent, fontSize: 14, lineHeight: 21 },
   error: { color: colors.danger, fontSize: 14, lineHeight: 21 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
@@ -213,6 +219,6 @@ const styles = StyleSheet.create({
   selected: { backgroundColor: colors.accent, borderColor: colors.accent },
   selectedText: { color: colors.ink },
   confirm: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: spacing.sm, minHeight: 44 },
-  confirmText: { color: colors.silver, flex: 1, fontSize: 13, lineHeight: 20 },
+  confirmText: { color: colors.silver, flex: 1, fontSize: 14, lineHeight: 21 },
   notes: { minHeight: 100 },
 });

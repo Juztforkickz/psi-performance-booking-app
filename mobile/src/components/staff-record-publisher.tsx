@@ -6,7 +6,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { StaffScrollSelect } from '@/components/staff-scroll-select';
-import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { colors, spacing } from '@/constants/brand';
 import { todayAustralianDate } from '@/lib/australian-date';
 import type { StaffPortalSnapshot } from '@/lib/staff-portal';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
@@ -28,13 +28,15 @@ const RECORD_TYPES: { icon: keyof typeof Ionicons.glyphMap; label: string; value
   { icon: 'receipt', label: 'Invoice', value: 'invoice' },
 ];
 
-export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, initialVehicleId, onDirtyChange, onBusyChange }: {
+export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, initialVehicleId, onDirtyChange, onBusyChange, fixedIdentity = false, compact = false }: {
   snapshot: StaffPortalSnapshot;
   fixedType?: StaffRecordType;
   initialCustomerId?: string;
   initialVehicleId?: string;
   onDirtyChange?: (dirty: boolean) => void;
   onBusyChange?: (busy: boolean) => void;
+  fixedIdentity?: boolean;
+  compact?: boolean;
 }) {
   const customersWithVehicles = useMemo(
     () => snapshot.customers
@@ -114,16 +116,16 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
   };
 
   const publish = async () => {
-    if (!customerId || !vehicleId || !confirmed || busy || !availableVehicles.some(v => v.id === vehicleId)) return;
+    if (!customerId || !vehicleId || !confirmed || busy || !snapshot.customers.some(c => c.user_id === customerId) || !availableVehicles.some(v => v.id === vehicleId)) return;
     setBusy(true);
     setFeedback(null);
     try {
       if (recordType === 'repair') {
         await publishPsiRepair({ customerId, date, notes, odometerKm: odometer, recordKind: repairKind, title, vehicleId });
-        setFeedback({ kind: 'success', text: 'PSI repair history published. The customer will see it as a read-only PSI record.' });
+        setFeedback({ kind: 'success', text: 'Workshop record published.' });
       } else if (recordType === 'recommendation') {
         await publishPsiRecommendation({ customerId, notes, status: recommendationStatus, timing, title, vehicleId });
-        setFeedback({ kind: 'success', text: 'Recommended work published as a read-only PSI record.' });
+        setFeedback({ kind: 'success', text: 'Recommended work published.' });
       } else if (recordType === 'dyno') {
         const result = await publishPsiDyno({ customerId, date, fuel, image, notes, powerHp: power, torqueNm: torque, vehicleId });
         setFeedback(result.attachmentWarning
@@ -171,10 +173,13 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
   }
 
   const selectedCustomer = snapshot.customers.find((customer) => customer.user_id === customerId);
-  const selectedVehicle = snapshot.vehicles.find((vehicle) => vehicle.id === vehicleId);
+  const selectedVehicle = availableVehicles.find((vehicle) => vehicle.id === vehicleId);
+  if (fixedIdentity && (!selectedCustomer || !selectedVehicle || customerId !== initialCustomerId || vehicleId !== initialVehicleId)) {
+    return <Text accessibilityRole="alert" style={styles.feedbackError}>Choose a valid customer and vehicle before adding this record.</Text>;
+  }
   return (
     <View pointerEvents={busy ? 'none' : 'auto'} style={styles.publisher}>
-      {REVIEW_ENVIRONMENT.enabled ? <View style={styles.notice}>
+      {REVIEW_ENVIRONMENT.enabled && !compact ? <View style={styles.notice}>
         <Ionicons color={colors.accent} name="shield-checkmark" size={22} />
         <View style={styles.flex}>
           <Text style={styles.noticeTitle}>Sandbox records</Text>
@@ -182,10 +187,10 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
         </View>
       </View> : null}
 
-      <StaffScrollSelect label="Choose customer" onChange={selectCustomer} options={customerOptions} searchable value={customerId} />
+      {!fixedIdentity ? <><StaffScrollSelect label="Customer" onChange={selectCustomer} options={customerOptions} searchable value={customerId} />
 
       <StaffScrollSelect
-        label="Choose vehicle"
+        label="Vehicle"
         onChange={(nextVehicleId) => {
           if (busy) return;
           setVehicleId(nextVehicleId);
@@ -196,7 +201,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
         options={vehicleOptions}
         searchable
         value={vehicleId}
-      />
+      /></> : null}
 
       {!fixedType ? <><Text style={styles.label}>PSI record type</Text>
       <View style={styles.recordGrid}>
@@ -218,12 +223,12 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
       <View style={styles.form}>
         {recordType === 'repair' ? (
           <>
-            <Field label="Repair / service title"><FormInput editable={!busy} onChangeText={edit(setTitle)} placeholder="Service & workshop inspection" value={title} /></Field>
+            <Field label="Title"><FormInput editable={!busy} onChangeText={edit(setTitle)} placeholder="Service & workshop inspection" value={title} /></Field>
             <Field hint="DD/MM/YYYY" label="Completed date"><FormInput editable={!busy} keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={edit(setDate)} value={date} /></Field>
             <Field hint="Optional" label="Odometer (km)"><FormInput editable={!busy} keyboardType="number-pad" onChangeText={(value) => edit(setOdometer)(value.replace(/\D/gu, ''))} placeholder="84210" value={odometer} /></Field>
             <Text style={styles.smallLabel}>Record category</Text>
             <View style={styles.inlineChoices}>{(['service', 'repair', 'inspection'] as const).map((value) => <SmallChoice disabled={busy} key={value} label={capitalize(value)} onPress={() => edit(setRepairKind)(value)} selected={repairKind === value} />)}</View>
-            <NotesField disabled={busy} label="Completed work / notes" onChangeText={edit(setNotes)} value={notes} />
+            <NotesField disabled={busy} label="Work completed" onChangeText={edit(setNotes)} value={notes} />
           </>
         ) : null}
 
@@ -233,7 +238,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
             <Field hint="Optional" label="Timing"><FormInput editable={!busy} onChangeText={edit(setTiming)} placeholder="Before the next performance stage" value={timing} /></Field>
             <Text style={styles.smallLabel}>Status</Text>
             <View style={styles.inlineChoices}>{(['monitor', 'recommended', 'due_soon', 'priority'] as const).map((value) => <SmallChoice disabled={busy} key={value} label={statusLabel(value)} onPress={() => edit(setRecommendationStatus)(value)} selected={recommendationStatus === value} />)}</View>
-            <NotesField disabled={busy} label="Recommendation notes" onChangeText={edit(setNotes)} value={notes} />
+            <NotesField disabled={busy} label="Notes" onChangeText={edit(setNotes)} value={notes} />
           </>
         ) : null}
 
@@ -245,11 +250,11 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
               <View style={styles.column}><Field hint="Optional" label="Peak torque · Nm at hubs"><FormInput editable={!busy} keyboardType="decimal-pad" onChangeText={edit(setTorque)} placeholder="684" value={torque} /></Field></View>
             </View>
             <Field hint="Optional" label="Fuel"><FormInput editable={!busy} onChangeText={edit(setFuel)} placeholder="98 RON" value={fuel} /></Field>
-            <NotesField disabled={busy} label="Setup / run notes" onChangeText={edit(setNotes)} value={notes} />
+            <NotesField disabled={busy} label="Run notes" onChangeText={edit(setNotes)} value={notes} />
             <PrivateImagePicker
               disabled={busy}
               image={image}
-              label="Mainline dyno PDF"
+              label="Dyno PDF"
               pdfOnly
               onChoose={() => void choosePdf()}
               onTakePhoto={() => void choosePdf()}
@@ -263,7 +268,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
             <Field label="Invoice number"><FormInput editable={!busy} autoCapitalize="characters" onChangeText={edit(setInvoiceNumber)} placeholder="PSI-INV-2026-0514" value={invoiceNumber} /></Field>
             <Field hint="DD/MM/YYYY" label="Invoice date"><FormInput editable={!busy} keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={edit(setDate)} value={date} /></Field>
             <Field hint="Optional · AUD" label="Amount"><FormInput editable={!busy} keyboardType="decimal-pad" onChangeText={edit(setAmountAud)} placeholder="423.50" value={amountAud} /></Field>
-            <NotesField disabled={busy} label="Completed work summary" onChangeText={edit(setNotes)} value={notes} />
+            <NotesField disabled={busy} label="Summary" onChangeText={edit(setNotes)} value={notes} />
             <PrivateImagePicker
               disabled={busy}
               image={image}
@@ -278,14 +283,14 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
       </View>
 
       <View style={styles.review}>
-        <Text style={styles.reviewTitle}>Publish to customer record</Text>
-        <Text style={styles.muted}>{customerName(selectedCustomer)} · {selectedVehicle ? `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model} · ${selectedVehicle.registration}` : 'Select a vehicle'}</Text>
+        {!compact ? <Text style={styles.reviewTitle}>Check and publish</Text> : null}
+        {!fixedIdentity ? <Text style={styles.muted}>{customerName(selectedCustomer)} · {selectedVehicle ? `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model} · ${selectedVehicle.registration}` : 'Select a vehicle'}</Text> : null}
         <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: confirmed }} disabled={busy} onPress={() => setConfirmed((value) => !value)} style={styles.confirmRow}>
           <View style={[styles.checkbox, confirmed && styles.checkboxChecked]}>{confirmed ? <Ionicons color={colors.ink} name="checkmark" size={16} /> : null}</View>
           <Text style={styles.confirmText}>I checked the customer, registration and record details.</Text>
         </Pressable>
         {feedback ? <Text accessibilityRole="alert" style={[styles.feedback, feedback.kind === 'error' && styles.feedbackError, feedback.kind === 'warning' && styles.feedbackWarning]}>{feedback.text}</Text> : null}
-        <PrimaryButton disabled={!confirmed || !vehicleId || busy} label="Publish record" loading={busy} onPress={() => void publish()} />
+        <PrimaryButton disabled={!confirmed || !vehicleId || busy} label="Publish" loading={busy} onPress={() => void publish()} />
       </View>
     </View>
   );
@@ -357,36 +362,36 @@ function publishingErrorMessage(error: unknown) {
 const styles = StyleSheet.create({
   publisher: { gap: spacing.md },
   flex: { flex: 1 },
-  notice: { ...mobileFrame, alignItems: 'flex-start', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.md, padding: spacing.md },
-  noticeTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
-  muted: { color: colors.muted, fontSize: 13, lineHeight: 19 },
-  label: { color: colors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 1.2, marginTop: spacing.sm, textTransform: 'uppercase' },
-  smallLabel: { color: colors.silver, fontSize: 13, fontWeight: '800' },
+  notice: { borderWidth: 1, borderColor: colors.line, borderRadius: 10, alignItems: 'flex-start', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.md, padding: spacing.md },
+  noticeTitle: { color: colors.white, fontSize: 15, fontWeight: '700' },
+  muted: { color: colors.muted, fontSize: 14, lineHeight: 21 },
+  label: { color: colors.accent, fontSize: 14, fontWeight: '700', marginTop: spacing.sm },
+  smallLabel: { color: colors.silver, fontSize: 14, fontWeight: '600' },
   selectedChoice: { backgroundColor: colors.accent, borderColor: colors.accent },
   selectedChoiceText: { color: colors.ink },
   selectedChoiceSub: { color: '#0C3444' },
   recordGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  recordChoice: { ...mobileFrame, alignItems: 'center', backgroundColor: colors.inkSoft, flexDirection: 'row', flexGrow: 1, gap: spacing.sm, minHeight: 54, minWidth: 180, padding: spacing.sm },
-  recordChoiceText: { color: colors.white, flexShrink: 1, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
-  form: { ...mobileFrame, backgroundColor: colors.panel, gap: spacing.md, padding: spacing.md },
+  recordChoice: { borderWidth: 1, borderColor: colors.line, borderRadius: 8, alignItems: 'center', backgroundColor: colors.inkSoft, flexDirection: 'row', flexGrow: 1, gap: spacing.sm, minHeight: 48, minWidth: 180, padding: spacing.sm },
+  recordChoiceText: { color: colors.white, flexShrink: 1, fontSize: 14, fontWeight: '600' },
+  form: { borderWidth: 1, borderColor: colors.line, borderRadius: 10, backgroundColor: colors.panel, gap: spacing.md, padding: spacing.md },
   inlineChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  smallChoice: { ...mobileFrame, backgroundColor: colors.inkSoft, minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  smallChoiceText: { color: colors.white, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  smallChoice: { borderWidth: 1, borderColor: colors.line, borderRadius: 8, backgroundColor: colors.inkSoft, minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  smallChoiceText: { color: colors.white, fontSize: 14, fontWeight: '600' },
   twoColumn: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   column: { flexGrow: 1, flexBasis: 220, minWidth: 0 },
   notesInput: { minHeight: 112 },
   imageSection: { gap: spacing.sm },
-  imagePreview: { ...mobileFrame, backgroundColor: colors.ink, height: 220, width: '100%' },
-  pdfNote: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  review: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.md, padding: spacing.md },
-  reviewTitle: { color: colors.white, fontSize: 18, fontWeight: '900' },
+  imagePreview: { borderWidth: 1, borderColor: colors.line, borderRadius: 8, backgroundColor: colors.ink, height: 220, width: '100%' },
+  pdfNote: { color: colors.muted, fontSize: 14, lineHeight: 21 },
+  review: { gap: spacing.md, paddingVertical: spacing.sm },
+  reviewTitle: { color: colors.white, fontSize: 16, fontWeight: '700' },
   confirmRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
   checkbox: { alignItems: 'center', borderColor: colors.accent, borderWidth: 2, height: 24, justifyContent: 'center', width: 24 },
   checkboxChecked: { backgroundColor: colors.accent },
-  confirmText: { color: colors.silver, flex: 1, fontSize: 12, lineHeight: 18 },
-  feedback: { color: colors.success, fontSize: 12, fontWeight: '800', lineHeight: 18 },
+  confirmText: { color: colors.silver, flex: 1, fontSize: 14, lineHeight: 21 },
+  feedback: { color: colors.success, fontSize: 14, lineHeight: 21 },
   feedbackError: { color: colors.danger },
   feedbackWarning: { color: colors.accent },
-  empty: { ...mobileFrame, backgroundColor: colors.panel, gap: spacing.sm, padding: spacing.lg },
-  emptyTitle: { color: colors.white, fontSize: 16, fontWeight: '900' },
+  empty: { borderWidth: 1, borderColor: colors.line, borderRadius: 10, backgroundColor: colors.panel, gap: spacing.sm, padding: spacing.lg },
+  emptyTitle: { color: colors.white, fontSize: 16, fontWeight: '700' },
 });

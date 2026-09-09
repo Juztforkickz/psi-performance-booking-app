@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { colors, spacing } from '@/constants/brand';
 
 export type StaffSelectOption = {
   label: string;
@@ -50,8 +50,8 @@ export function StaffScrollSelect({
         style={({ pressed }) => [styles.trigger, pressed && styles.pressed]}
       >
         <View style={styles.triggerCopy}>
-          <Text numberOfLines={1} style={[styles.triggerTitle, !selected && styles.placeholder]}>{selected?.label ?? placeholder}</Text>
-          {selected?.sublabel ? <Text numberOfLines={1} style={styles.triggerMeta}>{selected.sublabel}</Text> : null}
+          <Text style={[styles.triggerTitle, !selected && styles.placeholder]}>{selected?.label ?? placeholder}</Text>
+          {selected?.sublabel ? <Text style={styles.triggerMeta}>{selected.sublabel}</Text> : null}
         </View>
         <Ionicons color={colors.accent} name="chevron-down" size={20} />
       </Pressable>
@@ -69,11 +69,12 @@ export function StaffScrollSelect({
               <View style={styles.searchRow}>
                 <Ionicons color={colors.accent} name="search" size={18} />
                 <TextInput
+                  accessibilityLabel={`Search ${label.toLocaleLowerCase('en-AU')}`}
                   autoCapitalize="none"
                   autoCorrect={false}
                   onChangeText={setQuery}
                   placeholder="Search name, email or vehicle"
-                  placeholderTextColor={colors.mutedDark}
+                  placeholderTextColor={colors.muted}
                   style={styles.searchInput}
                   value={query}
                 />
@@ -112,26 +113,26 @@ export function StaffScrollSelect({
 
 const styles = StyleSheet.create({
   field: { gap: spacing.xs },
-  label: { color: colors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase' },
-  trigger: { ...mobileFrame, minHeight: 62, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.inkSoft, padding: spacing.md },
+  label: { color: colors.white, fontSize: 14, fontWeight: '600' },
+  trigger: { borderWidth: 1, borderColor: colors.line, borderRadius: 8, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.ink, paddingHorizontal: 14, paddingVertical: 12 },
   triggerCopy: { flex: 1, minWidth: 0, gap: 3 },
-  triggerTitle: { color: colors.white, fontSize: 14, fontWeight: '900' },
-  triggerMeta: { color: colors.muted, fontSize: 11 },
+  triggerTitle: { color: colors.white, fontSize: 15, fontWeight: '600', lineHeight: 21 },
+  triggerMeta: { color: colors.muted, fontSize: 13, lineHeight: 19 },
   placeholder: { color: colors.muted },
   backdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,.82)', padding: spacing.lg },
-  modalCard: { ...mobileFrame, width: '100%', maxWidth: 560, maxHeight: '78%', backgroundColor: colors.panel, padding: spacing.md },
+  modalCard: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, width: '100%', maxWidth: 560, maxHeight: '78%', backgroundColor: colors.panel, padding: spacing.md },
   modalHeading: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
-  modalTitle: { flex: 1, color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
-  closeButton: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
-  searchRow: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
+  modalTitle: { flex: 1, color: colors.white, fontSize: 18, fontWeight: '700' },
+  closeButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  searchRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: 8, borderColor: colors.line, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
   searchInput: { flex: 1, color: colors.white, fontSize: 14, paddingVertical: spacing.sm },
   optionList: { flexGrow: 0, marginTop: spacing.sm },
-  option: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, padding: spacing.md },
+  option: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingHorizontal: 12, paddingVertical: 12 },
   optionSelected: { backgroundColor: colors.silver },
-  optionTitle: { color: colors.white, fontSize: 14, fontWeight: '900' },
+  optionTitle: { color: colors.white, fontSize: 15, fontWeight: '600', lineHeight: 21 },
   optionTitleSelected: { color: colors.ink },
-  optionMeta: { color: colors.muted, fontSize: 11 },
-  optionMetaSelected: { color: '#435159' },
+  optionMeta: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  optionMetaSelected: { color: colors.onSilverMuted },
   empty: { color: colors.muted, fontSize: 12, lineHeight: 18, padding: spacing.lg, textAlign: 'center' },
   pressed: { opacity: .72 },
 });

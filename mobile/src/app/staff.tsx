@@ -5,14 +5,13 @@ import { ActivityIndicator, Alert, BackHandler, Image, Linking, Modal, Platform,
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
-import { StaffScrollSelect } from '@/components/staff-scroll-select';
 import { StaffRecordWorkflow } from '@/components/staff-record-workflow';
 import { StaffPerformanceAccess, StaffVaultReview } from '@/components/staff-vault-publisher';
 import { StaffXeroConnection } from '@/components/staff-xero-connection';
 import { StaffBookingReview } from '@/components/staff-booking-review';
 import { StaffEventsManager } from '@/components/staff-events-manager';
 import { StaffServiceCompletion } from '@/components/staff-service-completion';
-import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { colors, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
 import { formatAustralianDate, formatAustralianDateTime } from '@/lib/australian-date';
@@ -63,6 +62,7 @@ const INTEGRATION_JOB_LABELS: Record<StaffPortalSnapshot['integrationJobs'][numb
 };
 
 type HistoryPeriod = { label: string; value: string };
+const portalFrame = { borderWidth: 1, borderColor: colors.line, borderRadius: 10 };
 
 export default function StaffPortalScreen() {
   const router = useRouter();
@@ -323,7 +323,7 @@ function StaffWorkspace({
 }) {
   const router = useRouter();
   const portalProfilePhotoUri = useCustomerProfilePhotoUri();
-  const params = useLocalSearchParams<{ section?: string; bookingId?: string; customerId?: string; vehicleId?: string; tool?: string }>();
+  const params = useLocalSearchParams<{ section?: string; bookingId?: string; customerId?: string; vehicleId?: string; tool?: string; view?: string }>();
   const section = resolveStaffSection(params.section);
   const { registerNavigationHandler } = useStaffNavigation();
   const { confirmDiscard, discardDialog } = useStaffDiscardConfirmation();
@@ -343,9 +343,19 @@ function StaffWorkspace({
   const reportDeletionDirty = useCallback((id: string, value: boolean) => setDeletionDrafts(previous => previous[id] === value ? previous : { ...previous, [id]: value }), []);
   const reportDeletionBusy = useCallback((id: string, value: boolean) => setDeletionActions(previous => previous[id] === value ? previous : { ...previous, [id]: value }), []);
   const [bookingSearch, setBookingSearch] = useState('');
-  const [bookingFilter, setBookingFilter] = useState<'active' | 'history'>('active');
+  const requestedBookingView = paramValue(params.view);
+  const bookingFilter = requestedBookingView === 'review' || requestedBookingView === 'history' ? requestedBookingView : 'active';
   const [bookingPage, setBookingPage] = useState(0);
+  const [expandedBookingDetailsId, setExpandedBookingDetailsId] = useState<string | null>(null);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [customerPage, setCustomerPage] = useState(0);
+  const [invitationSearch, setInvitationSearch] = useState('');
+  const [invitationPage, setInvitationPage] = useState(0);
+  const [deletionFilter, setDeletionFilter] = useState<'pending' | 'history'>('pending');
+  const [deletionPage, setDeletionPage] = useState(0);
+  const recordBackRef = useRef<(() => void) | null>(null);
+  const [recordHasSteps, setRecordHasSteps] = useState(false);
+  const registerRecordBack = useCallback((handler: (() => void) | null) => { recordBackRef.current = handler; setRecordHasSteps(Boolean(handler)); }, []);
   const [auditSearch, setAuditSearch] = useState('');
   const [auditPage, setAuditPage] = useState(0);
   const connectionTool = ['xero', 'calendar', 'payments', 'uploads'].includes(paramValue(params.tool)) ? paramValue(params.tool) : '';
@@ -362,7 +372,6 @@ function StaffWorkspace({
   const [auditPeriod, setAuditPeriod] = useState('');
   const [integrationHistoryOpen, setIntegrationHistoryOpen] = useState(false);
   const [invitationListOpen, setInvitationListOpen] = useState(false);
-  const [lookupCustomerId, setLookupCustomerId] = useState(paramValue(params.customerId) || snapshot.customers[0]?.user_id || '');
   const [integrationPeriod, setIntegrationPeriod] = useState('');
   const activeBookings = snapshot.bookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
   const archivedBookings = snapshot.bookings.filter((booking) => ['cancelled', 'completed'].includes(booking.state));
@@ -380,6 +389,7 @@ function StaffWorkspace({
     : snapshot.invitations)
     .slice()
     .sort((left, right) => invitationCustomerLabel(left.email, snapshot.customers).localeCompare(invitationCustomerLabel(right.email, snapshot.customers), 'en-AU'));
+  const matchingInvitations = visibleInvitations.filter(invitation => matchesSearch(`${invitationCustomerLabel(invitation.email, snapshot.customers)} ${invitation.email}`, invitationSearch));
   const vehiclesByCustomer = useMemo(() => {
     const grouped = new Map<string, StaffPortalSnapshot['vehicles']>();
     snapshot.vehicles.forEach((vehicle) => grouped.set(vehicle.customer_id, [...(grouped.get(vehicle.customer_id) ?? []), vehicle]));
@@ -390,13 +400,14 @@ function StaffWorkspace({
     .sort((left, right) => customerName(left).localeCompare(customerName(right), 'en-AU'))
     .map((customer) => ({ label: customerName(customer), sublabel: customer.email, value: customer.user_id })), [snapshot.customers]);
   const filteredCustomerOptions = lookupCustomerOptions.filter(option => matchesSearch(`${option.label} ${option.sublabel} ${(vehiclesByCustomer.get(option.value) ?? []).map(v => `${v.registration} ${v.make} ${v.model}`).join(' ')}`, customerSearch));
-  const visibleCustomerId = filteredCustomerOptions.some(option => option.value === lookupCustomerId) ? lookupCustomerId : filteredCustomerOptions[0]?.value;
-  const selectedLookupCustomer = snapshot.customers.find(customer => customer.user_id === visibleCustomerId);
+  const selectedLookupCustomer = section === 'customers' ? snapshot.customers.find(customer => customer.user_id === paramValue(params.customerId)) : undefined;
   const selectedLookupVehicles = selectedLookupCustomer ? vehiclesByCustomer.get(selectedLookupCustomer.user_id) ?? [] : [];
   const waitingBookings = activeBookings.filter(b => b.state === 'pending_staff_review');
   const pendingDeletions = snapshot.accountDeletionRequests.filter(request => request.status !== 'completed');
+  const filteredDeletions = snapshot.accountDeletionRequests.filter(request => deletionFilter === 'pending' ? request.status !== 'completed' : request.status === 'completed');
   const selectedBooking = section === 'bookings' ? snapshot.bookings.find(b => b.id === paramValue(params.bookingId)) : undefined;
-  const filteredBookings = (bookingFilter === 'active' ? activeBookings : archivedBookings).filter(booking => {
+  const bookingDetailsOpen = Boolean(selectedBooking && expandedBookingDetailsId === selectedBooking.id);
+  const filteredBookings = (bookingFilter === 'history' ? archivedBookings : bookingFilter === 'review' ? waitingBookings : activeBookings).filter(booking => {
     const customer = snapshot.customers.find(c => c.user_id === booking.customer_id);
     const vehicle = snapshot.vehicles.find(v => v.id === booking.vehicle_id);
     return matchesSearch(`${customerName(customer)} ${customer?.email ?? ''} ${vehicle?.registration ?? ''} ${vehicle?.make ?? ''} ${vehicle?.model ?? ''}`, bookingSearch);
@@ -415,16 +426,25 @@ function StaffWorkspace({
   }, [actionBusy, confirmDiscard, dirty]);
   useStaffExitGuard({ dirty, busy: actionBusy, onConfirmLeave: confirmLeaving });
   const navigate = useCallback((next: StaffSection, extra: Record<string, string> = {}) => {
-    confirmLeaving(() => router.setParams({ section: next, bookingId: '', customerId: '', vehicleId: '', tool: '', ...extra }));
-  }, [confirmLeaving, router]);
+    confirmLeaving(() => {
+      const resetBookingView = next === 'bookings' && !extra.bookingId && (section !== 'bookings' || Boolean(extra.view));
+      if (resetBookingView) {
+        setBookingSearch(''); setBookingPage(0);
+      }
+      const nextBookingView = extra.view === 'review' || extra.view === 'history' ? extra.view : 'active';
+      router.setParams({ section: next, bookingId: '', customerId: '', vehicleId: '', tool: '', ...extra, view: next === 'bookings' ? resetBookingView ? nextBookingView : bookingFilter : '' });
+    });
+  }, [bookingFilter, confirmLeaving, router, section]);
   const goBack = useCallback(() => {
+    if (section === 'records' && recordBackRef.current) { recordBackRef.current(); return; }
     if (selectedBooking) navigate('bookings');
+    else if (section === 'customers' && params.customerId) navigate('customers');
     else if (section === 'connections' && connectionTool) navigate('connections');
     else if (staffTabForSection(section) !== section) navigate(staffTabForSection(section));
     else navigate('dashboard');
-  }, [connectionTool, navigate, section, selectedBooking]);
+  }, [connectionTool, navigate, params.customerId, section, selectedBooking]);
   useFocusEffect(useCallback(() => registerNavigationHandler(navigate), [navigate, registerNavigationHandler]));
-  useEffect(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [section, params.bookingId, params.tool, bookingPage, auditPage]);
+  useEffect(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [section, params.bookingId, params.customerId, params.tool, bookingPage, customerPage, auditPage, deletionPage]);
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -507,25 +527,23 @@ function StaffWorkspace({
       <ScrollView ref={scrollRef} contentContainerStyle={[styles.workspaceContent, { paddingHorizontal: horizontalPadding }]} keyboardShouldPersistTaps="handled">
         <View style={styles.pageHeading}>
           {section !== 'dashboard' ? <Pressable accessibilityRole="button" accessibilityLabel="Back in workshop portal" onPress={goBack} style={styles.pageBack}><Ionicons name="chevron-back" color={colors.accent} size={22} /></Pressable> : null}
-          <Text accessibilityRole="header" style={styles.pageTitle}>{selectedBooking ? 'Booking details' : STAFF_SECTIONS[section].title}</Text>
+          <Text accessibilityRole="header" style={styles.pageTitle}>{selectedBooking ? 'Booking details' : selectedLookupCustomer ? 'Customer details' : connectionTool ? { xero: 'Xero invoices', calendar: 'Email & Calendar', payments: 'Payments', uploads: 'PC uploads' }[connectionTool] : STAFF_SECTIONS[section].title}</Text>
           <Pressable accessibilityRole="button" accessibilityLabel="Refresh this workspace" disabled={actionBusy} onPress={() => confirmLeaving(onRefresh)} style={styles.headerButton}><Ionicons name="refresh-outline" color={colors.accent} size={21} /></Pressable>
         </View>
         {actionNotice ? <Text accessibilityRole="alert" style={styles.cardMeta}>{actionNotice}</Text> : null}
 
         {section === 'dashboard' ? <>
-          <Text style={styles.cardCopy}>Your workshop at a glance.</Text>
           <View style={styles.dashboardMetrics}>
-            <DashboardMetric label="Active bookings" value={activeBookings.length} onPress={() => navigate('bookings')} />
-            <DashboardMetric label="Customers" value={snapshot.customers.length} onPress={() => navigate('customers')} />
+            <DashboardMetric label="To review" value={waitingBookings.length} onPress={() => navigate('bookings', { view: 'review' })} />
+            <DashboardMetric label="Active bookings" value={activeBookings.length} onPress={() => navigate('bookings', { view: 'active' })} />
           </View>
-          <WorkspaceLink title="Bookings" detail="Review requests and complete services" icon="calendar-outline" onPress={() => navigate('bookings')} />
-          <WorkspaceLink title="Customers & vehicles" detail="Find a customer or registration" icon="people-outline" onPress={() => navigate('customers')} />
-          <WorkspaceLink title="Add vehicle record" detail="Service, photos, invoices and dyno PDFs" icon="add-circle-outline" onPress={() => navigate('records')} />
-          <Text style={styles.groupLabel}>Needs attention</Text>
-          {waitingBookings.length ? <WorkspaceLink title={`${waitingBookings.length} booking request${waitingBookings.length === 1 ? '' : 's'} to review`} icon="time-outline" onPress={() => navigate('bookings')} /> : <Text style={styles.cardCopy}>No new booking requests in this snapshot.</Text>}
-          {waitingIntegrationJobs.length ? <WorkspaceLink title={`${waitingIntegrationJobs.length} delivery job${waitingIntegrationJobs.length === 1 ? '' : 's'} to check`} icon="mail-outline" onPress={() => navigate('connections', { tool: 'calendar' })} /> : null}
-          {role === 'owner' && pendingDeletions.length ? <WorkspaceLink title={`${pendingDeletions.length} account request${pendingDeletions.length === 1 ? '' : 's'}`} icon="person-circle-outline" onPress={() => navigate('deletion')} /> : null}
-          <WorkspaceLink title="Imports & drafts" icon="file-tray-outline" onPress={() => navigate('imports')} />
+          <PrimaryButton label="Add vehicle record" onPress={() => navigate('records')} />
+          <WorkspaceLink title="Find customer or vehicle" detail="Search name, email or registration" icon="search-outline" onPress={() => navigate('customers')} />
+          {waitingIntegrationJobs.length || (role === 'owner' && pendingDeletions.length) ? <>
+            <Text style={styles.groupLabel}>Needs attention</Text>
+            {waitingIntegrationJobs.length ? <WorkspaceLink title="Email & Calendar" detail={`${waitingIntegrationJobs.length} deliveries to check`} icon="mail-outline" onPress={() => navigate('connections', { tool: 'calendar' })} /> : null}
+            {role === 'owner' && pendingDeletions.length ? <WorkspaceLink title="Account requests" detail={`${pendingDeletions.length} awaiting review`} icon="person-circle-outline" onPress={() => navigate('deletion')} /> : null}
+          </> : <Text style={styles.cardCopy}>No other items need attention.</Text>}
         </> : null}
 
         {section === 'bookings' ? selectedBooking ? <>
@@ -540,11 +558,16 @@ function StaffWorkspace({
               </View>
               <Text style={styles.cardPrimary}>{customerName(customer)}</Text>
               <Text style={styles.cardCopy}>{vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable'}</Text>
-              <Text style={styles.cardMeta}>{booking.preferred_date ? `Preferred ${formatDate(booking.preferred_date)}` : 'Customer is flexible on date'}</Text>
-              {booking.approved_date ? <Text style={styles.cardMeta}>Workshop date {formatDate(booking.approved_date)}</Text> : null}
+              <Text style={styles.cardMeta}>{booking.approved_date ? `Workshop date ${formatDate(booking.approved_date)}` : booking.preferred_date ? `Requested ${formatDate(booking.preferred_date)}` : 'Flexible date'}</Text>
               {booking.request_notes ? <Text style={styles.cardCopy}>{booking.request_notes}</Text> : null}
-              {bookingContextLines(booking.request_context).map((line, index) => <Text key={`${booking.id}-context-${index}`} style={styles.contextLine}>{line}</Text>)}
-              {booking.staff_note ? <Text style={styles.staffNote}>PSI note · {booking.staff_note}</Text> : null}
+              <Pressable accessibilityRole="button" accessibilityState={{ expanded: bookingDetailsOpen }} onPress={() => setExpandedBookingDetailsId(bookingDetailsOpen ? null : selectedBooking.id)} style={styles.disclosure}>
+                <Text style={styles.inlineActionText}>Visit details & notes</Text><Ionicons name={bookingDetailsOpen ? 'chevron-up' : 'chevron-down'} color={colors.accent} size={18} />
+              </Pressable>
+              {bookingDetailsOpen ? <View style={styles.detailStack}>
+                {booking.approved_date && booking.preferred_date ? <Text style={styles.contextLine}>Originally requested {formatDate(booking.preferred_date)}</Text> : null}
+                {bookingContextLines(booking.request_context).map((line, index) => <Text key={`${booking.id}-context-${index}`} style={styles.contextLine}>{line}</Text>)}
+                {booking.staff_note ? <Text style={styles.staffNote}>PSI note · {booking.staff_note}</Text> : <Text style={styles.contextLine}>No staff note added.</Text>}
+              </View> : null}
               <StaffBookingReview booking={booking} onRefresh={onRefresh} onDirtyChange={setBookingDirty} onBusyChange={setBookingBusy} />
               <StaffServiceCompletion
                 booking={booking}
@@ -560,9 +583,9 @@ function StaffWorkspace({
 
           <WorkspaceLink title="Add a vehicle record" icon="add-circle-outline" onPress={() => navigate('records', { customerId: selectedBooking.customer_id, vehicleId: selectedBooking.vehicle_id })} />
         </> : <>
-          <View style={styles.filterRow}>{(['active', 'history'] as const).map(filter => <Pressable key={filter} accessibilityRole="button" accessibilityState={{ selected: bookingFilter === filter }} onPress={() => { setBookingFilter(filter); setBookingPage(0); }} style={[styles.filterButton, bookingFilter === filter && styles.filterSelected]}><Text style={styles.filterText}>{filter === 'active' ? 'Active' : 'Completed & cancelled'}</Text></Pressable>)}</View>
+          <View style={styles.filterRow}>{(['active', 'review', 'history'] as const).map(filter => <Pressable key={filter} accessibilityRole="button" accessibilityState={{ selected: bookingFilter === filter }} onPress={() => { router.setParams({ view: filter }); setBookingPage(0); }} style={[styles.filterButton, bookingFilter === filter && styles.filterSelected]}><Text style={styles.filterText}>{filter === 'active' ? 'Active' : filter === 'review' ? 'To review' : 'History'}</Text></Pressable>)}</View>
           <Field label="Find booking"><FormInput value={bookingSearch} onChangeText={v => { setBookingSearch(v); setBookingPage(0); }} placeholder="Customer, registration or vehicle" /></Field>
-          <Text style={styles.cardCopy}>{filteredBookings.length} {bookingFilter === 'active' ? 'active' : 'archived'} bookings in the loaded queue</Text>
+          <Text style={styles.cardCopy}>{filteredBookings.length} booking{filteredBookings.length === 1 ? '' : 's'}{bookingFilter === 'review' ? ' awaiting review' : bookingFilter === 'history' ? ' in history' : ''}</Text>
           {visibleBookings.length ? visibleBookings.map(booking => {
             const customer = snapshot.customers.find(c => c.user_id === booking.customer_id);
             const vehicle = snapshot.vehicles.find(v => v.id === booking.vehicle_id);
@@ -572,21 +595,18 @@ function StaffWorkspace({
         </> : null}
 
         {section === 'customers' ? <>
-          <Field label="Find customer or vehicle"><FormInput value={customerSearch} onChangeText={setCustomerSearch} placeholder="Name, email, registration or vehicle" /></Field>
-          {filteredCustomerOptions.length ? <>
-                  {snapshot.customers.length === 0 ? <EmptyState>No active customer accounts are currently shown.</EmptyState> : (
-          <View style={styles.lookupPanel}>
-            <StaffScrollSelect label="Customer" onChange={(id) => { setLookupCustomerId(id); router.setParams({ customerId: id }); }} options={filteredCustomerOptions} searchable value={selectedLookupCustomer?.user_id ?? ''} />
-            {selectedLookupCustomer ? (
+          {selectedLookupCustomer ? <>
               <View style={styles.lookupCustomerCard}>
                 <View style={styles.lookupIdentity}>
                   <View style={styles.lookupInitials}><Text style={styles.lookupInitialsText}>{customerInitials(selectedLookupCustomer)}</Text></View>
                   <View style={styles.flex}>
                     <Text style={styles.cardTitle}>{customerName(selectedLookupCustomer)}</Text>
-                    <Text style={styles.cardCopy}>{selectedLookupCustomer.email}</Text>
-                    {selectedLookupCustomer.mobile ? <Text style={styles.cardCopy}>{selectedLookupCustomer.mobile}</Text> : null}
+                    <Text selectable style={styles.cardCopy}>{selectedLookupCustomer.email}</Text>
+                    {selectedLookupCustomer.mobile ? <Text selectable style={styles.cardCopy}>{selectedLookupCustomer.mobile}</Text> : null}
                   </View>
                 </View>
+              </View>
+                <Text style={styles.groupLabel}>Vehicles</Text>
                 <View style={styles.vehicleList}>
                   {selectedLookupVehicles.length === 0 ? <Text style={styles.cardMeta}>No active vehicles.</Text> : selectedLookupVehicles.map((vehicle) => (
                     <View key={vehicle.id} style={styles.vehicleRow}>
@@ -601,34 +621,39 @@ function StaffWorkspace({
                     </View>
                   ))}
                 </View>
-              </View>
-            ) : null}
-          </View>
-        )}
-          </> : <EmptyState>No customers match your search.</EmptyState>}
-          {role === 'owner' ? <>
+            {role === 'owner' ? <WorkspaceLink title="Performance+ access" icon="add-circle-outline" onPress={() => navigate('access', { customerId: selectedLookupCustomer.user_id })} /> : null}
+          </> : <>
+            {paramValue(params.customerId) ? <Text accessibilityRole="alert" style={styles.errorText}>That customer is no longer in the active list. Select a customer below.</Text> : null}
+            <Field label="Find customer or vehicle"><FormInput value={customerSearch} onChangeText={value => { setCustomerSearch(value); setCustomerPage(0); }} placeholder="Name, email or registration" /></Field>
+            <Text style={styles.cardCopy}>{filteredCustomerOptions.length} customer{filteredCustomerOptions.length === 1 ? '' : 's'}</Text>
+            {filteredCustomerOptions.slice(customerPage * 8, customerPage * 8 + 8).map(option => {
+              const vehicleCount = (vehiclesByCustomer.get(option.value) ?? []).length;
+              return <WorkspaceLink key={option.value} title={option.label} detail={`${option.sublabel} · ${vehicleCount} vehicle${vehicleCount === 1 ? '' : 's'}`} icon="person-outline" onPress={() => navigate('customers', { customerId: option.value })} />;
+            })}
+            {filteredCustomerOptions.length === 0 ? <EmptyState>No customers match your search.</EmptyState> : null}
+            <Pagination page={customerPage} total={filteredCustomerOptions.length} onChange={setCustomerPage} />
+            {role === 'owner' ? <>
+            <Text style={styles.groupLabel}>Manage accounts</Text>
             <WorkspaceLink title="Invite customer" icon="person-add-outline" onPress={() => navigate('invitations')} />
-            <WorkspaceLink title="Performance+ access" icon="add-circle-outline" onPress={() => navigate('access', { customerId: selectedLookupCustomer?.user_id ?? '' })} />
             <WorkspaceLink title="Account requests" detail={`${pendingDeletions.length} awaiting review`} icon="person-remove-outline" onPress={() => navigate('deletion')} />
-          </> : null}
+            </> : null}
+          </>}
         </> : null}
 
         {section === 'records' ? <>
-          <StaffRecordWorkflow snapshot={snapshot} customerId={paramValue(params.customerId)} vehicleId={paramValue(params.vehicleId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} />
-          <WorkspaceLink title="Imports & drafts" icon="file-tray-outline" onPress={() => navigate('imports')} />
+          <StaffRecordWorkflow snapshot={snapshot} customerId={paramValue(params.customerId)} vehicleId={paramValue(params.vehicleId)} onBackHandlerChange={registerRecordBack} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} />
+          {!recordHasSteps ? <WorkspaceLink title="Imports & drafts" icon="file-tray-outline" onPress={() => navigate('imports')} /> : null}
         </> : null}
         {section === 'imports' ? <StaffVaultReview /> : null}
         {section === 'access' ? role === 'owner' ? <StaffPerformanceAccess snapshot={snapshot} customerId={paramValue(params.customerId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} /> : <EmptyState>Owner access is required.</EmptyState> : null}
         {section === 'invitations' ? role === 'owner' ? <>
                   {role === 'owner' ? (
           <>
-            <SectionHeading
-              copy="Approve one customer email at a time. They create their own private profile after signing in; public registration stays closed."
-              title="Invite a customer"
-            />
+            <Text style={styles.cardCopy}>Approve their email, then invite them to TestFlight.</Text>
             <View style={styles.invitationPanel}>
               <Field error={invitationError} hint={REVIEW_ENVIRONMENT.enabled ? 'Demo only: demo1@example.invalid through demo5@example.invalid' : 'Use the same email for PSI access and the Apple TestFlight invitation'} label="Customer email">
                 <FormInput
+                  editable={!invitationBusy}
                   autoCapitalize="none"
                   autoComplete="email"
                   error={invitationError}
@@ -648,12 +673,12 @@ function StaffWorkspace({
               {!REVIEW_ENVIRONMENT.enabled ? <><View style={styles.testFlightStep}>
                 <Ionicons color={colors.accent} name="logo-apple" size={22} />
                 <View style={styles.flex}>
-                  <Text style={styles.securityTitle}>Then send the TestFlight invitation</Text>
-                  <Text style={styles.securityCopy}>Apple emails the tester and prompts them to install TestFlight and PSI. This is separate from their PSI six-digit sign-in code.</Text>
+                  <Text style={styles.securityTitle}>TestFlight invitation</Text>
+                  <Text style={styles.securityCopy}>Use the same email in App Store Connect so the customer can install PSI.</Text>
                 </View>
               </View>
               <PrimaryButton
-                label="Open App Store Connect TestFlight"
+                label="Open TestFlight setup"
                 onPress={() => void Linking.openURL('https://appstoreconnect.apple.com/apps/6806902732/testflight')}
                 variant="outline"
               />
@@ -673,7 +698,10 @@ function StaffWorkspace({
                 </View>
                 <Ionicons color={colors.accent} name={invitationListOpen ? 'chevron-up' : 'chevron-down'} size={22} />
               </Pressable>
-              {invitationListOpen ? visibleInvitations.map((invitation) => {
+              {invitationListOpen ? <>
+              <Field label="Find approved account"><FormInput value={invitationSearch} onChangeText={value => { setInvitationSearch(value); setInvitationPage(0); }} placeholder="Name or email" /></Field>
+              <Pagination page={invitationPage} total={matchingInvitations.length} onChange={setInvitationPage} />
+              {matchingInvitations.slice(invitationPage * 8, invitationPage * 8 + 8).map((invitation) => {
                 const profileLabel = invitationCustomerLabel(invitation.email, snapshot.customers);
                 return (
                   <View key={invitation.id} style={styles.invitationRow}>
@@ -685,15 +713,18 @@ function StaffWorkspace({
                     <Text style={styles.badge}>{invitation.status === 'profile_complete' ? 'Profile ready' : 'Profile pending'}</Text>
                   </View>
                 );
-              }) : null}
+              })}
+              {matchingInvitations.length === 0 ? <Text style={styles.cardCopy}>No approved accounts match.</Text> : null}
+              </> : null}
             </View>
           </>
         ) : null}
 
         </> : <EmptyState>Owner access is required.</EmptyState> : null}
         {section === 'deletion' ? role === 'owner' ? <>
-                  <SectionHeading copy={REVIEW_ENVIRONMENT.enabled ? 'Synthetic customer deletion requests. Completion permanently removes only the selected sandbox account and its private files.' : 'Customer-initiated requests are visible only to Matt after MFA. Complete the documented storage, retained-record and Auth cleanup before recording completion.'} title="Account deletion queue" />
-        {snapshot.accountDeletionRequests.length === 0 ? <EmptyState>No account deletion requests are currently shown.</EmptyState> : snapshot.accountDeletionRequests.map((request) => {
+        <Text style={styles.cardCopy}>Review customer requests to close their accounts.</Text>
+        <View style={styles.filterRow}>{(['pending', 'history'] as const).map(filter => <Pressable key={filter} accessibilityRole="button" accessibilityState={{ selected: deletionFilter === filter }} onPress={() => confirmLeaving(() => { setDeletionFilter(filter); setDeletionPage(0); setActiveDeletionId(''); })} style={[styles.filterButton, deletionFilter === filter && styles.filterSelected]}><Text style={styles.filterText}>{filter === 'pending' ? 'Awaiting review' : 'Completed'}</Text></Pressable>)}</View>
+        {filteredDeletions.length === 0 ? <EmptyState>No account requests in this view.</EmptyState> : filteredDeletions.slice(deletionPage * 8, deletionPage * 8 + 8).map((request) => {
           const customer = snapshot.deletionCustomers.find((item) => item.user_id === request.user_id);
           const expanded = activeDeletionId === request.user_id;
           return <AccountDeletionRequestCard
@@ -709,6 +740,7 @@ function StaffWorkspace({
             request={request}
           />;
         })}
+        <Pagination page={deletionPage} total={filteredDeletions.length} onChange={page => confirmLeaving(() => { setDeletionPage(page); setActiveDeletionId(''); })} />
 
         </> : <EmptyState>Owner access is required.</EmptyState> : null}
         {section === 'events' ? <StaffEventsManager onDirtyChange={setEventDirty} onBusyChange={setEventBusy} /> : null}
@@ -716,7 +748,6 @@ function StaffWorkspace({
         {section === 'menu' ? <>
           <WorkspaceLink title="PSI events" detail="Upcoming events and customer announcements" icon="flag-outline" onPress={() => navigate('events')} />
           <WorkspaceLink title="Connections" detail="Xero, payments, email and Calendar" icon="link-outline" onPress={() => navigate('connections')} />
-          <WorkspaceLink title="Workshop PC uploads" detail="Photo folders and dyno PDF imports" icon="desktop-outline" onPress={() => navigate('connections', { tool: 'uploads' })} />
           <WorkspaceLink title="Activity history" icon="time-outline" onPress={() => navigate('history')} />
           <WorkspaceLink title="Return to customer app" icon="phone-portrait-outline" onPress={() => confirmLeaving(() => router.replace('/'))} />
           <WorkspaceLink title="Settings" detail="Account and authenticator security" icon="settings-outline" onPress={() => navigate('settings')} />
@@ -728,7 +759,6 @@ function StaffWorkspace({
           <WorkspaceLink title="Payments" detail="Setup pending" icon="card-outline" onPress={() => navigate('connections', { tool: 'payments' })} />
           <WorkspaceLink title="Workshop PC uploads" detail="Verified folders for photos and dyno PDFs" icon="desktop-outline" onPress={() => navigate('connections', { tool: 'uploads' })} />
         </> : connectionTool === 'xero' ? role === 'owner' && !REVIEW_ENVIRONMENT.enabled ? <StaffXeroConnection /> : <EmptyState>Xero setup is available to the owner in the live portal.</EmptyState> : connectionTool === 'calendar' ? <>
-                  <SectionHeading copy="Delivery status and recent history." title="Email & Calendar" />
         <View style={styles.integrationControls}>
           <View style={styles.queueStatusRow}>
             <Ionicons color={waitingIntegrationJobs.length ? colors.danger : colors.success} name={waitingIntegrationJobs.length ? 'alert-circle' : 'checkmark-circle'} size={22} />
@@ -750,7 +780,7 @@ function StaffWorkspace({
           {integrationResult?.processed ? <PrimaryButton label="Refresh portal records" onPress={onRefresh} /> : null}
           {integrationError ? <Text accessibilityRole="alert" style={styles.integrationError}>{integrationError}</Text> : null}
         </View>
-        {waitingIntegrationJobs.length === 0 ? <EmptyState>No waiting deliveries.</EmptyState> : waitingIntegrationJobs.slice(0, 16).map((job) => (
+        {waitingIntegrationJobs.slice(0, 8).map((job) => (
           <View key={job.id} style={styles.card}>
             <View style={styles.cardHeading}>
               <Text style={styles.cardTitle}>{INTEGRATION_JOB_LABELS[job.job_kind]}</Text>
@@ -762,6 +792,7 @@ function StaffWorkspace({
             {job.provider_reference ? <Text style={styles.contextLine}>Provider reference recorded</Text> : null}
           </View>
         ))}
+        {waitingIntegrationJobs.length > 8 ? <Text style={styles.cardCopy}>Showing the first 8 of {waitingIntegrationJobs.length} waiting deliveries.</Text> : null}
 
         {completedIntegrationJobs.length ? (
           <View style={styles.historyPanel}>
@@ -859,7 +890,7 @@ function matchesSearch(value: string, query: string) {
 
 function WorkspaceLink({ title, detail, icon, onPress }: { title: string; detail?: string; icon: ComponentProps<typeof Ionicons>['name']; onPress: () => void }) {
   const { largeText } = useResponsiveLayout();
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.workspaceLink, largeText && styles.linkStacked, pressed && styles.pressed]}>
+  return <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={({ pressed }) => [styles.workspaceLink, largeText && styles.linkStacked, pressed && styles.pressed]}>
     <View style={styles.linkIcon}><Ionicons name={icon} color={colors.accent} size={24} /></View>
     <View style={largeText ? styles.stackedCopy : styles.flex}><Text style={styles.linkTitle}>{title}</Text>{detail ? <Text style={styles.linkDetail}>{detail}</Text> : null}</View>
     {!largeText ? <Ionicons name="chevron-forward" color={colors.accent} size={18} /> : null}
@@ -1013,10 +1044,6 @@ function AccountDeletionRequestCard({
   );
 }
 
-function SectionHeading({ copy, title }: { copy: string; title: string }) {
-  return <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionCopy}>{copy}</Text></View>;
-}
-
 function EmptyState({ children }: { children: string }) {
   return <View style={styles.empty}><Text style={styles.emptyText}>{children}</Text></View>;
 }
@@ -1142,7 +1169,7 @@ const styles = StyleSheet.create({
   headerAvatar: { width: 34, height: 34, borderRadius: 17 },
   workspaceContent: { alignSelf: 'center', width: '100%', maxWidth: 880, paddingVertical: 18, paddingBottom: 36, gap: 12 },
   pageHeading: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  pageTitle: { color: colors.white, fontSize: 25, fontWeight: '900', flex: 1, minWidth: 0 },
+  pageTitle: { color: colors.white, fontSize: 23, fontWeight: '800', flex: 1, minWidth: 0 },
   pageBack: { minHeight: 44, width: 36, alignItems: 'center', justifyContent: 'center' },
   groupLabel: { color: colors.silver, fontSize: 13, fontWeight: '800', marginTop: 8 },
   workspaceLink: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: colors.panel, padding: 14, minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -1164,6 +1191,8 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.35 },
   inlineAction: { paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
   inlineActionText: { color: colors.accent, fontSize: 13, fontWeight: '800' },
+  disclosure: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', minHeight: 44, gap: 10 },
+  detailStack: { gap: 6, paddingBottom: 12 },
   settingsCard: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.line, borderRadius: 12, padding: 16, gap: 12 },
 
   screen: { flex: 1, backgroundColor: colors.ink },
@@ -1172,7 +1201,7 @@ const styles = StyleSheet.create({
   stateTitle: { color: colors.white, fontSize: 27, fontWeight: '900', textAlign: 'center' },
   stateCopy: { color: colors.muted, fontSize: 15, lineHeight: 23, maxWidth: 520, textAlign: 'center' },
   mfaScroll: { alignItems: 'center', alignSelf: 'center', width: '100%', maxWidth: 620, paddingBottom: spacing.xxl, paddingTop: spacing.md },
-  mfaCard: { ...mobileFrame, alignSelf: 'stretch', backgroundColor: colors.panel, gap: spacing.md, marginTop: spacing.lg, padding: spacing.lg },
+  mfaCard: { ...portalFrame, alignSelf: 'stretch', backgroundColor: colors.panel, gap: spacing.md, marginTop: spacing.lg, padding: spacing.lg },
   mfaKicker: { color: colors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 1.4, textTransform: 'uppercase' },
   mfaTitle: { color: colors.white, fontSize: 22, fontWeight: '900' },
   mfaCopy: { color: colors.muted, fontSize: 14, lineHeight: 21 },
@@ -1183,44 +1212,41 @@ const styles = StyleSheet.create({
   errorText: { color: colors.danger, fontSize: 13, lineHeight: 19 },
   back: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
   backText: { color: colors.white, fontSize: 15, fontWeight: '800' },
-  securityTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
+  securityTitle: { color: colors.white, fontSize: 15, fontWeight: '700' },
   securityCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 4 },
-  securityManagement: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.md },
+  securityManagement: { ...portalFrame, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.md },
   securityManagementHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   securityWarning: { color: colors.silver, fontSize: 11, lineHeight: 17 },
-  sectionHeading: { marginBottom: spacing.xs, marginTop: spacing.sm },
-  sectionTitle: { color: colors.white, fontSize: 20, fontWeight: '900' },
-  sectionCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 3 },
-  card: { ...mobileFrame, backgroundColor: colors.panel, marginBottom: spacing.sm, padding: spacing.md },
+  card: { ...portalFrame, backgroundColor: colors.panel, marginBottom: spacing.sm, padding: spacing.md },
   cardHeading: { alignItems: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between' },
-  cardTitle: { color: colors.white, flex: 1, fontSize: 17, fontWeight: '900' },
+  cardTitle: { color: colors.white, flex: 1, minWidth: 0, fontSize: 17, fontWeight: '700' },
   cardPrimary: { color: colors.white, fontSize: 15, fontWeight: '800', marginTop: spacing.sm },
   cardCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 2 },
   cardMeta: { color: colors.accent, fontSize: 12, fontWeight: '800', marginTop: spacing.xs },
   staffNote: { color: colors.silver, fontSize: 12, fontWeight: '800', lineHeight: 18, marginTop: spacing.xs },
-  contextLine: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: 2 },
+  contextLine: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 2 },
   deletionPanel: { borderTopColor: colors.line, borderTopWidth: 1, gap: spacing.md, marginTop: spacing.md, paddingTop: spacing.md },
-  deletionWarning: { alignItems: 'flex-start', backgroundColor: '#2A1717', flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
+  deletionWarning: { alignItems: 'flex-start', backgroundColor: colors.panelRaised, borderLeftWidth: 3, borderLeftColor: colors.danger, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
   deletionWarningText: { color: colors.white, flex: 1, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   deletionCheck: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
   deletionCheckText: { color: colors.silver, flex: 1, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   deletionError: { color: colors.danger, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   integrationError: { color: colors.danger, fontSize: 11, fontWeight: '800', lineHeight: 17, marginTop: spacing.xs },
-  integrationControls: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.sm, marginBottom: spacing.sm, padding: spacing.md },
+  integrationControls: { ...portalFrame, backgroundColor: colors.inkSoft, gap: spacing.sm, marginBottom: spacing.sm, padding: spacing.md },
   queueStatusRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
-  integrationSuccess: { alignItems: 'flex-start', backgroundColor: '#12251E', flexDirection: 'row', gap: spacing.sm, padding: spacing.sm },
+  integrationSuccess: { alignItems: 'flex-start', backgroundColor: colors.panelRaised, borderLeftWidth: 3, borderLeftColor: colors.success, flexDirection: 'row', gap: spacing.sm, padding: spacing.sm },
   integrationSuccessTitle: { color: colors.success, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   integrationSuccessCopy: { color: colors.silver, fontSize: 11, lineHeight: 17, marginTop: 2 },
-  historyPanel: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.sm, marginBottom: spacing.sm, padding: spacing.md },
+  historyPanel: { ...portalFrame, backgroundColor: colors.inkSoft, gap: spacing.sm, marginBottom: spacing.sm, padding: spacing.md },
   historyHeading: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between', minHeight: 48 },
-  historyTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
+  historyTitle: { color: colors.white, fontSize: 15, fontWeight: '700' },
   historyMeta: { color: colors.accent, fontSize: 11, fontWeight: '800', lineHeight: 17 },
   historySelect: { alignItems: 'center', backgroundColor: colors.panelRaised, borderColor: colors.line, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, minHeight: 60, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  historySelectLabel: { color: colors.muted, fontSize: 10, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase' },
+  historySelectLabel: { color: colors.muted, fontSize: 12, fontWeight: '600' },
   historySelectValue: { color: colors.white, fontSize: 15, fontWeight: '900', marginTop: 2 },
   compactHistoryRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.sm },
   modalBackdrop: { alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.78)', flex: 1, justifyContent: 'center', padding: spacing.lg },
-  modalCard: { ...mobileFrame, backgroundColor: colors.panel, maxHeight: '72%', maxWidth: 520, padding: spacing.md, width: '100%' },
+  modalCard: { ...portalFrame, backgroundColor: colors.panel, maxHeight: '72%', maxWidth: 520, padding: spacing.md, width: '100%' },
   modalHeading: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between', marginBottom: spacing.sm },
   modalTitle: { color: colors.white, flex: 1, fontSize: 18, fontWeight: '900' },
   modalClose: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
@@ -1229,24 +1255,23 @@ const styles = StyleSheet.create({
   modalOptionSelected: { backgroundColor: colors.accent },
   modalOptionText: { color: colors.white, fontSize: 14, fontWeight: '800' },
   modalOptionTextSelected: { color: colors.ink },
-  invitationPanel: { ...mobileFrame, backgroundColor: colors.panel, gap: spacing.md, padding: spacing.md },
+  invitationPanel: { ...portalFrame, backgroundColor: colors.panel, gap: spacing.md, padding: spacing.md },
   invitationNotice: { color: colors.success, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   testFlightStep: { alignItems: 'flex-start', backgroundColor: colors.inkSoft, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
-  approvedAccountsPanel: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.xs, marginTop: spacing.md, padding: spacing.md },
-  invitationRow: { ...mobileFrame, alignItems: 'center', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xs, padding: spacing.md },
+  approvedAccountsPanel: { ...portalFrame, backgroundColor: colors.inkSoft, gap: spacing.xs, marginTop: spacing.md, padding: spacing.md },
+  invitationRow: { ...portalFrame, alignItems: 'center', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xs, padding: spacing.md },
   badge: { alignSelf: 'flex-start', flexShrink: 1, borderColor: colors.accentDark, borderWidth: 1, color: colors.accent, fontSize: 10, fontWeight: '900', paddingHorizontal: 8, paddingVertical: 5, textTransform: 'uppercase' },
-  lookupPanel: { ...mobileFrame, backgroundColor: colors.panel, gap: spacing.md, padding: spacing.md },
-  lookupCustomerCard: { ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.md },
+  lookupCustomerCard: { ...portalFrame, backgroundColor: colors.inkSoft, padding: spacing.md },
   lookupIdentity: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   lookupInitials: { width: 48, height: 48, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: colors.silver },
   lookupInitialsText: { color: colors.ink, fontSize: 14, fontWeight: '900' },
-  vehicleList: { gap: spacing.sm, marginTop: spacing.md },
-  vehicleRow: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', gap: spacing.sm, paddingTop: spacing.sm },
+  vehicleList: { gap: spacing.sm },
+  vehicleRow: { ...portalFrame, backgroundColor: colors.panel, alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, padding: spacing.md },
   vehicleTitle: { color: colors.white, fontSize: 14, fontWeight: '800' },
   vehiclePhoto: { backgroundColor: colors.ink, borderColor: colors.line, borderWidth: 1, height: 54, resizeMode: 'contain', width: 76 },
-  auditRow: { ...mobileFrame, alignItems: 'center', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xs, padding: spacing.sm },
-  auditTitle: { color: colors.white, fontSize: 12, fontWeight: '900' },
-  empty: { ...mobileFrame, backgroundColor: colors.panel, padding: spacing.lg },
+  auditRow: { ...portalFrame, alignItems: 'center', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xs, padding: spacing.sm },
+  auditTitle: { color: colors.white, fontSize: 14, fontWeight: '700' },
+  empty: { ...portalFrame, backgroundColor: colors.panel, padding: spacing.lg },
   emptyText: { color: colors.muted, fontSize: 14, textAlign: 'center' },
   footer: { color: colors.mutedDark, fontSize: 10, fontWeight: '900', letterSpacing: 1.1, lineHeight: 16, marginTop: spacing.xl, textAlign: 'center' },
   pressed: { opacity: .72 },

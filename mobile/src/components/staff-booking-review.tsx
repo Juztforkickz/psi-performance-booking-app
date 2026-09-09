@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
-import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { colors, spacing } from '@/constants/brand';
 import { isoDateToAustralian, todayAustralianDate } from '@/lib/australian-date';
 import type { BookingRequestRow } from '@/lib/database.types';
 import { confirmBankTransferPayment, reviewBookingRequest, type StaffBookingReviewInput } from '@/lib/staff-portal';
@@ -71,10 +71,10 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
       setFeedback({
         kind: 'success',
         text: action === 'approve_date'
-          ? 'Workshop date approved. No payment, confirmation email or Calendar event has been created yet.'
+          ? 'Date approved. The booking remains unconfirmed until payment is verified.'
           : action === 'propose_date'
-            ? 'Alternative workshop date recorded for customer contact. It is not a confirmed booking.'
-            : 'Request cancelled in the protected queue. No customer email has been claimed.',
+            ? 'Alternative date proposed. The customer still needs to accept it.'
+            : 'Booking request cancelled.',
       });
     } catch (error) {
       setFeedback({ kind: 'error', text: reviewErrorMessage(error) });
@@ -89,7 +89,7 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
     setFeedback(null);
     try {
       await confirmBankTransferPayment(booking.id, bankReference);
-      setFeedback({ kind: 'success', text: 'Cleared bank transfer verified. The booking is confirmed and confirmation delivery has been queued.' });
+      setFeedback({ kind: 'success', text: 'Bank transfer verified. Booking confirmed and customer confirmation queued.' });
       setBankChecked(false);
       setBankReference('');
       setBankOpen(false);
@@ -107,10 +107,7 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
     <View style={styles.workspace}>
       {discardDialog}
       <View style={styles.heading}>
-        <View style={styles.flex}>
-          <Text style={styles.kicker}>{REVIEW_ENVIRONMENT.enabled ? 'Sandbox booking' : 'Booking actions'}</Text>
-          <Text style={styles.title}>Workshop decision</Text>
-        </View>
+        <Text style={styles.title}>{feedback?.kind === 'success' ? 'Booking updated' : bankOpen ? 'Verify bank transfer' : action === 'approve_date' ? 'Approve date' : action === 'propose_date' ? 'Propose another date' : action === 'cancel' ? 'Cancel request' : 'Booking actions'}</Text>
         {(action || bankOpen) && feedback?.kind !== 'success' ? (
           <Pressable accessibilityLabel="Close booking review" accessibilityRole="button" disabled={busy} onPress={close} style={styles.close}>
             <Ionicons color={colors.white} name="close" size={20} />
@@ -118,18 +115,21 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
         ) : null}
       </View>
 
-      {!action ? (
+      {feedback?.kind === 'success' ? (
+        <View style={styles.successBox}>
+          <Text accessibilityRole="alert" style={styles.success}>{feedback.text}</Text>
+          <PrimaryButton label="Refresh booking" onPress={onRefresh} />
+        </View>
+      ) : !action ? (
         <View style={styles.actions}>
           {!bankOpen ? <>
-            <PrimaryButton disabled={busy} label="Approve requested date" onPress={() => chooseAction('approve_date')} variant="outline" />
+            {booking.state !== 'date_approved' ? <PrimaryButton disabled={busy} label={booking.state === 'date_proposed' ? 'Approve proposed date' : 'Approve requested date'} onPress={() => chooseAction('approve_date')} /> : !REVIEW_ENVIRONMENT.enabled ? <PrimaryButton disabled={busy} label="Verify bank transfer" onPress={() => { setBankOpen(true); setFeedback(null); }} /> : null}
             <PrimaryButton disabled={busy} label="Propose another date" onPress={() => chooseAction('propose_date')} variant="outline" />
-            <PrimaryButton disabled={busy} label="Cancel request" onPress={() => chooseAction('cancel')} variant="outline" />
+            <Pressable accessibilityRole="button" disabled={busy} onPress={() => chooseAction('cancel')} style={styles.secondaryAction}><Text style={styles.cancelText}>Cancel request</Text></Pressable>
           </> : null}
-          {booking.state === 'date_approved' && !REVIEW_ENVIRONMENT.enabled ? (
-            !bankOpen ? <PrimaryButton disabled={busy} label="Verify bank transfer" onPress={() => { setBankOpen(true); setFeedback(null); }} variant="outline" /> :
+          {booking.state === 'date_approved' && !REVIEW_ENVIRONMENT.enabled && bankOpen ? (
             <View style={styles.bankVerification}>
-              <Text style={styles.bankTitle}>Verify cleared bank transfer</Text>
-              <Text style={styles.bankCopy}>Use only after matching the exact amount and PSI reference in the business bank statement.</Text>
+              <Text style={styles.bankCopy}>Match the cleared amount and PSI reference in the business bank statement.</Text>
               <Field hint="Bank transaction/reference shown on the statement" label="Transaction reference">
                 <FormInput editable={!busy} autoCapitalize="characters" maxLength={80} onChangeText={(value) => { setBankReference(value); setBankChecked(false); }} value={bankReference} />
               </Field>
@@ -137,36 +137,28 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
                 <View style={[styles.checkbox, bankChecked && styles.checkboxChecked]}>{bankChecked ? <Ionicons color={colors.ink} name="checkmark" size={16} /> : null}</View>
                 <Text style={styles.confirmText}>I matched the cleared deposit amount, customer payment reference and this booking in PSI’s bank statement.</Text>
               </Pressable>
-              <PrimaryButton disabled={!bankChecked || bankReference.trim().length < 6} label="Confirm verified transfer" loading={busy} onPress={() => void confirmBankTransfer()} />
-              <PrimaryButton disabled={busy} label="Cancel verification" onPress={close} variant="outline" />
+              <PrimaryButton disabled={!bankChecked || bankReference.trim().length < 6} label="Confirm bank transfer" loading={busy} onPress={() => void confirmBankTransfer()} />
             </View>
           ) : null}
-          {feedback ? <Text accessibilityRole="alert" style={feedback.kind === 'error' ? styles.error : styles.success}>{feedback.text}</Text> : null}
-          {feedback?.kind === 'success' ? <PrimaryButton label="Refresh booking" onPress={onRefresh} variant="outline" /> : null}
-        </View>
-      ) : feedback?.kind === 'success' ? (
-        <View style={styles.successBox}>
-          <Ionicons color={colors.success} name="checkmark-circle" size={25} />
-          <Text accessibilityRole="alert" style={styles.success}>{feedback.text}</Text>
-          <PrimaryButton label="Refresh booking queue" onPress={onRefresh} />
+          {feedback ? <Text accessibilityRole="alert" style={styles.error}>{feedback.text}</Text> : null}
         </View>
       ) : (
         <>
           {action !== 'cancel' ? (
-            <Field hint="DD/MM/YYYY · PSI workshop date" label={action === 'approve_date' ? 'Approved date' : 'Proposed date'}>
+            <Field hint="DD/MM/YYYY" label={action === 'approve_date' ? 'Approved date' : 'Proposed date'}>
               <FormInput editable={!busy} keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(value) => { setApprovedDate(value); setConfirmed(false); }} value={approvedDate} />
             </Field>
           ) : null}
-          <Field hint={action === 'cancel' ? 'Required for the audit record' : 'Optional · visible in the customer booking status'} label="PSI note">
+          <Field hint={action === 'cancel' ? 'Required' : 'Optional · visible to the customer'} label={action === 'cancel' ? 'Cancellation reason' : 'Customer note'}>
             <FormInput editable={!busy} multiline numberOfLines={3} onChangeText={(value) => { setStaffNote(value); setConfirmed(false); }} placeholder={action === 'cancel' ? 'Reason for cancellation' : 'Date or arrival details to discuss'} style={styles.notes} textAlignVertical="top" value={staffNote} />
           </Field>
           <Pressable disabled={busy} accessibilityRole="checkbox" accessibilityState={{ checked: confirmed, disabled: busy }} onPress={() => setConfirmed((value) => !value)} style={styles.confirmRow}>
             <View style={[styles.checkbox, confirmed && styles.checkboxChecked]}>{confirmed ? <Ionicons color={colors.ink} name="checkmark" size={16} /> : null}</View>
             <Text style={styles.confirmText}>{action === 'approve_date'
-              ? 'I checked workshop capacity and this date. Record it as date approved, without claiming payment or final confirmation.'
+              ? 'I checked workshop capacity and this date. Payment is still required to confirm the booking.'
               : action === 'propose_date'
-                ? 'I checked this alternative date. Record it as a proposal that still requires customer contact.'
-                : 'I checked the request and cancellation note. Cancel this request without claiming an email was sent.'}</Text>
+                ? 'I checked this alternative date. The customer still needs to accept it.'
+                : 'I checked the request and cancellation reason.'}</Text>
           </Pressable>
           {feedback ? <Text accessibilityRole="alert" style={styles.error}>{feedback.text}</Text> : null}
           <PrimaryButton disabled={!confirmed || (action === 'cancel' && !staffNote.trim())} label={actionLabel(action)} loading={busy} onPress={() => void submit()} />
@@ -177,8 +169,8 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
 }
 
 function actionLabel(action: ReviewAction) {
-  if (action === 'approve_date') return 'Confirm date approval';
-  if (action === 'propose_date') return 'Record proposed date';
+  if (action === 'approve_date') return 'Approve date';
+  if (action === 'propose_date') return 'Propose date';
   return 'Confirm cancellation';
 }
 
@@ -196,22 +188,21 @@ function todayInSydney() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  workspace: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.md, marginTop: spacing.md, padding: spacing.md },
+  workspace: { borderTopWidth: 1, borderTopColor: colors.line, gap: spacing.md, marginTop: spacing.md, paddingTop: spacing.md },
   heading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
-  kicker: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.1, textTransform: 'uppercase' },
-  title: { color: colors.white, fontSize: 18, fontWeight: '900', marginTop: 2 },
-  close: { alignItems: 'center', height: 38, justifyContent: 'center', width: 38 },
+  title: { flex: 1, color: colors.white, fontSize: 16, fontWeight: '700' },
+  close: { alignItems: 'center', minHeight: 44, justifyContent: 'center', width: 44 },
   actions: { gap: spacing.sm },
-  bankVerification: { borderTopColor: colors.mutedDark, borderTopWidth: 1, gap: spacing.sm, marginTop: spacing.sm, paddingTop: spacing.md },
-  bankTitle: { color: colors.white, fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
-  bankCopy: { color: colors.muted, fontSize: 11, lineHeight: 17 },
+  secondaryAction: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.xs },
+  cancelText: { color: colors.danger, fontSize: 13, fontWeight: '600' },
+  bankVerification: { gap: spacing.md },
+  bankCopy: { color: colors.muted, fontSize: 13, lineHeight: 19 },
   notes: { minHeight: 88 },
   confirmRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
-  checkbox: { alignItems: 'center', borderColor: colors.accent, borderWidth: 2, height: 24, justifyContent: 'center', width: 24 },
+  checkbox: { alignItems: 'center', borderColor: colors.accent, borderWidth: 1, borderRadius: 4, height: 24, justifyContent: 'center', width: 24 },
   checkboxChecked: { backgroundColor: colors.accent },
   confirmText: { color: colors.silver, flex: 1, fontSize: 12, lineHeight: 18 },
-  error: { color: colors.danger, fontSize: 12, fontWeight: '800', lineHeight: 18 },
-  successBox: { alignItems: 'flex-start', gap: spacing.md },
-  success: { color: colors.success, fontSize: 12, fontWeight: '800', lineHeight: 19 },
+  error: { color: colors.danger, fontSize: 13, lineHeight: 19 },
+  successBox: { gap: spacing.md },
+  success: { color: colors.success, fontSize: 13, lineHeight: 19 },
 });
