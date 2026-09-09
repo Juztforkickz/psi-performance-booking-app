@@ -70,6 +70,10 @@ const images: Record<string, { source: ImageSourcePropType; thumbnail: ImageSour
   'geely-ex5': { source: require('../../assets/images/garage-vehicles/geely-ex5.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/geely-ex5.jpg') },
   'gwm-haval-jolion': { source: require('../../assets/images/garage-vehicles/gwm-haval-jolion.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/gwm-haval-jolion.jpg') },
   'zeekr-7x': { source: require('../../assets/images/garage-vehicles/zeekr-7x.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/zeekr-7x.jpg') },
+  'ford-falcon-xc-sedan': { source: require('../../assets/images/garage-vehicles/ford-falcon-xc-sedan.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/ford-falcon-xc-sedan.jpg') },
+  'ford-falcon-xc-coupe': { source: require('../../assets/images/garage-vehicles/ford-falcon-xc-coupe.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/ford-falcon-xc-coupe.jpg') },
+  'nissan-qashqai-j12': { source: require('../../assets/images/garage-vehicles/nissan-qashqai-j12.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/nissan-qashqai-j12.jpg') },
+  'jeep-grand-cherokee-wk2': { source: require('../../assets/images/garage-vehicles/jeep-grand-cherokee-wk2.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/jeep-grand-cherokee-wk2.jpg') },
 };
 
 export const GARAGE_ART = GARAGE_ART_CATALOG.map(entry => ({ ...entry, label: garageArtLabel(entry), ...images[entry.id] }));

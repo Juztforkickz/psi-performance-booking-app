@@ -575,6 +575,46 @@
       "sourceCollection": "garage-art-australia-2026",
       "original": "exec-04eaeb51-c7f4-4ba7-8422-5e910e5b39f1.png",
       "visualReview": "Accepted: clean premium electric-SUV body and split lighting, clean full framing and no readable branding."
+    },
+    {
+      "id": "ford-falcon-xc-sedan",
+      "label": "Ford Falcon XC Sedan",
+      "jpeg": "ford-falcon-xc-sedan.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI Australian Ford Falcon XC four-door sedan in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; classic late-1970s body, black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australian-classics",
+      "original": "exec-36bf45ae-38ae-4054-8692-c44451f34692.png",
+      "visualReview": "Accepted: clear four-door sedan body, separate boot and classic XC-era front; clean full framing and no readable branding."
+    },
+    {
+      "id": "ford-falcon-xc-coupe",
+      "label": "Ford Falcon XC Coupe",
+      "jpeg": "ford-falcon-xc-coupe.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI Australian Ford Falcon XC two-door hardtop coupe in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; long doors and fastback roof, black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australian-classics",
+      "original": "exec-4a3eef30-b9e9-4d1f-a161-27da0bf0c0e8.png",
+      "visualReview": "Accepted: unmistakable long two-door hardtop and fastback rear quarters; clean full framing and no readable branding."
+    },
+    {
+      "id": "nissan-qashqai-j12",
+      "label": "Nissan Qashqai J12",
+      "jpeg": "nissan-qashqai-j12.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI current Nissan Qashqai J12 in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; split-level lamps, black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-b357bfbb-eaa1-4198-b8a5-8c99b44532b9.png",
+      "visualReview": "Accepted: current J12 compact crossover shape and split lighting; clean full framing and no readable branding."
+    },
+    {
+      "id": "jeep-grand-cherokee-wk2",
+      "label": "Jeep Grand Cherokee WK2 SRT / Trackhawk",
+      "jpeg": "jeep-grand-cherokee-wk2.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI Jeep Grand Cherokee WK2 SRT/Trackhawk-style performance SUV in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; vented bonnet, black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-performance-suvs",
+      "original": "exec-64106eae-b208-4556-8452-aa1d2a0e508a.png",
+      "visualReview": "Accepted: recognisable WK2 performance body, seven-slot grille and vented bonnet; clean full framing and no readable branding."
     }
   ],
   "expandedOn": "2026-09-09"

@@ -75,6 +75,10 @@ export const GARAGE_ART_CATALOG: GarageArtEntry[] = [
   { id: 'geely-ex5', make: 'Geely', model: 'EX5', generation: 'Electric SUV', aliases: 'geely ex 5 ex5 electric ev suv' },
   { id: 'gwm-haval-jolion', make: 'GWM / Haval', model: 'Haval Jolion', generation: 'Compact SUV', aliases: 'gwm great wall haval jolion hybrid suv' },
   { id: 'zeekr-7x', make: 'Zeekr', model: '7X', generation: 'Electric SUV', aliases: 'zeekr 7x electric ev suv' },
+  { id: 'ford-falcon-xc-sedan', make: 'Ford / FPV', model: 'Falcon', generation: 'XC · Sedan', aliases: 'ford falcon xc sedan four door 1976 1977 1978 1979 classic' },
+  { id: 'ford-falcon-xc-coupe', make: 'Ford / FPV', model: 'Falcon Hardtop', generation: 'XC · Coupe', aliases: 'ford falcon xc coupe hardtop two door 1976 1977 1978 classic' },
+  { id: 'nissan-qashqai-j12', make: 'Nissan', model: 'Qashqai', generation: 'J12', aliases: 'nissan qashqai cashkai j12 compact suv crossover' },
+  { id: 'jeep-grand-cherokee-wk2', make: 'Jeep', model: 'Grand Cherokee', generation: 'WK2 · SRT / Trackhawk', aliases: 'jeep grand cherokee grandcherokee wk2 srt srt8 trackhawk hemi performance suv' },
 ];
 
 export type GarageArtVehicle = { make: string; model: string; year?: number };
