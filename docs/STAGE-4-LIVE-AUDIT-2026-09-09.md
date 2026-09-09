@@ -31,9 +31,9 @@ This audit verifies the existing PSI beta after the Performance+ rollout. It doe
 
 ## Performance+ discovery refinement
 
-- The existing full-width Performance+ card has been moved from below the Home footer to directly below the Home introduction, before shortcuts.
-- The card keeps the PSI charcoal, silver, ice-blue and deep-petrol palette and leads with `Your car. Its complete story.`
-- It names invoices, workshop photos, dyno PDFs and service history, then opens the existing Performance+ benefits, pricing and vault page.
+- The text-heavy full-width Home promotion has been replaced with a normal dashboard tile so Performance+ does not dominate the customer Home screen.
+- `Performance+` is selected by default immediately before `Settings & Notifications`; saved copies of either earlier default shortcut set migrate to this order while genuinely customised selections remain respected.
+- The tile uses compressed charcoal, silver, ice-blue and deep-petrol vehicle-vault artwork and opens the existing Performance+ benefits, monthly/annual pricing, purchase and restore controls.
 - The Garage and Vehicle Reports keep their contextual Performance+ entry points.
 
 ## Remaining launch work
