@@ -39,6 +39,7 @@ This audit verifies the existing PSI beta after the Performance+ rollout. It doe
 - The Garage and Vehicle Reports keep their contextual Performance+ entry points.
 - The complete current interface was republished to the exact build-9 beta runtime from commit `7b82bf3`: update group `1aff1fb2-45c2-41fb-ad36-33c73c321d07`, iOS update `01a08578-b12f-70f1-9a4f-57de4d4f48d5`. It includes the plus-symbol Home tile, 54-car Garage selector and complete bright-theme refinements.
 - The Settings-only owner refinement was published from commit `51100f6` to the same build-9 beta runtime: update group `931a90ab-c21d-40a1-bd12-b2abac84eed1`. Accounts with permanent complimentary Performance+ access no longer see the redundant current-plan promotion in Settings; their entitlement and Performance+ access remain unchanged.
+- The Trusted Partners directory now has nine approved businesses. TRB Visuals Photography and Martini Racing Products were published from commit `6ddf18c` to build 9: update group `ab9002ca-0a93-48e1-a0a7-5045ba90b9ac`.
 
 ## Remaining launch work
 
