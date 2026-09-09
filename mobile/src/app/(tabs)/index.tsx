@@ -286,6 +286,8 @@ export default function CustomerHomeScreen() {
           <Text style={[styles.lead, { color: theme.textMuted }]}>Your vehicle, visits, results and next plan in one place.</Text>
         </View>
 
+        <PerformanceVaultCard vehicleId={homeVehicleId} />
+
         <View style={styles.sectionHeading}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Your shortcuts</Text>
           <Pressable
@@ -479,8 +481,7 @@ export default function CustomerHomeScreen() {
           </Pressable>
         </View>
 
-          <PerformanceVaultCard vehicleId={homeVehicleId} />
-          <BrandRail />
+        <BrandRail />
       </ScrollView>
 
       <Modal
