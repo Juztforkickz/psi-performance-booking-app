@@ -31,6 +31,7 @@ const PARTNER_LOGOS: Readonly<Record<string, ImageSourcePropType>> = {
   'elite-detailing': require('../../assets/images/partners/elite-detailing.jpg'),
   'trb-visuals': require('../../assets/images/partners/trb-visuals.jpg'),
   'martini-racing-products': require('../../assets/images/partners/martini-racing-products.jpg'),
+  'fab-car-audio': require('../../assets/images/partners/fab-car-audio.jpg'),
 };
 
 const PARTNER_LOGO_SCALES: Readonly<Record<string, number>> = {
@@ -43,6 +44,7 @@ const PARTNER_LOGO_SCALES: Readonly<Record<string, number>> = {
   'elite-detailing': 1.22,
   'trb-visuals': 0.84,
   'martini-racing-products': 0.9,
+  'fab-car-audio': 1,
 };
 
 export default function TrustedPartnersScreen() {

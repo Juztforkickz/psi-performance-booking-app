@@ -123,6 +123,19 @@ const PARTNERS: readonly TrustedPartner[] = [
     emailUrl: 'mailto:sales@martiniracing.com.au',
     websiteUrl: 'https://www.martiniracing.com.au/',
   },
+  {
+    id: 'fab-car-audio',
+    category: 'Car Audio & Security',
+    businessName: 'Fab Car Audio',
+    summary: 'Professional car audio system design, installation, DSP tuning and vehicle security.',
+    address: '7/19–21 Sharnet Circuit, Pakenham VIC 3810',
+    phoneDisplay: '0423 522 124',
+    phoneUrl: 'tel:+61423522124',
+    email: 'sales@fabcaraudio.com.au',
+    emailUrl: 'mailto:sales@fabcaraudio.com.au',
+    websiteUrl: 'https://fabcaraudio.com.au/',
+    instagramUrl: 'https://www.instagram.com/fabcaraudio/',
+  },
 ];
 
 export const TRUSTED_PARTNERS: readonly TrustedPartner[] = [...PARTNERS].sort(
