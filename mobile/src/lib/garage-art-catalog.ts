@@ -62,6 +62,19 @@ export const GARAGE_ART_CATALOG: GarageArtEntry[] = [
   { id: 'ram-1500-dt', make: 'RAM', model: '1500', generation: 'DT · 2022', aliases: 'ram dodge 1500 dt hemi crew cab pickup truck 2022' },
   { id: 'mitsubishi-evo', make: 'Mitsubishi', model: 'Lancer Evolution IX', generation: 'CT9A', aliases: 'mitsubishi lancer evo evolution 9 ix ct9a' },
   { id: 'mazda-rx7', make: 'Mazda', model: 'RX-7', generation: 'FD', aliases: 'mazda rx7 rx 7 fd fd3s' },
+  { id: 'nissan-patrol-y62', make: 'Nissan', model: 'Patrol', generation: 'Y62 · Series 5', aliases: 'nissan patrol y62 series 5 v8 four wheel drive 4wd suv wagon' },
+  { id: 'toyota-landcruiser-300', make: 'Toyota', model: 'LandCruiser', generation: '300 Series', aliases: 'toyota land cruiser landcruiser lc300 300 series four wheel drive 4wd suv wagon' },
+  { id: 'audi-rsq3-f3', make: 'Audi', model: 'RS Q3', generation: 'F3', aliases: 'audi rsq3 rs q3 f3 quattro performance suv' },
+  { id: 'tesla-model-y', make: 'Tesla', model: 'Model Y', generation: '2026 · Juniper', aliases: 'tesla model y juniper electric ev suv' },
+  { id: 'toyota-rav4', make: 'Toyota', model: 'RAV4', generation: '2026 · GR Sport', aliases: 'toyota rav 4 rav4 gr sport hybrid phev suv' },
+  { id: 'toyota-hilux', make: 'Toyota', model: 'HiLux', generation: '2026 · Double Cab', aliases: 'toyota hilux hi lux dual cab double cab ute pickup four wheel drive 4wd' },
+  { id: 'toyota-prado-250', make: 'Toyota', model: 'LandCruiser Prado', generation: '250 Series', aliases: 'toyota land cruiser prado lc250 250 series four wheel drive 4wd suv wagon' },
+  { id: 'ford-ranger', make: 'Ford / FPV', model: 'Ranger', generation: 'P703 · Double Cab', aliases: 'ford ranger p703 dual cab double cab ute pickup raptor wildtrak four wheel drive 4wd' },
+  { id: 'byd-sealion-7', make: 'BYD', model: 'Sealion 7', generation: 'Electric SUV', aliases: 'byd sealion seal lion 7 electric ev suv' },
+  { id: 'chery-tiggo-4-pro', make: 'Chery', model: 'Tiggo 4 Pro', generation: 'Compact SUV', aliases: 'chery tiggo4 tiggo 4 pro compact suv' },
+  { id: 'geely-ex5', make: 'Geely', model: 'EX5', generation: 'Electric SUV', aliases: 'geely ex 5 ex5 electric ev suv' },
+  { id: 'gwm-haval-jolion', make: 'GWM / Haval', model: 'Haval Jolion', generation: 'Compact SUV', aliases: 'gwm great wall haval jolion hybrid suv' },
+  { id: 'zeekr-7x', make: 'Zeekr', model: '7X', generation: 'Electric SUV', aliases: 'zeekr 7x electric ev suv' },
 ];
 
 export type GarageArtVehicle = { make: string; model: string; year?: number };
@@ -80,6 +93,7 @@ export function garageArtMakeForVehicle(vehicle?: GarageArtVehicle) {
   if (['ford', 'fpv', 'ford performance vehicles'].includes(make)) return 'Ford / FPV';
   if (['mercedes', 'mercedes benz', 'mercedes amg'].includes(make)) return 'Mercedes-Benz';
   if (['ram', 'dodge', 'dodge ram'].includes(make)) return 'RAM';
+  if (['gwm', 'haval', 'great wall', 'great wall motors'].includes(make)) return 'GWM / Haval';
   if (make === 'chevy') return 'Chevrolet';
   return GARAGE_ART_CATALOG.find(entry => words(entry.make) === make)?.make;
 }

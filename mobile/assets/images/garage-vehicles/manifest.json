@@ -445,6 +445,136 @@
       "sourceCollection": "garage-art-instagram-holdens",
       "original": "holden-commodore-ve-ssv-wagon.png",
       "visualReview": "Accepted after regeneration: clear five-door Sportwagon profile and VE-style sports fascia; full vehicle, no plate or readable branding."
+    },
+    {
+      "id": "nissan-patrol-y62",
+      "label": "Nissan Patrol Y62 Series 5",
+      "jpeg": "nissan-patrol-y62.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI Nissan Patrol Y62 Series 5 in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-194cdad2-e408-421d-a7d8-489a9798cf79.png",
+      "visualReview": "Accepted: recognisable Y62 body and lighting, clean full framing and no readable branding."
+    },
+    {
+      "id": "toyota-landcruiser-300",
+      "label": "Toyota LandCruiser 300 Series",
+      "jpeg": "toyota-landcruiser-300.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI Toyota LandCruiser 300 Series in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-7f2282d9-3661-4a2c-8dd3-dcb165aaa306.png",
+      "visualReview": "Accepted: recognisable LC300 proportions and fascia, clean full framing and no readable branding."
+    },
+    {
+      "id": "audi-rsq3-f3",
+      "label": "Audi RS Q3 F3",
+      "jpeg": "audi-rsq3-f3.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI Audi RS Q3 F3 in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-5c48bc01-6a1a-4146-be35-98c49ade7d28.png",
+      "visualReview": "Accepted: compact performance-SUV silhouette and octagonal grille, clean full framing and no readable branding."
+    },
+    {
+      "id": "tesla-model-y",
+      "label": "Tesla Model Y Juniper",
+      "jpeg": "tesla-model-y.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI 2026 Tesla Model Y Juniper in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-abbf5f7f-1538-4bfa-9e28-13b8f5b609bc.png",
+      "visualReview": "Accepted: current grille-free front and fastback crossover shape, clean full framing and no readable branding."
+    },
+    {
+      "id": "toyota-rav4",
+      "label": "Toyota RAV4 GR Sport",
+      "jpeg": "toyota-rav4.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI 2026 Toyota RAV4 GR Sport in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-d294637f-7533-45b3-90a0-162905df09be.png",
+      "visualReview": "Accepted: angular current RAV4 performance-SUV treatment, clean full framing and no readable branding."
+    },
+    {
+      "id": "toyota-hilux",
+      "label": "Toyota HiLux Double Cab",
+      "jpeg": "toyota-hilux.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI 2026 Toyota HiLux double-cab 4x4 in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-0112400a-da2a-408a-b1d4-65d7d88afd56.png",
+      "visualReview": "Accepted: clear double-cab ute profile and current angular fascia, clean full framing and no readable branding."
+    },
+    {
+      "id": "toyota-prado-250",
+      "label": "Toyota LandCruiser Prado 250 Series",
+      "jpeg": "toyota-prado-250.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI Toyota LandCruiser Prado 250 Series in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-c375ad31-f4b6-4e48-8d42-19eb407dede1.png",
+      "visualReview": "Accepted: distinct squared Prado 250 body and rectangular lamps, clean full framing and no readable branding."
+    },
+    {
+      "id": "ford-ranger",
+      "label": "Ford Ranger P703 Double Cab",
+      "jpeg": "ford-ranger.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI Ford Ranger P703 double-cab 4x4 in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-a7134a92-419c-4b2b-ab75-fa055f9e7787.png",
+      "visualReview": "Accepted: recognisable C-clamp lamps and current double-cab body, clean full framing and no readable branding."
+    },
+    {
+      "id": "byd-sealion-7",
+      "label": "BYD Sealion 7",
+      "jpeg": "byd-sealion-7.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI BYD Sealion 7 in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-9ad9a83d-279b-4c71-8108-d48edec11db8.png",
+      "visualReview": "Accepted: flowing grille-free coupe-SUV form, clean full framing and no readable branding."
+    },
+    {
+      "id": "chery-tiggo-4-pro",
+      "label": "Chery Tiggo 4 Pro",
+      "jpeg": "chery-tiggo-4-pro.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI Chery Tiggo 4 Pro in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-30a63b29-4037-4cfc-875e-02b069269201.png",
+      "visualReview": "Accepted: compact upright crossover and patterned grille, clean full framing and no readable branding."
+    },
+    {
+      "id": "geely-ex5",
+      "label": "Geely EX5",
+      "jpeg": "geely-ex5.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI Geely EX5 in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-846363f4-ad1d-47ce-a41e-a55d17b7cb77.png",
+      "visualReview": "Accepted: clean grille-free compact-EV proportions, clean full framing and no readable branding."
+    },
+    {
+      "id": "gwm-haval-jolion",
+      "label": "GWM Haval Jolion",
+      "jpeg": "gwm-haval-jolion.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI GWM Haval Jolion in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-ef73f9da-cc93-44ba-bef7-b3456ced0a50.png",
+      "visualReview": "Accepted: recognisable practical compact-SUV form and patterned grille, clean full framing and no readable branding."
+    },
+    {
+      "id": "zeekr-7x",
+      "label": "Zeekr 7X",
+      "jpeg": "zeekr-7x.jpg",
+      "mode": "built-in imagegen",
+      "prompt": "Premium photorealistic CGI Zeekr 7X in brushed silver, fully framed in a low front three-quarter view on the shared charcoal studio background; black wheels, ice-blue brake accents, no text, logos, badges or plate.",
+      "sourceCollection": "garage-art-australia-2026",
+      "original": "exec-04eaeb51-c7f4-4ba7-8422-5e910e5b39f1.png",
+      "visualReview": "Accepted: clean premium electric-SUV body and split lighting, clean full framing and no readable branding."
     }
   ],
   "expandedOn": "2026-09-09"

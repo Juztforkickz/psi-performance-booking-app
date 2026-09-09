@@ -57,6 +57,19 @@ const images: Record<string, { source: ImageSourcePropType; thumbnail: ImageSour
   'ram-1500-dt': { source: require('../../assets/images/garage-vehicles/ram-1500-dt.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/ram-1500-dt.jpg') },
   'mitsubishi-evo': { source: require('../../assets/images/garage-vehicles/mitsubishi-evo.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/mitsubishi-evo.jpg') },
   'mazda-rx7': { source: require('../../assets/images/garage-vehicles/mazda-rx7.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/mazda-rx7.jpg') },
+  'nissan-patrol-y62': { source: require('../../assets/images/garage-vehicles/nissan-patrol-y62.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/nissan-patrol-y62.jpg') },
+  'toyota-landcruiser-300': { source: require('../../assets/images/garage-vehicles/toyota-landcruiser-300.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/toyota-landcruiser-300.jpg') },
+  'audi-rsq3-f3': { source: require('../../assets/images/garage-vehicles/audi-rsq3-f3.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/audi-rsq3-f3.jpg') },
+  'tesla-model-y': { source: require('../../assets/images/garage-vehicles/tesla-model-y.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/tesla-model-y.jpg') },
+  'toyota-rav4': { source: require('../../assets/images/garage-vehicles/toyota-rav4.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/toyota-rav4.jpg') },
+  'toyota-hilux': { source: require('../../assets/images/garage-vehicles/toyota-hilux.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/toyota-hilux.jpg') },
+  'toyota-prado-250': { source: require('../../assets/images/garage-vehicles/toyota-prado-250.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/toyota-prado-250.jpg') },
+  'ford-ranger': { source: require('../../assets/images/garage-vehicles/ford-ranger.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/ford-ranger.jpg') },
+  'byd-sealion-7': { source: require('../../assets/images/garage-vehicles/byd-sealion-7.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/byd-sealion-7.jpg') },
+  'chery-tiggo-4-pro': { source: require('../../assets/images/garage-vehicles/chery-tiggo-4-pro.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/chery-tiggo-4-pro.jpg') },
+  'geely-ex5': { source: require('../../assets/images/garage-vehicles/geely-ex5.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/geely-ex5.jpg') },
+  'gwm-haval-jolion': { source: require('../../assets/images/garage-vehicles/gwm-haval-jolion.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/gwm-haval-jolion.jpg') },
+  'zeekr-7x': { source: require('../../assets/images/garage-vehicles/zeekr-7x.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/zeekr-7x.jpg') },
 };
 
 export const GARAGE_ART = GARAGE_ART_CATALOG.map(entry => ({ ...entry, label: garageArtLabel(entry), ...images[entry.id] }));
