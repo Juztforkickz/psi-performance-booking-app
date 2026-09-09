@@ -18,6 +18,8 @@ import { formatAustralianDate, formatAustralianDateTime } from '@/lib/australian
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
+import { useCustomerAccount } from '@/lib/customer-account-context';
+import { profileAlertLabel } from '@/lib/profile-alert-label';
 import { useNotifications } from '@/lib/notifications';
 import { STAFF_PORTAL_PREVIEW_NOTIFICATIONS } from '@/lib/staff-portal-preview';
 import { StaffEventsPreview } from '@/components/staff-events-preview';
@@ -330,6 +332,8 @@ export function StaffWorkspace({
 }) {
   const router = useRouter();
   const liveNotifications = useNotifications();
+  const { account } = useCustomerAccount();
+  const customerAlertLabel = previewMode ? 'Matt' : profileAlertLabel(account?.profile?.first_name);
   const [previewReadIds, setPreviewReadIds] = useState<string[]>([]);
   const notifications = useMemo(() => {
     if (!previewMode) return liveNotifications;
@@ -586,7 +590,7 @@ export function StaffWorkspace({
             <DashboardMetric label="To review" value={waitingBookings.length} onPress={() => navigate('bookings', { view: 'review' })} />
             <DashboardMetric label="Active bookings" value={activeBookings.length} onPress={() => navigate('bookings', { view: 'active' })} />
           </View>
-          <PortalAlertSummary customerCount={notifications.customerUnreadCount} onPress={() => navigate('alerts')} statusLabel={previewMode ? 'Sample workshop and account updates' : Platform.OS === 'web' ? 'Workshop and account updates' : notifications.pushStatus === 'ready' ? 'Device registered' : 'Set up alerts on this phone'} staffCount={notifications.staffUnreadCount} />
+          <PortalAlertSummary customerLabel={customerAlertLabel} customerCount={notifications.customerUnreadCount} onPress={() => navigate('alerts')} statusLabel={previewMode ? 'Sample workshop and account updates' : Platform.OS === 'web' ? 'Workshop and account updates' : notifications.pushStatus === 'ready' ? 'Device registered' : 'Set up alerts on this phone'} staffCount={notifications.staffUnreadCount} />
           <PrimaryButton label="Add vehicle record" onPress={() => navigate('records')} />
           <WorkspaceLink title="Find customer or vehicle" detail="Search name, email or registration" icon="search-outline" onPress={() => navigate('customers')} />
           {waitingIntegrationJobs.length || (role === 'owner' && pendingDeletions.length) ? <>
@@ -612,7 +616,7 @@ export function StaffWorkspace({
               .catch((error) => setActionNotice(portalNotificationError(error)))
               .finally(() => setNotificationSaving(false));
           }} /> : null}
-          <View accessibilityRole="tablist" accessibilityLabel="Alert inbox" style={styles.filterRow}>{(['workshop', 'customer'] as const).map(inbox => <Pressable key={inbox} accessibilityRole="tab" accessibilityState={{ selected: alertRole === inbox }} accessibilityLabel={inbox === 'workshop' ? 'PSI workshop alerts' : 'My customer alerts'} onPress={() => { setAlertRole(inbox); setAlertPage(0); }} style={[styles.filterButton, alertRole === inbox && styles.filterSelected]}><AlertCountBadge color={inbox === 'workshop' ? '#2D9CDB' : '#D92D20'} label={inbox === 'workshop' ? 'PSI' : 'My account'} value={inbox === 'workshop' ? notifications.staffUnreadCount : notifications.customerUnreadCount} compact /></Pressable>)}</View>
+          <View accessibilityRole="tablist" accessibilityLabel="Alert inbox" style={styles.filterRow}>{(['workshop', 'customer'] as const).map(inbox => <Pressable key={inbox} accessibilityRole="tab" accessibilityState={{ selected: alertRole === inbox }} accessibilityLabel={inbox === 'workshop' ? `PSI workshop alerts, ${notifications.staffUnreadCount} unread` : `${customerAlertLabel} customer alerts, ${notifications.customerUnreadCount} unread`} onPress={() => { setAlertRole(inbox); setAlertPage(0); }} style={[styles.filterButton, styles.alertInboxTab, alertRole === inbox && styles.filterSelected]}><AlertCountBadge color={inbox === 'workshop' ? '#2D9CDB' : '#D92D20'} label={inbox === 'workshop' ? 'PSI' : customerAlertLabel} value={inbox === 'workshop' ? notifications.staffUnreadCount : notifications.customerUnreadCount} compact /></Pressable>)}</View>
           <View style={styles.sectionHeadingRow}>
             <Text style={styles.cardCopy}>{filteredAlerts.length} unread</Text>
             {filteredAlerts.length ? <Pressable accessibilityRole="button" style={styles.inlineAction} onPress={() => void Promise.all(filteredAlerts.map(event => notifications.markRead(event.id))).catch(() => setActionNotice('Could not update read status. Please try again.'))}><Text style={styles.inlineActionText}>Mark inbox read</Text></Pressable> : null}
@@ -996,17 +1000,17 @@ function DashboardMetric({ label, value, onPress }: { label: string; value: numb
   return <Pressable accessibilityRole="button" accessibilityLabel={`${value} ${label}`} style={[styles.dashboardMetric, largeText && styles.metricStacked]} onPress={onPress}><Text style={styles.dashboardValue}>{value}</Text><Text style={styles.linkDetail}>{label}</Text></Pressable>;
 }
 
-function PortalAlertSummary({ customerCount, onPress, statusLabel, staffCount }: { customerCount: number; onPress: () => void; statusLabel: string; staffCount: number }) {
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.alertSummary, pressed && styles.pressed]}>
+function PortalAlertSummary({ customerCount, customerLabel, onPress, statusLabel, staffCount }: { customerCount: number; customerLabel: string; onPress: () => void; statusLabel: string; staffCount: number }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Alerts. PSI: ${staffCount} unread. ${customerLabel}: ${customerCount} unread.`} onPress={onPress} style={({ pressed }) => [styles.alertSummary, pressed && styles.pressed]}>
     <View style={styles.alertSummaryIcon}><Ionicons color={colors.accent} name="notifications-outline" size={22} /></View>
     <View style={styles.flex}><Text style={styles.cardTitle}>Alerts</Text><Text style={styles.linkDetail}>{statusLabel}</Text></View>
-    <View style={styles.alertSummaryCounts}><AlertCountBadge color="#2D9CDB" label="PSI" value={staffCount} compact /><AlertCountBadge color="#D92D20" label="Me" value={customerCount} compact /></View>
+    <View style={styles.alertSummaryCounts}><AlertCountBadge color="#2D9CDB" label="PSI" value={staffCount} compact /><AlertCountBadge color="#D92D20" label={customerLabel} value={customerCount} compact /></View>
     <Ionicons color={colors.accent} name="chevron-forward" size={19} />
   </Pressable>;
 }
 
 function AlertCountBadge({ color, compact = false, label, value }: { color: string; compact?: boolean; label: string; value: number }) {
-  return <View accessibilityLabel={`${value} unread ${label} alerts`} style={[styles.alertCountBadge, compact && styles.alertCountBadgeCompact, { borderColor: color }]}><View style={[styles.alertCountDot, { backgroundColor: color }]} /><Text style={styles.alertCountText}>{label} {value}</Text></View>;
+  return <View accessibilityLabel={`${value} unread ${label} alerts`} style={[styles.alertCountBadge, compact && styles.alertCountBadgeCompact, { borderColor: color }]}><View style={[styles.alertCountDot, { backgroundColor: color }]} /><Text numberOfLines={1} ellipsizeMode="tail" style={[styles.alertCountText, styles.alertCountName]}>{label}</Text><Text style={styles.alertCountText}>{value}</Text></View>;
 }
 
 function PortalAlertRow({ color, event, onPress }: { color: string; event: (ReturnType<typeof useNotifications>)['events'][number]; onPress: () => void }) {
@@ -1316,12 +1320,14 @@ const styles = StyleSheet.create({
   dashboardValue: { color: colors.accent, fontSize: 26, fontWeight: '900' },
   alertSummary: { ...portalFrame, alignItems: 'center', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.sm, minHeight: 72, padding: spacing.md },
   alertSummaryIcon: { alignItems: 'center', backgroundColor: colors.inkSoft, borderRadius: 20, height: 40, justifyContent: 'center', width: 40 },
-  alertSummaryCounts: { alignItems: 'flex-end', gap: 5 },
+  alertSummaryCounts: { alignItems: 'flex-end', gap: 5, maxWidth: '42%' },
   alertLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  alertCountBadge: { alignItems: 'center', backgroundColor: colors.panel, borderWidth: 1, borderRadius: 18, flexDirection: 'row', gap: 7, minHeight: 38, paddingHorizontal: 12 },
+  alertCountBadge: { alignItems: 'center', backgroundColor: colors.panel, borderWidth: 1, borderRadius: 18, flexDirection: 'row', gap: 7, maxWidth: '100%', minHeight: 38, paddingHorizontal: 12 },
   alertCountBadgeCompact: { minHeight: 25, paddingHorizontal: 7 },
-  alertCountDot: { borderRadius: 5, height: 9, width: 9 },
+  alertCountDot: { borderRadius: 5, flexShrink: 0, height: 9, width: 9 },
   alertCountText: { color: colors.white, fontSize: 11, fontWeight: '800' },
+  alertCountName: { flexShrink: 1 },
+  alertInboxTab: { maxWidth: '100%' },
   notificationSetup: { ...portalFrame, alignItems: 'flex-start', backgroundColor: colors.inkSoft, borderLeftColor: colors.accent, borderLeftWidth: 3, flexDirection: 'row', gap: spacing.md, padding: spacing.md },
   notificationSetupReady: { borderLeftColor: colors.success },
   sectionHeadingRow: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },

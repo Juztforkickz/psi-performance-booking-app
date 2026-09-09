@@ -83,7 +83,17 @@ Browser checks at 320px and 390px cover dashboard scale, booking tabs/contact, a
 
 The rollback marker `codex/psi-portal-before-visible-preview-2026-09-10` points to `cd7f9911aa6198437177d9051d76b110627d5a60`, preserving the approved notification/contact checkpoint before this preview pass. Publishing remains the existing GitHub Pages workflow after the checkpoint push. This pass does not deploy native updates or change Supabase, Xero, payments or Apple review services.
 
-## Work still separate from this release
+## Approved beta rollout and named alert inboxes · 10 September 2026
+
+The owner approved rollout after reviewing the public portal preview. The blue inbox remains **PSI**. The red inbox uses the signed-in customer's profile first name, with **Matt** in the public design sample and **Account** only when no usable profile name exists. Long names truncate visually while keeping the unread count visible and the full name accessible.
+
+The release target is the existing iOS `beta` channel for runtime `1.0.0-beta-performance-plus-1` (compatible TestFlight build 9). EAS confirmed the previous active update group `13a2efb5-67a2-4210-b659-aeda1e25cd91`, source `483176b224061c7ff074c69d1f3e422f55c6873b`, before rollout. This is the native-update rollback reference; source tag `codex/psi-portal-before-approved-rollout-2026-09-10` preserves the reviewed preview checkpoint `a28f377fb37a14f93fee8ad9daa3510bdb18da8a`.
+
+The source changes use the existing authenticated profile context and introduce no new backend fetches. The release carries the prior portal and notification client refinements into the installed beta. It does not alter native dependencies, signing, subscription activation, the separate older runtime, or the Apple review sandbox. Full physical-device notification acceptance remains a phone check after downloading and reopening the update.
+
+Validation for this source: 57 focused tests, TypeScript and targeted ESLint. The fresh iOS export uses the existing beta environment with purchases disabled. Final website/native publication IDs are recorded in the task's release receipt and completion report.
+
+## Work still separate from this rollout
 
 - First verified Xero customer/vehicle/job match and end-to-end automatic invoice import.
 - Apple subscription activation, purchase/restore/renewal testing and store review.
