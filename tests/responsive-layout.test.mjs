@@ -118,9 +118,6 @@ test("uses one native responsive contract across every customer screen", async (
   assert.match(booking, /minimumFontScale=\{0\.75\}/);
   assert.match(booking, /depositValue:\s*\{[^}]*flexShrink:\s*1/);
   assert.match(booking, /depositCopyStacked:\s*\{[^}]*flex:\s*0[^}]*width:\s*'100%'/);
-  assert.match(garage, /dynoImageFrame:\s*\{[^}]*aspectRatio:\s*1\.1/);
-  assert.match(garage, /accessibilityLabel="Illustrated diagnostic scan tool[\s\S]*?resizeMode="contain"[\s\S]*?styles\.reportImage/);
-  assert.match(garage, /reportImage:\s*\{[\s\S]*?scale:\s*1\.36[\s\S]*?transformOrigin:\s*'top center'/);
   assert.match(dashboardTile, /aspectRatio:\s*1/);
   assert.match(dashboardTile, /imageResizeMode = 'contain'/);
   assert.match(dashboardTile, /imageArea:\s*\{[\s\S]*?bottom:\s*50[\s\S]*?overflow:\s*'hidden'[\s\S]*?backgroundColor:\s*colors\.ink[\s\S]*?padding:\s*spacing\.xs/);
@@ -136,4 +133,16 @@ test("uses one native responsive contract across every customer screen", async (
   assert.match(parts, /stackAreaCards\s*=\s*compact\s*\|\|\s*largeText/);
   assert.match(parts, /!stackAreaCards\s*&&\s*styles\.areaCardTwoColumn/);
   assert.match(parts, /areaCard:\s*\{[^}]*minHeight:\s*132/);
+});
+
+test("private dyno graphs scale without cropping and PDF reports remain accessible", async () => {
+  const garage = await read("../mobile/src/app/(tabs)/garage.tsx");
+  const graphFrame = garage.match(/dynoGraphFrame:\s*\{([^}]+)\}/)?.[1];
+  assert.ok(graphFrame, "The dyno graph needs a responsive frame");
+  assert.match(graphFrame, /width:\s*'100%'/);
+  assert.match(graphFrame, /aspectRatio:/);
+  assert.doesNotMatch(graphFrame, /\b(?:height|minHeight|maxHeight):/);
+  assert.match(garage, /graphUri\s*\?\s*<Image[^>]*resizeMode="contain"[^>]*source=\{\{ uri: graphUri \}\}[^>]*style=\{styles\.fillImage\}/);
+  assert.match(garage, /fillImage:\s*\{[^}]*width:\s*'100%'[^}]*height:\s*'100%'/);
+  assert.match(garage, /mimeType === 'application\/pdf'\s*\?\s*<PrimaryButton label="Open dyno PDF"[\s\S]*?createPrivateVehicleAttachmentSignedUrl\(attachment\)/);
 });

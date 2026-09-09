@@ -539,17 +539,15 @@ function GarageContent({
           <View style={[styles.buildImageFrame, (tablet && !largeText) && styles.buildImageFrameWide]}>
             <Image
               accessibilityLabel="Illustrated engine and performance build plan"
-              resizeMode="cover"
+              resizeMode="contain"
               source={require('../../../assets/images/dashboard/tile-plan-build-blue-silver.jpg')}
-              style={[styles.fillImage, styles.planBuildImage]}
+              style={styles.fillImage}
             />
           </View>
           <View style={styles.buildBody}>
             <Text style={styles.primaryLabel}>{buildPlan ? 'Example active plan' : 'Start with your goal'}</Text>
             <Text style={styles.buildTitle}>{buildPlan?.title ?? 'Plan the next stage'}</Text>
-            <Text style={styles.bodyCopy}>
-              {buildPlan?.objective ?? 'Tell PSI how you use the vehicle and what you want from it.'}
-            </Text>
+            {buildPlan?.objective ? <Text style={styles.bodyCopy}>{buildPlan.objective}</Text> : null}
             {buildPlan ? (
               <View style={styles.stageList}>
                 {buildPlan.stages.map((stage) => (
@@ -808,7 +806,6 @@ const styles = StyleSheet.create({
   buildCardWide: { flexDirection: 'row' },
   buildImageFrame: { width: '100%', aspectRatio: 16 / 10, overflow: 'hidden', backgroundColor: colors.inkSoft },
   buildImageFrameWide: { width: '44%', aspectRatio: 1 },
-  planBuildImage: {},
   buildBody: { flex: 1, gap: spacing.md, padding: spacing.lg },
   buildTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
   stageList: { gap: spacing.sm },

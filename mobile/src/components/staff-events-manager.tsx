@@ -9,6 +9,7 @@ import { formatAustralianDateTime } from '@/lib/australian-date';
 import type { PsiEventRow } from '@/lib/database.types';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { cancelPsiEvent, createPsiEvent, loadStaffPsiEvents, publishPsiEvent, updatePsiEvent } from '@/lib/psi-events';
+import { useStaffDiscardConfirmation } from '@/hooks/use-staff-discard-confirmation';
 
 function initialStart() {
   const date = new Date();
@@ -17,12 +18,18 @@ function initialStart() {
   return date;
 }
 
-export function StaffEventsManager() {
+export function StaffEventsManager({ onDirtyChange, onBusyChange }: {
+  onDirtyChange?: (dirty: boolean) => void;
+  onBusyChange?: (busy: boolean) => void;
+} = {}) {
+  const { confirmDiscard, discardDialog } = useStaffDiscardConfirmation();
   const [events, setEvents] = useState<PsiEventRow[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
-  const [startsAt, setStartsAt] = useState(initialStart);
+  const [initialDate] = useState(initialStart);
+  const [startsAt, setStartsAt] = useState(initialDate);
+  const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -31,8 +38,17 @@ export function StaffEventsManager() {
   const [feedback, setFeedback] = useState<{ error: boolean; text: string } | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveReferenceTime] = useState(Date.now);
+  const values = JSON.stringify([title, description, location, startsAt.toISOString()]);
+  const [savedValues, setSavedValues] = useState(() => JSON.stringify(['', '', '', initialDate.toISOString()]));
+  const dirty = formOpen && values !== savedValues;
+  const busy = !!busyAction;
+  const editingEvent = events.find(event => event.id === editingId);
   const currentEvents = events.filter((event) => !eventIsArchived(event, archiveReferenceTime));
   const archivedEvents = events.filter((event) => eventIsArchived(event, archiveReferenceTime)).sort((left, right) => right.starts_at.localeCompare(left.starts_at));
+
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+  useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
+  useEffect(() => () => { onDirtyChange?.(false); onBusyChange?.(false); }, [onDirtyChange, onBusyChange]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -83,20 +99,34 @@ export function StaffEventsManager() {
   };
 
   const edit = (event: PsiEventRow) => {
+    if (busy) return;
+    setFormOpen(true);
     setEditingId(event.id);
     setTitle(event.title);
     setDescription(event.description ?? '');
     setLocation(event.location ?? '');
     setStartsAt(new Date(event.starts_at));
-    setFeedback({ error: false, text: `Editing ${event.title}.` });
+    setSavedValues(JSON.stringify([event.title, event.description ?? '', event.location ?? '', new Date(event.starts_at).toISOString()]));
+    setFeedback(null);
   };
 
   const resetForm = () => {
+    const nextDate = initialStart();
+    setFormOpen(false);
     setEditingId('');
     setTitle('');
     setDescription('');
     setLocation('');
-    setStartsAt(initialStart());
+    setStartsAt(nextDate);
+    setSavedValues(JSON.stringify(['', '', '', nextDate.toISOString()]));
+    setShowDatePicker(false); setShowTimePicker(false);
+  };
+
+  const closeForm = () => {
+    if (busy) return;
+    const discard = () => { resetForm(); setFeedback(null); };
+    if (!dirty) { discard(); return; }
+    confirmDiscard(discard);
   };
 
   const changeStatus = async (event: PsiEventRow, action: 'cancel' | 'publish') => {
@@ -106,6 +136,7 @@ export function StaffEventsManager() {
     try {
       if (action === 'publish') await publishPsiEvent(event.id);
       else await cancelPsiEvent(event.id);
+      resetForm();
       setFeedback({ error: false, text: action === 'publish' ? 'Event published and customer alerts queued.' : 'Event cancelled and customer alerts queued.' });
       await refresh();
     } catch {
@@ -117,37 +148,39 @@ export function StaffEventsManager() {
 
   return (
     <View style={styles.workspace}>
-      <View style={styles.formCard}>
+      {discardDialog}
+      {feedback ? <Text accessibilityRole={feedback.error ? 'alert' : undefined} style={feedback.error ? styles.error : styles.success}>{feedback.text}</Text> : null}
+      {formOpen ? <View style={styles.formCard}>
         <View style={styles.headingRow}>
           <View style={styles.flex}>
             <Text style={styles.heading}>{editingId ? 'Edit PSI Event' : 'Create PSI Event'}</Text>
-            <Text style={styles.copy}>{REVIEW_ENVIRONMENT.enabled ? 'Save a fictional draft or publish to sandbox accounts. In-app alerts can be reviewed here; external push delivery is disabled.' : editingId ? 'Save the corrected details. Changes to a published event queue a customer update alert.' : 'Save privately as a draft or publish to every signed-in customer. Publishing queues app alerts and native push notifications.'}</Text>
+            <Text style={styles.copy}>{REVIEW_ENVIRONMENT.enabled ? 'Sandbox event only. External notifications are off.' : editingId ? 'Changes to a published event notify customers.' : 'Save a private draft, or publish and notify customers.'}</Text>
           </View>
           <Ionicons color={colors.accent} name="flag" size={24} />
         </View>
 
         <Field label="Event title" hint="Required · max 80 characters">
-          <FormInput maxLength={80} onChangeText={setTitle} placeholder="Cars & Coffee" value={title} />
+          <FormInput editable={!busy} maxLength={80} onChangeText={setTitle} placeholder="Cars & Coffee" value={title} />
         </Field>
         <Field label="Location" hint="Optional">
-          <FormInput maxLength={160} onChangeText={setLocation} placeholder="PSI Performance workshop" value={location} />
+          <FormInput editable={!busy} maxLength={160} onChangeText={setLocation} placeholder="PSI Performance workshop" value={location} />
         </Field>
         <Field label="Details" hint="Optional">
-          <FormInput maxLength={1000} multiline onChangeText={setDescription} placeholder="Customer event details" style={styles.textArea} textAlignVertical="top" value={description} />
+          <FormInput editable={!busy} maxLength={1000} multiline onChangeText={setDescription} placeholder="Customer event details" style={styles.textArea} textAlignVertical="top" value={description} />
         </Field>
 
         <View style={styles.dateRow}>
-          <Pressable accessibilityLabel="Choose event date" accessibilityRole="button" onPress={() => setShowDatePicker(true)} style={({ pressed }) => [styles.dateButton, pressed && styles.pressed]}>
+          <Pressable disabled={busy} accessibilityLabel="Choose event date" accessibilityRole="button" onPress={() => setShowDatePicker(true)} style={({ pressed }) => [styles.dateButton, pressed && styles.pressed]}>
             <Ionicons color={colors.accent} name="calendar" size={18} />
             <Text style={styles.dateButtonText}>{new Intl.DateTimeFormat('en-AU', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(startsAt)}</Text>
           </Pressable>
-          <Pressable accessibilityLabel="Choose event time" accessibilityRole="button" onPress={() => setShowTimePicker(true)} style={({ pressed }) => [styles.dateButton, pressed && styles.pressed]}>
+          <Pressable disabled={busy} accessibilityLabel="Choose event time" accessibilityRole="button" onPress={() => setShowTimePicker(true)} style={({ pressed }) => [styles.dateButton, pressed && styles.pressed]}>
             <Ionicons color={colors.accent} name="time" size={18} />
             <Text style={styles.dateButtonText}>{new Intl.DateTimeFormat('en-AU', { hour: 'numeric', minute: '2-digit' }).format(startsAt)}</Text>
           </Pressable>
         </View>
 
-        {showDatePicker ? (
+        {showDatePicker && !busy ? (
           <DateTimePicker
             display={Platform.OS === 'ios' ? 'compact' : 'default'}
             minimumDate={new Date()}
@@ -163,7 +196,7 @@ export function StaffEventsManager() {
             value={startsAt}
           />
         ) : null}
-        {showTimePicker ? (
+        {showTimePicker && !busy ? (
           <DateTimePicker
             is24Hour={false}
             mode="time"
@@ -181,40 +214,42 @@ export function StaffEventsManager() {
 
         {editingId ? (
           <View style={styles.actions}>
-            <PrimaryButton label="Save event changes" loading={busyAction === 'save-edit'} onPress={() => void saveChanges()} />
-            <PrimaryButton label="Cancel editing" onPress={resetForm} variant="outline" />
+            <PrimaryButton disabled={busy || !dirty} label="Save changes" loading={busyAction === 'save-edit'} onPress={() => void saveChanges()} />
+            {editingEvent?.status === 'draft' ? <PrimaryButton disabled={busy || dirty} label="Publish & alert customers" loading={busyAction === `publish:${editingId}`} onPress={() => void changeStatus(editingEvent, 'publish')} /> : null}
+            {dirty ? <Text style={styles.copy}>Save changes before publishing or cancelling the event.</Text> : null}
+            {editingEvent && editingEvent.status !== 'cancelled' ? <PrimaryButton disabled={busy || dirty} label="Cancel event & alert customers" loading={busyAction === `cancel:${editingId}`} onPress={() => void changeStatus(editingEvent, 'cancel')} variant="outline" /> : null}
+            <PrimaryButton disabled={busy} label="Back to events" onPress={closeForm} variant="outline" />
           </View>
         ) : (
           <View style={styles.actions}>
-            <PrimaryButton label="Save private draft" loading={busyAction === 'create-draft'} onPress={() => void create(false)} variant="outline" />
-            <PrimaryButton label="Publish & alert customers" loading={busyAction === 'create-publish'} onPress={() => void create(true)} />
+            <PrimaryButton disabled={busy} label="Save private draft" loading={busyAction === 'create-draft'} onPress={() => void create(false)} variant="outline" />
+            <PrimaryButton disabled={busy} label="Publish & alert customers" loading={busyAction === 'create-publish'} onPress={() => void create(true)} />
+            <PrimaryButton disabled={busy} label="Back to events" onPress={closeForm} variant="outline" />
           </View>
         )}
-        {feedback ? <Text accessibilityRole={feedback.error ? 'alert' : undefined} style={feedback.error ? styles.error : styles.success}>{feedback.text}</Text> : null}
-      </View>
+      </View> : <>
+
+      <PrimaryButton disabled={busy} label="Create event" onPress={() => { resetForm(); setFeedback(null); setFormOpen(true); }} />
 
       <View style={styles.listHeader}>
         <Text style={styles.heading}>Current events</Text>
-        <Pressable accessibilityLabel="Refresh staff PSI Events" accessibilityRole="button" onPress={() => void refresh()} style={({ pressed }) => [styles.refresh, pressed && styles.pressed]}>
+        <Pressable disabled={loading || busy} accessibilityLabel="Refresh PSI events" accessibilityRole="button" onPress={() => void refresh()} style={({ pressed }) => [styles.refresh, pressed && styles.pressed]}>
           {loading ? <ActivityIndicator color={colors.accent} size="small" /> : <Ionicons color={colors.accent} name="refresh" size={18} />}
         </Pressable>
       </View>
       {!loading && currentEvents.length === 0 ? <Text style={styles.empty}>{events.length ? 'No current PSI Events. Finished and cancelled events are in the archive.' : 'No PSI Events have been created.'}</Text> : null}
       {currentEvents.map((event) => (
-        <View key={event.id} style={styles.eventCard}>
+        <Pressable disabled={busy} accessibilityRole="button" accessibilityLabel={`Open event ${event.title}`} key={event.id} onPress={() => edit(event)} style={({ pressed }) => [styles.eventCard, pressed && styles.pressed]}>
           <View style={styles.headingRow}>
             <View style={styles.flex}>
               <Text style={styles.eventTitle}>{event.title}</Text>
               <Text style={styles.eventDate}>{formatAustralianDateTime(event.starts_at)}</Text>
+              {event.location ? <Text style={styles.eventLocation}>{event.location}</Text> : null}
             </View>
-            <Text style={[styles.badge, event.status === 'published' && styles.badgePublished]}>{event.status}</Text>
+            <Ionicons color={colors.accent} name="chevron-forward" size={20} />
           </View>
-          {event.location ? <Text style={styles.eventLocation}>{event.location}</Text> : null}
-          {event.description ? <Text style={styles.copy}>{event.description}</Text> : null}
-          {event.status !== 'cancelled' ? <PrimaryButton label="Edit event details" onPress={() => edit(event)} variant="outline" /> : null}
-          {event.status === 'draft' ? <PrimaryButton label="Publish & alert customers" loading={busyAction === `publish:${event.id}`} onPress={() => void changeStatus(event, 'publish')} /> : null}
-          {event.status !== 'cancelled' ? <PrimaryButton label="Cancel event" loading={busyAction === `cancel:${event.id}`} onPress={() => void changeStatus(event, 'cancel')} variant="outline" /> : null}
-        </View>
+          <Text style={[styles.badge, event.status === 'published' && styles.badgePublished]}>{event.status}</Text>
+        </Pressable>
       ))}
 
       <View style={styles.archivePanel}>
@@ -241,6 +276,7 @@ export function StaffEventsManager() {
           </View>
         )) : <Text style={styles.archiveEmpty}>No events are archived yet.</Text> : null}
       </View>
+      </>}
     </View>
   );
 }
@@ -262,7 +298,7 @@ const styles = StyleSheet.create({
   workspace: { gap: spacing.md },
   formCard: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.md, padding: spacing.md },
   headingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
-  flex: { flex: 1 },
+  flex: { flex: 1, minWidth: 0 },
   heading: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: 0.5, textTransform: 'uppercase' },
   copy: { color: colors.muted, fontSize: 11, lineHeight: 17 },
   textArea: { minHeight: 94, paddingTop: spacing.sm },
@@ -279,7 +315,7 @@ const styles = StyleSheet.create({
   eventTitle: { color: colors.white, fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
   eventDate: { color: colors.accent, fontSize: 11, fontWeight: '900', marginTop: 3 },
   eventLocation: { color: colors.white, fontSize: 11, fontWeight: '800' },
-  badge: { color: colors.muted, borderColor: colors.line, borderWidth: 1, fontSize: 9, fontWeight: '900', paddingHorizontal: spacing.sm, paddingVertical: 5, textTransform: 'uppercase' },
+  badge: { alignSelf: 'flex-start', color: colors.muted, borderColor: colors.line, borderWidth: 1, fontSize: 9, fontWeight: '900', paddingHorizontal: spacing.sm, paddingVertical: 5, textTransform: 'uppercase' },
   badgePublished: { color: colors.success, borderColor: colors.success },
   archivePanel: { ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.md },
   archiveHeading: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },

@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, BackHandler, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { StaffScrollSelect } from '@/components/staff-scroll-select';
-import { StaffRecordPublisher } from '@/components/staff-record-publisher';
-import { StaffVaultPublisher } from '@/components/staff-vault-publisher';
+import { StaffRecordWorkflow } from '@/components/staff-record-workflow';
+import { StaffPerformanceAccess, StaffVaultReview } from '@/components/staff-vault-publisher';
 import { StaffXeroConnection } from '@/components/staff-xero-connection';
 import { StaffBookingReview } from '@/components/staff-booking-review';
 import { StaffEventsManager } from '@/components/staff-events-manager';
@@ -19,6 +19,10 @@ import { formatAustralianDate, formatAustralianDateTime } from '@/lib/australian
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
+import { resolveStaffSection, STAFF_SECTIONS, staffTabForSection, type StaffSection } from '@/lib/staff-navigation';
+import { useStaffNavigation } from '@/lib/staff-navigation-context';
+import { useStaffExitGuard } from '@/hooks/use-staff-exit-guard';
+import { useStaffDiscardConfirmation } from '@/hooks/use-staff-discard-confirmation';
 import {
   beginStaffTotpEnrollment,
   completeCustomerAccountDeletion,
@@ -319,6 +323,33 @@ function StaffWorkspace({
 }) {
   const router = useRouter();
   const portalProfilePhotoUri = useCustomerProfilePhotoUri();
+  const params = useLocalSearchParams<{ section?: string; bookingId?: string; customerId?: string; vehicleId?: string; tool?: string }>();
+  const section = resolveStaffSection(params.section);
+  const { registerNavigationHandler } = useStaffNavigation();
+  const { confirmDiscard, discardDialog } = useStaffDiscardConfirmation();
+  const [actionNotice, setActionNotice] = useState('');
+  const scrollRef = useRef<ScrollView>(null);
+  const [recordDirty, setRecordDirty] = useState(false);
+  const [recordBusy, setRecordBusy] = useState(false);
+  const [bookingDirty, setBookingDirty] = useState(false);
+  const [bookingBusy, setBookingBusy] = useState(false);
+  const [completionDirty, setCompletionDirty] = useState(false);
+  const [completionBusy, setCompletionBusy] = useState(false);
+  const [eventDirty, setEventDirty] = useState(false);
+  const [eventBusy, setEventBusy] = useState(false);
+  const [deletionDrafts, setDeletionDrafts] = useState<Record<string, boolean>>({});
+  const [deletionActions, setDeletionActions] = useState<Record<string, boolean>>({});
+  const [activeDeletionId, setActiveDeletionId] = useState('');
+  const reportDeletionDirty = useCallback((id: string, value: boolean) => setDeletionDrafts(previous => previous[id] === value ? previous : { ...previous, [id]: value }), []);
+  const reportDeletionBusy = useCallback((id: string, value: boolean) => setDeletionActions(previous => previous[id] === value ? previous : { ...previous, [id]: value }), []);
+  const [bookingSearch, setBookingSearch] = useState('');
+  const [bookingFilter, setBookingFilter] = useState<'active' | 'history'>('active');
+  const [bookingPage, setBookingPage] = useState(0);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [auditSearch, setAuditSearch] = useState('');
+  const [auditPage, setAuditPage] = useState(0);
+  const connectionTool = ['xero', 'calendar', 'payments', 'uploads'].includes(paramValue(params.tool)) ? paramValue(params.tool) : '';
+
   const [integrationBusy, setIntegrationBusy] = useState(false);
   const [integrationResult, setIntegrationResult] = useState<BookingIntegrationRunResult | null>(null);
   const [integrationError, setIntegrationError] = useState('');
@@ -330,9 +361,8 @@ function StaffWorkspace({
   const [vehiclePhotoUris, setVehiclePhotoUris] = useState<Record<string, string>>({});
   const [auditPeriod, setAuditPeriod] = useState('');
   const [integrationHistoryOpen, setIntegrationHistoryOpen] = useState(false);
-  const [bookingArchiveOpen, setBookingArchiveOpen] = useState(false);
   const [invitationListOpen, setInvitationListOpen] = useState(false);
-  const [lookupCustomerId, setLookupCustomerId] = useState(snapshot.customers[0]?.user_id ?? '');
+  const [lookupCustomerId, setLookupCustomerId] = useState(paramValue(params.customerId) || snapshot.customers[0]?.user_id || '');
   const [integrationPeriod, setIntegrationPeriod] = useState('');
   const activeBookings = snapshot.bookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
   const archivedBookings = snapshot.bookings.filter((booking) => ['cancelled', 'completed'].includes(booking.state));
@@ -342,7 +372,8 @@ function StaffWorkspace({
   const integrationPeriods = useMemo(() => historyPeriods(completedIntegrationJobs.map((job) => job.completed_at ?? job.created_at)), [completedIntegrationJobs]);
   const selectedAuditPeriod = resolveHistoryPeriod(auditPeriod, auditPeriods);
   const selectedIntegrationPeriod = resolveHistoryPeriod(integrationPeriod, integrationPeriods);
-  const visibleAuditEvents = snapshot.auditEvents.filter((event) => historyPeriodValue(event.occurred_at) === selectedAuditPeriod).slice(0, 24);
+  const filteredAuditEvents = snapshot.auditEvents.filter(event => historyPeriodValue(event.occurred_at) === selectedAuditPeriod && matchesSearch(`${humanize(event.table_name)} ${humanize(event.action)} ${event.actor_kind}`, auditSearch));
+  const visibleAuditEvents = filteredAuditEvents.slice(auditPage * 8, auditPage * 8 + 8);
   const visibleIntegrationHistory = completedIntegrationJobs.filter((job) => historyPeriodValue(job.completed_at ?? job.created_at) === selectedIntegrationPeriod).slice(0, 24);
   const visibleInvitations = (latestInvitation
     ? [latestInvitation, ...snapshot.invitations.filter((invitation) => invitation.id !== latestInvitation.id)]
@@ -358,10 +389,55 @@ function StaffWorkspace({
     .slice()
     .sort((left, right) => customerName(left).localeCompare(customerName(right), 'en-AU'))
     .map((customer) => ({ label: customerName(customer), sublabel: customer.email, value: customer.user_id })), [snapshot.customers]);
-  const selectedLookupCustomer = snapshot.customers.find((customer) => customer.user_id === lookupCustomerId) ?? snapshot.customers[0];
+  const filteredCustomerOptions = lookupCustomerOptions.filter(option => matchesSearch(`${option.label} ${option.sublabel} ${(vehiclesByCustomer.get(option.value) ?? []).map(v => `${v.registration} ${v.make} ${v.model}`).join(' ')}`, customerSearch));
+  const visibleCustomerId = filteredCustomerOptions.some(option => option.value === lookupCustomerId) ? lookupCustomerId : filteredCustomerOptions[0]?.value;
+  const selectedLookupCustomer = snapshot.customers.find(customer => customer.user_id === visibleCustomerId);
   const selectedLookupVehicles = selectedLookupCustomer ? vehiclesByCustomer.get(selectedLookupCustomer.user_id) ?? [] : [];
+  const waitingBookings = activeBookings.filter(b => b.state === 'pending_staff_review');
+  const pendingDeletions = snapshot.accountDeletionRequests.filter(request => request.status !== 'completed');
+  const selectedBooking = section === 'bookings' ? snapshot.bookings.find(b => b.id === paramValue(params.bookingId)) : undefined;
+  const filteredBookings = (bookingFilter === 'active' ? activeBookings : archivedBookings).filter(booking => {
+    const customer = snapshot.customers.find(c => c.user_id === booking.customer_id);
+    const vehicle = snapshot.vehicles.find(v => v.id === booking.vehicle_id);
+    return matchesSearch(`${customerName(customer)} ${customer?.email ?? ''} ${vehicle?.registration ?? ''} ${vehicle?.make ?? ''} ${vehicle?.model ?? ''}`, bookingSearch);
+  });
+  const visibleBookings = filteredBookings.slice(bookingPage * 8, bookingPage * 8 + 8);
+  const actionBusy = recordBusy || bookingBusy || completionBusy || eventBusy || invitationBusy || integrationBusy || Object.values(deletionActions).some(Boolean);
+  const dirty = recordDirty || bookingDirty || completionDirty || eventDirty || Boolean(invitationEmail.trim()) || Object.values(deletionDrafts).some(Boolean);
+  const confirmLeaving = useCallback((action: () => void) => {
+    if (actionBusy) {
+      setActionNotice('Please wait for the current action to finish.');
+      return;
+    }
+    const leave = () => { setRecordDirty(false); setBookingDirty(false); setCompletionDirty(false); setEventDirty(false); setInvitationEmail(''); setDeletionDrafts({}); setActionNotice(''); action(); };
+    if (!dirty) { leave(); return; }
+    confirmDiscard(leave);
+  }, [actionBusy, confirmDiscard, dirty]);
+  useStaffExitGuard({ dirty, busy: actionBusy, onConfirmLeave: confirmLeaving });
+  const navigate = useCallback((next: StaffSection, extra: Record<string, string> = {}) => {
+    confirmLeaving(() => router.setParams({ section: next, bookingId: '', customerId: '', vehicleId: '', tool: '', ...extra }));
+  }, [confirmLeaving, router]);
+  const goBack = useCallback(() => {
+    if (selectedBooking) navigate('bookings');
+    else if (section === 'connections' && connectionTool) navigate('connections');
+    else if (staffTabForSection(section) !== section) navigate(staffTabForSection(section));
+    else navigate('dashboard');
+  }, [connectionTool, navigate, section, selectedBooking]);
+  useFocusEffect(useCallback(() => registerNavigationHandler(navigate), [navigate, registerNavigationHandler]));
+  useEffect(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [section, params.bookingId, params.tool, bookingPage, auditPage]);
+  useFocusEffect(useCallback(() => {
+    if (Platform.OS !== 'android') return;
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (section === 'dashboard') confirmLeaving(() => router.replace('/'));
+      else goBack();
+      return true;
+    });
+    return () => listener.remove();
+  }, [confirmLeaving, goBack, router, section]));
+
 
   useEffect(() => {
+    if (section !== 'customers') return;
     let active = true;
     void loadStaffVehiclePhotoUrls(snapshot.vehicleFiles)
       .then((urls) => {
@@ -371,7 +447,7 @@ function StaffWorkspace({
         if (active) setVehiclePhotoUris({});
       });
     return () => { active = false; };
-  }, [snapshot.vehicleFiles]);
+  }, [section, snapshot.vehicleFiles]);
 
   const processIntegrationQueue = async () => {
     if (integrationBusy) return;
@@ -381,7 +457,7 @@ function StaffWorkspace({
       const result = await processBookingIntegrationJobs();
       setIntegrationResult(result);
     } catch {
-      setIntegrationError('The protected worker could not be reached. Nothing was sent and no Calendar event was created.');
+      setIntegrationError('Delivery status could not be confirmed. Refresh before retrying.');
     } finally {
       setIntegrationBusy(false);
     }
@@ -416,57 +492,135 @@ function StaffWorkspace({
 
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
-      <ScrollView contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]} showsVerticalScrollIndicator={false}>
-        <View style={styles.portalNavigation}>
-          <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={({ pressed }) => [styles.back, pressed && styles.pressed]}>
-            <Text style={styles.backText}>← Customer App</Text>
-          </Pressable>
-          <Pressable
-            accessibilityHint="Opens your shared customer and staff profile"
-            accessibilityLabel="Open PSI account profile"
-            accessibilityRole="button"
-            onPress={() => router.push('/account')}
-            style={({ pressed }) => [styles.portalProfileButton, pressed && styles.pressed]}
-          >
-            {portalProfilePhotoUri ? (
-              <Image accessibilityIgnoresInvertColors resizeMode="cover" source={{ uri: portalProfilePhotoUri }} style={styles.portalProfilePhoto} />
-            ) : (
-              <Ionicons color={colors.ink} name="person" size={21} />
-            )}
-          </Pressable>
-        </View>
-        <Text style={styles.eyebrow}>PSI PRIVATE WORKSPACE</Text>
-        <Text style={styles.title}>Workshop portal</Text>
-        <Text style={styles.lead}>{REVIEW_ENVIRONMENT.enabled ? 'Isolated demonstration of the workshop workflow. All customer records are fictional. The live PSI portal remains separate and requires staff MFA.' : 'A protected operational workspace for approved PSI staff. Customer-wide access and controlled publishing are protected by the staff allowlist, verified MFA and database row-level policies.'}</Text>
-
-        <View style={styles.securityBanner}>
-          <Ionicons color={colors.success} name="shield-checkmark" size={22} />
+      <View style={[styles.workspaceHeader, { paddingHorizontal: horizontalPadding }]}>
+        <View style={styles.headerIdentity}>
+          <Ionicons color={colors.accent} name="construct-outline" size={23} />
           <View style={styles.flex}>
-            <Text style={styles.securityTitle}>{REVIEW_ENVIRONMENT.enabled ? 'Sandbox staff account' : 'MFA verified'} · {role === 'owner' ? 'Owner access' : 'Staff access'}</Text>
-            <Text style={styles.securityCopy}>{REVIEW_ENVIRONMENT.enabled ? 'Review password access is limited to this synthetic database. No live customer data, real emails, device push delivery, Calendar changes or payments. Customer records and private uploads remain protected by ownership rules.' : 'Booking review, controlled PSI record publishing, private customer photos and Complete Service are protected by staff authentication and MFA. Email delivery is active. Google Calendar remains limited to later payment-confirmed bookings. Payments, public customer registration and staff management remain disabled.'}</Text>
+            <Text style={styles.workspaceBrand}>PSI Workshop</Text>
+            <Text style={styles.workspaceStatus}>{REVIEW_ENVIRONMENT.enabled ? 'Demo' : 'Live'} · {role === 'owner' ? 'Owner' : 'Staff'}</Text>
           </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Portal settings" onPress={() => navigate('settings')} style={styles.headerButton}>
+            {portalProfilePhotoUri ? <Image source={{ uri: portalProfilePhotoUri }} style={styles.headerAvatar} /> : <Ionicons color={colors.accent} name="settings-outline" size={23} />}
+          </Pressable>
         </View>
+      </View>
+      <ScrollView ref={scrollRef} contentContainerStyle={[styles.workspaceContent, { paddingHorizontal: horizontalPadding }]} keyboardShouldPersistTaps="handled">
+        <View style={styles.pageHeading}>
+          {section !== 'dashboard' ? <Pressable accessibilityRole="button" accessibilityLabel="Back in workshop portal" onPress={goBack} style={styles.pageBack}><Ionicons name="chevron-back" color={colors.accent} size={22} /></Pressable> : null}
+          <Text accessibilityRole="header" style={styles.pageTitle}>{selectedBooking ? 'Booking details' : STAFF_SECTIONS[section].title}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Refresh this workspace" disabled={actionBusy} onPress={() => confirmLeaving(onRefresh)} style={styles.headerButton}><Ionicons name="refresh-outline" color={colors.accent} size={21} /></Pressable>
+        </View>
+        {actionNotice ? <Text accessibilityRole="alert" style={styles.cardMeta}>{actionNotice}</Text> : null}
 
-        {!REVIEW_ENVIRONMENT.enabled ? <View style={styles.securityManagement}>
-          <View style={styles.securityManagementHeading}>
-            <View style={styles.flex}>
-              <Text style={styles.securityTitle}>Authenticator security</Text>
-              <Text style={styles.securityCopy}>{verifiedTotpFactors.length} verified authenticator{verifiedTotpFactors.length === 1 ? '' : 's'} connected.</Text>
+        {section === 'dashboard' ? <>
+          <Text style={styles.cardCopy}>Your workshop at a glance.</Text>
+          <View style={styles.dashboardMetrics}>
+            <DashboardMetric label="Active bookings" value={activeBookings.length} onPress={() => navigate('bookings')} />
+            <DashboardMetric label="Customers" value={snapshot.customers.length} onPress={() => navigate('customers')} />
+          </View>
+          <WorkspaceLink title="Bookings" detail="Review requests and complete services" icon="calendar-outline" onPress={() => navigate('bookings')} />
+          <WorkspaceLink title="Customers & vehicles" detail="Find a customer or registration" icon="people-outline" onPress={() => navigate('customers')} />
+          <WorkspaceLink title="Add vehicle record" detail="Service, photos, invoices and dyno PDFs" icon="add-circle-outline" onPress={() => navigate('records')} />
+          <Text style={styles.groupLabel}>Needs attention</Text>
+          {waitingBookings.length ? <WorkspaceLink title={`${waitingBookings.length} booking request${waitingBookings.length === 1 ? '' : 's'} to review`} icon="time-outline" onPress={() => navigate('bookings')} /> : <Text style={styles.cardCopy}>No new booking requests in this snapshot.</Text>}
+          {waitingIntegrationJobs.length ? <WorkspaceLink title={`${waitingIntegrationJobs.length} delivery job${waitingIntegrationJobs.length === 1 ? '' : 's'} to check`} icon="mail-outline" onPress={() => navigate('connections', { tool: 'calendar' })} /> : null}
+          {role === 'owner' && pendingDeletions.length ? <WorkspaceLink title={`${pendingDeletions.length} account request${pendingDeletions.length === 1 ? '' : 's'}`} icon="person-circle-outline" onPress={() => navigate('deletion')} /> : null}
+          <WorkspaceLink title="Imports & drafts" icon="file-tray-outline" onPress={() => navigate('imports')} />
+        </> : null}
+
+        {section === 'bookings' ? selectedBooking ? <>
+          {[selectedBooking].map((booking) => {
+          const vehicle = snapshot.vehicles.find((item) => item.id === booking.vehicle_id);
+          const customer = snapshot.customers.find((item) => item.user_id === booking.customer_id);
+          return (
+            <View key={booking.id} style={styles.card}>
+              <View style={styles.cardHeading}>
+                <Text style={styles.cardTitle}>{booking.booking_type === 'dyno' ? 'Dyno tuning' : 'Service & report'}</Text>
+                <Text style={styles.badge}>{BOOKING_STATUS_LABELS[booking.state]}</Text>
+              </View>
+              <Text style={styles.cardPrimary}>{customerName(customer)}</Text>
+              <Text style={styles.cardCopy}>{vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable'}</Text>
+              <Text style={styles.cardMeta}>{booking.preferred_date ? `Preferred ${formatDate(booking.preferred_date)}` : 'Customer is flexible on date'}</Text>
+              {booking.approved_date ? <Text style={styles.cardMeta}>Workshop date {formatDate(booking.approved_date)}</Text> : null}
+              {booking.request_notes ? <Text style={styles.cardCopy}>{booking.request_notes}</Text> : null}
+              {bookingContextLines(booking.request_context).map((line, index) => <Text key={`${booking.id}-context-${index}`} style={styles.contextLine}>{line}</Text>)}
+              {booking.staff_note ? <Text style={styles.staffNote}>PSI note · {booking.staff_note}</Text> : null}
+              <StaffBookingReview booking={booking} onRefresh={onRefresh} onDirtyChange={setBookingDirty} onBusyChange={setBookingBusy} />
+              <StaffServiceCompletion
+                booking={booking}
+                onDirtyChange={setCompletionDirty}
+                onBusyChange={setCompletionBusy}
+                customerLabel={customerName(customer)}
+                onRefresh={onRefresh}
+                vehicleLabel={vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable'}
+              />
             </View>
-            <Ionicons color={colors.accent} name="key" size={22} />
+          );
+        })}
+
+          <WorkspaceLink title="Add a vehicle record" icon="add-circle-outline" onPress={() => navigate('records', { customerId: selectedBooking.customer_id, vehicleId: selectedBooking.vehicle_id })} />
+        </> : <>
+          <View style={styles.filterRow}>{(['active', 'history'] as const).map(filter => <Pressable key={filter} accessibilityRole="button" accessibilityState={{ selected: bookingFilter === filter }} onPress={() => { setBookingFilter(filter); setBookingPage(0); }} style={[styles.filterButton, bookingFilter === filter && styles.filterSelected]}><Text style={styles.filterText}>{filter === 'active' ? 'Active' : 'Completed & cancelled'}</Text></Pressable>)}</View>
+          <Field label="Find booking"><FormInput value={bookingSearch} onChangeText={v => { setBookingSearch(v); setBookingPage(0); }} placeholder="Customer, registration or vehicle" /></Field>
+          <Text style={styles.cardCopy}>{filteredBookings.length} {bookingFilter === 'active' ? 'active' : 'archived'} bookings in the loaded queue</Text>
+          {visibleBookings.length ? visibleBookings.map(booking => {
+            const customer = snapshot.customers.find(c => c.user_id === booking.customer_id);
+            const vehicle = snapshot.vehicles.find(v => v.id === booking.vehicle_id);
+            return <WorkspaceLink key={booking.id} title={customerName(customer)} detail={[vehicle ? `${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle unavailable', booking.approved_date ? formatDate(booking.approved_date) : booking.preferred_date ? formatDate(booking.preferred_date) : 'Flexible date', BOOKING_STATUS_LABELS[booking.state]].join(' · ')} icon={booking.booking_type === 'dyno' ? 'speedometer-outline' : 'car-sport-outline'} onPress={() => navigate('bookings', { bookingId: booking.id })} />;
+          }) : <EmptyState>No bookings match this view.</EmptyState>}
+          <Pagination page={bookingPage} total={filteredBookings.length} onChange={setBookingPage} />
+        </> : null}
+
+        {section === 'customers' ? <>
+          <Field label="Find customer or vehicle"><FormInput value={customerSearch} onChangeText={setCustomerSearch} placeholder="Name, email, registration or vehicle" /></Field>
+          {filteredCustomerOptions.length ? <>
+                  {snapshot.customers.length === 0 ? <EmptyState>No active customer accounts are currently shown.</EmptyState> : (
+          <View style={styles.lookupPanel}>
+            <StaffScrollSelect label="Customer" onChange={(id) => { setLookupCustomerId(id); router.setParams({ customerId: id }); }} options={filteredCustomerOptions} searchable value={selectedLookupCustomer?.user_id ?? ''} />
+            {selectedLookupCustomer ? (
+              <View style={styles.lookupCustomerCard}>
+                <View style={styles.lookupIdentity}>
+                  <View style={styles.lookupInitials}><Text style={styles.lookupInitialsText}>{customerInitials(selectedLookupCustomer)}</Text></View>
+                  <View style={styles.flex}>
+                    <Text style={styles.cardTitle}>{customerName(selectedLookupCustomer)}</Text>
+                    <Text style={styles.cardCopy}>{selectedLookupCustomer.email}</Text>
+                    {selectedLookupCustomer.mobile ? <Text style={styles.cardCopy}>{selectedLookupCustomer.mobile}</Text> : null}
+                  </View>
+                </View>
+                <View style={styles.vehicleList}>
+                  {selectedLookupVehicles.length === 0 ? <Text style={styles.cardMeta}>No active vehicles.</Text> : selectedLookupVehicles.map((vehicle) => (
+                    <View key={vehicle.id} style={styles.vehicleRow}>
+                      {vehiclePhotoUris[vehicle.id] ? (
+                        <Image accessibilityLabel={`Private customer photo of ${vehicle.year} ${vehicle.make} ${vehicle.model}`} resizeMode="contain" source={{ uri: vehiclePhotoUris[vehicle.id] }} style={styles.vehiclePhoto} />
+                      ) : <Ionicons color={colors.accent} name="car-sport" size={18} />}
+                      <View style={styles.flex}>
+                        <Text style={styles.vehicleTitle}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
+                        <Text style={styles.cardMeta}>{vehicle.registration}{vehicle.is_primary ? ' · Primary vehicle' : ''}</Text>
+                        <Pressable accessibilityRole="button" onPress={() => navigate('records', { customerId: selectedLookupCustomer.user_id, vehicleId: vehicle.id })} style={styles.inlineAction}><Text style={styles.inlineActionText}>Add vehicle record →</Text></Pressable>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
           </View>
-          {verifiedTotpFactors.length === 1 ? <Text style={styles.securityWarning}>Add a backup authenticator before replacing or retiring this device.</Text> : null}
-          <PrimaryButton label="Manage authenticators" onPress={() => router.push('/staff-security')} variant="outline" />
-        </View> : null}
+        )}
+          </> : <EmptyState>No customers match your search.</EmptyState>}
+          {role === 'owner' ? <>
+            <WorkspaceLink title="Invite customer" icon="person-add-outline" onPress={() => navigate('invitations')} />
+            <WorkspaceLink title="Performance+ access" icon="add-circle-outline" onPress={() => navigate('access', { customerId: selectedLookupCustomer?.user_id ?? '' })} />
+            <WorkspaceLink title="Account requests" detail={`${pendingDeletions.length} awaiting review`} icon="person-remove-outline" onPress={() => navigate('deletion')} />
+          </> : null}
+        </> : null}
 
-        <View style={styles.metrics}>
-          <Metric label="Customers" value={snapshot.customers.length} />
-          <Metric label="Vehicles" value={snapshot.vehicles.length} />
-          <Metric label="Active requests" value={activeBookings.length} />
-          <Metric label="Deletion requests" value={snapshot.accountDeletionRequests.filter((request) => request.status !== 'completed').length} />
-        </View>
-
-        {role === 'owner' ? (
+        {section === 'records' ? <>
+          <StaffRecordWorkflow snapshot={snapshot} customerId={paramValue(params.customerId)} vehicleId={paramValue(params.vehicleId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} />
+          <WorkspaceLink title="Imports & drafts" icon="file-tray-outline" onPress={() => navigate('imports')} />
+        </> : null}
+        {section === 'imports' ? <StaffVaultReview /> : null}
+        {section === 'access' ? role === 'owner' ? <StaffPerformanceAccess snapshot={snapshot} customerId={paramValue(params.customerId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} /> : <EmptyState>Owner access is required.</EmptyState> : null}
+        {section === 'invitations' ? role === 'owner' ? <>
+                  {role === 'owner' ? (
           <>
             <SectionHeading
               copy="Approve one customer email at a time. They create their own private profile after signing in; public registration stays closed."
@@ -536,87 +690,54 @@ function StaffWorkspace({
           </>
         ) : null}
 
-        <SectionHeading copy="Create customer-facing event dates, save private drafts, then publish alerts when the details are ready." title="PSI Events" />
-        <StaffEventsManager />
-
-        <SectionHeading copy={REVIEW_ENVIRONMENT.enabled ? 'Synthetic customer deletion requests. Completion permanently removes only the selected sandbox account and its private files.' : 'Customer-initiated requests are visible only to Matt after MFA. Complete the documented storage, retained-record and Auth cleanup before recording completion.'} title="Account deletion queue" />
+        </> : <EmptyState>Owner access is required.</EmptyState> : null}
+        {section === 'deletion' ? role === 'owner' ? <>
+                  <SectionHeading copy={REVIEW_ENVIRONMENT.enabled ? 'Synthetic customer deletion requests. Completion permanently removes only the selected sandbox account and its private files.' : 'Customer-initiated requests are visible only to Matt after MFA. Complete the documented storage, retained-record and Auth cleanup before recording completion.'} title="Account deletion queue" />
         {snapshot.accountDeletionRequests.length === 0 ? <EmptyState>No account deletion requests are currently shown.</EmptyState> : snapshot.accountDeletionRequests.map((request) => {
           const customer = snapshot.deletionCustomers.find((item) => item.user_id === request.user_id);
-          return <AccountDeletionRequestCard customer={customer} key={request.user_id} onComplete={onRefresh} owner={role === 'owner'} request={request} />;
+          const expanded = activeDeletionId === request.user_id;
+          return <AccountDeletionRequestCard
+            customer={customer}
+            key={`${request.user_id}:${expanded ? 'open' : 'closed'}`}
+            expanded={expanded}
+            disabled={actionBusy}
+            onToggleExpanded={() => confirmLeaving(() => setActiveDeletionId(expanded ? '' : request.user_id))}
+            onComplete={onRefresh}
+            onDirtyChange={reportDeletionDirty}
+            onBusyChange={reportDeletionBusy}
+            owner={role === 'owner'}
+            request={request}
+          />;
         })}
 
-        <SectionHeading copy="Create customer-visible PSI records only after checking the selected customer and vehicle." title="Publish workshop records" />
-        <StaffRecordPublisher snapshot={snapshot} />
-        <StaffVaultPublisher snapshot={snapshot} />
-        {role === 'owner' && !REVIEW_ENVIRONMENT.enabled ? <StaffXeroConnection /> : null}
+        </> : <EmptyState>Owner access is required.</EmptyState> : null}
+        {section === 'events' ? <StaffEventsManager onDirtyChange={setEventDirty} onBusyChange={setEventBusy} /> : null}
 
-        <SectionHeading copy={REVIEW_ENVIRONMENT.enabled ? 'Fictional requests for testing the workshop workflow.' : 'Recent requests visible through the existing MFA-gated staff policies.'} title="Booking queue" />
-        {activeBookings.length === 0 ? <EmptyState>No active booking requests are currently shown.</EmptyState> : activeBookings.slice(0, 12).map((booking) => {
-          const vehicle = snapshot.vehicles.find((item) => item.id === booking.vehicle_id);
-          const customer = snapshot.customers.find((item) => item.user_id === booking.customer_id);
-          return (
-            <View key={booking.id} style={styles.card}>
-              <View style={styles.cardHeading}>
-                <Text style={styles.cardTitle}>{booking.booking_type === 'dyno' ? 'Dyno tuning' : 'Service & report'}</Text>
-                <Text style={styles.badge}>{BOOKING_STATUS_LABELS[booking.state]}</Text>
-              </View>
-              <Text style={styles.cardPrimary}>{customerName(customer)}</Text>
-              <Text style={styles.cardCopy}>{vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable'}</Text>
-              <Text style={styles.cardMeta}>{booking.preferred_date ? `Preferred ${formatDate(booking.preferred_date)}` : 'Customer is flexible on date'}</Text>
-              {booking.approved_date ? <Text style={styles.cardMeta}>Workshop date {formatDate(booking.approved_date)}</Text> : null}
-              {booking.request_notes ? <Text style={styles.cardCopy}>{booking.request_notes}</Text> : null}
-              {bookingContextLines(booking.request_context).map((line, index) => <Text key={`${booking.id}-context-${index}`} style={styles.contextLine}>{line}</Text>)}
-              {booking.staff_note ? <Text style={styles.staffNote}>PSI note · {booking.staff_note}</Text> : null}
-              <StaffBookingReview booking={booking} onRefresh={onRefresh} />
-              <StaffServiceCompletion
-                booking={booking}
-                customerLabel={customerName(customer)}
-                onRefresh={onRefresh}
-                vehicleLabel={vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable'}
-              />
-            </View>
-          );
-        })}
+        {section === 'menu' ? <>
+          <WorkspaceLink title="PSI events" detail="Upcoming events and customer announcements" icon="flag-outline" onPress={() => navigate('events')} />
+          <WorkspaceLink title="Connections" detail="Xero, payments, email and Calendar" icon="link-outline" onPress={() => navigate('connections')} />
+          <WorkspaceLink title="Workshop PC uploads" detail="Photo folders and dyno PDF imports" icon="desktop-outline" onPress={() => navigate('connections', { tool: 'uploads' })} />
+          <WorkspaceLink title="Activity history" icon="time-outline" onPress={() => navigate('history')} />
+          <WorkspaceLink title="Return to customer app" icon="phone-portrait-outline" onPress={() => confirmLeaving(() => router.replace('/'))} />
+          <WorkspaceLink title="Settings" detail="Account and authenticator security" icon="settings-outline" onPress={() => navigate('settings')} />
+        </> : null}
 
-        <View style={styles.historyPanel}>
-          <Pressable
-            accessibilityLabel={`Booking archive, ${archivedBookings.length} bookings`}
-            accessibilityRole="button"
-            accessibilityState={{ expanded: bookingArchiveOpen }}
-            onPress={() => setBookingArchiveOpen((current) => !current)}
-            style={({ pressed }) => [styles.historyHeading, pressed && styles.pressed]}
-          >
-            <View style={styles.flex}>
-              <Text style={styles.historyTitle}>Completed & cancelled bookings</Text>
-              <Text style={styles.historyMeta}>{archivedBookings.length} archived booking{archivedBookings.length === 1 ? '' : 's'}</Text>
-            </View>
-            <Ionicons color={colors.accent} name={bookingArchiveOpen ? 'chevron-up' : 'chevron-down'} size={22} />
-          </Pressable>
-          {bookingArchiveOpen ? archivedBookings.length ? archivedBookings.map((booking) => {
-            const vehicle = snapshot.vehicles.find((item) => item.id === booking.vehicle_id);
-            const customer = snapshot.customers.find((item) => item.user_id === booking.customer_id);
-            return (
-              <View key={booking.id} style={styles.compactHistoryRow}>
-                <Ionicons color={booking.state === 'completed' ? colors.success : colors.muted} name={booking.state === 'completed' ? 'checkmark-circle' : 'close-circle-outline'} size={19} />
-                <View style={styles.flex}>
-                  <Text style={styles.auditTitle}>{customerName(customer)} · {booking.booking_type === 'dyno' ? 'Dyno tuning' : 'Service & report'}</Text>
-                  <Text style={styles.contextLine}>{BOOKING_STATUS_LABELS[booking.state]} · {vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle unavailable'}{booking.approved_date ? ` · ${formatDate(booking.approved_date)}` : ''}</Text>
-                </View>
-              </View>
-            );
-          }) : <Text style={styles.contextLine}>No completed or cancelled bookings are archived yet.</Text> : null}
-        </View>
-
-        <SectionHeading copy="Check jobs that need attention. Completed delivery records stay available in a compact month-by-month history." title="Email & Calendar queue" />
+        {section === 'connections' ? !connectionTool ? <>
+          {role === 'owner' ? <WorkspaceLink title="Xero invoices" detail={REVIEW_ENVIRONMENT.enabled ? 'Unavailable in the demo' : 'Connection and organisation verification'} icon="receipt-outline" onPress={() => navigate('connections', { tool: 'xero' })} /> : null}
+          <WorkspaceLink title="Email & Calendar" detail={`${waitingIntegrationJobs.length} waiting delivery jobs`} icon="calendar-outline" onPress={() => navigate('connections', { tool: 'calendar' })} />
+          <WorkspaceLink title="Payments" detail="Setup pending" icon="card-outline" onPress={() => navigate('connections', { tool: 'payments' })} />
+          <WorkspaceLink title="Workshop PC uploads" detail="Verified folders for photos and dyno PDFs" icon="desktop-outline" onPress={() => navigate('connections', { tool: 'uploads' })} />
+        </> : connectionTool === 'xero' ? role === 'owner' && !REVIEW_ENVIRONMENT.enabled ? <StaffXeroConnection /> : <EmptyState>Xero setup is available to the owner in the live portal.</EmptyState> : connectionTool === 'calendar' ? <>
+                  <SectionHeading copy="Delivery status and recent history." title="Email & Calendar" />
         <View style={styles.integrationControls}>
           <View style={styles.queueStatusRow}>
             <Ionicons color={waitingIntegrationJobs.length ? colors.danger : colors.success} name={waitingIntegrationJobs.length ? 'alert-circle' : 'checkmark-circle'} size={22} />
             <View style={styles.flex}>
-              <Text style={styles.securityTitle}>{waitingIntegrationJobs.length ? `${waitingIntegrationJobs.length} job${waitingIntegrationJobs.length === 1 ? '' : 's'} need attention` : 'Queue is clear'}</Text>
-              <Text style={styles.securityCopy}>{REVIEW_ENVIRONMENT.enabled ? 'External email and Calendar delivery are deliberately disabled. Queue entries demonstrate the workflow without contacting anyone or creating appointments.' : 'Email delivery is active. Google Calendar is ready and creates a private event only when a booking legitimately reaches Confirmed.'}</Text>
+              <Text style={styles.securityTitle}>{waitingIntegrationJobs.length ? `${waitingIntegrationJobs.length} job${waitingIntegrationJobs.length === 1 ? '' : 's'} need attention` : 'No waiting deliveries in this snapshot'}</Text>
+              <Text style={styles.securityCopy}>{REVIEW_ENVIRONMENT.enabled ? 'External email and Calendar delivery are deliberately disabled. Queue entries demonstrate the workflow without contacting anyone or creating appointments.' : 'Confirmed bookings can create email and Calendar jobs. Processing checks the current connection status.'}</Text>
             </View>
           </View>
-          <PrimaryButton label="Check email & Calendar queue" loading={integrationBusy} onPress={() => void processIntegrationQueue()} variant="outline" />
+          <PrimaryButton label="Process waiting deliveries" loading={integrationBusy} onPress={() => void processIntegrationQueue()} variant="outline" />
           {integrationResult ? (
             <View accessibilityLiveRegion="polite" style={styles.integrationSuccess}>
               <Ionicons color={colors.success} name="checkmark-circle" size={20} />
@@ -629,7 +750,7 @@ function StaffWorkspace({
           {integrationResult?.processed ? <PrimaryButton label="Refresh portal records" onPress={onRefresh} /> : null}
           {integrationError ? <Text accessibilityRole="alert" style={styles.integrationError}>{integrationError}</Text> : null}
         </View>
-        {waitingIntegrationJobs.length === 0 ? <EmptyState>No email or Calendar jobs need attention.</EmptyState> : waitingIntegrationJobs.slice(0, 16).map((job) => (
+        {waitingIntegrationJobs.length === 0 ? <EmptyState>No waiting deliveries.</EmptyState> : waitingIntegrationJobs.slice(0, 16).map((job) => (
           <View key={job.id} style={styles.card}>
             <View style={styles.cardHeading}>
               <Text style={styles.cardTitle}>{INTEGRATION_JOB_LABELS[job.job_kind]}</Text>
@@ -668,11 +789,26 @@ function StaffWorkspace({
           </View>
         ) : null}
 
-        <SectionHeading copy="Protected activity is grouped by month so the portal stays concise and easy to review." title="Audit history" />
-        {snapshot.auditEvents.length === 0 ? <EmptyState>No audit events are currently shown.</EmptyState> : (
+        </> : connectionTool === 'payments' ? <View style={styles.settingsCard}>
+          <Text style={styles.cardTitle}>Payment setup</Text>
+          <Text style={styles.cardCopy}>Stripe setup and Apple subscription activation are still pending.</Text>
+          <Text style={styles.cardCopy}>Verify an existing bank transfer from its booking after checking the cleared deposit in PSI’s bank statement.</Text>
+          <WorkspaceLink title="Open bookings" icon="calendar-outline" onPress={() => navigate('bookings')} />
+        </View> : <View style={styles.settingsCard}>
+          <Text style={styles.cardTitle}>Workshop PC uploads</Text>
+          <Text style={styles.cardCopy}>Prepare a separate folder for each PSI job. Photos and dyno PDFs must be linked to a verified customer, vehicle and job.</Text>
+          <Text style={styles.cardCopy}>The PC importer is being prepared for installation. Daily unattended uploads have not been activated.</Text>
+          <WorkspaceLink title="Add files manually" icon="cloud-upload-outline" onPress={() => navigate('records')} />
+          <WorkspaceLink title="Review imports" icon="file-tray-outline" onPress={() => navigate('imports')} />
+        </View> : null}
+
+        {section === 'history' ? <>
+          <Field label="Find activity"><FormInput value={auditSearch} onChangeText={v => { setAuditSearch(v); setAuditPage(0); }} placeholder="Vehicles, records or staff" /></Field>
+                  {snapshot.auditEvents.length === 0 ? <EmptyState>No audit events are currently shown.</EmptyState> : (
           <View style={styles.historyPanel}>
-            <HistoryDropdown label="Month and year" onChange={setAuditPeriod} options={auditPeriods} value={selectedAuditPeriod} />
-            <Text style={styles.historyMeta}>{visibleAuditEvents.length} event{visibleAuditEvents.length === 1 ? '' : 's'} shown</Text>
+            <HistoryDropdown label="Month and year" onChange={(value) => { setAuditPeriod(value); setAuditPage(0); }} options={auditPeriods} value={selectedAuditPeriod} />
+            <Text style={styles.historyMeta}>{filteredAuditEvents.length} matching entries in the loaded history</Text>
+            <Pagination page={auditPage} total={filteredAuditEvents.length} onChange={setAuditPage} />
             {visibleAuditEvents.map((event) => (
               <View key={event.id} style={styles.auditRow}>
                 <Ionicons color={event.actor_kind === 'staff' ? colors.accent : colors.muted} name={event.actor_kind === 'staff' ? 'shield-checkmark' : event.actor_kind === 'customer' ? 'person' : 'cog'} size={18} />
@@ -685,61 +821,97 @@ function StaffWorkspace({
           </View>
         )}
 
-        <SectionHeading copy="Customer contact and vehicle ownership remain read-only in this stage." title="Customer and vehicle lookup" />
-        {snapshot.customers.length === 0 ? <EmptyState>No active customer accounts are currently shown.</EmptyState> : (
-          <View style={styles.lookupPanel}>
-            <StaffScrollSelect label="Find customer" onChange={setLookupCustomerId} options={lookupCustomerOptions} searchable value={selectedLookupCustomer?.user_id ?? ''} />
-            {selectedLookupCustomer ? (
-              <View style={styles.lookupCustomerCard}>
-                <View style={styles.lookupIdentity}>
-                  <View style={styles.lookupInitials}><Text style={styles.lookupInitialsText}>{customerInitials(selectedLookupCustomer)}</Text></View>
-                  <View style={styles.flex}>
-                    <Text style={styles.cardTitle}>{customerName(selectedLookupCustomer)}</Text>
-                    <Text style={styles.cardCopy}>{selectedLookupCustomer.email}</Text>
-                    {selectedLookupCustomer.mobile ? <Text style={styles.cardCopy}>{selectedLookupCustomer.mobile}</Text> : null}
-                  </View>
-                </View>
-                <View style={styles.vehicleList}>
-                  {selectedLookupVehicles.length === 0 ? <Text style={styles.cardMeta}>No active vehicles.</Text> : selectedLookupVehicles.map((vehicle) => (
-                    <View key={vehicle.id} style={styles.vehicleRow}>
-                      {vehiclePhotoUris[vehicle.id] ? (
-                        <Image accessibilityLabel={`Private customer photo of ${vehicle.year} ${vehicle.make} ${vehicle.model}`} source={{ uri: vehiclePhotoUris[vehicle.id] }} style={styles.vehiclePhoto} />
-                      ) : <Ionicons color={colors.accent} name="car-sport" size={18} />}
-                      <View style={styles.flex}>
-                        <Text style={styles.vehicleTitle}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
-                        <Text style={styles.cardMeta}>{vehicle.registration}{vehicle.is_primary ? ' · Primary vehicle' : ''}</Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            ) : null}
+          <Text style={styles.cardCopy}>Recent activity from the loaded portal snapshot. Use the month filter to narrow the list.</Text>
+        </> : null}
+
+        {section === 'settings' ? <>
+          <View style={styles.settingsCard}>
+            <Text style={styles.cardTitle}>{REVIEW_ENVIRONMENT.enabled ? 'Demo workspace' : 'Verified workshop access'}</Text>
+            <Text style={styles.cardCopy}>{REVIEW_ENVIRONMENT.enabled ? 'Fictional accounts and records. External delivery and payments are disabled.' : 'Customer records and publishing remain protected by staff authentication and vehicle ownership checks.'}</Text>
           </View>
-        )}
-        <Text style={styles.footer}>{REVIEW_ENVIRONMENT.enabled ? 'ISOLATED REVIEW · PRIVATE STORAGE · EXTERNAL DELIVERY AND PAYMENTS DISABLED' : 'AAL2 STAFF ACCESS · PRIVATE STORAGE · AUDITED EMAIL/CALENDAR QUEUE · PAYMENTS DISABLED'}</Text>
+                  {!REVIEW_ENVIRONMENT.enabled ? <View style={styles.securityManagement}>
+          <View style={styles.securityManagementHeading}>
+            <View style={styles.flex}>
+              <Text style={styles.securityTitle}>Authenticator security</Text>
+              <Text style={styles.securityCopy}>{verifiedTotpFactors.length} verified authenticator{verifiedTotpFactors.length === 1 ? '' : 's'} connected.</Text>
+            </View>
+            <Ionicons color={colors.accent} name="key" size={22} />
+          </View>
+          {verifiedTotpFactors.length === 1 ? <Text style={styles.securityWarning}>Add a backup authenticator before replacing or retiring this device.</Text> : null}
+          <PrimaryButton label="Manage authenticators" onPress={() => router.push('/staff-security')} variant="outline" />
+        </View> : null}
+
+          <WorkspaceLink title="My account" icon="person-circle-outline" onPress={() => confirmLeaving(() => router.push('/account'))} />
+          <WorkspaceLink title="Return to customer app" icon="phone-portrait-outline" onPress={() => confirmLeaving(() => router.replace('/'))} />
+        </> : null}
       </ScrollView>
+      {discardDialog}
     </SafeAreaView>
   );
 }
 
+function paramValue(value: string | string[] | undefined) { return Array.isArray(value) ? value[0] ?? '' : value ?? ''; }
+
+function matchesSearch(value: string, query: string) {
+  const normalize = (text: string) => text.toLocaleLowerCase('en-AU').replace(/[^\p{L}\p{N}]/gu, '');
+  return normalize(value).includes(normalize(query));
+}
+
+function WorkspaceLink({ title, detail, icon, onPress }: { title: string; detail?: string; icon: ComponentProps<typeof Ionicons>['name']; onPress: () => void }) {
+  const { largeText } = useResponsiveLayout();
+  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.workspaceLink, largeText && styles.linkStacked, pressed && styles.pressed]}>
+    <View style={styles.linkIcon}><Ionicons name={icon} color={colors.accent} size={24} /></View>
+    <View style={largeText ? styles.stackedCopy : styles.flex}><Text style={styles.linkTitle}>{title}</Text>{detail ? <Text style={styles.linkDetail}>{detail}</Text> : null}</View>
+    {!largeText ? <Ionicons name="chevron-forward" color={colors.accent} size={18} /> : null}
+  </Pressable>;
+}
+
+function DashboardMetric({ label, value, onPress }: { label: string; value: number; onPress: () => void }) {
+  const { largeText } = useResponsiveLayout();
+  return <Pressable accessibilityRole="button" accessibilityLabel={`${value} ${label}`} style={[styles.dashboardMetric, largeText && styles.metricStacked]} onPress={onPress}><Text style={styles.dashboardValue}>{value}</Text><Text style={styles.linkDetail}>{label}</Text></Pressable>;
+}
+
+function Pagination({ page, total, onChange }: { page: number; total: number; onChange: (page: number) => void }) {
+  const pages = Math.ceil(total / 8);
+  if (pages < 2) return null;
+  return <View style={styles.pagination}>
+    <Pressable accessibilityRole="button" accessibilityLabel="Previous page" disabled={page === 0} onPress={() => onChange(page - 1)} style={[styles.pageControl, page === 0 && styles.disabled]}><Ionicons name="chevron-back" color={colors.accent} size={23} /></Pressable>
+    <Text style={styles.cardCopy}>Page {page + 1} of {pages}</Text>
+    <Pressable accessibilityRole="button" accessibilityLabel="Next page" disabled={page + 1 >= pages} onPress={() => onChange(page + 1)} style={[styles.pageControl, page + 1 >= pages && styles.disabled]}><Ionicons name="chevron-forward" color={colors.accent} size={23} /></Pressable>
+  </View>;
+}
+
 function AccountDeletionRequestCard({
   customer,
+  expanded,
+  disabled,
+  onToggleExpanded,
   onComplete,
+  onDirtyChange,
+  onBusyChange,
   owner,
   request,
 }: {
   customer: StaffPortalSnapshot['deletionCustomers'][number] | undefined;
+  expanded: boolean;
+  disabled: boolean;
+  onToggleExpanded: () => void;
   onComplete: () => void;
+  onDirtyChange: (id: string, dirty: boolean) => void;
+  onBusyChange: (id: string, busy: boolean) => void;
   owner: boolean;
   request: StaffPortalSnapshot['accountDeletionRequests'][number];
 }) {
   const [busy, setBusy] = useState(false);
   const [confirmationEmail, setConfirmationEmail] = useState('');
   const [error, setError] = useState('');
-  const [expanded, setExpanded] = useState(false);
   const [retentionConfirmed, setRetentionConfirmed] = useState(false);
   const [staffNote, setStaffNote] = useState('');
   const customerEmail = customer?.email ?? '';
+  const dirty = Boolean(confirmationEmail.trim() || staffNote.trim() || retentionConfirmed);
+  useEffect(() => { onDirtyChange(request.user_id, dirty); }, [dirty, onDirtyChange, request.user_id]);
+  useEffect(() => { onBusyChange(request.user_id, busy); }, [busy, onBusyChange, request.user_id]);
+  useEffect(() => () => { onDirtyChange(request.user_id, false); onBusyChange(request.user_id, false); }, [onDirtyChange, onBusyChange, request.user_id]);
 
   const completeDeletion = async () => {
     if (busy) return;
@@ -794,6 +966,7 @@ function AccountDeletionRequestCard({
               accessibilityLabel="Retention review completed"
               accessibilityRole="checkbox"
               accessibilityState={{ checked: retentionConfirmed }}
+              disabled={busy}
               onPress={() => {
                 setRetentionConfirmed((current) => !current);
                 setError('');
@@ -805,6 +978,7 @@ function AccountDeletionRequestCard({
             </Pressable>
             <Field hint={`Type ${customerEmail} exactly`} label="Confirm customer email">
               <FormInput
+                editable={!busy}
                 autoCapitalize="none"
                 autoComplete="off"
                 keyboardType="email-address"
@@ -819,6 +993,7 @@ function AccountDeletionRequestCard({
             </Field>
             <Field hint="Optional non-sensitive completion note · maximum 500 characters" label="Staff note">
               <FormInput
+                editable={!busy}
                 maxLength={500}
                 multiline
                 numberOfLines={3}
@@ -830,16 +1005,12 @@ function AccountDeletionRequestCard({
             </Field>
             {error ? <Text accessibilityRole="alert" style={styles.deletionError}>{error}</Text> : null}
             <PrimaryButton label="Permanently delete account" loading={busy} onPress={() => void completeDeletion()} />
-            <PrimaryButton disabled={busy} label="Cancel" onPress={() => setExpanded(false)} variant="outline" />
+            <PrimaryButton disabled={busy} label="Cancel" onPress={onToggleExpanded} variant="outline" />
           </View>
-        ) : <PrimaryButton label={request.status === 'in_review' ? 'Resume protected deletion' : 'Review and delete account'} onPress={() => setExpanded(true)} variant="outline" />
+        ) : <PrimaryButton disabled={disabled} label={request.status === 'in_review' ? 'Resume protected deletion' : 'Review and delete account'} onPress={onToggleExpanded} variant="outline" />
       ) : null}
     </View>
   );
-}
-
-function Metric({ label, value }: { label: string; value: number }) {
-  return <View style={styles.metric}><Text style={styles.metricValue}>{value}</Text><Text style={styles.metricLabel}>{label}</Text></View>;
 }
 
 function SectionHeading({ copy, title }: { copy: string; title: string }) {
@@ -963,8 +1134,40 @@ function humanize(value: string) {
 }
 
 const styles = StyleSheet.create({
+  workspaceHeader: { borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: 8, backgroundColor: colors.ink },
+  headerIdentity: { alignSelf: 'center', width: '100%', maxWidth: 880, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  workspaceBrand: { color: colors.white, fontSize: 18, fontWeight: '900' },
+  workspaceStatus: { color: colors.accent, fontSize: 11, fontWeight: '700' },
+  headerButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  headerAvatar: { width: 34, height: 34, borderRadius: 17 },
+  workspaceContent: { alignSelf: 'center', width: '100%', maxWidth: 880, paddingVertical: 18, paddingBottom: 36, gap: 12 },
+  pageHeading: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  pageTitle: { color: colors.white, fontSize: 25, fontWeight: '900', flex: 1, minWidth: 0 },
+  pageBack: { minHeight: 44, width: 36, alignItems: 'center', justifyContent: 'center' },
+  groupLabel: { color: colors.silver, fontSize: 13, fontWeight: '800', marginTop: 8 },
+  workspaceLink: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: colors.panel, padding: 14, minHeight: 70, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  linkIcon: { backgroundColor: colors.inkSoft, width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  linkTitle: { color: colors.white, fontSize: 16, fontWeight: '800' },
+  linkStacked: { flexDirection: 'column', alignItems: 'flex-start' },
+  stackedCopy: { width: '100%' },
+  metricStacked: { flexBasis: '100%' },
+  linkDetail: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 3 },
+  dashboardMetrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  dashboardMetric: { flex: 1, minWidth: 120, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, borderRadius: 12, padding: 14, gap: 2 },
+  dashboardValue: { color: colors.accent, fontSize: 26, fontWeight: '900' },
+  filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  filterButton: { minHeight: 44, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.line, borderRadius: 8 },
+  filterSelected: { borderColor: colors.accent, backgroundColor: colors.panelRaised },
+  filterText: { color: colors.white, fontSize: 13, fontWeight: '700' },
+  pagination: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  pageControl: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, borderRadius: 8 },
+  disabled: { opacity: 0.35 },
+  inlineAction: { paddingVertical: 10, minHeight: 44, justifyContent: 'center' },
+  inlineActionText: { color: colors.accent, fontSize: 13, fontWeight: '800' },
+  settingsCard: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.line, borderRadius: 12, padding: 16, gap: 12 },
+
   screen: { flex: 1, backgroundColor: colors.ink },
-  flex: { flex: 1 },
+  flex: { flex: 1, minWidth: 0 },
   state: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingVertical: spacing.xxl },
   stateTitle: { color: colors.white, fontSize: 27, fontWeight: '900', textAlign: 'center' },
   stateCopy: { color: colors.muted, fontSize: 15, lineHeight: 23, maxWidth: 520, textAlign: 'center' },
@@ -978,30 +1181,18 @@ const styles = StyleSheet.create({
   manualLabel: { color: colors.muted, fontSize: 11, fontWeight: '900', letterSpacing: 1.1, textTransform: 'uppercase' },
   manualSecret: { backgroundColor: colors.ink, borderColor: colors.line, borderWidth: 1, color: colors.white, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 13, letterSpacing: 1.2, padding: spacing.md, textAlign: 'center' },
   errorText: { color: colors.danger, fontSize: 13, lineHeight: 19 },
-  scroll: { alignSelf: 'center', width: '100%', maxWidth: 880, paddingBottom: spacing.xxl, paddingTop: spacing.md },
-  portalNavigation: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   back: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
   backText: { color: colors.white, fontSize: 15, fontWeight: '800' },
-  portalProfileButton: { ...mobileFrame, width: 48, height: 48, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderRadius: 24, backgroundColor: colors.white },
-  portalProfilePhoto: { width: '100%', height: '100%' },
-  eyebrow: { color: colors.accent, fontSize: 12, fontWeight: '900', letterSpacing: 1.7, marginTop: spacing.md },
-  title: { color: colors.white, fontSize: 38, fontWeight: '900', letterSpacing: -1.2, marginTop: spacing.xs },
-  lead: { color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: spacing.sm, maxWidth: 680 },
-  securityBanner: { ...mobileFrame, backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg, padding: spacing.md },
   securityTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
   securityCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 4 },
   securityManagement: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.md },
   securityManagementHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   securityWarning: { color: colors.silver, fontSize: 11, lineHeight: 17 },
-  metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
-  metric: { ...mobileFrame, backgroundColor: colors.panelRaised, flexGrow: 1, minWidth: 120, padding: spacing.md },
-  metricValue: { color: colors.accent, fontSize: 28, fontWeight: '900' },
-  metricLabel: { color: colors.white, fontSize: 12, fontWeight: '800', marginTop: 2, textTransform: 'uppercase' },
-  sectionHeading: { marginBottom: spacing.sm, marginTop: spacing.xl },
-  sectionTitle: { color: colors.white, fontSize: 23, fontWeight: '900' },
+  sectionHeading: { marginBottom: spacing.xs, marginTop: spacing.sm },
+  sectionTitle: { color: colors.white, fontSize: 20, fontWeight: '900' },
   sectionCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 3 },
   card: { ...mobileFrame, backgroundColor: colors.panel, marginBottom: spacing.sm, padding: spacing.md },
-  cardHeading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
+  cardHeading: { alignItems: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between' },
   cardTitle: { color: colors.white, flex: 1, fontSize: 17, fontWeight: '900' },
   cardPrimary: { color: colors.white, fontSize: 15, fontWeight: '800', marginTop: spacing.sm },
   cardCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 2 },
@@ -1041,10 +1232,9 @@ const styles = StyleSheet.create({
   invitationPanel: { ...mobileFrame, backgroundColor: colors.panel, gap: spacing.md, padding: spacing.md },
   invitationNotice: { color: colors.success, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   testFlightStep: { alignItems: 'flex-start', backgroundColor: colors.inkSoft, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
-  invitationCount: { color: colors.accent, fontSize: 11, fontWeight: '900', letterSpacing: 0.8, marginBottom: spacing.sm, marginTop: spacing.md, textTransform: 'uppercase' },
   approvedAccountsPanel: { ...mobileFrame, backgroundColor: colors.inkSoft, gap: spacing.xs, marginTop: spacing.md, padding: spacing.md },
   invitationRow: { ...mobileFrame, alignItems: 'center', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xs, padding: spacing.md },
-  badge: { borderColor: colors.accentDark, borderWidth: 1, color: colors.accent, fontSize: 10, fontWeight: '900', paddingHorizontal: 8, paddingVertical: 5, textTransform: 'uppercase' },
+  badge: { alignSelf: 'flex-start', flexShrink: 1, borderColor: colors.accentDark, borderWidth: 1, color: colors.accent, fontSize: 10, fontWeight: '900', paddingHorizontal: 8, paddingVertical: 5, textTransform: 'uppercase' },
   lookupPanel: { ...mobileFrame, backgroundColor: colors.panel, gap: spacing.md, padding: spacing.md },
   lookupCustomerCard: { ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.md },
   lookupIdentity: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

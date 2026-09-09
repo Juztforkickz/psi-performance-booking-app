@@ -5,6 +5,7 @@ import { ActivityIndicator, AppState, Linking, Platform, Pressable, ScrollView, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { colors } from '@/constants/brand';
+import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
@@ -32,6 +33,11 @@ const VAULT_ICONS = {
 
 export default function PerformancePlusScreen() {
   const router = useRouter();
+  const { fontScale, horizontalPadding, width } = useResponsiveLayout();
+  const [vaultGridWidth, setVaultGridWidth] = useState(0);
+  const contentWidth = vaultGridWidth || Math.min(width, 960) - horizontalPadding * 2;
+  // Reserve enough text space at the user's chosen size before using two cards.
+  const singleColumn = contentWidth < (132 * Math.max(fontScale, 1) + 36) * 2 + 12;
   const auth = useCustomerAuth();
   const { account } = useCustomerAccount();
   const preview = useCustomerPreview();
@@ -88,12 +94,12 @@ export default function PerformancePlusScreen() {
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Purchase could not be completed. Please try again.'); }
     finally { setBusy(false); }
   };
-  return <SafeAreaView edges={['top', 'left', 'right']} style={s.screen}><ScrollView contentContainerStyle={s.content}>
+  return <SafeAreaView edges={['top', 'left', 'right']} style={s.screen}><ScrollView contentContainerStyle={[s.content, { paddingHorizontal: horizontalPadding }]}>
     <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={s.link}>‹ Back</Text></Pressable>
     <View style={s.heading}><Text style={s.eyebrow}>PSI PERFORMANCE+</Text><Text style={s.title}>{'YOUR CAR.\nITS COMPLETE STORY.'}</Text><Text style={s.copy}>Every service. Every build. Every important milestone. Your PSI vehicle record, in one place.</Text></View>
     <View style={s.planCard}>
-      <View style={s.row}>
-        <View style={s.planHeading}><Ionicons name={activePlus ? 'shield-checkmark' : 'car-sport-outline'} color={colors.accent} size={22} /><View><Text style={s.planLabel}>CURRENT PLAN</Text><Text style={s.planName}>{activePlus ? 'PSI Performance+' : 'PSI Free'}</Text></View></View>
+      <View style={[s.row, s.planRow]}>
+        <View style={s.planHeading}><Ionicons name={activePlus ? 'shield-checkmark' : 'car-sport-outline'} color={colors.accent} size={22} /><View style={s.planHeadingCopy}><Text style={s.planLabel}>CURRENT PLAN</Text><Text style={s.planName}>{activePlus ? 'PSI Performance+' : 'PSI Free'}</Text></View></View>
         <View style={[s.badge, activePlus && s.activeBadge]}><Text style={[s.badgeText, activePlus && s.activeBadgeText]}>{activePlus ? 'ACTIVE' : 'FREE'}</Text></View>
       </View>
       <Text style={s.copy}>{activePlus ? 'Your complete private PSI vehicle record is unlocked.' : 'Your everyday PSI account remains free. Upgrade whenever you want the complete digital history.'}</Text>
@@ -104,14 +110,14 @@ export default function PerformancePlusScreen() {
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.choices}>{vehicles.map(v => <Pressable accessibilityRole="button" accessibilityState={{ selected: v.id === vehicle?.id }} key={v.id} onPress={() => { setSelected(v.id); setMessage(''); }} style={[s.choice, v.id === vehicle?.id && s.chosen]}><Text style={s.choiceText}>{v.make} {v.model}</Text></Pressable>)}</ScrollView>
     {demo ? <Text style={s.muted}>Demo records · explore a sample vault without making a purchase.</Text> : null}
     {!demo && !overview && vehicle && !message ? <ActivityIndicator color={colors.accent} /> : null}
-    <View style={s.grid}>{VAULT_KINDS.map(kind => <Pressable accessibilityRole="button" key={kind} onPress={() => { if (demo || activePlus) router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle?.id ?? '', kind } }); else setMessage('Choose Performance+ below to unlock your private vehicle archive. Your free PSI features remain available.'); }} style={({ pressed }) => [s.vault, pressed && s.pressed]}>
+    <View onLayout={event => setVaultGridWidth(event.nativeEvent.layout.width)} style={s.grid}>{VAULT_KINDS.map(kind => <Pressable accessibilityRole="button" key={kind} onPress={() => { if (demo || activePlus) router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle?.id ?? '', kind } }); else setMessage('Choose Performance+ below to unlock your private vehicle archive. Your free PSI features remain available.'); }} style={({ pressed }) => [s.vault, singleColumn && s.vaultFullWidth, pressed && s.pressed]}>
       <View style={s.row}><View style={s.vaultIcon}><Ionicons name={VAULT_ICONS[kind]} color={colors.accent} size={24} /></View><Ionicons name={activePlus || demo ? 'arrow-forward' : 'lock-closed'} color={colors.accent} size={18} /></View>
       <View style={s.vaultCopy}><Text style={s.vaultTitle}>{VAULT_LABELS[kind]}</Text><Text style={s.recordCount}>{overview ? `${overview.counts[kind] ?? 0} PSI records available` : 'Your private PSI records'}</Text><Text style={s.vaultDescription}>{VAULT_DESCRIPTIONS[kind]}</Text></View>
       <View style={s.vaultAction}><Text style={s.vaultActionText}>{activePlus || demo ? 'Open vault' : 'Unlock with Performance+'}</Text><Ionicons name="chevron-forward" color={colors.accent} size={15} /></View>
     </Pressable>)}</View>
     {vehicle ? <PrimaryButton label={demo ? 'Explore sample vehicle history' : 'Open vehicle history'} onPress={() => router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle.id } })} variant="outline" /> : null}
     {!activePlus && entitlementReady ? <View style={s.pricing}><Text style={s.pricingEyebrow}>UNLOCK YOUR COMPLETE VEHICLE STORY</Text><Text style={s.section}>Choose Performance+</Text><Text style={s.copy}>One subscription covers every vehicle in your PSI account.</Text>
-      <View style={s.priceGrid}>
+      <View style={[s.priceGrid, singleColumn && s.priceGridStacked]}>
         <View style={s.priceOption}><Text style={s.priceLabel}>MONTHLY</Text><Text style={s.price}>{aud(PERFORMANCE_PRICING.monthly)}</Text><Text style={s.priceMeta}>per month</Text></View>
         <View style={[s.priceOption, s.bestValue]}><Text style={s.bestValueLabel}>BEST VALUE</Text><Text style={s.priceLabel}>ANNUAL</Text><Text style={s.price}>{aud(PERFORMANCE_PRICING.annual)}</Text><Text style={s.priceMeta}>per year · save {aud(PERFORMANCE_PRICING.monthly * 12 - PERFORMANCE_PRICING.annual)}</Text></View>
       </View>
@@ -125,7 +131,7 @@ export default function PerformancePlusScreen() {
     <PrimaryButton disabled={busy} label={permanentPlus ? 'Refresh access status' : 'Refresh subscription status'} onPress={() => void refresh()} variant="outline" />
     {message ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
     <View style={s.free}><Text style={s.section}>Always part of PSI Free</Text><Text style={s.copy}>Your account and garage, vehicle photos, bookings, kilometre recording, maintenance reminders, current dyno results, notifications and contacting PSI.</Text></View>
-    <View style={s.row}><Pressable accessibilityRole="link" onPress={() => router.push('/privacy')}><Text style={s.link}>Privacy</Text></Pressable><Pressable accessibilityRole="link" onPress={() => router.push('/subscription-terms')}><Text style={s.link}>Subscription terms</Text></Pressable></View>
+    <View style={[s.row, s.legalLinks]}><Pressable accessibilityRole="link" onPress={() => router.push('/privacy')}><Text style={s.link}>Privacy</Text></Pressable><Pressable accessibilityRole="link" onPress={() => router.push('/subscription-terms')}><Text style={s.link}>Subscription terms</Text></Pressable></View>
   </ScrollView></SafeAreaView>;
 }
 export const s = StyleSheet.create({
@@ -138,7 +144,9 @@ export const s = StyleSheet.create({
   muted: { color: colors.muted, fontSize: 13, lineHeight: 21 },
   section: { color: colors.white, fontSize: 21, fontWeight: '800' },
   planCard: { backgroundColor: colors.panel, borderColor: colors.line, borderWidth: 1, borderRadius: 8, padding: 18, gap: 14 },
-  planHeading: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+  planRow: { flexWrap: 'wrap' },
+  planHeading: { flexDirection: 'row', alignItems: 'center', gap: 11, flexShrink: 1, minWidth: 0 },
+  planHeadingCopy: { flexShrink: 1, minWidth: 0, gap: 3 },
   planLabel: { color: colors.muted, fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   planName: { color: colors.white, fontSize: 17, fontWeight: '900' },
   badge: { alignSelf: 'flex-start', backgroundColor: colors.inkSoft, borderColor: colors.line, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 3 },
@@ -151,7 +159,8 @@ export const s = StyleSheet.create({
   chosen: { borderColor: colors.accent, backgroundColor: colors.inkSoft },
   choiceText: { color: colors.white, fontSize: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  vault: { flexGrow: 1, flexBasis: '45%', minWidth: 150, padding: 17, backgroundColor: colors.panel, borderColor: colors.accentDark, borderWidth: 1, borderRadius: 8, gap: 14 },
+  vault: { flexGrow: 1, flexBasis: '45%', minWidth: 0, padding: 17, backgroundColor: colors.panel, borderColor: colors.accentDark, borderWidth: 1, borderRadius: 8, gap: 14 },
+  vaultFullWidth: { flexBasis: '100%' },
   pressed: { opacity: .76 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   vaultIcon: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.inkSoft, borderRadius: 21 },
@@ -164,6 +173,7 @@ export const s = StyleSheet.create({
   pricing: { backgroundColor: colors.panel, borderColor: colors.line, borderWidth: 1, borderRadius: 8, padding: 20, gap: 16 },
   pricingEyebrow: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.25 },
   priceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  priceGridStacked: { flexDirection: 'column' },
   priceOption: { flex: 1, minWidth: 140, borderColor: colors.line, borderWidth: 1, padding: 15, gap: 4 },
   bestValue: { borderColor: colors.accent },
   bestValueLabel: { alignSelf: 'flex-start', color: colors.ink, backgroundColor: colors.accent, paddingHorizontal: 7, paddingVertical: 4, fontSize: 8, fontWeight: '900', letterSpacing: .7 },
@@ -172,4 +182,5 @@ export const s = StyleSheet.create({
   priceMeta: { color: colors.muted, fontSize: 11, lineHeight: 16 },
   notice: { color: colors.accent, fontSize: 15, lineHeight: 23 },
   free: { borderTopWidth: 1, borderColor: colors.line, paddingTop: 22, gap: 12 },
+  legalLinks: { flexWrap: 'wrap' },
 });

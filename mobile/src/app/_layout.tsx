@@ -13,6 +13,7 @@ import { CustomerAccountProvider } from '@/lib/customer-account-context';
 import { CustomerAuthProvider } from '@/lib/customer-auth-context';
 import { CustomerPreviewProvider } from '@/lib/customer-preview-context';
 import { NotificationProvider } from '@/lib/notifications';
+import { StaffNavigationProvider } from '@/lib/staff-navigation-context';
 import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme-preference';
 import { startSupabaseAuthLifecycle } from '@/lib/supabase';
 
@@ -39,20 +40,22 @@ function ThemeAwareRootShell() {
         <CustomerAccountProvider>
           <NotificationProvider>
             <CustomerPreviewProvider>
-              <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
-              <View style={styles.shell}>
-                <AppleReviewBanner />
-                <View style={styles.content}>
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                      contentStyle: { backgroundColor: theme.inkSoft },
-                      animation: 'slide_from_right',
-                    }}
-                  />
+              <StaffNavigationProvider>
+                <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
+                <View style={styles.shell}>
+                  <AppleReviewBanner />
+                  <View style={styles.content}>
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                        contentStyle: { backgroundColor: theme.inkSoft },
+                        animation: 'slide_from_right',
+                      }}
+                    />
+                  </View>
+                  <PersistentBottomNavigation />
                 </View>
-                <PersistentBottomNavigation />
-              </View>
+              </StaffNavigationProvider>
             </CustomerPreviewProvider>
           </NotificationProvider>
         </CustomerAccountProvider>

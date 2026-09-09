@@ -580,13 +580,13 @@ const styles = StyleSheet.create({
   dashboardTitle: { color: colors.white, fontSize: 22, fontWeight: '900', lineHeight: 26, textTransform: 'uppercase' },
   dashboardCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
   profilePhotoNotice: { color: colors.silver, fontSize: 10, lineHeight: 16 },
-  profileDetails: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  profileDetails: { gap: spacing.sm },
   staffAccessCard: { gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.accentDark, backgroundColor: colors.inkSoft, padding: spacing.md },
   staffAccessHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   staffAccessCopy: { flex: 1, minWidth: 0, gap: 3 },
   staffAccessTitle: { color: colors.white, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
   staffAccessText: { color: colors.muted, fontSize: 10, lineHeight: 16 },
-  profileDetail: { minWidth: 150, flex: 1, gap: 3, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.sm },
+  profileDetail: { minWidth: 0, gap: 3, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.sm },
   profileDetailLabel: { color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
   profileDetailValue: { color: colors.white, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   dashboardGrid: { gap: spacing.sm },
@@ -637,7 +637,7 @@ function ProfileDetail({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.profileDetail}>
       <Text style={styles.profileDetailLabel}>{label}</Text>
-      <Text style={styles.profileDetailValue}>{value}</Text>
+      <Text selectable style={styles.profileDetailValue}>{value}</Text>
     </View>
   );
 }

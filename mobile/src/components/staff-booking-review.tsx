@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
@@ -8,10 +8,17 @@ import { isoDateToAustralian, todayAustralianDate } from '@/lib/australian-date'
 import type { BookingRequestRow } from '@/lib/database.types';
 import { confirmBankTransferPayment, reviewBookingRequest, type StaffBookingReviewInput } from '@/lib/staff-portal';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
+import { useStaffDiscardConfirmation } from '@/hooks/use-staff-discard-confirmation';
 
 type ReviewAction = StaffBookingReviewInput['action'];
 
-export function StaffBookingReview({ booking, onRefresh }: { booking: BookingRequestRow; onRefresh: () => void }) {
+export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyChange }: {
+  booking: BookingRequestRow;
+  onRefresh: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+  onBusyChange?: (busy: boolean) => void;
+}) {
+  const { confirmDiscard, discardDialog } = useStaffDiscardConfirmation();
   const [action, setAction] = useState<ReviewAction | null>(null);
   const [approvedDate, setApprovedDate] = useState(isoDateToAustralian(booking.approved_date ?? booking.preferred_date) || todayInSydney());
   const [staffNote, setStaffNote] = useState(booking.staff_note ?? '');
@@ -20,13 +27,37 @@ export function StaffBookingReview({ booking, onRefresh }: { booking: BookingReq
   const [feedback, setFeedback] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
   const [bankReference, setBankReference] = useState('');
   const [bankChecked, setBankChecked] = useState(false);
+  const [bankOpen, setBankOpen] = useState(false);
+  const [savedReview, setSavedReview] = useState(() => ({ approvedDate, staffNote }));
+  const reviewDirty = approvedDate !== savedReview.approvedDate || staffNote !== savedReview.staffNote || confirmed;
+  const bankDirty = !!bankReference || bankChecked;
+  const dirty = reviewDirty || bankDirty;
+
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+  useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
+  useEffect(() => () => { onDirtyChange?.(false); onBusyChange?.(false); }, [onDirtyChange, onBusyChange]);
 
   if (!['pending_staff_review', 'date_proposed', 'date_approved'].includes(booking.state)) return null;
 
   const chooseAction = (next: ReviewAction) => {
+    if (busy) return;
     setAction(next);
     setConfirmed(false);
     setFeedback(null);
+  };
+
+  const close = () => {
+    if (busy) return;
+    const discard = () => {
+      if (bankOpen) { setBankReference(''); setBankChecked(false); setBankOpen(false); }
+      else {
+        setApprovedDate(savedReview.approvedDate); setStaffNote(savedReview.staffNote);
+        setConfirmed(false); setAction(null);
+      }
+      setFeedback(null);
+    };
+    if (!(bankOpen ? bankDirty : reviewDirty)) { discard(); return; }
+    confirmDiscard(discard);
   };
 
   const submit = async () => {
@@ -36,6 +67,7 @@ export function StaffBookingReview({ booking, onRefresh }: { booking: BookingReq
     try {
       await reviewBookingRequest({ action, approvedDate, bookingId: booking.id, staffNote });
       setConfirmed(false);
+      setSavedReview({ approvedDate, staffNote });
       setFeedback({
         kind: 'success',
         text: action === 'approve_date'
@@ -59,6 +91,8 @@ export function StaffBookingReview({ booking, onRefresh }: { booking: BookingReq
       await confirmBankTransferPayment(booking.id, bankReference);
       setFeedback({ kind: 'success', text: 'Cleared bank transfer verified. The booking is confirmed and confirmation delivery has been queued.' });
       setBankChecked(false);
+      setBankReference('');
+      setBankOpen(false);
     } catch (error) {
       const detail = error instanceof Error ? error.message : '';
       setFeedback({ kind: 'error', text: detail.includes('not_found')
@@ -71,13 +105,14 @@ export function StaffBookingReview({ booking, onRefresh }: { booking: BookingReq
 
   return (
     <View style={styles.workspace}>
+      {discardDialog}
       <View style={styles.heading}>
         <View style={styles.flex}>
-          <Text style={styles.kicker}>{REVIEW_ENVIRONMENT.enabled ? 'Fictional booking review' : 'MFA-protected review'}</Text>
+          <Text style={styles.kicker}>{REVIEW_ENVIRONMENT.enabled ? 'Sandbox booking' : 'Booking actions'}</Text>
           <Text style={styles.title}>Workshop decision</Text>
         </View>
-        {action && feedback?.kind !== 'success' ? (
-          <Pressable accessibilityLabel="Close booking review" accessibilityRole="button" onPress={() => setAction(null)} style={styles.close}>
+        {(action || bankOpen) && feedback?.kind !== 'success' ? (
+          <Pressable accessibilityLabel="Close booking review" accessibilityRole="button" disabled={busy} onPress={close} style={styles.close}>
             <Ionicons color={colors.white} name="close" size={20} />
           </Pressable>
         ) : null}
@@ -85,24 +120,29 @@ export function StaffBookingReview({ booking, onRefresh }: { booking: BookingReq
 
       {!action ? (
         <View style={styles.actions}>
-          <PrimaryButton label="Approve requested date" onPress={() => chooseAction('approve_date')} variant="outline" />
-          <PrimaryButton label="Propose another date" onPress={() => chooseAction('propose_date')} variant="outline" />
-          <PrimaryButton label="Cancel request" onPress={() => chooseAction('cancel')} variant="outline" />
+          {!bankOpen ? <>
+            <PrimaryButton disabled={busy} label="Approve requested date" onPress={() => chooseAction('approve_date')} variant="outline" />
+            <PrimaryButton disabled={busy} label="Propose another date" onPress={() => chooseAction('propose_date')} variant="outline" />
+            <PrimaryButton disabled={busy} label="Cancel request" onPress={() => chooseAction('cancel')} variant="outline" />
+          </> : null}
           {booking.state === 'date_approved' && !REVIEW_ENVIRONMENT.enabled ? (
+            !bankOpen ? <PrimaryButton disabled={busy} label="Verify bank transfer" onPress={() => { setBankOpen(true); setFeedback(null); }} variant="outline" /> :
             <View style={styles.bankVerification}>
               <Text style={styles.bankTitle}>Verify cleared bank transfer</Text>
               <Text style={styles.bankCopy}>Use only after matching the exact amount and PSI reference in the business bank statement.</Text>
               <Field hint="Bank transaction/reference shown on the statement" label="Transaction reference">
-                <FormInput autoCapitalize="characters" maxLength={80} onChangeText={(value) => { setBankReference(value); setBankChecked(false); }} value={bankReference} />
+                <FormInput editable={!busy} autoCapitalize="characters" maxLength={80} onChangeText={(value) => { setBankReference(value); setBankChecked(false); }} value={bankReference} />
               </Field>
-              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: bankChecked }} onPress={() => setBankChecked((value) => !value)} style={styles.confirmRow}>
+              <Pressable disabled={busy} accessibilityRole="checkbox" accessibilityState={{ checked: bankChecked, disabled: busy }} onPress={() => setBankChecked((value) => !value)} style={styles.confirmRow}>
                 <View style={[styles.checkbox, bankChecked && styles.checkboxChecked]}>{bankChecked ? <Ionicons color={colors.ink} name="checkmark" size={16} /> : null}</View>
                 <Text style={styles.confirmText}>I matched the cleared deposit amount, customer payment reference and this booking in PSI’s bank statement.</Text>
               </Pressable>
               <PrimaryButton disabled={!bankChecked || bankReference.trim().length < 6} label="Confirm verified transfer" loading={busy} onPress={() => void confirmBankTransfer()} />
+              <PrimaryButton disabled={busy} label="Cancel verification" onPress={close} variant="outline" />
             </View>
           ) : null}
           {feedback ? <Text accessibilityRole="alert" style={feedback.kind === 'error' ? styles.error : styles.success}>{feedback.text}</Text> : null}
+          {feedback?.kind === 'success' ? <PrimaryButton label="Refresh booking" onPress={onRefresh} variant="outline" /> : null}
         </View>
       ) : feedback?.kind === 'success' ? (
         <View style={styles.successBox}>
@@ -114,13 +154,13 @@ export function StaffBookingReview({ booking, onRefresh }: { booking: BookingReq
         <>
           {action !== 'cancel' ? (
             <Field hint="DD/MM/YYYY · PSI workshop date" label={action === 'approve_date' ? 'Approved date' : 'Proposed date'}>
-              <FormInput keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(value) => { setApprovedDate(value); setConfirmed(false); }} value={approvedDate} />
+              <FormInput editable={!busy} keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(value) => { setApprovedDate(value); setConfirmed(false); }} value={approvedDate} />
             </Field>
           ) : null}
           <Field hint={action === 'cancel' ? 'Required for the audit record' : 'Optional · visible in the customer booking status'} label="PSI note">
-            <FormInput multiline numberOfLines={3} onChangeText={(value) => { setStaffNote(value); setConfirmed(false); }} placeholder={action === 'cancel' ? 'Reason for cancellation' : 'Date or arrival details to discuss'} style={styles.notes} textAlignVertical="top" value={staffNote} />
+            <FormInput editable={!busy} multiline numberOfLines={3} onChangeText={(value) => { setStaffNote(value); setConfirmed(false); }} placeholder={action === 'cancel' ? 'Reason for cancellation' : 'Date or arrival details to discuss'} style={styles.notes} textAlignVertical="top" value={staffNote} />
           </Field>
-          <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: confirmed }} onPress={() => setConfirmed((value) => !value)} style={styles.confirmRow}>
+          <Pressable disabled={busy} accessibilityRole="checkbox" accessibilityState={{ checked: confirmed, disabled: busy }} onPress={() => setConfirmed((value) => !value)} style={styles.confirmRow}>
             <View style={[styles.checkbox, confirmed && styles.checkboxChecked]}>{confirmed ? <Ionicons color={colors.ink} name="checkmark" size={16} /> : null}</View>
             <Text style={styles.confirmText}>{action === 'approve_date'
               ? 'I checked workshop capacity and this date. Record it as date approved, without claiming payment or final confirmation.'

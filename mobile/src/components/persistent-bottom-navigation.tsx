@@ -1,11 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { type Href, usePathname, useRouter } from 'expo-router';
+import { type Href, useGlobalSearchParams, usePathname, useRouter } from 'expo-router';
 import { type ComponentProps, useEffect, useState } from 'react';
 import { Keyboard, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useThemePreference } from '@/lib/theme-preference';
 import { useNotifications } from '@/lib/notifications';
+import { resolveStaffSection, staffTabForSection, type StaffTab } from '@/lib/staff-navigation';
+import { useStaffNavigation } from '@/lib/staff-navigation-context';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -61,12 +63,33 @@ const NAVIGATION_ITEMS: readonly NavigationItem[] = [
   },
 ] as const;
 
+const STAFF_NAVIGATION_ITEMS: readonly {
+  accessibilityLabel: string;
+  activeIcon: IoniconName;
+  inactiveIcon: IoniconName;
+  label: string;
+  section: StaffTab;
+}[] = [
+  { accessibilityLabel: 'Staff dashboard', activeIcon: 'grid', inactiveIcon: 'grid-outline', label: 'Dashboard', section: 'dashboard' },
+  { accessibilityLabel: 'Staff bookings', activeIcon: 'calendar', inactiveIcon: 'calendar-outline', label: 'Bookings', section: 'bookings' },
+  { accessibilityLabel: 'Staff customers', activeIcon: 'people', inactiveIcon: 'people-outline', label: 'Customers', section: 'customers' },
+  { accessibilityLabel: 'Staff records', activeIcon: 'document-text', inactiveIcon: 'document-text-outline', label: 'Records', section: 'records' },
+  { accessibilityLabel: 'Staff workspace menu', activeIcon: 'menu', inactiveIcon: 'menu-outline', label: 'Menu', section: 'menu' },
+];
+
 export function PersistentBottomNavigation() {
   const pathname = usePathname();
+  const { section, bookingId } = useGlobalSearchParams<{ section?: string | string[]; bookingId?: string | string[] }>();
   const router = useRouter();
+  const { navigateToSection } = useStaffNavigation();
   const { theme } = useThemePreference();
   const { unreadCount } = useNotifications();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const isStaffWorkspace = pathname === '/staff' || pathname === '/staff-security';
+  const currentStaffSection = resolveStaffSection(section);
+  const hasBookingDetail = currentStaffSection === 'bookings' && Boolean(Array.isArray(bookingId) ? bookingId[0] : bookingId);
+  const currentStaffTab = pathname === '/staff-security' ? 'menu' : staffTabForSection(currentStaffSection);
+  const navigationItems = isStaffWorkspace ? STAFF_NAVIGATION_ITEMS : NAVIGATION_ITEMS;
 
   useEffect(() => {
     const shown = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
@@ -84,9 +107,9 @@ export function PersistentBottomNavigation() {
       edges={['right', 'bottom', 'left']}
       style={[styles.safeArea, { backgroundColor: theme.surfaceRaised, borderTopColor: theme.frame }]}
     >
-      <View accessibilityRole="tablist" style={styles.navigationRow}>
-        {NAVIGATION_ITEMS.map((item) => {
-          const selected = item.isActive(pathname);
+      <View accessibilityLabel={isStaffWorkspace ? 'Staff workspace navigation' : 'Customer app navigation'} accessibilityRole="tablist" style={styles.navigationRow}>
+        {navigationItems.map((item) => {
+          const selected = 'section' in item ? currentStaffTab === item.section : item.isActive(pathname);
           return (
             <Pressable
               accessibilityLabel={item.accessibilityLabel}
@@ -94,7 +117,9 @@ export function PersistentBottomNavigation() {
               accessibilityState={{ selected }}
               key={item.label}
               onPress={() => {
-                if (pathname !== item.href) router.replace(item.href);
+                if ('section' in item) {
+                  if (pathname !== '/staff' || currentStaffSection !== item.section || (item.section === 'bookings' && hasBookingDetail)) navigateToSection(item.section);
+                } else if (pathname !== item.href) router.replace(item.href);
               }}
               style={({ pressed }) => [
                 styles.navigationItem,
@@ -107,7 +132,7 @@ export function PersistentBottomNavigation() {
                 name={selected ? item.activeIcon : item.inactiveIcon}
                 size={21}
               />
-              {item.href === '/alerts' && unreadCount > 0 ? (
+              {'href' in item && item.href === '/alerts' && unreadCount > 0 ? (
                 <View accessibilityLabel={`${unreadCount} unread notifications`} style={[styles.notificationBadge, { backgroundColor: theme.accent }]}>
                   <Text style={[styles.notificationBadgeText, { color: theme.textInverse }]}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
                 </View>

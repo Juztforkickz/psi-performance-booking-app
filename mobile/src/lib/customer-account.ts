@@ -10,6 +10,7 @@ import type {
   VehicleServiceSummaryRow,
 } from '@/lib/database.types';
 import { getSupabaseClient } from '@/lib/supabase';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 export type CustomerAccountSnapshot = {
   bookings: BookingRequestRow[];
@@ -67,11 +68,14 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
       .eq('customer_id', user.id)
       .is('archived_at', null)
       .order('created_at', { ascending: false }),
-    supabase
-      .from('booking_payment_attempts')
-      .select('*')
-      .eq('customer_id', user.id)
-      .order('created_at', { ascending: false }),
+    // The isolated review backend has no payment tables and cannot take payments.
+    REVIEW_ENVIRONMENT.enabled
+      ? Promise.resolve({ data: [] as BookingPaymentAttemptRow[], error: null, status: 200 })
+      : supabase
+        .from('booking_payment_attempts')
+        .select('*')
+        .eq('customer_id', user.id)
+        .order('created_at', { ascending: false }),
     supabase
       .from('dyno_records')
       .select('*')
