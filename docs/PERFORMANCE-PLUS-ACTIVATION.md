@@ -85,7 +85,7 @@ The new native purchase, document-picker and image-manipulation modules require 
 - Test renewal, switching monthly/annual, auto-renew cancellation with access through expiry, expiration, billing retry, verified grace period, recovery, refund and revocation. Check the server record and actual content access, not only the UI label.
 - Test forged/unknown products, non-AUD price mismatch, sandbox receipt rejection on main, duplicate/out-of-order webhook events, provider outage and retry after a successful Apple payment. Never ask a customer to buy again to fix delayed verification.
 - Test a free, complimentary and paid account with the same representative PDFs/photos. Check short-lived original/thumbnail links, sign-out, stale screens, account deletion and active-subscription cancellation instructions.
-- Test iPhone photo framing, all 20 illustrations, PDF opening, thumbnails, slow network, interrupted upload and wrong-job manifests. Verify bookings, kilometres, reminders and existing free dyno functionality still work.
+- Test iPhone photo framing, the complete illustration library, PDF opening, thumbnails, slow network, interrupted upload and wrong-job manifests. Verify bookings, kilometres, reminders and existing free dyno functionality still work.
 - Update `STORE-RELEASE-PACKAGE.md` (its older “no paid subscriptions” statement is obsolete for launch), privacy/provider disclosures, terms, support URLs, subscription screenshots and App Review access instructions. Submit the first subscription products/group with a new app version.
 
 Record the actual build ID, project, test identities, test results and webhook timestamps. A complimentary beta grant is not a substitute for purchase/restore testing. Keep purchases closed until failures are resolved.

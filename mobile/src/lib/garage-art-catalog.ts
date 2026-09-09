@@ -12,11 +12,21 @@ export const GARAGE_ART_CATALOG: GarageArtEntry[] = [
   { id: 'hsv-gts', make: 'Holden / HSV', model: 'HSV GTS', generation: 'Gen-F2 · VF', aliases: 'holden commodore hsv vf vf2 gts gen f genf' },
   { id: 'holden-commodore-vf', make: 'Holden / HSV', model: 'Commodore SS V', generation: 'VF · Redline', aliases: 'holden commodore vf vf2 ss ssv sedan redline' },
   { id: 'hsv-vs-gts', make: 'Holden / HSV', model: 'HSV GTS', generation: 'VS', aliases: 'holden commodore hsv vs gts 1995 1996 1997' },
+  { id: 'hsv-gts-ve', make: 'Holden / HSV', model: 'HSV GTS', generation: 'VE', aliases: 'holden commodore hsv ve gts e series sedan' },
+  { id: 'hsv-clubsport-vt', make: 'Holden / HSV', model: 'HSV Clubsport', generation: 'VT', aliases: 'holden commodore hsv vt clubsport club sport r8 sedan' },
+  { id: 'hsv-senator-vt', make: 'Holden / HSV', model: 'HSV Senator', generation: 'VT', aliases: 'holden commodore hsv vt senator signature sedan' },
+  { id: 'hsv-senator-vz', make: 'Holden / HSV', model: 'HSV Senator', generation: 'VZ', aliases: 'holden commodore hsv vz senator signature sedan' },
+  { id: 'hsv-tourer-vf', make: 'Holden / HSV', model: 'HSV Tourer', generation: 'Gen-F · VF', aliases: 'holden commodore hsv vf vf2 genf gen f lsa tourer wagon sportwagon' },
   { id: 'holden-torana', make: 'Holden / HSV', model: 'Torana A9X', generation: 'LX · Hatch', aliases: 'holden torana lx a9x' },
   { id: 'holden-monaro', make: 'Holden / HSV', model: 'Monaro CV8', generation: 'V2', aliases: 'holden monaro cv8 coupe v2' },
+  { id: 'holden-commodore-vn-ss', make: 'Holden / HSV', model: 'Commodore SS', generation: 'VN', aliases: 'holden commodore vn ss sedan 1989 1990 1991' },
   { id: 'holden-commodore-ve', make: 'Holden / HSV', model: 'Commodore SS', generation: 'VE', aliases: 'holden commodore ve ss sedan' },
   { id: 'holden-commodore-vy', make: 'Holden / HSV', model: 'Commodore SS', generation: 'VY', aliases: 'holden commodore vy ss sedan' },
+  { id: 'holden-commodore-vz-ss', make: 'Holden / HSV', model: 'Commodore SS', generation: 'VZ', aliases: 'holden commodore vz ss sedan' },
   { id: 'holden-commodore-vx', make: 'Holden / HSV', model: 'Commodore', generation: 'VX', aliases: 'holden commodore vx ss sedan' },
+  { id: 'holden-commodore-vf-storm', make: 'Holden / HSV', model: 'Commodore Storm', generation: 'VF', aliases: 'holden commodore vf storm sedan sv6 ss' },
+  { id: 'holden-commodore-ve-ssv-wagon', make: 'Holden / HSV', model: 'Commodore SS V Sportwagon', generation: 'VE', aliases: 'holden commodore ve ssv ss v sportwagon wagon van' },
+  { id: 'holden-calais-vy', make: 'Holden / HSV', model: 'Calais', generation: 'VY', aliases: 'holden commodore calais vy sedan' },
   { id: 'holden-calais-vf', make: 'Holden / HSV', model: 'Calais V', generation: 'VF', aliases: 'holden commodore calais vf sedan' },
   { id: 'holden-calais-vz', make: 'Holden / HSV', model: 'Calais', generation: 'VZ', aliases: 'holden commodore calais vz sedan' },
   { id: 'hsv-clubsport-vz', make: 'Holden / HSV', model: 'HSV Clubsport', generation: 'VZ · 2005', aliases: 'holden hsv clubsport club sport r8 vz 2005' },
@@ -35,15 +45,21 @@ export const GARAGE_ART_CATALOG: GarageArtEntry[] = [
   { id: 'toyota-supra', make: 'Toyota', model: 'Supra', generation: 'A80 · Mk4', aliases: 'toyota supra a80 jza80 mk4 mark 4' },
   { id: 'mclaren', make: 'McLaren', model: '720S', generation: 'Super Series', aliases: 'mclaren 720s coupe' },
   { id: 'nissan-skyline', make: 'Nissan', model: 'Skyline GT-R', generation: 'R34', aliases: 'nissan skyline gtr gt r r34 bnr34' },
+  { id: 'nissan-370z-z34', make: 'Nissan', model: '370Z', generation: 'Z34', aliases: 'nissan 370z 370 z z34 coupe fairlady' },
   { id: 'honda-nsx', make: 'Honda', model: 'NSX', generation: 'NA1', aliases: 'honda acura nsx na1' },
   { id: 'subaru-wrx', make: 'Subaru', model: 'WRX STI', generation: 'GD · 2005', aliases: 'subaru impreza wrx sti gd blobeye' },
   { id: 'chevrolet-impala', make: 'Chevrolet', model: 'Impala', generation: '1964', aliases: 'chevrolet chevy impala 1964 64' },
   { id: 'chevrolet-bel-air-1955', make: 'Chevrolet', model: 'Bel Air', generation: '1955', aliases: 'chevrolet chevy belair bel air 1955 55' },
   { id: 'corvette', make: 'Chevrolet', model: 'Corvette Z06', generation: 'C7', aliases: 'chevrolet chevy corvette c7 z06' },
+  { id: 'chevrolet-corvette-c5', make: 'Chevrolet', model: 'Corvette', generation: 'C5', aliases: 'chevrolet chevy corvette c5 coupe' },
   { id: 'chevrolet-camaro', make: 'Chevrolet', model: 'Camaro ZL1', generation: 'Sixth generation', aliases: 'chevrolet chevy camaro zl1 gen6 gen 6' },
   { id: 'bmw-m3', make: 'BMW', model: 'M3', generation: 'E46', aliases: 'bmw m3 e46 coupe' },
   { id: 'mercedes-amg', make: 'Mercedes-Benz', model: 'AMG GT', generation: 'C190', aliases: 'mercedes benz amg gt c190 coupe' },
+  { id: 'mercedes-amg-e63s-w213', make: 'Mercedes-Benz', model: 'AMG E63 S', generation: 'W213', aliases: 'mercedes benz amg e63 e63s e 63 s w213 sedan' },
+  { id: 'mercedes-amg-c63s-c205', make: 'Mercedes-Benz', model: 'AMG C63 S Coupe', generation: 'C205', aliases: 'mercedes benz amg c63 c63s c 63 s c205 coupe' },
   { id: 'audi-rs', make: 'Audi', model: 'RS6 Avant', generation: 'C8', aliases: 'audi rs6 rs 6 c8 wagon avant' },
+  { id: 'audi-s3', make: 'Audi', model: 'S3', generation: 'Performance Sedan', aliases: 'audi s3 sedan quattro' },
+  { id: 'ram-1500-dt', make: 'RAM', model: '1500', generation: 'DT · 2022', aliases: 'ram dodge 1500 dt hemi crew cab pickup truck 2022' },
   { id: 'mitsubishi-evo', make: 'Mitsubishi', model: 'Lancer Evolution IX', generation: 'CT9A', aliases: 'mitsubishi lancer evo evolution 9 ix ct9a' },
   { id: 'mazda-rx7', make: 'Mazda', model: 'RX-7', generation: 'FD', aliases: 'mazda rx7 rx 7 fd fd3s' },
 ];
@@ -63,6 +79,7 @@ export function garageArtMakeForVehicle(vehicle?: GarageArtVehicle) {
   if (['holden', 'hsv', 'holden special vehicles'].includes(make)) return 'Holden / HSV';
   if (['ford', 'fpv', 'ford performance vehicles'].includes(make)) return 'Ford / FPV';
   if (['mercedes', 'mercedes benz', 'mercedes amg'].includes(make)) return 'Mercedes-Benz';
+  if (['ram', 'dodge', 'dodge ram'].includes(make)) return 'RAM';
   if (make === 'chevy') return 'Chevrolet';
   return GARAGE_ART_CATALOG.find(entry => words(entry.make) === make)?.make;
 }

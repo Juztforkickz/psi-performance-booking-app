@@ -2,7 +2,7 @@
 
 Code checkpoint: `8e761c07a4efde6f701980af1fb0196cf3ee6269`, pushed to the existing `main` branch.
 
-Follow-on refinement: the [38-car library and compact picker](GARAGE-ARTWORK-EXPANSION.md) were subsequently published to the web preview and the compatible build-9 iOS beta runtime. The details below describe the original Stage 4 foundation checkpoint.
+Follow-on refinement: the [54-car library and compact picker](GARAGE-ARTWORK-EXPANSION.md) were subsequently published to the web preview and the compatible build-9 iOS beta runtime. The details below describe the original Stage 4 foundation checkpoint.
 
 ## View the result
 
