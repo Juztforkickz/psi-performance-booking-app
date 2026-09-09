@@ -10,6 +10,7 @@ export const HOME_TILE_IDS = [
   'reports',
   'plan-build',
   'trusted-partners',
+  'performance-plus',
   'alerts',
 ] as const;
 
@@ -20,14 +21,13 @@ export const DEFAULT_HOME_SHORTCUTS: readonly HomeTileId[] = [
   'bookings',
   'book-ahead',
   'psi-events',
+  'performance-plus',
   'alerts',
 ];
 
-const PREVIOUS_DEFAULT_HOME_SHORTCUTS: readonly HomeTileId[] = [
-  'garage',
-  'bookings',
-  'book-ahead',
-  'alerts',
+const PREVIOUS_DEFAULT_HOME_SHORTCUTS: readonly (readonly HomeTileId[])[] = [
+  ['garage', 'bookings', 'book-ahead', 'alerts'],
+  ['garage', 'bookings', 'book-ahead', 'psi-events', 'alerts'],
 ];
 
 const STORAGE_KEY = '@psi-performance/home-shortcuts/v1';
@@ -39,7 +39,7 @@ function isHomeTileId(value: unknown): value is HomeTileId {
 function normaliseShortcutIds(value: unknown): HomeTileId[] {
   if (!Array.isArray(value)) return [...DEFAULT_HOME_SHORTCUTS];
   const unique = value.filter(isHomeTileId).filter((id, index, items) => items.indexOf(id) === index);
-  const selected = sameShortcutIds(unique, PREVIOUS_DEFAULT_HOME_SHORTCUTS)
+  const selected = PREVIOUS_DEFAULT_HOME_SHORTCUTS.some(previous => sameShortcutIds(unique, previous))
     ? [...DEFAULT_HOME_SHORTCUTS]
     : unique.length > 0
       ? unique

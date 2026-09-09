@@ -17,7 +17,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandRail } from '@/components/brand-rail';
 import { DashboardTile } from '@/components/dashboard-tile';
-import { PerformanceVaultCard } from '@/components/performance-vault-card';
 import { useGarageArtwork } from '@/components/garage-artwork-picker';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
@@ -44,6 +43,7 @@ const DASHBOARD_TILES = {
   psiEvents: require('../../../assets/images/dashboard/tile-events-blue-silver-v2.jpg'),
   planBuild: require('../../../assets/images/dashboard/tile-plan-build-blue-silver.jpg'),
   trustedPartners: require('../../../assets/images/dashboard/tile-trusted-partners-blue-silver.jpg'),
+  performancePlus: require('../../../assets/images/dashboard/tile-performance-plus-blue-silver.jpg'),
 } as const;
 
 const HOME_TILE_LABELS: Readonly<Record<HomeTileId, string>> = {
@@ -56,6 +56,7 @@ const HOME_TILE_LABELS: Readonly<Record<HomeTileId, string>> = {
   'psi-events': 'PSI Events',
   'plan-build': 'Plan & Build',
   'trusted-partners': 'Trusted Partners',
+  'performance-plus': 'Performance+',
 };
 
 const PSI_PROMISES = [
@@ -206,6 +207,15 @@ export default function CustomerHomeScreen() {
             onPress={() => router.push('/trusted-partners')}
           />
         );
+      case 'performance-plus':
+        return (
+          <DashboardTile
+            accessibilityHint="Opens Performance Plus vehicle vault access and subscription options"
+            image={DASHBOARD_TILES.performancePlus}
+            label="Performance+"
+            onPress={() => router.push({ pathname: '/performance-plus', params: homeVehicleId ? { vehicleId: homeVehicleId } : {} })}
+          />
+        );
     }
   };
 
@@ -285,8 +295,6 @@ export default function CustomerHomeScreen() {
           <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact, { color: theme.text }]}>Your PSI app.</Text>
           <Text style={[styles.lead, { color: theme.textMuted }]}>Your vehicle, visits, results and next plan in one place.</Text>
         </View>
-
-        <PerformanceVaultCard vehicleId={homeVehicleId} />
 
         <View style={styles.sectionHeading}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Your shortcuts</Text>
