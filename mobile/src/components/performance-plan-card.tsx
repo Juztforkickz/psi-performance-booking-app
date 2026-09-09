@@ -18,7 +18,7 @@ const BENEFITS = [
   'One chronological vehicle story',
 ] as const;
 
-export function PerformancePlanCard() {
+export function PerformancePlanCard({ hideForPermanent = false }: { hideForPermanent?: boolean }) {
   const router = useRouter();
   const auth = useCustomerAuth();
   const { account } = useCustomerAccount();
@@ -38,7 +38,10 @@ export function PerformancePlanCard() {
   const overview = state?.key === key ? state.overview : null;
   const activePlus = overview?.plan === 'performance_plus' && (!overview.expires_at || Date.parse(overview.expires_at) > now);
   const permanentPlus = activePlus && overview?.is_permanent;
+  const loadingOverview = CUSTOMER_AUTH.enabled && auth.status === 'signed_in' && Boolean(vehicleId) && state?.key !== key;
   const openPerformancePlus = () => router.push({ pathname: '/performance-plus', params: vehicleId ? { vehicleId } : {} });
+
+  if (hideForPermanent && (loadingOverview || permanentPlus)) return null;
 
   return (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.borderStrong }]}>

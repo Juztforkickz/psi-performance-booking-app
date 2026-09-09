@@ -132,7 +132,7 @@ export default function AlertsScreen() {
           </Text>
         </View>
 
-        <PerformancePlanCard />
+        <PerformancePlanCard hideForPermanent />
 
         <View style={[styles.themePanel, { borderColor: theme.border, backgroundColor: theme.surface }]}>
           <Text style={[styles.themeModeTitle, { color: theme.text }]}>Theme preference</Text>
