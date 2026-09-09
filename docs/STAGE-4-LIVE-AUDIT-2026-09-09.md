@@ -7,6 +7,7 @@ This audit verifies the existing PSI beta after the Performance+ rollout. It doe
 - The remote pre-Stage 4 recovery tag is `psi-beta-before-performance-plus-2026-09-09`, resolving to `8ec070d8c1264d7ac2017da86085ae8b5c1ff016`.
 - The current beta source is on `main`. Existing unrelated uncommitted booking-payment changes remain preserved and excluded from this work.
 - iOS build 9 is the current successful Store-distribution beta binary. It uses channel `beta` and runtime `1.0.0-beta-performance-plus-1`. Build 8 was cancelled and never supplied to testers.
+- The beta-tester recording supplied on 9 September showed the older build-7 Home and Garage screens. This is an installed-build mismatch rather than an account or entitlement fault: build 7 cannot receive build-9 updates because it uses runtime `1.0.0-beta-demo-1`.
 
 ## Live Supabase
 
@@ -35,6 +36,7 @@ This audit verifies the existing PSI beta after the Performance+ rollout. It doe
 - `Performance+` is selected by default immediately before `Settings & Notifications`; saved copies of either earlier default shortcut set migrate to this order while genuinely customised selections remain respected.
 - The tile uses a large brushed-silver plus symbol over restrained charcoal, ice-blue and deep-petrol vault imagery, avoiding any one vehicle model as its centrepiece. It opens the existing Performance+ benefits, monthly/annual pricing, purchase and restore controls.
 - The Garage and Vehicle Reports keep their contextual Performance+ entry points.
+- The complete current interface was republished to the exact build-9 beta runtime from commit `7b82bf3`: update group `1aff1fb2-45c2-41fb-ad36-33c73c321d07`, iOS update `01a08578-b12f-70f1-9a4f-57de4d4f48d5`. It includes the plus-symbol Home tile, 54-car Garage selector and complete bright-theme refinements.
 
 ## Remaining launch work
 
