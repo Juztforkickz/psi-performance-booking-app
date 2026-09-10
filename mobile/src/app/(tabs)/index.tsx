@@ -43,6 +43,7 @@ const DASHBOARD_TILES = {
   psiEvents: require('../../../assets/images/dashboard/tile-events-blue-silver-v2.jpg'),
   planBuild: require('../../../assets/images/dashboard/tile-plan-build-blue-silver.jpg'),
   trustedPartners: require('../../../assets/images/dashboard/tile-trusted-partners-blue-silver.jpg'),
+  customerCarsForSale: require('../../../assets/images/dashboard/tile-customer-cars-for-sale-blue-silver.jpg'),
   performancePlus: require('../../../assets/images/dashboard/tile-performance-plus-symbol-blue-silver.jpg'),
 } as const;
 
@@ -56,6 +57,7 @@ const HOME_TILE_LABELS: Readonly<Record<HomeTileId, string>> = {
   'psi-events': 'PSI Events',
   'plan-build': 'Plan & Build',
   'trusted-partners': 'Trusted Partners',
+  'customer-cars-for-sale': 'Customer Cars for Sale',
   'performance-plus': 'Performance+',
 };
 
@@ -205,6 +207,16 @@ export default function CustomerHomeScreen() {
             image={DASHBOARD_TILES.trustedPartners}
             label="Trusted Partners"
             onPress={() => router.push('/trusted-partners')}
+          />
+        );
+      case 'customer-cars-for-sale':
+        return (
+          <DashboardTile
+            accessibilityHint="Opens PSI-cared-for vehicles currently listed by their owners"
+            image={DASHBOARD_TILES.customerCarsForSale}
+            imageStyle={styles.customerCarsTileImage}
+            label="Customer Cars for Sale"
+            onPress={() => router.push('/customer-cars-for-sale' as Href)}
           />
         );
       case 'performance-plus':
@@ -364,6 +376,15 @@ export default function CustomerHomeScreen() {
               image={DASHBOARD_TILES.trustedPartners}
               label="Trusted Partners"
               onPress={() => router.push('/trusted-partners')}
+            />
+          </TileCell>
+          <TileCell threeColumns={threeColumns}>
+            <DashboardTile
+              accessibilityHint="Opens PSI-cared-for vehicles currently listed by their owners"
+              image={DASHBOARD_TILES.customerCarsForSale}
+              imageStyle={styles.customerCarsTileImage}
+              label="Customer Cars for Sale"
+              onPress={() => router.push('/customer-cars-for-sale' as Href)}
             />
           </TileCell>
         </View>
@@ -782,6 +803,7 @@ const styles = StyleSheet.create({
   lowerTileImage: { transform: [{ scale: 1.55 }, { translateY: 7 }] },
   lowerRequestedTileImage: { transform: [{ scale: 1.55 }, { translateY: 10 }] },
   lowerPlanBuildTileImage: { transform: [{ scale: 1.55 }, { translateY: 3 }] },
+  customerCarsTileImage: { transform: [{ scale: 1.42 }, { translateY: 3 }] },
   raiseEventsTileImage: { transform: [{ scale: 1.55 }, { translateY: 3 }] },
   performancePlusTileImage: { transform: [{ scale: 1.08 }, { translateY: 2 }] },
   standardPanel: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },

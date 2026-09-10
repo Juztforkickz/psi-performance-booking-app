@@ -10,14 +10,15 @@ test('Home shortcuts expose every tile and persist only a device-local identifie
     read('../mobile/src/lib/home-shortcut-preferences.ts'),
   ]);
 
-  for (const id of ['garage', 'bookings', 'book-ahead', 'alerts', 'dyno', 'reports', 'plan-build', 'trusted-partners']) {
+  for (const id of ['garage', 'bookings', 'book-ahead', 'alerts', 'dyno', 'reports', 'plan-build', 'trusted-partners', 'customer-cars-for-sale']) {
     assert.match(preferences, new RegExp(`'${id}'`, 'u'));
   }
   assert.match(home, /Customise Home shortcuts/u);
   assert.match(home, /router\.push\('\/trusted-partners'\)/u);
+  assert.match(home, /router\.push\('\/customer-cars-for-sale'/u);
   assert.match(preferences, /AsyncStorage\.setItem\(STORAGE_KEY, JSON\.stringify/u);
   assert.match(preferences, /current\.length === 1/u);
-  assert.doesNotMatch(preferences, /fetch|EXPO_PUBLIC_API_BASE_URL|customer|booking draft|vehicleId/iu);
+  assert.doesNotMatch(preferences, /fetch|EXPO_PUBLIC_API_BASE_URL|booking draft|vehicleId/iu);
 });
 
 test('Trusted Partners is a public referral directory with ten approved shortest-first categories', async () => {

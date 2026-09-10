@@ -102,6 +102,16 @@ app now references these optimized 960×1200 JPEGs:
 | `tile-trusted-partners-blue-silver.jpg` | 195,193 | `F760F314706A62B652044F5D13DF31A02792D564951028F67526C7C3A15A2084` |
 | `tile-vehicle-reports-blue-silver.jpg` | 136,504 | `51BAFE0E308DB1C88B5A678AE1E9C3283A25D8A06A2A2E7EAD152025FDBA0AFB` |
 
+On **10 September 2026**, the built-in ImageGen tool created
+`tile-customer-cars-for-sale-blue-silver.jpg` for the new **Customer Cars for
+Sale** destination. The existing Trusted Partners artwork was supplied only as
+a style reference. The final prompt requested a generic graphite performance
+sedan, a blank sale tag and key on the established matte-black, brushed-silver
+and restrained ice-blue dashboard treatment, with no brand marks, model badges,
+licence-plate text, embedded wording or watermark. The 960×1200 JPEG is 182,281
+bytes with SHA-256
+`0B9DEF7712388D1F1CE29967701F8F5A150A5E933322DECF040349A95ED6DC4E`.
+
 ### Scrolling brand-rail assets
 
 The manufacturer and tuning-platform marks used by PSI's scrolling homepage banner were retrieved from PSI Performance's official Shopify CDN on **21 August 2026**. The app keeps the sharp 300 px transparent PNG renditions under `public/brands/`, with byte-identical native-app copies under `mobile/assets/images/brands/`. Every imported file is 300×300 px, 32-bit ARGB and contains transparent pixels.

@@ -10,6 +10,7 @@ export const HOME_TILE_IDS = [
   'reports',
   'plan-build',
   'trusted-partners',
+  'customer-cars-for-sale',
   'performance-plus',
   'alerts',
 ] as const;
@@ -28,6 +29,7 @@ export const DEFAULT_HOME_SHORTCUTS: readonly HomeTileId[] = [
 const PREVIOUS_DEFAULT_HOME_SHORTCUTS: readonly (readonly HomeTileId[])[] = [
   ['garage', 'bookings', 'book-ahead', 'alerts'],
   ['garage', 'bookings', 'book-ahead', 'psi-events', 'alerts'],
+  ['garage', 'bookings', 'book-ahead', 'psi-events', 'performance-plus', 'alerts'],
 ];
 
 const STORAGE_KEY = '@psi-performance/home-shortcuts/v1';
