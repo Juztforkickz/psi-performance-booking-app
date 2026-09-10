@@ -4,10 +4,12 @@ Updated 10 September 2026. Prices: **A$9.99/month or A$99/year**. This checklist
 
 Following explicit approval for the main rollout, the Performance+ foundation migrations, including the permanent complimentary owner-access update, and all four vault/provider functions are deployed to **main and sandbox**. Main `complete-account-deletion` is deployed and **ACTIVE, version 2**, including the premium storage bucket. Main authenticated endpoint checks return HTTP 401 without authentication; unconfigured provider webhooks return HTTP 503.
 
-No customer deletion or reset has occurred. Apple/RevenueCat subscription
-credentials remain absent, purchases remain disabled, and sandbox-entitlement
-acceptance remains false. Xero is now connected separately and is no longer an
-activation blocker for Performance+.
+No customer deletion or reset has occurred. The Apple subscription catalogue
+is now created and verified, and the RevenueCat project exists. The private
+Apple key has not yet been attached to the RevenueCat App Store app, so
+purchases remain disabled. Main continues to reject sandbox entitlements and
+the sandbox database acceptance gate remains closed. Xero is connected
+separately and is no longer an activation blocker for Performance+.
 
 iOS **build 9**, EAS build ID `5839004a-e7ea-435e-a7dc-cbeaf63d6e8d`, is **FINISHED and uploaded to Apple for TestFlight**. [EAS submission `f2c83882-557e-467d-bcfa-ec15c0631cc2`](https://expo.dev/accounts/psi-performance/projects/matt-psi/submissions/f2c83882-557e-467d-bcfa-ec15c0631cc2) finished on 9 September 2026 at 09:12:42 Sydney time (`2026-09-08T23:12:42Z`). App Store Connect subsequently confirmed **VALID / IN_BETA_TESTING** for internal testing. Its external status is **READY_FOR_BETA_SUBMISSION**, so external beta review remains. Build 7 remains valid, in internal testing and unexpired. No public App Store review or release has been submitted.
 
@@ -21,7 +23,12 @@ For a permanent account, the app shows the A$0/no-expiry owner status and omits 
 
 Use the existing app: bundle ID `com.psiperformance.booking`, App Store Connect app ID `6806902732`. Confirm account agreements, banking, tax and the Account Holder's Small Business enrolment separately. See [Apple drafts](APPLE-SMALL-BUSINESS-DRAFTS.md).
 
-Create one subscription group with monthly and annual auto-renewable products at the same service level. Both unlock every vehicle owned by the subscribing PSI account. No introductory offer or Family Sharing is implemented. The prices in App Store Connect must match the app's AUD pricing before purchase is enabled.
+The Apple subscription group and both auto-renewable products now exist at the
+same service level. Both unlock every vehicle owned by the subscribing PSI
+account. No introductory offer or Family Sharing is implemented. App Store
+Connect shows the monthly product at **A$9.99** and the annual product at
+**A$99.00**, available in Australia. Both are currently **Prepare for
+Submission**.
 
 | Configuration | Required value |
 |---|---|
@@ -29,14 +36,37 @@ Create one subscription group with monthly and annual auto-renewable products at
 | RevenueCat offering identifier | `performance_plus` |
 | Offering monthly package | Standard monthly package, `$rc_monthly`, exposed by SDK `.monthly` |
 | Offering annual package | Standard annual package, `$rc_annual`, exposed by SDK `.annual` |
-| Apple monthly product ID | No existing ID is assumed. Proposed: `psi_performance_plus_monthly` |
-| Apple annual product ID | No existing ID is assumed. Proposed: `psi_performance_plus_annual` |
+| Apple subscription group | `PSI Performance+` — group ID `22371456` |
+| Apple monthly product ID | `psi_performance_plus_monthly` — Apple ID `6810231913` |
+| Apple annual product ID | `psi_performance_plus_annual` — Apple ID `6810232965` |
 | RevenueCat App User ID | Authenticated Supabase customer UUID; never email or an anonymous ID |
 | Restore policy | Keep with original App User ID; no automatic transfer to another PSI account |
 
-If different Apple product IDs already exist, use those exact verified IDs in RevenueCat and the server allowlist. Product IDs are configuration; the entitlement and offering names above are hard-coded in the current implementation. Attach both Apple products to the entitlement and their corresponding packages. See RevenueCat's [entitlements](https://www.revenuecat.com/docs/getting-started/entitlements), [offerings](https://www.revenuecat.com/docs/offerings/overview) and [restore behaviour](https://www.revenuecat.com/docs/projects/restore-behavior) guidance.
+Use the exact verified Apple product IDs above in RevenueCat and the server
+allowlist. Product IDs are configuration; the entitlement and offering names
+above are hard-coded in the current implementation. Attach both Apple products
+to the entitlement and their corresponding packages. See RevenueCat's
+[entitlements](https://www.revenuecat.com/docs/getting-started/entitlements),
+[offerings](https://www.revenuecat.com/docs/offerings/overview) and
+[restore behaviour](https://www.revenuecat.com/docs/projects/restore-behavior)
+guidance.
 
-Connect the existing Apple app in RevenueCat using its requested App Store credentials. Configure App Store server notifications through RevenueCat's current setup flow. Keep private Apple keys in the provider's secure configuration. A RevenueCat Test Store key cannot replace the Apple SDK key expected here.
+The RevenueCat project **PSI Performance** is created and its email is verified.
+Its onboarding Test Store is not the production Apple app. Complete the pending
+App Store app connection with bundle ID `com.psiperformance.booking` using the
+single active Apple in-app purchase key, then configure App Store server
+notifications through RevenueCat's current setup flow. Keep the private `.p8`
+file in the dedicated secure PSI folder and RevenueCat's encrypted provider
+configuration; never email it or commit it. A RevenueCat Test Store key cannot
+replace the Apple SDK key expected here.
+
+Apple business readiness remains separate from the technical catalogue. The
+Paid Apps Agreement currently requires the Account Holder to review and accept
+it, and Digital Services Act trader compliance is incomplete. Banking and tax
+details must be completed after the agreement. These legal/business actions,
+the required subscription review screenshot, and a successful sandbox
+purchase/restore test are release blockers; do not submit the subscription or
+enable charging before all are complete.
 
 ## 2. Exact environment variables and endpoints
 
@@ -54,7 +84,10 @@ Set secrets through the destination project's secure settings, never in chat, Gi
 | `XERO_TENANT_ID` | Supabase configuration; the single verified PSI Xero organisation UUID |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | Supabase-provided server environment; privileged key stays server-side |
 
-For the proposed product IDs, `PERFORMANCE_APPLE_PRODUCT_IDS` would be `psi_performance_plus_monthly,psi_performance_plus_annual`. Do not set this until the actual Apple IDs are verified.
+The verified value for `PERFORMANCE_APPLE_PRODUCT_IDS` is
+`psi_performance_plus_monthly,psi_performance_plus_annual`. Set it in each
+Supabase project's secure function configuration with the matching provider
+credentials; never place server secrets in a public build variable.
 
 The per-project base URL is `https://PROJECT_REF.supabase.co/functions/v1/`:
 

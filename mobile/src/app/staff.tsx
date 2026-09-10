@@ -921,7 +921,7 @@ export function StaffWorkspace({
 
         </> : connectionTool === 'payments' ? <View style={styles.settingsCard}>
           <Text style={styles.cardTitle}>Payment setup</Text>
-          <Text style={styles.cardCopy}>Stripe setup and Apple subscription activation are still pending.</Text>
+          <Text style={styles.cardCopy}>Stripe is not connected. Apple Performance+ products are configured and awaiting the final RevenueCat connection, agreement checks and sandbox acceptance test.</Text>
           <Text style={styles.cardCopy}>Verify an existing bank transfer from its booking after checking the cleared deposit in PSI’s bank statement.</Text>
           <WorkspaceLink title="Open bookings" icon="calendar-outline" onPress={() => navigate('bookings')} />
         </View> : <View style={styles.settingsCard}>

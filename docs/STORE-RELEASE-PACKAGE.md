@@ -1,6 +1,6 @@
 # PSI Performance store release package
 
-Status: metadata and disclosure draft, 29 August 2026. Do not submit until the
+Status: metadata and disclosure draft, 10 September 2026. Do not submit until the
 signed release build and final owner/legal checks are complete.
 
 ## App identity

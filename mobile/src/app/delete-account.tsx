@@ -37,12 +37,13 @@ export default function DeleteAccountScreen() {
         </View>
 
         <View style={styles.notice}>
-          <Text style={styles.noticeTitle}>No payment or subscription to cancel</Text>
-          <Text style={styles.copy}>The PSI Performance App currently has no paid digital subscription or in-app purchase. Account deletion does not remove rights or remedies under the Australian Consumer Law.</Text>
+          <Text style={styles.noticeTitle}>Manage subscriptions separately</Text>
+          <Text style={styles.copy}>Deleting your PSI account or removing the app does not cancel an Apple subscription. Cancel it in your Apple Account subscription settings. Account deletion does not remove rights or remedies under the Australian Consumer Law.</Text>
+          <PrimaryButton label="Open Apple subscriptions" onPress={() => void Linking.openURL('https://apps.apple.com/account/subscriptions')} variant="outline" />
         </View>
 
         <PrimaryButton label="Privacy & data handling" onPress={() => router.push('/privacy')} variant="outline" />
-        <Text style={styles.updated}>PSI PERFORMANCE APP · LAST UPDATED 25/08/2026</Text>
+        <Text style={styles.updated}>PSI PERFORMANCE APP · LAST UPDATED 10/09/2026</Text>
       </ScrollView>
     </SafeAreaView>
   );
