@@ -16,8 +16,9 @@ Deno.serve(async request => {
     if (!Array.isArray(payload.events) || payload.events.length > 100) return json({ error: 'invalid_events' }, 400);
     const rows = payload.events.filter((e: Record<string, unknown>) => e.tenantId === tenant && e.eventCategory === 'INVOICE' && uuid(e.resourceId)).map((e: Record<string, unknown>) => ({
       source: 'xero', source_key: `${tenant}:${e.resourceId}:${e.eventDateUtc}:${e.eventType}`,
+      status: 'pending',
       identifiers: { tenantId: tenant, invoiceId: e.resourceId, eventType: e.eventType },
-      reason: 'Fetch invoice and verify Xero contact, PSI customer and explicit workshop job before publishing.',
+      reason: 'Queued for secure Xero invoice inspection.',
     }));
     if (rows.length) { const { error } = await adminClient().from('vault_import_queue').upsert(rows, { onConflict: 'source,source_key', ignoreDuplicates: true }); if (error) throw error; }
     return json({ received: true });

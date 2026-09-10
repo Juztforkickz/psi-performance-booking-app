@@ -64,6 +64,7 @@ const INTEGRATION_JOB_LABELS: Record<StaffPortalSnapshot['integrationJobs'][numb
   notify_psi_booking_confirmed: 'Email PSI · booking confirmed',
   notify_psi_request_received: 'Email PSI · new request',
   sync_google_calendar_confirmed: 'Google Calendar · confirmed booking',
+  sync_google_calendar_cancelled: 'Google Calendar · remove cancelled booking',
 };
 
 type HistoryPeriod = { label: string; value: string };
@@ -741,7 +742,7 @@ export function StaffWorkspace({
           <StaffRecordWorkflow previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} vehicleId={paramValue(params.vehicleId)} onBackHandlerChange={registerRecordBack} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} />
           {!recordHasSteps ? <WorkspaceLink title="Imports & drafts" icon="file-tray-outline" onPress={() => navigate('imports')} /> : null}
         </> : null}
-        {section === 'imports' ? <StaffVaultReview previewMode={previewMode} /> : null}
+        {section === 'imports' ? <StaffVaultReview owner={role === 'owner'} previewMode={previewMode} snapshot={snapshot} /> : null}
         {section === 'access' ? role === 'owner' ? <StaffPerformanceAccess previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} /> : <EmptyState>Owner access is required.</EmptyState> : null}
         {section === 'invitations' ? role === 'owner' ? <>
                   {role === 'owner' ? (

@@ -479,6 +479,11 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/xero-vault-webhook/index.ts"
 
+[functions.process-xero-imports]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/process-xero-imports/index.ts"
+
 [functions.start-xero-connection]
 enabled = true
 verify_jwt = true

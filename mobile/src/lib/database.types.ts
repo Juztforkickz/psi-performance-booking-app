@@ -54,7 +54,7 @@ export type Database = {
           customer_id: string;
           dedupe_key: string;
           id: string;
-          job_kind: 'notify_customer_booking_confirmed' | 'notify_customer_cancelled' | 'notify_customer_date_approved' | 'notify_customer_date_proposed' | 'notify_customer_request_received' | 'notify_psi_booking_confirmed' | 'notify_psi_request_received' | 'sync_google_calendar_confirmed';
+          job_kind: 'notify_customer_booking_confirmed' | 'notify_customer_cancelled' | 'notify_customer_date_approved' | 'notify_customer_date_proposed' | 'notify_customer_request_received' | 'notify_psi_booking_confirmed' | 'notify_psi_request_received' | 'sync_google_calendar_confirmed' | 'sync_google_calendar_cancelled';
           last_attempt_at: string | null;
           last_error_code: string | null;
           provider_reference: string | null;

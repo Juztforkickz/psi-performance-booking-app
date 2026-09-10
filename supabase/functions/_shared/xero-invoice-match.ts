@@ -1,7 +1,9 @@
 /** Pure checks over server-fetched data. Never use browser-supplied links/jobs. */
 export type XeroInvoice = {
   InvoiceID?: string; Type?: string; Status?: string; CurrencyCode?: string;
-  SentToContact?: boolean; Reference?: string; Contact?: { ContactID?: string };
+  SentToContact?: boolean; Reference?: string; InvoiceNumber?: string;
+  Date?: string; DateString?: string; Total?: number;
+  Contact?: { ContactID?: string; Name?: string };
 };
 export type VerifiedContactLink = {
   tenant_id: string; contact_id: string; customer_id: string;

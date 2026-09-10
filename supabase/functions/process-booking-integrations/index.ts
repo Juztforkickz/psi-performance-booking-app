@@ -9,7 +9,8 @@ type JobKind =
   | "notify_customer_cancelled"
   | "notify_psi_booking_confirmed"
   | "notify_customer_booking_confirmed"
-  | "sync_google_calendar_confirmed";
+  | "sync_google_calendar_confirmed"
+  | "sync_google_calendar_cancelled";
 
 type JobStatus =
   | "pending"
@@ -160,7 +161,9 @@ const isJobStillApplicable = (job: IntegrationJob, context: BookingContext) => {
     case "notify_psi_booking_confirmed":
       return context.booking.state === "confirmed" || context.booking.state === "completed";
     case "sync_google_calendar_confirmed":
-      return context.booking.state === "confirmed";
+      return context.booking.state === "confirmed" || context.booking.state === "completed";
+    case "sync_google_calendar_cancelled":
+      return context.booking.state === "cancelled";
     default:
       return true;
   }
@@ -326,9 +329,10 @@ const syncGoogleCalendar = async (admin: SupabaseClient, job: IntegrationJob, co
     !calendarId && "PSI_GOOGLE_CALENDAR_ID",
   ].filter(Boolean) as string[];
   if (missing.length) return { blocked: missing } as const;
-  if (context.booking.state !== "confirmed" || !context.booking.approved_date) {
-    throw new Error("booking_not_confirmed");
-  }
+  const cancellation = job.job_kind === "sync_google_calendar_cancelled";
+  if (!cancellation && !["confirmed", "completed"].includes(context.booking.state)) throw new Error("booking_not_confirmed");
+  if (!cancellation && !context.booking.approved_date) throw new Error("booking_date_missing");
+  const approvedDate = context.booking.approved_date;
 
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
     body: new URLSearchParams({
@@ -344,32 +348,47 @@ const syncGoogleCalendar = async (admin: SupabaseClient, job: IntegrationJob, co
   if (!tokenResponse.ok || !tokenBody.access_token) throw new Error(`google_token_${tokenResponse.status}`);
 
   const eventId = `psi${job.booking_request_id.replaceAll("-", "").toLowerCase()}`;
+  const eventUrl = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`;
+  if (cancellation) {
+    const removeResponse = await fetch(`${eventUrl}?sendUpdates=none`, {
+      headers: { Authorization: `Bearer ${tokenBody.access_token}` },
+      method: "DELETE",
+    });
+    if (![204, 404, 410].includes(removeResponse.status)) throw new Error(`google_calendar_delete_${removeResponse.status}`);
+    const { error: removedError } = await admin.from("booking_calendar_events").upsert({
+      booking_request_id: context.booking.id,
+      google_calendar_id: calendarId,
+      google_event_id: eventId,
+      sync_state: "removed",
+      last_error: null,
+    }, { onConflict: "booking_request_id" });
+    if (removedError) throw new Error("calendar_record_failed");
+    return { providerReference: eventId } as const;
+  }
+
   const booking = bookingLabel(context);
-  const eventResponse = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?sendUpdates=none`,
-    {
-      body: JSON.stringify({
-        id: eventId,
-        summary: `[CONFIRMED] ${booking} · ${context.vehicle.registration}`,
-        description: [
-          `Customer: ${customerName(context)}`,
-          `Vehicle: ${vehicleLabel(context)}`,
-          `Mobile: ${context.customer.mobile ?? "Not supplied"}`,
-          `PSI booking reference: ${context.booking.id}`,
-          "Private PSI workshop event. Customer attendee invitations are intentionally disabled.",
-        ].join("\n"),
-        start: { date: context.booking.approved_date },
-        end: { date: nextCalendarDate(context.booking.approved_date) },
-        extendedProperties: { private: { psiBookingRequestId: context.booking.id } },
-      }),
-      headers: {
-        Authorization: `Bearer ${tokenBody.access_token}`,
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-    },
-  );
-  if (!eventResponse.ok && eventResponse.status !== 409) throw new Error(`google_calendar_${eventResponse.status}`);
+  const eventBody = {
+    id: eventId,
+    summary: `[CONFIRMED] ${booking} · ${context.vehicle.registration}`,
+    description: [
+      `Customer: ${customerName(context)}`,
+      `Vehicle: ${vehicleLabel(context)}`,
+      `Mobile: ${context.customer.mobile ?? "Not supplied"}`,
+      `PSI booking reference: ${context.booking.id}`,
+      "Private PSI workshop event. Customer attendee invitations are intentionally disabled.",
+    ].join("\n"),
+    start: { date: approvedDate },
+    end: { date: nextCalendarDate(approvedDate!) },
+    attendees: [],
+    extendedProperties: { private: { psiBookingRequestId: context.booking.id } },
+  };
+  const commonHeaders = { Authorization: `Bearer ${tokenBody.access_token}`, "Content-Type": "application/json" };
+  const lookupResponse = await fetch(eventUrl, { headers: { Authorization: `Bearer ${tokenBody.access_token}` }, method: "GET" });
+  if (!lookupResponse.ok && lookupResponse.status !== 404) throw new Error(`google_calendar_lookup_${lookupResponse.status}`);
+  const eventResponse = lookupResponse.status === 404
+    ? await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?sendUpdates=none`, { body: JSON.stringify(eventBody), headers: commonHeaders, method: "POST" })
+    : await fetch(`${eventUrl}?sendUpdates=none`, { body: JSON.stringify(eventBody), headers: commonHeaders, method: "PUT" });
+  if (!eventResponse.ok) throw new Error(`google_calendar_write_${eventResponse.status}`);
 
   const { error: calendarRecordError } = await admin.from("booking_calendar_events").upsert({
     booking_request_id: context.booking.id,

@@ -23,13 +23,14 @@ type VaultDatabase = { public: { Tables: {
   vault_records: Table<VaultRecord>; vault_assets: Table<VaultAsset>; workshop_jobs: Table<WorkshopJob>;
   vault_updates: Table<{ job_id: string; customer_id: string; vehicle_id: string; updated_at: string; record_count: number }>;
   vehicle_display_preferences: Table<{ vehicle_id: string; customer_id: string; illustration_id: string }>;
-  vault_import_queue: Table<{ id: string; source: string; source_key: string; status: string; identifiers: Record<string, unknown>; job_id: string | null; reason: string; created_at: string }>;
+  vault_import_queue: Table<{ id: string; source: string; source_key: string; status: string; identifiers: Record<string, unknown>; job_id: string | null; record_id: string | null; reason: string; attempt_count: number; last_error_code: string | null; created_at: string; updated_at: string }>;
 }; Views: Record<never, never>; Functions: {
   performance_vault_overview: { Args: { p_vehicle_id: string }; Returns: VaultOverview };
   grant_performance_beta: { Args: { p_customer_id: string; p_days: number }; Returns: undefined };
   xero_connection_status: { Args: Record<string, never>; Returns: { tenant_id: string; connected_at: string; updated_at: string }[] };
   xero_connection_candidates: { Args: Record<string, never>; Returns: { tenant_id: string; tenant_name: string }[] };
   confirm_xero_organisation: { Args: { p_tenant_id: string }; Returns: undefined };
+  confirm_xero_import_match: { Args: { p_queue_id: string; p_customer_id: string; p_job_id: string }; Returns: undefined };
 }; Enums: Record<never, never>; CompositeTypes: Record<never, never> } };
 // Same authenticated connection and RLS boundary as the existing app.
 export function vaultClient() { return getSupabaseClient() as unknown as SupabaseClient<VaultDatabase>; }

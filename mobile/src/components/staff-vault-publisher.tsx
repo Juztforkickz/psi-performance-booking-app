@@ -9,8 +9,8 @@ import { colors, spacing } from '@/constants/brand';
 import { australianDateToIso, todayAustralianDate } from '@/lib/australian-date';
 import type { StaffPortalSnapshot } from '@/lib/staff-portal';
 import { createOrFindWorkshopJob, publishVaultRecord } from '@/lib/staff-vault';
-import { VAULT_KINDS, VAULT_LABELS, vaultClient, type VaultKind } from '@/lib/performance-plus';
-import { SUPABASE_CONNECTION } from '@/lib/supabase';
+import { aud, VAULT_KINDS, VAULT_LABELS, vaultClient, type VaultKind } from '@/lib/performance-plus';
+import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
 
 type ChangeCallbacks = { onDirtyChange?: (dirty: boolean) => void; onBusyChange?: (busy: boolean) => void };
 
@@ -135,8 +135,19 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
   );
 }
 
-export function StaffVaultReview({ previewMode = false }: { previewMode?: boolean } = {}) {
-  const [imports, setImports] = useState<{ id: string; reason: string; source: string; source_key: string }[]>([]);
+type VaultImportReview = {
+  id: string;
+  reason: string;
+  source: string;
+  source_key: string;
+  status: string;
+  identifiers: Record<string, unknown>;
+  attempt_count: number;
+  last_error_code: string | null;
+};
+
+export function StaffVaultReview({ snapshot, owner, previewMode = false }: { snapshot: StaffPortalSnapshot; owner: boolean; previewMode?: boolean }) {
+  const [imports, setImports] = useState<VaultImportReview[]>([]);
   const [drafts, setDrafts] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [busy, setBusy] = useState(!previewMode);
   const [error, setError] = useState('');
@@ -146,7 +157,7 @@ export function StaffVaultReview({ previewMode = false }: { previewMode?: boolea
     setBusy(true); setError('');
     try {
       const [queue, records] = await Promise.all([
-        vaultClient().from('vault_import_queue').select('id,reason,source,source_key').eq('status', 'needs_review').order('created_at', { ascending: false }).limit(50),
+        vaultClient().from('vault_import_queue').select('id,reason,source,source_key,status,identifiers,attempt_count,last_error_code').in('status', ['pending', 'processing', 'needs_review', 'matched', 'failed']).order('created_at', { ascending: false }).limit(50),
         vaultClient().from('vault_records').select('id,title,created_at').is('published_at', null).order('created_at', { ascending: false }).limit(50),
       ]);
       if (queue.error || records.error) throw queue.error ?? records.error;
@@ -154,19 +165,83 @@ export function StaffVaultReview({ previewMode = false }: { previewMode?: boolea
     } catch { setError('Imports and drafts could not be loaded. Check your staff session and try again.'); }
     finally { setBusy(false); }
   }, [previewMode]);
+  const processXero = async () => {
+    if (previewMode || busy || !owner) return;
+    setBusy(true); setError('');
+    try {
+      const { error: processError } = await getSupabaseClient().functions.invoke('process-xero-imports', { body: { limit: 10 } });
+      if (processError) throw processError;
+      await review();
+    } catch { setError('Xero invoices could not be checked. Re-open owner security if required, then check the Xero connection.'); }
+    finally { setBusy(false); }
+  };
   useEffect(() => { if (previewMode) return; const task = setTimeout(() => void review(), 0); return () => clearTimeout(task); }, [review, previewMode]);
   return <View style={styles.stack}>
     <Text style={styles.muted}>{previewMode ? 'Preview only · This example shows an empty imports and drafts queue.' : 'Private imports and drafts. Reviewing this list does not publish records.'}</Text>
+    {owner ? <PrimaryButton disabled={previewMode || busy} loading={busy} label="Check Xero invoice queue" onPress={() => void processXero()} /> : null}
     <PrimaryButton disabled={previewMode || busy} loading={busy} label={loaded ? 'Refresh' : 'Load records'} variant="outline" onPress={() => void review()} />
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
     {loaded && !error ? <>
       <Text style={styles.title}>Imports needing review</Text>
-      {!imports.length ? <Text style={styles.muted}>No imports need review.</Text> : imports.map(item => <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.source} · {item.source_key}</Text><Text style={styles.muted}>{item.reason}</Text></View>)}
+      {!imports.length ? <Text style={styles.muted}>No imports need review.</Text> : imports.map(item => item.source === 'xero'
+        ? <XeroImportReviewCard disabled={busy} item={item} key={item.id} onDone={review} owner={owner} snapshot={snapshot} />
+        : <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.source} · {item.source_key}</Text><Text style={styles.muted}>{item.reason}</Text></View>)}
       {imports.length === 50 ? <Text style={styles.muted}>Showing the latest 50 imports.</Text> : null}
       <Text style={styles.title}>Unpublished drafts</Text>
       {!drafts.length ? <Text style={styles.muted}>No unfinished vault drafts.</Text> : <><Text style={styles.muted}>Check the original upload before retrying to avoid duplicates.</Text>{drafts.map(item => <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.title}</Text><Text selectable style={styles.muted}>Draft reference: {item.id}</Text></View>)}</>}
       {drafts.length === 50 ? <Text style={styles.muted}>Showing the latest 50 drafts.</Text> : null}
     </> : null}
+  </View>;
+}
+
+function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { disabled: boolean; item: VaultImportReview; onDone: () => Promise<void>; owner: boolean; snapshot: StaffPortalSnapshot }) {
+  const [customerId, setCustomerId] = useState('');
+  const [vehicleId, setVehicleId] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
+  const [working, setWorking] = useState(false);
+  const [message, setMessage] = useState('');
+  const identifiers = item.identifiers;
+  const reference = typeof identifiers.reference === 'string' ? identifiers.reference : '';
+  const invoiceNumber = typeof identifiers.invoiceNumber === 'string' ? identifiers.invoiceNumber : 'Awaiting inspection';
+  const invoiceDate = typeof identifiers.invoiceDate === 'string' ? identifiers.invoiceDate : '';
+  const totalCents = typeof identifiers.totalCents === 'number' ? identifiers.totalCents : null;
+  const contactName = typeof identifiers.contactName === 'string' ? identifiers.contactName : 'Xero contact not loaded';
+  const vehicles = snapshot.vehicles.filter(vehicle => vehicle.customer_id === customerId && !vehicle.archived_at);
+  const canMatch = owner && item.status === 'needs_review' && Boolean(reference && invoiceDate && customerId && vehicleId && confirmed);
+
+  const matchAndImport = async () => {
+    if (!canMatch || disabled || working) return;
+    setWorking(true); setMessage('');
+    try {
+      const job = await createOrFindWorkshopJob({ customerId, vehicleId, reference, title: `Xero invoice ${invoiceNumber}`, date: invoiceDate });
+      const confirmedMatch = await vaultClient().rpc('confirm_xero_import_match', { p_queue_id: item.id, p_customer_id: customerId, p_job_id: job.id });
+      if (confirmedMatch.error) throw confirmedMatch.error;
+      const processed = await getSupabaseClient().functions.invoke('process-xero-imports', { body: { queueId: item.id, limit: 1 } });
+      if (processed.error) throw processed.error;
+      const outcome = processed.data?.results?.[0];
+      setConfirmed(false);
+      setMessage(outcome?.status === 'imported' ? 'Invoice imported and published to the verified vehicle.' : 'Match saved. The secure importer will retry this invoice.');
+      await onDone();
+    } catch { setMessage('Nothing was published. Recheck the customer, registration and exact PSI job reference, then try again.'); }
+    finally { setWorking(false); }
+  };
+
+  return <View style={styles.card}>
+    <View style={styles.importHeading}><Text style={styles.copy}>Xero invoice · {invoiceNumber}</Text><Text style={styles.importStatus}>{item.status.replaceAll('_', ' ')}</Text></View>
+    <Text style={styles.muted}>{contactName}{invoiceDate ? ` · ${invoiceDate}` : ''}{totalCents !== null ? ` · ${aud(totalCents)}` : ''}</Text>
+    {reference ? <Text selectable style={styles.copy}>PSI job reference · {reference}</Text> : null}
+    <Text style={styles.muted}>{item.reason}{item.last_error_code ? ` · ${item.last_error_code.replaceAll('_', ' ')}` : ''}</Text>
+    {item.status === 'pending' || item.status === 'matched' || item.status === 'processing' ? <Text style={styles.message}>Secure inspection is queued.</Text> : null}
+    {item.status === 'needs_review' && owner ? <>
+      <StaffScrollSelect label="Customer" value={customerId} options={customerOptions(snapshot)} searchable onChange={value => { setCustomerId(value); setVehicleId(''); setConfirmed(false); setMessage(''); }} />
+      <StaffScrollSelect label="Vehicle" value={vehicleId} options={vehicles.map(vehicle => ({ value: vehicle.id, label: `${vehicle.year} ${vehicle.make} ${vehicle.model}`, sublabel: vehicle.registration }))} searchable onChange={value => { setVehicleId(value); setConfirmed(false); setMessage(''); }} />
+      <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: confirmed }} disabled={disabled || working || !vehicleId} onPress={() => setConfirmed(value => !value)} style={styles.confirm}>
+        <Ionicons color={colors.accent} name={confirmed ? 'checkbox' : 'square-outline'} size={25} />
+        <Text style={styles.confirmText}>I checked the Xero contact, customer, registration and exact PSI job reference. Import this invoice to that vehicle.</Text>
+      </Pressable>
+      <PrimaryButton disabled={!canMatch || disabled || working} loading={working} label="Match and import invoice" onPress={() => void matchAndImport()} />
+    </> : null}
+    {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
   </View>;
 }
 
@@ -220,6 +295,8 @@ const styles = StyleSheet.create({
   message: { color: colors.accent, fontSize: 14, lineHeight: 21 },
   error: { color: colors.danger, fontSize: 14, lineHeight: 21 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  importHeading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
+  importStatus: { color: colors.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   choice: { borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: spacing.sm, minHeight: 44, justifyContent: 'center', flexShrink: 1 },
   selected: { backgroundColor: colors.accent, borderColor: colors.accent },
   selectedText: { color: colors.ink },
