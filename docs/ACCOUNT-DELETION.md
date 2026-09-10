@@ -1,6 +1,34 @@
 # Customer account deletion
 
-Status: protected owner completion workflow, 2 September 2026.
+Status: protected owner completion workflow; live JWT compatibility repair deployed 10 September 2026.
+
+## Live deletion repair — 10 September 2026
+
+The live procedures originally read the obsolete `request.jwt.claim.role`
+setting. PostgREST supplies JSON claims, so the server's valid service-role
+request was rejected before locking the customer. The separate Apple review
+installation already used the supported check; production had missed it.
+
+Migration `20260910115915_account_deletion_jwt_claim_compatibility.sql` changes
+only the role expression in the three deletion procedures to
+`coalesce(auth.jwt() ->> 'role', '')`. It asserts and preserves the existing
+server-only execution grants, owner identity, MFA boundary and cleanup rules.
+It is deployed to main. Existing installed clients receive the server repair
+without a new app build. The client changes additionally translate allowlisted
+failure codes into phase-specific instructions; those messages require the
+updated client release.
+
+Validation: the disposable database rehearsal passed in the isolated sandbox,
+including modern claims, unauthorized role/owner/staff denial, retrying the
+lock and cleanup, booking/vehicle/subscription removal, simulated Auth removal,
+completion, and unchanged control records. Main was verified read-only: all
+three procedures use JSON claims, remain server-only, and a null-target call
+reaches target validation instead of failing service-role authentication.
+The reported customer request was not executed as a test and remains pending.
+
+The SQL rehearsal does not exercise the Auth HTTP or physical Storage APIs.
+Future paid-account deletion also needs a separate retention design for the
+new payment tables; their restrictive foreign keys are preserved by this fix.
 
 ## Customer control
 
@@ -62,6 +90,11 @@ successful deletion.
    Notify the customer using the approved PSI response process.
 
 ## Validation boundary
+
+`../supabase/tests/account-deletion-jwt-regression.sql` creates random disposable
+`example.invalid` identities and rolls the entire test back. For the isolated
+review project, substitute its configured review-owner email for the live Matt
+owner email. No pre-existing customer is used as the deletion target.
 
 The repository includes a rollback-only database test for the synthetic,
 non-staff `QATEST1` identity. It exercises the owner-only lock, ordered data

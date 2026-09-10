@@ -11,6 +11,7 @@ import type {
   VehicleFileRow,
 } from '@/lib/database.types';
 import { dispatchBookingIntegrationNotifications } from '@/lib/booking-integrations';
+import { parseAccountDeletionError } from '@/lib/deletion-errors';
 import { getSupabaseClient } from '@/lib/supabase';
 import { dispatchBookingPushNotifications } from '@/lib/notifications';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
@@ -188,7 +189,7 @@ export async function completeCustomerAccountDeletion(input: {
       userId: input.userId,
     },
   });
-  if (error) throw error;
+  if (error) throw await parseAccountDeletionError(error);
   if (!data?.completed) throw new Error('ACCOUNT_DELETION_RESPONSE_INVALID');
   return data;
 }

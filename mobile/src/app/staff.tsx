@@ -16,6 +16,7 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
 import { formatAustralianDate, formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
+import { accountDeletionErrorMessage } from '@/lib/deletion-errors';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useCustomerAccount } from '@/lib/customer-account-context';
@@ -1094,8 +1095,8 @@ function AccountDeletionRequestCard({
           : 'Customer access and private data were removed. Send the customer a completion confirmation.',
       );
       onComplete();
-    } catch {
-      setError('Deletion did not complete. If cleanup started, the customer account is safely locked. Refresh and retry this same request; no other customer was affected.');
+    } catch (deletionError) {
+      setError(accountDeletionErrorMessage(deletionError));
     } finally {
       setBusy(false);
     }

@@ -4,7 +4,9 @@
 
 begin;
 
-select set_config('request.jwt.claim.role', 'service_role', true);
+-- Match modern PostgREST: role lives in JSON claims, not the legacy scalar GUC.
+select set_config('request.jwt.claim.role', '', true);
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 
 create temp table deletion_acceptance_target (
   user_id uuid primary key,
@@ -42,7 +44,7 @@ begin
   if exists (
     select 1
     from storage.objects object
-    where object.bucket_id in ('vehicle-photos', 'vehicle-documents')
+    where object.bucket_id in ('vehicle-photos', 'vehicle-documents', 'performance-vault')
       and object.name like target::text || '/%'
   ) then
     raise exception 'QATEST1 owns Storage objects; do not exercise them through this rollback-only SQL test';
