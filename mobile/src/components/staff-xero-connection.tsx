@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton } from '@/components/ui';
 import { colors, spacing } from '@/constants/brand';
@@ -9,6 +9,7 @@ export function StaffXeroConnection() {
   const [busyAction, setBusyAction] = useState('');
   const busy = !!busyAction;
   const [message, setMessage] = useState('');
+  const [connected, setConnected] = useState<boolean | null>(null);
   const [candidates, setCandidates] = useState<{ tenant_id: string; tenant_name: string }[]>([]);
   async function connect() {
     if (busy) return;
@@ -26,24 +27,41 @@ export function StaffXeroConnection() {
     } catch { setMessage('Could not open the secure Xero connection. Please try again.'); }
     finally { setBusyAction(''); }
   }
-  async function check() {
-    if (busy) return;
-    setBusyAction('check');
+  const loadStatus = useCallback(async (showBusy: boolean) => {
+    if (showBusy) setBusyAction('check');
     try {
       const { data, error } = await vaultClient().rpc('xero_connection_status');
       if (error) throw error;
       const pending = await vaultClient().rpc('xero_connection_candidates');
       if (pending.error) throw pending.error;
       setCandidates(pending.data ?? []);
-      setMessage(pending.data?.length ? 'Select PSI’s organisation below. Check the business name carefully.' : Array.isArray(data) && data.length ? 'Connected. Automatic invoice imports are off.' : 'Not connected.');
-    } catch { setMessage('Connection status is unavailable. Check setup and your owner verification.'); }
-    finally { setBusyAction(''); }
+      const isConnected = !pending.data?.length && Array.isArray(data) && data.length > 0;
+      setConnected(isConnected);
+      setMessage(pending.data?.length ? 'Select PSI’s organisation below. Check the business name carefully.' : isConnected ? 'Connected securely. Automatic invoice imports are off.' : 'Not connected.');
+    } catch {
+      setConnected(null);
+      setMessage('Connection status is unavailable. Check setup and your owner verification.');
+    } finally {
+      if (showBusy) setBusyAction('');
+    }
+  }, []);
+
+  useEffect(() => {
+    const statusCheck = setTimeout(() => void loadStatus(false), 0);
+    return () => clearTimeout(statusCheck);
+  }, [loadStatus]);
+
+  async function check() {
+    if (busy) return;
+    await loadStatus(true);
   }
   return <View style={styles.workspace}>
     <Text style={styles.title}>Xero invoices</Text>
-    <Text style={styles.copy}>Connect PSI’s organisation. Automatic invoice imports remain off.</Text>
-    <PrimaryButton label="Connect" disabled={busy} loading={busyAction === 'connect'} onPress={() => void connect()} />
+    <Text style={styles.copy}>{connected
+      ? 'PSI’s Xero organisation is connected. Invoice imports stay off until each customer, vehicle and job match is reviewed.'
+      : 'Check the secure connection before connecting or replacing PSI’s Xero organisation. Automatic invoice imports remain off.'}</Text>
     <PrimaryButton label="Check status" variant="outline" disabled={busy} loading={busyAction === 'check'} onPress={() => void check()} />
+    <PrimaryButton label={connected ? 'Reconnect or replace Xero' : 'Connect Xero'} disabled={busy} loading={busyAction === 'connect'} onPress={() => void connect()} />
     {candidates.map(candidate => <View key={candidate.tenant_id} style={styles.candidate}>
       <Text style={styles.businessName}>{candidate.tenant_name}</Text>
       <PrimaryButton label={`Confirm ${candidate.tenant_name}`} variant="outline" disabled={busy} loading={busyAction === candidate.tenant_id} onPress={async () => {
@@ -52,7 +70,7 @@ export function StaffXeroConnection() {
         try {
           const { error } = await vaultClient().rpc('confirm_xero_organisation', { p_tenant_id: candidate.tenant_id });
           if (error) throw error;
-          setCandidates([]); setMessage('Organisation confirmed. Invoice imports remain off pending customer and vehicle matching.');
+          setCandidates([]); setConnected(true); setMessage('Organisation confirmed. Invoice imports remain off pending customer and vehicle matching.');
         } catch { setMessage('Could not confirm the organisation. Check owner verification or reconnect if the confirmation expired.'); }
         finally { setBusyAction(''); }
       }} />

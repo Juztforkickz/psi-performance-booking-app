@@ -192,7 +192,7 @@ function StaffSecurityWorkspace({
           <Text style={styles.backText}>← Workshop portal</Text>
         </Pressable>
         <Text style={styles.eyebrow}>PSI OWNER SECURITY</Text>
-        <Text style={styles.title}>Authenticators</Text>
+        <Text adjustsFontSizeToFit minimumFontScale={0.72} numberOfLines={1} style={styles.title}>Authenticators</Text>
         <Text style={styles.lead}>Manage the separate authenticator devices required before this owner account can open workshop-wide customer records.</Text>
 
         <View style={styles.securityBanner}>
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   back: { alignSelf: 'flex-start', paddingVertical: spacing.sm },
   backText: { color: colors.white, fontSize: 15, fontWeight: '800' },
   eyebrow: { color: colors.accent, fontSize: 12, fontWeight: '900', letterSpacing: 1.7, marginTop: spacing.md },
-  title: { color: colors.white, fontSize: 38, fontWeight: '900', letterSpacing: -1.2, marginTop: spacing.xs },
+  title: { color: colors.white, fontSize: 38, fontWeight: '900', letterSpacing: -1.2, lineHeight: 44, marginTop: spacing.xs, width: '100%' },
   lead: { color: colors.muted, fontSize: 16, lineHeight: 24, marginTop: spacing.sm, maxWidth: 680 },
   securityBanner: { ...mobileFrame, backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg, padding: spacing.md },
   securityTitle: { color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },

@@ -43,8 +43,16 @@ const PARTNER_LOGO_SCALES: Readonly<Record<string, number>> = {
   'luxe-interiors': 1.26,
   'elite-detailing': 1.22,
   'trb-visuals': 0.84,
-  'martini-racing-products': 0.9,
+  'martini-racing-products': 1.18,
   'fab-car-audio': 1,
+};
+
+const PARTNER_LOGO_OPACITY: Readonly<Record<string, number>> = {
+  'fab-car-audio': 0.9,
+};
+
+const PARTNER_LOGO_BACKGROUNDS: Readonly<Record<string, string>> = {
+  'fab-car-audio': colors.white,
 };
 
 export default function TrustedPartnersScreen() {
@@ -165,14 +173,25 @@ function PartnerCard({
   return (
     <View style={[styles.partnerCard, { backgroundColor: theme.surface, borderColor: theme.frame }]}>
       <View style={[styles.partnerTop, compact && styles.partnerTopCompact]}>
-        <View style={[styles.logoFrame, { borderColor: theme.frame }]}>
+        <View
+          style={[
+            styles.logoFrame,
+            {
+              backgroundColor: PARTNER_LOGO_BACKGROUNDS[partner.id] ?? colors.ink,
+              borderColor: theme.frame,
+            },
+          ]}
+        >
           <Image
             accessibilityLabel={`${partner.businessName} logo`}
             resizeMode="cover"
             source={logo}
             style={[
               styles.logo,
-              { transform: [{ scale: PARTNER_LOGO_SCALES[partner.id] ?? 1 }] },
+              {
+                opacity: PARTNER_LOGO_OPACITY[partner.id] ?? 1,
+                transform: [{ scale: PARTNER_LOGO_SCALES[partner.id] ?? 1 }],
+              },
             ]}
           />
         </View>
@@ -314,7 +333,7 @@ const styles = StyleSheet.create({
   partnerCard: { ...mobileFrame, gap: spacing.md, padding: spacing.md },
   partnerTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   partnerTopCompact: { alignItems: 'flex-start' },
-  logoFrame: { width: 92, height: 92, flexShrink: 0, overflow: 'hidden', borderWidth: 2, borderRadius: 46, backgroundColor: colors.ink },
+  logoFrame: { width: 92, height: 92, flexShrink: 0, overflow: 'hidden', borderWidth: 2, borderRadius: 46 },
   logo: { width: '100%', height: '100%' },
   partnerHeading: { flex: 1, minWidth: 0, gap: 3 },
   partnerIndex: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
