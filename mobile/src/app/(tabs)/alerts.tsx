@@ -19,9 +19,11 @@ import { formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_PREVIEW, type PreviewAlert } from '@/lib/customer-preview';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
+import { useCustomerAccount } from '@/lib/customer-account-context';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import type { NotificationEventRow } from '@/lib/database.types';
-import { useNotifications } from '@/lib/notifications';
+import { sendTestPushNotifications, useNotifications } from '@/lib/notifications';
+import { profileAlertLabel } from '@/lib/profile-alert-label';
 import { ThemePreference, useThemePreference } from '@/lib/theme-preference';
 
 const THEME_PREFERENCES: readonly { value: ThemePreference; label: string }[] = [
@@ -48,6 +50,7 @@ export default function AlertsScreen() {
   const { compact, horizontalPadding } = useResponsiveLayout();
   const { setThemePreference, theme, themePreference } = useThemePreference();
   const auth = useCustomerAuth();
+  const { account } = useCustomerAccount();
   const notifications = useNotifications();
   const [readIds, setReadIds] = useState<Set<string>>(
     () => new Set(CUSTOMER_PREVIEW.alerts.filter((alert) => alert.read).map((alert) => alert.id)),
@@ -61,6 +64,7 @@ export default function AlertsScreen() {
   const privateMode = CUSTOMER_AUTH.enabled;
   const signedIn = auth.status === 'signed_in';
   const staffMode = signedIn && auth.user?.email?.toLowerCase() === (REVIEW_ENVIRONMENT.enabled ? 'psiappreview+staff@gmail.com' : 'matt@psiperformance.com.au');
+  const customerAlertLabel = profileAlertLabel(account?.profile?.first_name);
   const previewUnreadCount = useMemo(
     () => CUSTOMER_PREVIEW.alerts.filter((alert) => !readIds.has(alert.id)).length,
     [readIds],
@@ -103,7 +107,7 @@ export default function AlertsScreen() {
             <Text style={styles.eyebrow}>Your preferences</Text>
             {staffMode ? <View style={styles.headerAlertCounts}>
               <View accessibilityLabel={`${notifications.staffUnreadCount} unread PSI workshop alerts`} style={[styles.roleCountBadge, { borderColor: WORKSHOP_ALERT_COLOR }]}><View style={[styles.roleCountDot, { backgroundColor: WORKSHOP_ALERT_COLOR }]} /><Text style={styles.roleCountText}>PSI {notifications.staffUnreadCount}</Text></View>
-              <View accessibilityLabel={`${notifications.customerUnreadCount} unread customer alerts`} style={[styles.roleCountBadge, { borderColor: CUSTOMER_ALERT_COLOR }]}><View style={[styles.roleCountDot, { backgroundColor: CUSTOMER_ALERT_COLOR }]} /><Text style={styles.roleCountText}>ME {notifications.customerUnreadCount}</Text></View>
+              <View accessibilityLabel={`${customerAlertLabel}, ${notifications.customerUnreadCount} unread customer alerts`} style={[styles.roleCountBadge, { borderColor: CUSTOMER_ALERT_COLOR }]}><View style={[styles.roleCountDot, { backgroundColor: CUSTOMER_ALERT_COLOR }]} /><Text style={styles.roleCountText}>{customerAlertLabel} {notifications.customerUnreadCount}</Text></View>
             </View> : <View accessibilityLabel={`${unreadCount} unread notifications`} style={[styles.countBadge, privateMode && styles.customerCountBadge]}>
               <Ionicons color={privateMode ? colors.white : colors.ink} name="notifications" size={18} />
               <Text style={[styles.countNumber, privateMode && styles.customerCountNumber]}>{unreadCount}</Text>
@@ -326,6 +330,22 @@ export default function AlertsScreen() {
                 ? 'Updating device notifications'
                 : notifications.pushStatus === 'ready' ? 'Disable device notifications' : 'Enable device notifications'}</Text>
             </Pressable>
+            {staffMode && notifications.pushStatus === 'ready' ? <Pressable accessibilityHint="Sends one PSI test alert and one personal test alert to this device" accessibilityRole="button" accessibilityState={{ busy: notificationSaving, disabled: notificationSaving }} disabled={notificationSaving} onPress={() => {
+              setNotificationFeedback('');
+              setNotificationSaving(true);
+              void sendTestPushNotifications()
+                .then(async (result) => {
+                  await notifications.refresh();
+                  setNotificationFeedback(result.sent === 2
+                    ? 'Two test alerts sent. Check the PSI and Matt badges, banners and sound.'
+                    : 'The test alerts were saved, but push delivery needs attention.');
+                })
+                .catch(() => setNotificationFeedback('Open the protected workshop portal, complete MFA, then try the notification test again.'))
+                .finally(() => setNotificationSaving(false));
+            }} style={({ pressed }) => [styles.openBookings, styles.testNotifications, pressed && !notificationSaving && styles.pressed]}>
+              <Ionicons color={colors.ink} name="notifications-outline" size={19} />
+              <Text style={styles.testNotificationsText}>{notificationSaving ? 'Sending test alerts' : 'Test PSI & Matt alerts'}</Text>
+            </Pressable> : null}
           </View>
         ) : null}
 
@@ -524,6 +544,8 @@ const styles = StyleSheet.create({
   howItWorksTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
   openBookings: { ...mobileFrame, minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.ink, padding: spacing.md },
   openBookingsText: { color: colors.white, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  testNotifications: { backgroundColor: colors.accent },
+  testNotificationsText: { color: colors.ink, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   notificationFeedback: { color: colors.silver, fontSize: 10, fontWeight: '700', lineHeight: 16 },
   pressed: { opacity: .72 },
 });

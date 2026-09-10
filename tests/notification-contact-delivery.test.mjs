@@ -27,6 +27,10 @@ test('push delivery distinguishes roles without exposing workshop enquiry detail
   assert.match(provider, /setNotificationChannelAsync\('psi-workshop'/u);
   assert.match(provider, /setNotificationChannelAsync\('psi-customer'/u);
   assert.match(provider, /pathname: '\/staff', params: \{ bookingId, section: 'bookings' \}/u);
+  assert.match(worker, /body\.action === "send_test_alerts"/u);
+  assert.match(worker, /if \(!isAal2Staff\) return json\(\{ error: "aal2_staff_access_required" \}, 403\)/u);
+  assert.match(worker, /testJobs = createdJobs as JobRow\[\]/u);
+  assert.match(provider, /body: \{ action: 'send_test_alerts' \}/u);
 });
 
 test('staff portal exposes split badges, alert setup and customer contact actions', async () => {

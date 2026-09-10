@@ -45,6 +45,49 @@ Deno.serve(async (request) => {
     userClient.auth.getClaims(token),
   ]);
   const isAal2Staff = Boolean(staff && claims?.claims?.aal === "aal2");
+  let testJobs: JobRow[] | null = null;
+  if (body.action === "send_test_alerts") {
+    if (!isAal2Staff) return json({ error: "aal2_staff_access_required" }, 403);
+    const testPrefix = `owner_push_test:${userData.user.id}:`;
+    const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
+    const { count: recentTestCount, error: recentTestError } = await admin
+      .from("notification_events")
+      .select("id", { count: "exact", head: true })
+      .eq("recipient_user_id", userData.user.id)
+      .like("source_event_key", `${testPrefix}%`)
+      .gte("created_at", oneMinuteAgo);
+    if (recentTestError) return json({ error: "notification_test_unavailable" }, 500);
+    if ((recentTestCount ?? 0) > 0) return json({ error: "notification_test_rate_limited" }, 429);
+
+    const batchId = crypto.randomUUID();
+    const { data: testEvents, error: testEventError } = await admin.from("notification_events").insert([
+      {
+        recipient_user_id: userData.user.id,
+        booking_request_id: null,
+        kind: "new_booking_request",
+        title: "PSI notification test",
+        body: "Test alert for the protected PSI workshop inbox.",
+        deep_link: "/staff",
+        source_event_key: `${testPrefix}${batchId}:psi`,
+      },
+      {
+        recipient_user_id: userData.user.id,
+        booking_request_id: null,
+        kind: "booking_request_received",
+        title: "Personal notification test",
+        body: "Test alert for your private customer inbox.",
+        deep_link: "/bookings",
+        source_event_key: `${testPrefix}${batchId}:account`,
+      },
+    ]).select("id,recipient_user_id");
+    if (testEventError || !testEvents || testEvents.length !== 2) return json({ error: "notification_test_unavailable" }, 500);
+
+    const { data: createdJobs, error: testJobError } = await admin.from("push_notification_jobs").insert(
+      testEvents.map((event) => ({ event_id: event.id, booking_request_id: null, recipient_user_id: event.recipient_user_id })),
+    ).select("id,event_id,booking_request_id,recipient_user_id,attempt_count");
+    if (testJobError || !createdJobs || createdJobs.length !== 2) return json({ error: "notification_test_unavailable" }, 500);
+    testJobs = createdJobs as JobRow[];
+  }
   if (bookingId) {
     const { data: owned } = await userClient.from("booking_requests").select("id").eq("id", bookingId).eq("customer_id", userData.user.id).maybeSingle();
     if (!owned && !isAal2Staff) return json({ error: "booking_access_denied" }, 403);
@@ -52,10 +95,14 @@ Deno.serve(async (request) => {
     return json({ error: "aal2_staff_access_required" }, 403);
   }
 
-  let jobsQuery = admin.from("push_notification_jobs").select("id,event_id,booking_request_id,recipient_user_id,attempt_count").in("status", ["pending", "failed"]).lte("available_at", new Date().toISOString()).lt("attempt_count", 20).order("created_at", { ascending: true }).limit(25);
-  if (bookingId) jobsQuery = jobsQuery.eq("booking_request_id", bookingId);
-  const { data: jobs, error: jobsError } = await jobsQuery;
-  if (jobsError) return json({ error: "notification_queue_unavailable" }, 500);
+  let jobs: JobRow[] | null = testJobs;
+  if (!jobs) {
+    let jobsQuery = admin.from("push_notification_jobs").select("id,event_id,booking_request_id,recipient_user_id,attempt_count").in("status", ["pending", "failed"]).lte("available_at", new Date().toISOString()).lt("attempt_count", 20).order("created_at", { ascending: true }).limit(25);
+    if (bookingId) jobsQuery = jobsQuery.eq("booking_request_id", bookingId);
+    const { data, error } = await jobsQuery;
+    if (error) return json({ error: "notification_queue_unavailable" }, 500);
+    jobs = data as JobRow[] | null;
+  }
   let sent = 0;
   for (const queued of (jobs ?? []) as JobRow[]) {
     const now = new Date().toISOString();

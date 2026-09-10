@@ -371,6 +371,16 @@ export async function dispatchPsiEventPushNotifications() {
   await getSupabaseClient().functions.invoke('process-push-notifications', { body: { action: 'dispatch' } });
 }
 
+export async function sendTestPushNotifications() {
+  if (REVIEW_ENVIRONMENT.enabled) throw new Error('REVIEW_EXTERNAL_PUSH_DISABLED');
+  if (!SUPABASE_CONNECTION.authEnabled) throw new Error('SIGN_IN_REQUIRED');
+  const { data, error } = await getSupabaseClient().functions.invoke('process-push-notifications', {
+    body: { action: 'send_test_alerts' },
+  });
+  if (error) throw error;
+  return data as { processed: number; sent: number };
+}
+
 export async function unregisterCurrentPushDevice() {
   if (REVIEW_ENVIRONMENT.enabled) return;
   if (Platform.OS !== 'web' && !registeredToken) registeredToken = await SecureStore.getItemAsync(PUSH_TOKEN_STORAGE_KEY) ?? '';
