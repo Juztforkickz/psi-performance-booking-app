@@ -17,7 +17,8 @@ signed release build and final owner/legal checks are complete.
 - Secondary/category description: **Automotive customer and workshop services**
 - First Apple release devices: **iPhone only**
 - Price: **Free**
-- Paid digital products/subscriptions: **None**
+- Paid digital products/subscriptions: **Optional PSI Performance+ subscription
+  at A$9.99 monthly or A$99 annually**
 - Support email: `info@psiperformance.com.au`
 - Support phone: `0433 431 781`
 - Workshop: `21 Exchange Drive, Pakenham VIC 3810, Australia`
@@ -52,7 +53,7 @@ compliance. No data is used for third-party advertising or cross-app tracking.
 | Contact Info | name, email address, phone number | Yes | No |
 | User Content | vehicle photos, booking/build notes, customer-selected attachments | Yes | No |
 | Identifiers | Supabase user ID, opted-in Expo push token/device registration | Yes | No |
-| Purchases | PSI invoice and workshop transaction history displayed to the customer | Yes | No |
+| Purchases | Apple subscription transaction and entitlement status; PSI invoice and workshop transaction history displayed to the customer | Yes | No |
 | Other Data | vehicle identity, registration, odometer and service history | Yes | No |
 
 Do not declare precise location, contacts/address book, browsing history,
@@ -73,8 +74,9 @@ Recommended purpose selections in App Store Connect:
 The release has no third-party advertising, IDFA use, cross-app tracking,
 contact-book access, precise location collection or payment-card collection.
 Supabase, Resend, Expo and Google Calendar are service providers used to operate
-the customer service; their final production terms and SDK behaviour must still
-be rechecked when the signed binary is uploaded.
+the customer service. Apple processes optional Performance+ purchases and
+RevenueCat verifies the resulting entitlement; their final production terms and
+SDK behaviour must still be rechecked when the signed binary is uploaded.
 
 ## Apple age-rating draft
 
@@ -142,10 +144,14 @@ signed-build acceptance pass.
 Keep your PSI vehicle relationship together in one premium customer workspace.
 
 PSI Performance brings your vehicles, workshop visits, booking requests,
-verified dyno results, invoices, recommended work and future build planning into
-one clear experience. Secure email-code access keeps customer records private,
-while PSI-published service and dyno history remains protected from customer
-editing. Workshop availability, scope, pricing and timing are confirmed by PSI.
+verified dyno results, invoices, recommended work, customer cars for sale and
+future build planning into one clear experience. Secure email-code access keeps
+customer records private, while PSI-published service and dyno history remains
+protected from customer editing. Workshop availability, scope, pricing and
+timing are confirmed by PSI. The free account includes everyday Garage,
+booking, kilometre, reminder and current-result features. Optional PSI
+Performance+ unlocks the complete private vehicle vault for A$9.99 monthly or
+A$99 annually through Apple.
 
 ## Artwork and screenshot readiness
 
@@ -200,7 +206,10 @@ Suggested review notes (replace every bracketed field in App Store Connect):
 > expire. It contains synthetic customer and vehicle information only. Staff
 > functions are not required to review the customer app and remain restricted
 > to PSI's owner with authenticator MFA. Booking requests enter PSI review and
-> do not take payment or create a confirmed appointment.
+> do not take payment or create a confirmed appointment. To review the optional
+> subscription, open Performance+ from Home and use the monthly or annual Apple
+> option. Restore purchases checks the Apple receipt against the same PSI
+> account. Physical workshop services are separate from the subscription.
 
 Also complete the App Review contact name, monitored phone number in
 international format, and `info@psiperformance.com.au`. Test the supplied review

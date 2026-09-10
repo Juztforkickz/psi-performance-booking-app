@@ -1,10 +1,13 @@
 # Performance+ activation checklist
 
-Updated 9 September 2026. Prices: **A$9.99/month or A$99/year**. This checklist records the verified rollout checkpoint and remaining activation work. Preserve existing beta accounts and the sandbox.
+Updated 10 September 2026. Prices: **A$9.99/month or A$99/year**. This checklist records the verified rollout checkpoint and remaining activation work. Preserve existing beta accounts and the sandbox.
 
 Following explicit approval for the main rollout, the Performance+ foundation migrations, including the permanent complimentary owner-access update, and all four vault/provider functions are deployed to **main and sandbox**. Main `complete-account-deletion` is deployed and **ACTIVE, version 2**, including the premium storage bucket. Main authenticated endpoint checks return HTTP 401 without authentication; unconfigured provider webhooks return HTTP 503.
 
-Main data counts are unchanged: **7 customer profiles, 8 vehicles, 5 bookings, 2 invoices and 2 dyno records**. No customer deletion or reset has occurred. Apple/RevenueCat payment and Xero credentials remain absent, purchases remain disabled, and sandbox-entitlement acceptance remains false.
+No customer deletion or reset has occurred. Apple/RevenueCat subscription
+credentials remain absent, purchases remain disabled, and sandbox-entitlement
+acceptance remains false. Xero is now connected separately and is no longer an
+activation blocker for Performance+.
 
 iOS **build 9**, EAS build ID `5839004a-e7ea-435e-a7dc-cbeaf63d6e8d`, is **FINISHED and uploaded to Apple for TestFlight**. [EAS submission `f2c83882-557e-467d-bcfa-ec15c0631cc2`](https://expo.dev/accounts/psi-performance/projects/matt-psi/submissions/f2c83882-557e-467d-bcfa-ec15c0631cc2) finished on 9 September 2026 at 09:12:42 Sydney time (`2026-09-08T23:12:42Z`). App Store Connect subsequently confirmed **VALID / IN_BETA_TESTING** for internal testing. Its external status is **READY_FOR_BETA_SUBMISSION**, so external beta review remains. Build 7 remains valid, in internal testing and unexpired. No public App Store review or release has been submitted.
 
@@ -94,17 +97,18 @@ The new native purchase, document-picker and image-manipulation modules require 
 
 Record the actual build ID, project, test identities, test results and webhook timestamps. A complimentary beta grant is not a substitute for purchase/restore testing. Keep purchases closed until failures are resolved.
 
-## 5. Xero: remaining connection and development work
+## 5. Xero status
 
-**9 September follow-up:** The standard OAuth app, encrypted credential settings, owner/MFA connection flow and organisation-confirmation backend are now implemented. See [Xero connection setup](XERO-CONNECTION-SETUP.md) for the current status and exact new environment names. The older preparation notes below describe the original gap; invoice fetching/publication, rotation and live consent remain incomplete.
+The standard OAuth connection, encrypted token rotation, signed webhook,
+read-only invoice/PDF worker, exact customer/job/vehicle matching and
+owner-reviewed vault publication are deployed. The in-app **Check status**
+action now verifies live Xero invoice-read access without creating or changing
+accounting data. See [Xero connection setup](XERO-CONNECTION-SETUP.md).
 
-The intended login is `info@psiperformance.com.au`; Matt must consent to the correct organisation. The implemented receiver only verifies and queues invoice events. It does **not** fetch invoices or automatically publish them.
-
-Register a standard OAuth app, implement its callback and secure refresh-token storage/rotation, then request minimal read-only invoice/contact permissions plus offline access using Xero's [current scopes](https://developer.xero.com/documentation/guides/oauth2/scopes/). OAuth client ID, secret and redirect URI configuration do not yet have implemented environment names in this repository. Adding invented variables will not connect Xero.
-
-Implement the worker and contact-link/review administration. Require `tenant + ContactID → confirmed PSI customer → explicit PSI job → vehicle UUID`; missing or conflicting identifiers require human review. Retrieve the actual invoice status, delivery state and original PDF; reconcile by InvoiceID with versions for corrections. An invoice webhook alone does not prove completion or email delivery. Test multiple-vehicle customers, duplicate events, voids, contact changes and expired consent. [Xero webhook contract](https://developer.xero.com/documentation/guides/webhooks/overview/)
-
-Provide one representative invoice and identify its PSI job-reference field before automatic matching is enabled. Do not guess from customer names, recent vehicles, partial VIN or folder names. Manual staff PDF publication remains available while this work is pending.
+The remaining acceptance proof requires one representative real PSI invoice
+whose Xero Reference exactly matches a PSI job reference. Missing or conflicting
+identifiers continue to require owner review; the app never guesses from a
+customer name, partial registration, recent vehicle or folder name.
 
 ## 6. Workshop PC first run
 
