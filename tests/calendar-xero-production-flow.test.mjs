@@ -35,6 +35,9 @@ test('Xero imports rotate tokens, require an owner-confirmed match and publish o
   assert.match(importMigration, /confirm_xero_import_match/u);
   assert.match(importMigration, /upper\(btrim\(job\.reference\)\) <> invoice_reference/u);
   assert.match(webhook, /status: 'pending'/u);
+  assert.match(webhook, /EdgeRuntime\.waitUntil/u);
+  assert.match(webhook, /functions\/v1\/process-xero-imports/u);
+  assert.match(webhook, /SUPABASE_SERVICE_ROLE_KEY/u);
   assert.match(worker, /requestXeroTokenRefresh/u);
   assert.match(worker, /matchXeroInvoice/u);
   assert.match(worker, /reader\.pdf\(invoiceId\)/u);

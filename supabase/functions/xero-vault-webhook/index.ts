@@ -1,4 +1,26 @@
 import { adminClient, env, json, uuid } from '../_shared/performance-subscription.ts';
+
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
+
+function startImportWorker() {
+  const supabaseUrl = env('SUPABASE_URL');
+  const serviceRoleKey = env('SUPABASE_SERVICE_ROLE_KEY');
+  if (!supabaseUrl || !serviceRoleKey) return;
+
+  EdgeRuntime.waitUntil(
+    fetch(`${supabaseUrl}/functions/v1/process-xero-imports`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${serviceRoleKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ limit: 10 }),
+    })
+      .then(response => response.body?.cancel())
+      .catch(() => undefined),
+  );
+}
+
 Deno.serve(async request => {
   if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   const secret = env('XERO_WEBHOOK_SIGNING_KEY');
@@ -20,7 +42,11 @@ Deno.serve(async request => {
       identifiers: { tenantId: tenant, invoiceId: e.resourceId, eventType: e.eventType },
       reason: 'Queued for secure Xero invoice inspection.',
     }));
-    if (rows.length) { const { error } = await adminClient().from('vault_import_queue').upsert(rows, { onConflict: 'source,source_key', ignoreDuplicates: true }); if (error) throw error; }
+    if (rows.length) {
+      const { error } = await adminClient().from('vault_import_queue').upsert(rows, { onConflict: 'source,source_key', ignoreDuplicates: true });
+      if (error) throw error;
+      startImportWorker();
+    }
     return json({ received: true });
   } catch { return json({ error: 'retry_import_queue' }, 503); }
 });
