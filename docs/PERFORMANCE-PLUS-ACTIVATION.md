@@ -2,10 +2,13 @@
 
 Updated 10 September 2026. Prices: **A$9.99/month or A$99/year**. This checklist records the verified rollout checkpoint and remaining activation work. Preserve existing beta accounts and the sandbox.
 
-Following explicit approval for the main rollout, the Performance+ foundation migrations, including the permanent complimentary owner-access update, and all four vault/provider functions are deployed to **main and sandbox**. Main `complete-account-deletion` is deployed and **ACTIVE, version 2**, including the premium storage bucket. Main authenticated endpoint checks return HTTP 401 without authentication; unconfigured provider webhooks return HTTP 503.
+Following explicit approval for the main rollout, the Performance+ foundation migrations, including the permanent complimentary owner-access update, and all four vault/provider functions are deployed to **main and sandbox**. Main `complete-account-deletion` remains **ACTIVE, version 10**, including the premium storage bucket. The JWT compatibility repair migration `20260910115915` is applied; that database repair did not replace the function. These checks do not constitute completion of a customer's permanent deletion request.
 
-No customer deletion or reset has occurred. The Apple subscription catalogue
-and RevenueCat project are now connected end to end. RevenueCat validates the
+The Apple subscription catalogue and RevenueCat provider pipeline are configured.
+Both authenticated RevenueCat webhook test deliveries returned HTTP 200. Actual
+signed-iPhone purchase, renewal and restore acceptance is still pending; a
+provider test event does not prove those end-to-end customer flows.
+RevenueCat validates the
 active Apple in-app purchase key `7GKV76RS3D`; both Apple products are attached
 to the `performance_plus` entitlement and default offering. Apple production
 and sandbox server notifications point to RevenueCat. RevenueCat sends those
@@ -136,7 +139,7 @@ The ordinary `apple-review` and fictional demo modes keep purchases disabled. No
 
 TestFlight purchases run in Apple's sandbox and renewal timing is accelerated. Test renewal and billing failure using Apple's supported test controls, not live charges. [Apple TestFlight purchase testing](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testing-subscriptions-and-in-app-purchases-in-testflight/)
 
-The new native purchase, document-picker and image-manipulation modules require a **new signed iOS build**. An over-the-air update to an old binary is insufficient; build 9 now supplies that foundation binary and has been uploaded. Continue with Apple's processing/tester-availability check. A separately configured purchase-test build must use the intended EAS environment, signing identity, bundle ID, runtime and update channel. App Review's sandbox purchase flow also needs a verified isolated route in the eventual submitted binary.
+The new native purchase, document-picker and image-manipulation modules require a **new signed iOS build**. An over-the-air update to an old binary is insufficient; build 9 now supplies that foundation binary and has been uploaded and processed for internal testing. It is not the separately configured `performance-test` build. That purchase-test build must use the intended EAS environment, signing identity, bundle ID, runtime and update channel; its build and signed-device acceptance remain pending. The ordinary review/demo path keeps purchases disabled. Before submitting subscriptions, implement and verify the isolated purchase route in the actual binary selected for App Review; do not describe the ordinary demo as purchase-enabled or promise to substitute a different binary after review.
 
 ## 4. Required acceptance checks before charging
 
@@ -146,7 +149,16 @@ The new native purchase, document-picker and image-manipulation modules require 
 - Test forged/unknown products, non-AUD price mismatch, sandbox receipt rejection on main, duplicate/out-of-order webhook events, provider outage and retry after a successful Apple payment. Never ask a customer to buy again to fix delayed verification.
 - Test a free, complimentary and paid account with the same representative PDFs/photos. Check short-lived original/thumbnail links, sign-out, stale screens, account deletion and active-subscription cancellation instructions.
 - Test iPhone photo framing, the complete illustration library, PDF opening, thumbnails, slow network, interrupted upload and wrong-job manifests. Verify bookings, kilometres, reminders and existing free dyno functionality still work.
-- Update `STORE-RELEASE-PACKAGE.md` (its older “no paid subscriptions” statement is obsolete for launch), privacy/provider disclosures, terms, support URLs, subscription screenshots and App Review access instructions. Submit the first subscription products/group with a new app version.
+- Verify `STORE-RELEASE-PACKAGE.md`, privacy/provider disclosures, terms, support URLs and App Review instructions against the actual submitted binary. The release package already describes optional paid Performance+; its subscription screenshot and purchase-access evidence remain pending. Submit the first subscription products/group with a new app version.
+
+The subscription review screenshot is separate from the five existing store
+marketing drafts. Follow the pending native capture checklist in
+`STORE-RELEASE-PACKAGE.md`: use the signed purchase-test build and a free
+synthetic account with a vehicle, capture the real Performance+ purchase screen,
+and retain the build/runtime and test evidence. The public web preview and
+Matt's permanently complimentary account cannot demonstrate a working purchase
+screen. Recapture against the actual submitted binary if its UI or purchase
+route differs; never manufacture a successful Apple purchase image.
 
 Record the actual build ID, project, test identities, test results and webhook timestamps. A complimentary beta grant is not a substitute for purchase/restore testing. Keep purchases closed until failures are resolved.
 

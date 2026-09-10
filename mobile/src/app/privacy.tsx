@@ -5,11 +5,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { subscriptionPurchasesAvailable } from '@/lib/performance-purchases';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 const SECTIONS = [
   {
     title: 'Who operates the app',
-    copy: 'PSI PERFORMANCE PTY LTD, trading as PSI Performance, operates the PSI Performance app and administers the workshop bookings, vehicle services and customer records shown here. PSI Free remains available without a subscription. Optional Performance+ vehicle vault features are being tested in this beta; paid purchases are not open yet.',
+    copy: 'PSI PERFORMANCE PTY LTD, trading as PSI Performance, operates the PSI Performance app and administers the workshop bookings, vehicle services and customer records shown here. PSI Free remains available without a subscription.',
   },
   {
     title: 'Information we handle',
@@ -48,6 +50,11 @@ const SECTIONS = [
 export default function PrivacyScreen() {
   const router = useRouter();
   const { horizontalPadding } = useResponsiveLayout();
+  const purchaseNotice = !subscriptionPurchasesAvailable()
+    ? 'Optional Performance+ paid subscriptions are unavailable in this build.'
+    : REVIEW_ENVIRONMENT.enabled
+      ? 'Optional Performance+ subscriptions are available for Apple sandbox purchase testing in this build.'
+      : 'Optional Performance+ subscriptions can be purchased through Apple when the products are available.';
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]} showsVerticalScrollIndicator={false}>
@@ -62,11 +69,11 @@ export default function PrivacyScreen() {
         {SECTIONS.map((section) => (
           <View key={section.title} style={styles.card}>
             <Text style={styles.heading}>{section.title}</Text>
-            <Text style={styles.copy}>{section.copy}</Text>
+            <Text style={styles.copy}>{section.copy}{section.title === 'Who operates the app' ? ` ${purchaseNotice}` : ''}</Text>
           </View>
         ))}
         <PrimaryButton label="Request account deletion" onPress={() => router.push('/delete-account')} variant="outline" />
-        <Text style={styles.updated}>LAST UPDATED · 09/09/2026</Text>
+        <Text style={styles.updated}>LAST UPDATED · 10/09/2026</Text>
       </ScrollView>
     </SafeAreaView>
   );

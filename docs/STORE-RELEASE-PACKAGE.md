@@ -187,33 +187,75 @@ Draft captions:
 4. **BOOKINGS** — See upcoming and previous PSI workshop visits.
 5. **PLAN & BUILD** — Shape a staged conversation around your vehicle goals.
 
+### Pending Performance+ subscription review capture
+
+The existing five marketing screenshots do not include a native Performance+
+purchase screen. This review artifact is still pending. Capture it only after
+the signed `performance-test` build is available and its sandbox purchase flow
+works on an iPhone:
+
+1. Record the actual build number, EAS build ID, runtime, device and iOS version.
+   Confirm the isolated review backend and purchase-test configuration.
+2. Sign in with a dedicated free synthetic customer account that owns a test
+   vehicle. Use its app password; keep it out of screenshots and this document.
+   Matt's permanent complimentary account hides the paid controls and is not
+   suitable for this capture.
+3. Open Home > Performance+, scroll to Choose Performance+, and capture the
+   actual rendered offer with A$9.99/month, A$99/year and the corresponding
+   enabled purchase controls. Retain additional native captures of Restore
+   purchases, renewal information, Privacy and Subscription terms if they do
+   not fit in the same viewport. Do not resize the interface or fabricate an
+   Apple payment sheet to fit everything into one image.
+4. Keep the native PNG/JPEG dimensions and check the current upload requirements
+   in each subscription's App Review Information. Attach a relevant screenshot
+   to both monthly and annual product records, keeping supplementary evidence
+   separate from the public marketing screenshot pack.
+5. Record successful monthly/annual purchase and restore results separately.
+   A screenshot alone is not purchase verification. Before final submission,
+   verify the same purchase access in the submitted binary and recapture any
+   screen whose content or navigation changed.
+
+The public web preview and ordinary beta/review demonstration have disabled
+purchase controls and cannot supply this evidence. The purchase-test build is
+for isolated acceptance; it does not establish that the final submitted binary
+already supports App Review purchases.
+
 ## App Review access draft
 
-Create a dedicated synthetic customer account shortly before submission. Do not
-put its credentials, mailbox password or live email code in this repository.
-Enter the review email directly into App Store Connect and provide access to a
-dedicated review mailbox so Apple can retrieve a fresh one-time code. The
-customer account should remain active and contain only synthetic vehicle and
-workshop data.
+Reuse the existing isolated synthetic customer and separate workshop review
+accounts described in `APPLE-REVIEW-SANDBOX.md`. Verify their dedicated **app
+passwords** on the signed device and enter them only in App Store Connect's
+private review fields. Reviewers do not need mailbox access or live email codes.
+Never supply a Gmail, Apple Account or live PSI password. The normal customer
+app retains invitation-only email-code sign-in and live workshop MFA.
 
-Suggested review notes (replace every bracketed field in App Store Connect):
+The current same-build demonstration instructions below cover ordinary app and
+workshop review. Check the actual selected build before using them. They do not
+claim subscription purchase access; see the separate pending requirement below.
 
-> This app uses passwordless email-code authentication. On the sign-in screen,
-> enter [DEDICATED REVIEW EMAIL], request a code, then retrieve the current
-> six-digit code from the dedicated review mailbox using the credentials
-> supplied in the App Review sign-in fields/notes. New public registration is
-> intentionally disabled; the review account is already active and does not
-> expire. It contains synthetic customer and vehicle information only. Staff
-> functions are not required to review the customer app and remain restricted
-> to PSI's owner with authenticator MFA. Booking requests enter PSI review and
-> do not take payment or create a confirmed appointment. To review the optional
-> subscription, open Performance+ from Home and use the monthly or annual Apple
-> option. Restore purchases checks the Apple receipt against the same PSI
-> account. Physical workshop services are separate from the subscription.
+> Open Account, select Open demonstration, then Enter demo and restart. Use the
+> dedicated customer app credentials supplied in the private review fields on
+> the Apple review sign-in form. This isolated environment contains fictional
+> records. No mailbox access or one-time email code is required. To review the
+> workshop portal, sign out and use the separate workshop app credentials in
+> the private review notes, then open PSI Portal from Account. Live workshop
+> access remains protected by staff MFA. The ordinary demonstration disables
+> external email, remote push, Calendar changes and Apple purchases. In-app
+> records and notifications remain available for inspection.
+
+Subscription review access is **not yet verified in the eventual submitted
+binary**. The separate `performance-test` profile enables Apple sandbox
+purchases against the isolated backend and opens the review sign-in directly;
+it does not require switching from normal mode. Complete its signed-device
+monthly/annual purchase and restore checks, then implement and verify the
+purchase route in the actual binary selected for App Review. Only then add
+accurate subscription navigation instructions and the captured review image to
+App Store Connect. Do not direct reviewers to disabled controls in the ordinary
+demo or offer a later replacement binary as the review arrangement.
 
 Also complete the App Review contact name, monitored phone number in
-international format, and `info@psiperformance.com.au`. Test the supplied review
-mailbox from a clean device immediately before submission.
+international format, and `info@psiperformance.com.au`. Test both supplied app
+logins from a signed-out device immediately before submission.
 
 ## Still requires owner action
 
@@ -223,8 +265,9 @@ mailbox from a clean device immediately before submission.
   D-U-N-S number outside the public repository.
 - Create or verify the Google Play organisation/developer account.
 - Decide supported territories and confirm the drafted age-rating answers.
-- Create the dedicated synthetic App Review account/mailbox and enter its
-  credentials only in App Store Connect.
+- Verify the existing synthetic App Review accounts and enter their dedicated
+  app credentials only in App Store Connect. Verify purchase access in the
+  submitted binary and attach the native subscription review screenshot.
 - Reconfirm the legal entity/ABN, privacy wording and retention schedule with
   PSI's accountant or legal adviser.
 - Approve every screenshot, partner mark and manufacturer/platform mark before

@@ -1,14 +1,17 @@
 # PSI Performance App Privacy Policy
 
-Status: owner-approved and published on 2 September 2026. The public copy is
-included under **PSI Performance App Privacy Policy** within PSI's Shopify
-privacy page at https://psiperformance.com.au/policies/privacy-policy. PSI
-PERFORMANCE PTY LTD was owner-confirmed as the sole operator. This document is
-an internal publication record and must not be represented as legal advice.
+Status: **Performance+ update draft, 10 September 2026 — not yet approved or
+published.** The preceding policy was owner-approved and published on
+2 September 2026 under **PSI Performance App Privacy Policy** within PSI's
+Shopify privacy page at https://psiperformance.com.au/policies/privacy-policy.
+That publication is not evidence that the new subscription disclosures below
+are live. PSI PERFORMANCE PTY LTD was owner-confirmed as the sole operator.
+This document records the proposed update and must not be represented as legal
+advice.
 
 ## Privacy Policy
 
-**Last updated: 2 September 2026**
+**Draft updated: 10 September 2026. Effective date pending publication.**
 
 ### 1. Who we are
 
@@ -32,10 +35,14 @@ vehicle records, booking communications and related support. We do not sell App
 customer information, use it for third-party advertising or use it to track
 people across unrelated apps or websites.
 
-The App does not collect payment-card details. Payments and in-app purchases
-are not currently enabled. If payment functionality is introduced, this policy
-and the relevant collection notices will be updated before that functionality
-is activated.
+The App does not collect full payment-card or bank-account credentials. General
+customer activation of optional Performance+ purchases remains pending. The
+Apple and RevenueCat connection is configured for controlled purchase testing;
+this does not mean live customer charging has opened. When enabled, Apple
+processes the subscription purchase and RevenueCat verifies the resulting
+access linked to the customer's PSI account. PSI Free remains available
+without a subscription. The approved policy and relevant collection notices
+will be published before general paid activation.
 
 ### 3. Personal information we collect and hold
 
@@ -63,6 +70,12 @@ information.
 **Invoice and transaction records.** This includes the invoice number, date,
 summary, amount, currency and related documents. The App does not collect or
 store card or bank account credentials.
+
+**Subscription records.** For optional Performance+ access, this includes the
+PSI account identifier, Apple product and transaction identifiers, purchase and
+renewal status, expiry, cancellation, refund and verified entitlement status.
+These records let PSI check whether premium vehicle records should be
+available to the signed-in account.
 
 **Customer content.** This includes photographs taken with the device camera,
 images selected from the photo library, invoices, dyno graphs, repair documents
@@ -120,6 +133,10 @@ dyno, invoice, repair and service records; store and display customer-selected
 photographs and documents; provide customer support; respond to access,
 correction, complaint and deletion requests; and maintain accurate business,
 taxation, warranty, safety and dispute records.
+
+For Performance+, PSI also verifies subscription purchases and restores,
+maintains the resulting access status, and responds to subscription-related
+account support requests.
 
 Personal information may also be used to protect customers, PSI, the App and
 connected services from misuse, unauthorised access, fraud and security
@@ -197,6 +214,15 @@ notification information outside Australia, including in the United States.
 **Apple and Google** provide operating system distribution and notification
 delivery. Depending on the device, notification information may be processed
 outside Australia, including in the United States.
+
+**Apple and RevenueCat** support optional Performance+ subscriptions. Apple
+processes the purchase. RevenueCat receives the PSI account identifier and
+subscription transaction information to verify purchases, renewals and
+restores; PSI uses the verified result to control premium access. Workshop
+photographs, invoice PDFs and other private vault files are not sent to
+RevenueCat. These providers may process subscription information outside
+Australia. The connection is configured for controlled testing; general paid
+activation remains pending.
 
 **Google Calendar** receives limited PSI-internal booking information when a
 booking reaches the required confirmed state. Customers cannot list or read
@@ -335,7 +361,8 @@ an appropriate channel where required.
 ## Follow-up compliance actions
 
 The following internal actions are intentionally outside the public policy
-copy and remain tracked after publication:
+copy. The Performance+ changes require review and publication before general
+paid activation:
 
 1. Confirm ABN/ACN details if they will be added to the public page.
 2. Approve the five-year minimum for transaction records and document any
@@ -346,6 +373,10 @@ copy and remain tracked after publication:
 5. Resolve Open-Meteo commercial licensing or replace the provider, then update
    sections 7 and 9 if needed.
 6. Re-run the signed-binary App Store and Google Play data-disclosure audit.
+7. Verify Apple and RevenueCat disclosures against the final signed build and
+   provider configuration, approve this draft, publish the updated public
+   policy and collection notices, and record their effective date. Do not treat
+   this repository draft as proof that the public policy has changed.
 
 ## Principal review sources
 
