@@ -37,7 +37,15 @@ export function StaffXeroConnection() {
       setCandidates(pending.data ?? []);
       const isConnected = !pending.data?.length && Array.isArray(data) && data.length > 0;
       setConnected(isConnected);
-      setMessage(pending.data?.length ? 'Select PSI’s organisation below. Check the business name carefully.' : isConnected ? 'Connected securely. Automatic invoice imports are off.' : 'Not connected.');
+      if (pending.data?.length) {
+        setMessage('Select PSI’s organisation below. Check the business name carefully.');
+      } else if (isConnected && showBusy) {
+        const health = await getSupabaseClient().functions.invoke('process-xero-imports', { body: { action: 'health_check' } });
+        if (health.error || health.data?.connected !== true) throw new Error('xero_health_check_failed');
+        setMessage('Xero verified live. Invoice imports wait for an exact customer, vehicle and PSI job match.');
+      } else {
+        setMessage(isConnected ? 'Connected securely. Automatic invoice imports are off.' : 'Not connected.');
+      }
     } catch {
       setConnected(null);
       setMessage('Connection status is unavailable. Check setup and your owner verification.');

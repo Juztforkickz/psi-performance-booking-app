@@ -25,6 +25,33 @@ const json = (body: unknown, status = 200) => Response.json(body, { status, head
 const uuid = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
 const errorCode = (value: unknown) => ((value instanceof Error ? value.message : String(value ?? 'xero_import_failed')).toLowerCase().replace(/[^a-z0-9_-]+/gu, '_').replace(/^_+|_+$/gu, '') || 'xero_import_failed').slice(0, 160);
 
+async function verifyXeroAccess(accessToken: string, tenantId: string) {
+  const url = new URL('https://api.xero.com/api.xro/2.0/Invoices');
+  url.searchParams.set('IDs', '00000000-0000-4000-8000-000000000000');
+  url.searchParams.set('summaryOnly', 'true');
+  const response = await fetch(url, {
+    method: 'GET', redirect: 'error', signal: AbortSignal.timeout(15000),
+    headers: { Authorization: `Bearer ${accessToken}`, 'xero-tenant-id': tenantId, Accept: 'application/json' },
+  });
+  if (!response.ok) {
+    await response.body?.cancel();
+    if (response.status === 401) throw new Error('xero_reauthorisation_required');
+    if (response.status === 403) throw new Error('xero_invoice_permission_required');
+    if (response.status === 429) throw new Error('xero_rate_limited_retry_later');
+    throw new Error('xero_temporarily_unavailable');
+  }
+  if (response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') {
+    await response.body?.cancel();
+    throw new Error('xero_unexpected_response');
+  }
+  if (Number(response.headers.get('content-length')) > 262144) {
+    await response.body?.cancel();
+    throw new Error('xero_response_too_large');
+  }
+  const body = await response.json().catch(() => null);
+  if (!Array.isArray(body?.Invoices)) throw new Error('xero_invalid_invoice_response');
+}
+
 function invoiceDate(invoice: XeroInvoice) {
   const candidate = invoice.DateString ?? invoice.Date ?? '';
   const match = candidate.match(/^\d{4}-\d{2}-\d{2}/u);
@@ -230,11 +257,22 @@ Deno.serve(async request => {
     }
   }
 
-  let body: { queueId?: unknown; limit?: unknown } = {};
+  let body: { action?: unknown; queueId?: unknown; limit?: unknown } = {};
   try { body = await request.json(); } catch { body = {}; }
   if (body.queueId !== undefined && !uuid(body.queueId)) return json({ error: 'invalid_queue_id' }, 400);
   const limit = Math.min(10, Math.max(1, typeof body.limit === 'number' && Number.isFinite(body.limit) ? Math.trunc(body.limit) : 5));
   const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  if (body.action === 'health_check') {
+    const tenantId = env('XERO_TENANT_ID');
+    if (!uuid(tenantId)) return json({ connected: false, error: 'xero_configuration_required' }, 503);
+    try {
+      const { accessToken } = await refreshedAccess(admin, tenantId);
+      await verifyXeroAccess(accessToken, tenantId);
+      return json({ connected: true });
+    } catch (error) {
+      return json({ connected: false, error: errorCode(error) }, 503);
+    }
+  }
   let query = admin.from('vault_import_queue').select('id,source_key,status,identifiers,job_id,attempt_count').eq('source', 'xero').in('status', ['pending','matched','failed']).lte('available_at', new Date().toISOString()).lt('attempt_count', 20).order('created_at').limit(limit);
   if (body.queueId) query = query.eq('id', body.queueId);
   const { data: queued, error: queueError } = await query;

@@ -910,23 +910,23 @@ test("keeps approval-first clients and the mobile dashboard preview safe", async
   ]) {
     assert.match(publicDemo, new RegExp(`${flag}: true`, "u"));
   }
-  assert.match(mobileHome, /Accounts, photos, alerts and submissions remain preview-only/u);
+  assert.match(mobileHome, /Explore the app with demonstration data\. Account access and submissions are disabled\./u);
   assert.match(customerPreview, /managedBy: 'psi'/u);
   assert.match(customerPreview, /customerAccess: 'read_only'/u);
   assert.match(customerPreview, /status: 'psi_verified'/u);
   assert.match(mobileGarage, /Read-only for customers · PSI publishes each verified run/u);
   assert.match(photoPicker, /base64: false/u);
   assert.match(photoPicker, /exif: false/u);
-  assert.match(photoPicker, /temporary local reference/u);
-  assert.match(photoPicker, /not uploaded to PSI or saved to an account/u);
+  assert.match(photoPicker, /Demo photo\. The selected photo is not uploaded\./u);
+  assert.match(photoPicker, /This photo is not uploaded and clears when the demo closes\./u);
   assert.doesNotMatch(photoPicker, /\bfetch\(|FormData|uploadAsync/u);
   const mobileAppConfig = JSON.parse(mobileAppConfigSource);
   const imagePickerPlugin = mobileAppConfig.expo.plugins.find(
     (plugin) => Array.isArray(plugin) && plugin[0] === "expo-image-picker",
   );
   assert.deepEqual(imagePickerPlugin?.[1], {
-    photosPermission: false,
-    cameraPermission: false,
+    photosPermission: 'Allow PSI to select vehicle photos and supporting documents from your photo library.',
+    cameraPermission: 'Allow PSI to use your camera to photograph your vehicle and supporting documents.',
     microphonePermission: false,
   });
   assert.deepEqual(mobileAppConfig.expo.android.blockedPermissions, [

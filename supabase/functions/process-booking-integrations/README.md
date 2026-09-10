@@ -38,10 +38,10 @@ app configuration:
 - `PSI_GOOGLE_CALENDAR_ID`
 
 Email calls use the queue dedupe key as Resend's idempotency key. Calendar
-events are all-day internal workshop records, use a deterministic event ID, do
-not invite the customer and are inserted only for a booking already moved to
-`confirmed` by the future trusted payment integration. Payment processing is
-not implemented by this function.
+events are all-day workshop records, use a deterministic event ID, inherit the
+selected PSI Calendar's default visibility, and never invite the customer. They
+are inserted only after a trusted payment flow moves a booking to `confirmed`.
+Payment processing is not implemented by this function.
 
 ## Provider activation
 
@@ -54,5 +54,6 @@ refresh token has no testing-mode seven-day expiry field.
 This does not make Calendar data customer-visible. The customer client has no
 Google credential or Calendar-read endpoint. The worker creates no event for a
 pending or date-approved request and never adds the customer as an attendee.
-A controlled AAL2 queue-delivery acceptance run is still required before real
-customer onboarding.
+The portal's AAL2-gated queue check also performs a read-only live Calendar
+health request. A real event acceptance check still waits for a legitimately
+confirmed booking.

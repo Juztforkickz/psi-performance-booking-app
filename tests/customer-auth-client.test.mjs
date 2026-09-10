@@ -81,6 +81,6 @@ test('private QA profile enables existing-account auth without registration or b
 test('profile setup keeps account photos private and public-preview photos local', () => {
   assert.match(setupScreen, /uploadCustomerVehiclePhoto/u);
   assert.match(setupScreen, /storageMode=\{CUSTOMER_AUTH\.enabled \? 'private_account' : 'local_preview'\}/u);
-  assert.match(setupScreen, /private bucket protected by customer ownership rules/u);
+  assert.match(setupScreen, /Your profile, vehicle and photo are saved privately\. Only you and authorised PSI staff can view them\./u);
   assert.doesNotMatch(setupScreen, /service_role|sb_secret_|getPublicUrl/u);
 });

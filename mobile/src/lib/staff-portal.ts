@@ -81,6 +81,10 @@ export type AccountDeletionCompletionResult = {
 
 export type BookingIntegrationRunResult = {
   processed: number;
+  providerHealth?: {
+    calendar: 'needs_configuration' | 'unavailable' | 'verified';
+    email: 'configured' | 'needs_configuration';
+  };
   readiness: {
     calendarConfigured: boolean;
     emailConfigured: boolean;

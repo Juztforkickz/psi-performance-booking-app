@@ -59,6 +59,22 @@ Deno.serve(async (request) => {
     if (recentTestError) return json({ error: "notification_test_unavailable" }, 500);
     if ((recentTestCount ?? 0) > 0) return json({ error: "notification_test_rate_limited" }, 429);
 
+    const { data: staleTestEvents, error: staleTestError } = await admin
+      .from("notification_events")
+      .select("id")
+      .eq("recipient_user_id", userData.user.id)
+      .like("source_event_key", `${testPrefix}%`)
+      .lt("created_at", oneMinuteAgo);
+    if (staleTestError) return json({ error: "notification_test_unavailable" }, 500);
+    const staleEventIds = (staleTestEvents ?? []).map((event) => event.id);
+    if (staleEventIds.length) {
+      const now = new Date().toISOString();
+      const { error: staleJobError } = await admin.from("push_notification_jobs").update({
+        status: "cancelled", completed_at: now, last_error_code: "test_superseded", updated_at: now,
+      }).in("event_id", staleEventIds).in("status", ["pending", "failed"]);
+      if (staleJobError) return json({ error: "notification_test_unavailable" }, 500);
+    }
+
     const batchId = crypto.randomUUID();
     const { data: testEvents, error: testEventError } = await admin.from("notification_events").insert([
       {

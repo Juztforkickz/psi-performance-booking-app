@@ -284,6 +284,54 @@ const loadBookingContext = async (admin: SupabaseClient, job: IntegrationJob): P
   };
 };
 
+const googleCalendarConfiguration = () => {
+  const clientId = env("GOOGLE_CALENDAR_CLIENT_ID");
+  const clientSecret = env("GOOGLE_CALENDAR_CLIENT_SECRET");
+  const refreshToken = env("GOOGLE_CALENDAR_REFRESH_TOKEN");
+  const calendarId = env("PSI_GOOGLE_CALENDAR_ID");
+  const missing = [
+    !clientId && "GOOGLE_CALENDAR_CLIENT_ID",
+    !clientSecret && "GOOGLE_CALENDAR_CLIENT_SECRET",
+    !refreshToken && "GOOGLE_CALENDAR_REFRESH_TOKEN",
+    !calendarId && "PSI_GOOGLE_CALENDAR_ID",
+  ].filter(Boolean) as string[];
+  return { calendarId, clientId, clientSecret, missing, refreshToken };
+};
+
+const googleCalendarAccessToken = async () => {
+  const config = googleCalendarConfiguration();
+  if (config.missing.length) return { blocked: config.missing } as const;
+  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+    body: new URLSearchParams({
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      grant_type: "refresh_token",
+      refresh_token: config.refreshToken,
+    }),
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    method: "POST",
+  });
+  const tokenBody = await tokenResponse.json().catch(() => ({})) as { access_token?: string };
+  if (!tokenResponse.ok || !tokenBody.access_token) throw new Error(`google_token_${tokenResponse.status}`);
+  return { accessToken: tokenBody.access_token, calendarId: config.calendarId } as const;
+};
+
+const verifyGoogleCalendar = async () => {
+  const access = await googleCalendarAccessToken();
+  if ("blocked" in access) return access;
+  const url = new URL(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(access.calendarId)}/events`);
+  url.searchParams.set("maxResults", "1");
+  url.searchParams.set("singleEvents", "true");
+  url.searchParams.set("timeMin", new Date().toISOString());
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${access.accessToken}` },
+    method: "GET",
+  });
+  await response.body?.cancel();
+  if (!response.ok) throw new Error(`google_calendar_health_${response.status}`);
+  return { verified: true } as const;
+};
+
 const sendEmail = async (job: IntegrationJob, context: BookingContext) => {
   const apiKey = env("RESEND_API_KEY");
   const from = env("PSI_TRANSACTIONAL_FROM_EMAIL");
@@ -318,40 +366,19 @@ const sendEmail = async (job: IntegrationJob, context: BookingContext) => {
 };
 
 const syncGoogleCalendar = async (admin: SupabaseClient, job: IntegrationJob, context: BookingContext) => {
-  const clientId = env("GOOGLE_CALENDAR_CLIENT_ID");
-  const clientSecret = env("GOOGLE_CALENDAR_CLIENT_SECRET");
-  const refreshToken = env("GOOGLE_CALENDAR_REFRESH_TOKEN");
-  const calendarId = env("PSI_GOOGLE_CALENDAR_ID");
-  const missing = [
-    !clientId && "GOOGLE_CALENDAR_CLIENT_ID",
-    !clientSecret && "GOOGLE_CALENDAR_CLIENT_SECRET",
-    !refreshToken && "GOOGLE_CALENDAR_REFRESH_TOKEN",
-    !calendarId && "PSI_GOOGLE_CALENDAR_ID",
-  ].filter(Boolean) as string[];
-  if (missing.length) return { blocked: missing } as const;
+  const access = await googleCalendarAccessToken();
+  if ("blocked" in access) return access;
+  const { accessToken, calendarId } = access;
   const cancellation = job.job_kind === "sync_google_calendar_cancelled";
   if (!cancellation && !["confirmed", "completed"].includes(context.booking.state)) throw new Error("booking_not_confirmed");
   if (!cancellation && !context.booking.approved_date) throw new Error("booking_date_missing");
   const approvedDate = context.booking.approved_date;
 
-  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: "refresh_token",
-      refresh_token: refreshToken,
-    }),
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    method: "POST",
-  });
-  const tokenBody = await tokenResponse.json().catch(() => ({})) as { access_token?: string };
-  if (!tokenResponse.ok || !tokenBody.access_token) throw new Error(`google_token_${tokenResponse.status}`);
-
   const eventId = `psi${job.booking_request_id.replaceAll("-", "").toLowerCase()}`;
   const eventUrl = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`;
   if (cancellation) {
     const removeResponse = await fetch(`${eventUrl}?sendUpdates=none`, {
-      headers: { Authorization: `Bearer ${tokenBody.access_token}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
       method: "DELETE",
     });
     if (![204, 404, 410].includes(removeResponse.status)) throw new Error(`google_calendar_delete_${removeResponse.status}`);
@@ -383,8 +410,8 @@ const syncGoogleCalendar = async (admin: SupabaseClient, job: IntegrationJob, co
     visibility: "default",
     extendedProperties: { private: { psiBookingRequestId: context.booking.id } },
   };
-  const commonHeaders = { Authorization: `Bearer ${tokenBody.access_token}`, "Content-Type": "application/json" };
-  const lookupResponse = await fetch(eventUrl, { headers: { Authorization: `Bearer ${tokenBody.access_token}` }, method: "GET" });
+  const commonHeaders = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
+  const lookupResponse = await fetch(eventUrl, { headers: { Authorization: `Bearer ${accessToken}` }, method: "GET" });
   if (!lookupResponse.ok && lookupResponse.status !== 404) throw new Error(`google_calendar_lookup_${lookupResponse.status}`);
   const eventResponse = lookupResponse.status === 404
     ? await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?sendUpdates=none`, { body: JSON.stringify(eventBody), headers: commonHeaders, method: "POST" })
@@ -562,22 +589,32 @@ Deno.serve(async (request) => {
   const results: ProcessResult[] = [];
   for (const job of (jobs ?? []) as IntegrationJob[]) results.push(await processJob(admin, job));
 
+  const calendarConfigured = googleCalendarConfiguration().missing.length === 0;
+  let calendarHealth: "needs_configuration" | "unavailable" | "verified" = calendarConfigured ? "unavailable" : "needs_configuration";
+  if (!bookingId && isAal2Staff && calendarConfigured) {
+    try {
+      const health = await verifyGoogleCalendar();
+      calendarHealth = "verified" in health ? "verified" : "needs_configuration";
+    } catch {
+      calendarHealth = "unavailable";
+    }
+  }
+
   return json({
     processed: results.filter((result) => result.status !== "skipped").length,
     results,
     readiness: {
-      calendarConfigured: Boolean(
-        env("GOOGLE_CALENDAR_CLIENT_ID") &&
-        env("GOOGLE_CALENDAR_CLIENT_SECRET") &&
-        env("GOOGLE_CALENDAR_REFRESH_TOKEN") &&
-        env("PSI_GOOGLE_CALENDAR_ID")
-      ),
+      calendarConfigured,
       emailConfigured: Boolean(env("RESEND_API_KEY") && env("PSI_TRANSACTIONAL_FROM_EMAIL") && env("PSI_OWNER_NOTIFICATION_EMAIL")),
       paymentsConfigured: Boolean(
         env("STRIPE_SECRET_KEY") &&
         env("STRIPE_WEBHOOK_SECRET") &&
         env("PSI_PAYMENT_RETURN_ORIGIN")
       ),
+    },
+    providerHealth: {
+      calendar: calendarHealth,
+      email: Boolean(env("RESEND_API_KEY") && env("PSI_TRANSACTIONAL_FROM_EMAIL") && env("PSI_OWNER_NOTIFICATION_EMAIL")) ? "configured" : "needs_configuration",
     },
   });
 });

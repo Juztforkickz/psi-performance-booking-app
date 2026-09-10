@@ -21,13 +21,17 @@ test('Calendar reconciliation creates, updates and removes one team-visible dete
   assert.doesNotMatch(worker, /visibility: "public"/u);
   assert.match(worker, /sendUpdates=none/u);
   assert.match(worker, /sync_state: "removed"/u);
+  assert.match(worker, /const verifyGoogleCalendar = async/u);
+  assert.match(worker, /url\.searchParams\.set\("maxResults", "1"\)/u);
+  assert.match(worker, /calendar: calendarHealth/u);
 });
 
 test('Xero imports rotate tokens, require an owner-confirmed match and publish only a verified PDF', async () => {
-  const [worker, lockMigration, importMigration, webhook] = await Promise.all([
+  const [worker, lockMigration, importMigration, hardeningMigration, webhook] = await Promise.all([
     read('../supabase/functions/process-xero-imports/index.ts'),
     read('../supabase/migrations/20260909124112_xero_refresh_token_lock.sql'),
     read('../supabase/migrations/20260910131500_xero_import_processing.sql'),
+    read('../supabase/migrations/20260910170451_harden_xero_match_and_vault_foreign_keys.sql'),
     read('../supabase/functions/xero-vault-webhook/index.ts'),
   ]);
   assert.match(lockMigration, /for update/u);
@@ -36,6 +40,13 @@ test('Xero imports rotate tokens, require an owner-confirmed match and publish o
   assert.match(importMigration, /private\.is_owner_staff\(\)/u);
   assert.match(importMigration, /confirm_xero_import_match/u);
   assert.match(importMigration, /upper\(btrim\(job\.reference\)\) <> invoice_reference/u);
+  assert.match(hardeningMigration, /alter function public\.confirm_xero_import_match\(uuid, uuid, uuid\) set schema private/u);
+  assert.match(hardeningMigration, /security invoker/u);
+  assert.match(hardeningMigration, /vault_assets_record_customer_vehicle_idx/u);
+  assert.match(hardeningMigration, /vault_records_job_customer_vehicle_idx/u);
+  assert.match(worker, /body\.action === 'health_check'/u);
+  assert.match(worker, /IDs', '00000000-0000-4000-8000-000000000000'/u);
+  assert.match(worker, /return json\(\{ connected: true \}\)/u);
   assert.match(webhook, /status: 'pending'/u);
   assert.match(webhook, /EdgeRuntime\.waitUntil/u);
   assert.match(webhook, /functions\/v1\/process-xero-imports/u);

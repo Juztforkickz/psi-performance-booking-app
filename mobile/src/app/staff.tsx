@@ -866,13 +866,13 @@ export function StaffWorkspace({
               <Text style={styles.securityCopy}>{REVIEW_ENVIRONMENT.enabled ? 'External email and Calendar delivery are deliberately disabled. Queue entries demonstrate the workflow without contacting anyone or creating appointments.' : 'Confirmed bookings can create email and Calendar jobs. Processing checks the current connection status.'}</Text>
             </View>
           </View>
-          <PrimaryButton disabled={previewMode} label={previewMode ? 'Process deliveries · Preview only' : 'Process waiting deliveries'} loading={integrationBusy} onPress={() => void processIntegrationQueue()} variant="outline" />
+          <PrimaryButton disabled={previewMode} label={previewMode ? 'Check Email & Calendar · Preview only' : 'Check Email & Calendar'} loading={integrationBusy} onPress={() => void processIntegrationQueue()} variant="outline" />
           {integrationResult ? (
             <View accessibilityLiveRegion="polite" style={styles.integrationSuccess}>
               <Ionicons color={colors.success} name="checkmark-circle" size={20} />
               <View style={styles.flex}>
                 <Text style={styles.integrationSuccessTitle}>Queue check complete</Text>
-                <Text style={styles.integrationSuccessCopy}>{REVIEW_ENVIRONMENT.enabled ? 'Sandbox queue checked. No emails were sent and no Calendar events were created. External delivery remains disabled.' : `${integrationResult.processed === 0 ? 'No waiting jobs were found.' : `${integrationResult.processed} waiting job${integrationResult.processed === 1 ? '' : 's'} checked.`} Email ${integrationResult.readiness.emailConfigured ? 'connected' : 'needs configuration'} · Calendar ${integrationResult.readiness.calendarConfigured ? 'connected' : 'needs configuration'} · Payments ${integrationResult.readiness.paymentsConfigured ? 'connected' : 'needs configuration'}.`}</Text>
+                <Text style={styles.integrationSuccessCopy}>{REVIEW_ENVIRONMENT.enabled ? 'Sandbox queue checked. No emails were sent and no Calendar events were created. External delivery remains disabled.' : `${integrationResult.processed === 0 ? 'No waiting jobs were found.' : `${integrationResult.processed} waiting job${integrationResult.processed === 1 ? '' : 's'} checked.`} Email ${integrationResult.providerHealth?.email === 'configured' ? 'configured' : 'needs configuration'} · Calendar ${integrationResult.providerHealth?.calendar === 'verified' ? 'verified live' : integrationResult.providerHealth?.calendar === 'unavailable' ? 'needs reconnection' : 'needs configuration'}.`}</Text>
               </View>
             </View>
           ) : null}

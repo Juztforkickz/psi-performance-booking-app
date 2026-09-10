@@ -58,7 +58,7 @@ test("account previews do not collect passwords and mobile auth stays activation
   assert.doesNotMatch(accountUi, /type=["']password["']|secureTextEntry/u);
   assert.doesNotMatch(packageJson, /@netlify\/identity|netlify-identity-widget|gotrue-js/u);
   assert.match(mobileAccess, /six-digit sign-in code/u);
-  assert.match(mobileSetup, /Nothing was submitted or stored/u);
+  assert.match(mobileSetup, /Demo account details are ready and were not submitted/u);
 
   const mobileAuth = await readFile(
     new URL("../mobile/src/lib/supabase.ts", import.meta.url),
