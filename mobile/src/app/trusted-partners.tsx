@@ -43,7 +43,7 @@ const PARTNER_LOGO_SCALES: Readonly<Record<string, number>> = {
   'luxe-interiors': 1.26,
   'elite-detailing': 1.22,
   'trb-visuals': 0.84,
-  'martini-racing-products': 1.18,
+  'martini-racing-products': 1.38,
   'fab-car-audio': 1,
 };
 
