@@ -65,7 +65,8 @@
       "extends": "apple-review",
       "distribution": "store",
       "env": {
-        "EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST": "true"
+        "EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST": "true",
+        "EXPO_PUBLIC_REVENUECAT_APPLE_KEY": "appl_qJcOAgyhLBExQHfYkgStIaOxQGj"
       }
     },
     "production": {

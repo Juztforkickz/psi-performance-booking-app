@@ -5,11 +5,17 @@ Updated 10 September 2026. Prices: **A$9.99/month or A$99/year**. This checklist
 Following explicit approval for the main rollout, the Performance+ foundation migrations, including the permanent complimentary owner-access update, and all four vault/provider functions are deployed to **main and sandbox**. Main `complete-account-deletion` is deployed and **ACTIVE, version 2**, including the premium storage bucket. Main authenticated endpoint checks return HTTP 401 without authentication; unconfigured provider webhooks return HTTP 503.
 
 No customer deletion or reset has occurred. The Apple subscription catalogue
-is now created and verified, and the RevenueCat project exists. The private
-Apple key has not yet been attached to the RevenueCat App Store app, so
-purchases remain disabled. Main continues to reject sandbox entitlements and
-the sandbox database acceptance gate remains closed. Xero is connected
-separately and is no longer an activation blocker for Performance+.
+and RevenueCat project are now connected end to end. RevenueCat validates the
+active Apple in-app purchase key `7GKV76RS3D`; both Apple products are attached
+to the `performance_plus` entitlement and default offering. Apple production
+and sandbox server notifications point to RevenueCat. RevenueCat sends those
+events through separate authenticated webhooks to the matching main and sandbox
+Supabase projects. The required server secrets and product allowlist are set in
+both projects. Main continues to reject sandbox entitlements. The sandbox
+environment and database acceptance gates are open only in the isolated Apple
+Review Sandbox so the controlled purchase test can run.
+Xero is connected separately and is no longer an activation blocker for
+Performance+.
 
 iOS **build 9**, EAS build ID `5839004a-e7ea-435e-a7dc-cbeaf63d6e8d`, is **FINISHED and uploaded to Apple for TestFlight**. [EAS submission `f2c83882-557e-467d-bcfa-ec15c0631cc2`](https://expo.dev/accounts/psi-performance/projects/matt-psi/submissions/f2c83882-557e-467d-bcfa-ec15c0631cc2) finished on 9 September 2026 at 09:12:42 Sydney time (`2026-09-08T23:12:42Z`). App Store Connect subsequently confirmed **VALID / IN_BETA_TESTING** for internal testing. Its external status is **READY_FOR_BETA_SUBMISSION**, so external beta review remains. Build 7 remains valid, in internal testing and unexpired. No public App Store review or release has been submitted.
 
@@ -52,13 +58,18 @@ to the entitlement and their corresponding packages. See RevenueCat's
 guidance.
 
 The RevenueCat project **PSI Performance** is created and its email is verified.
-Its onboarding Test Store is not the production Apple app. Complete the pending
-App Store app connection with bundle ID `com.psiperformance.booking` using the
-single active Apple in-app purchase key, then configure App Store server
-notifications through RevenueCat's current setup flow. Keep the private `.p8`
-file in the dedicated secure PSI folder and RevenueCat's encrypted provider
-configuration; never email it or commit it. A RevenueCat Test Store key cannot
-replace the Apple SDK key expected here.
+The production App Store app uses bundle ID `com.psiperformance.booking`, public
+SDK key `appl_qJcOAgyhLBExQHfYkgStIaOxQGj`, and the validated Apple in-app
+purchase key `7GKV76RS3D`. The key file is stored outside the repository in the
+dedicated PSI secure integration folder. Its contents must never be emailed or
+committed. The onboarding Test Store remains separate and its SDK key is not
+used by the PSI iOS build.
+
+The main RevenueCat webhook accepts production events only and targets main
+Supabase. The sandbox webhook accepts sandbox events only and targets the Apple
+review sandbox. Both use the same separately stored Authorization value, while
+each Supabase project has its own environment boundary. Apple production and
+sandbox server notification URLs both use RevenueCat's app-specific endpoint.
 
 Apple business readiness remains separate from the technical catalogue. The
 Paid Apps Agreement currently requires the Account Holder to review and accept
@@ -108,9 +119,18 @@ Configure separate webhook destinations and credentials for test and main. A web
 | Existing Apple sandbox | `jwikoldibbpxyhbdrsow` | Fictional/approved test data and separate identities |
 | Public GitHub Pages demo | No live authenticated customer session | Fictional previews; no purchases or writes |
 
-Sandbox acceptance has **two gates**: `PERFORMANCE_ALLOW_SANDBOX=true` in that backend and `private.performance_settings.allow_sandbox=true` in that backend's database. Both default closed. Never enable either on main to make a TestFlight test pass.
+Sandbox acceptance has **two gates**: `PERFORMANCE_ALLOW_SANDBOX=true` in that
+backend and `private.performance_settings.allow_sandbox=true` in that backend's
+database. Both are enabled only in the isolated Apple Review Sandbox for the
+controlled purchase test. Main remains false at both boundaries. Never enable
+either on main to make a TestFlight test pass.
 
-Use the implemented `performance-test` profile in `mobile/eas.json`. It extends `apple-review`, sets `distribution=store` and `EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST=true`, and inherits the pinned sandbox and `apple-review` update channel. Its native runtime is `1.0.0-performance-purchase-test-1`. `mobile/app.config.js` rejects this flag outside that profile and the verified isolated review configuration. Add the Apple SDK key to this test build's secure build configuration only when its matching backend/provider configuration is ready.
+Use the implemented `performance-test` profile in `mobile/eas.json`. It extends
+`apple-review`, sets `distribution=store`, enables the isolated purchase-test
+flag, and includes the RevenueCat Apple public SDK key. It inherits the pinned
+sandbox and `apple-review` update channel. Its native runtime is
+`1.0.0-performance-purchase-test-1`. `mobile/app.config.js` rejects this flag
+outside that profile and the verified isolated review configuration.
 
 The ordinary `apple-review` and fictional demo modes keep purchases disabled. Normal `beta`/`qa` customer sessions use main; leave their RevenueCat key unset during foundation testing. Do not inject an Apple key into ordinary beta and then relax main's sandbox protections to make purchases work. Existing beta/review runtime IDs have also changed for the new native modules.
 
