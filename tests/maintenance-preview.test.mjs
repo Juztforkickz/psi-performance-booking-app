@@ -14,22 +14,23 @@ test('vehicle maintenance edits stay in the shared in-memory preview context', a
   assert.doesNotMatch(context, /AsyncStorage|localStorage|fetch\s*\(/u);
 });
 
-test('Garage exposes odometer and service scheduling fields with an honest preview boundary', async () => {
+test('Garage exposes the customer odometer and PSI-only service scheduling fields', async () => {
   const garage = await readFile(garagePath, 'utf8');
 
   assert.match(garage, /Edit details/u);
   assert.match(garage, /Customer odometer/u);
   assert.match(garage, /Last PSI service/u);
   assert.match(garage, /Next PSI check-in/u);
-  assert.match(garage, /Personal last service/u);
-  assert.match(garage, /Personal next check-in/u);
-  assert.match(garage, /Personal entries do not change PSI workshop records\./u);
+  assert.doesNotMatch(garage, /Personal last service/u);
+  assert.doesNotMatch(garage, /Personal next check-in/u);
+  assert.match(garage, /Your reading stays separate from PSI workshop service records\./u);
 });
 
-test('Vehicle Reports reads the same maintenance preview without adding persistence', async () => {
+test('Vehicle Reports shows the customer odometer without personal service labels', async () => {
   const reports = await readFile(reportsPath, 'utf8');
 
   assert.match(reports, /vehicleMaintenance\[selectedVehicle\.id\]/u);
-  assert.match(reports, /Personal reminder · not a PSI record/u);
+  assert.doesNotMatch(reports, /Personal reminder · not a PSI record/u);
+  assert.doesNotMatch(reports, /Personal next check-in/u);
   assert.doesNotMatch(reports, /AsyncStorage|localStorage|EXPO_PUBLIC_API_BASE_URL/u);
 });

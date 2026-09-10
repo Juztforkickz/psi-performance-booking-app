@@ -1,7 +1,9 @@
 import { CUSTOMER_PREVIEW } from '@/lib/customer-preview';
 
 export type PreviewAttachment = {
+  fileSizeBytes?: number | null;
   height: number;
+  mimeType?: string | null;
   uri: string;
   width: number;
 };
@@ -57,7 +59,7 @@ export type InvoiceRecord = {
   amountAud: number | null;
   attachment: PreviewAttachment | null;
   attachmentStatus: InvoiceAttachmentStatus;
-  createdBy: 'customer_preview' | 'psi' | 'psi_preview_fixture';
+  createdBy: 'customer_account' | 'customer_preview' | 'psi' | 'psi_preview_fixture';
   id: string;
   invoiceDate: string;
   invoiceNumber: string;

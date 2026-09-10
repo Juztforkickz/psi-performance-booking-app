@@ -62,6 +62,7 @@ const INTEGRATION_JOB_LABELS: Record<StaffPortalSnapshot['integrationJobs'][numb
   notify_customer_date_approved: 'Email customer · date approved',
   notify_customer_date_proposed: 'Email customer · alternative date',
   notify_customer_request_received: 'Email customer · request received',
+  notify_customer_service_due: 'Email customer · service due soon',
   notify_psi_booking_confirmed: 'Email PSI · booking confirmed',
   notify_psi_request_received: 'Email PSI · new request',
   sync_google_calendar_confirmed: 'Google Calendar · confirmed booking',

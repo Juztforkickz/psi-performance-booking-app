@@ -14,6 +14,7 @@ import { colors, mobileFrame, spacing } from '@/constants/brand';
 
 export type DashboardTileProps = {
   accessibilityHint?: string;
+  cornerBadge?: string;
   imageResizeMode?: 'center' | 'contain' | 'cover' | 'repeat' | 'stretch';
   imageStyle?: StyleProp<ImageStyle>;
   disabled?: boolean;
@@ -29,6 +30,7 @@ export type DashboardTileProps = {
  */
 export function DashboardTile({
   accessibilityHint,
+  cornerBadge,
   imageResizeMode = 'contain',
   imageStyle,
   disabled = false,
@@ -64,6 +66,7 @@ export function DashboardTile({
         />
       </View>
       <View style={styles.shade} />
+      {cornerBadge ? <View pointerEvents="none" style={styles.cornerBadge}><Text style={styles.cornerBadgeText}>{cornerBadge}</Text></View> : null}
       <View style={styles.labelBand}>
         <Text
           adjustsFontSizeToFit
@@ -86,7 +89,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     overflow: 'hidden',
     borderRadius: 3,
-    backgroundColor: colors.panel,
+    backgroundColor: '#050505',
   },
   imageArea: {
     position: 'absolute',
@@ -97,14 +100,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: colors.ink,
-    padding: spacing.xs,
+    backgroundColor: '#050505',
   },
   image: {
     width: '100%',
     height: '100%',
+    backgroundColor: '#050505',
     transform: [{ scale: 1.55 }],
   },
+  cornerBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 34,
+    height: 34,
+    zIndex: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.accent,
+    borderRadius: 17,
+    backgroundColor: 'rgba(5,5,5,.92)',
+  },
+  cornerBadgeText: { color: colors.accent, fontSize: 18, fontWeight: '900', lineHeight: 21 },
   shade: {
     position: 'absolute',
     top: 0,

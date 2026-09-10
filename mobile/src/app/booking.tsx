@@ -1741,7 +1741,7 @@ function ReviewStep({
         <SummaryRow label="Earlier opening" value={form.notifyEarlierAvailability ? 'Tell PSI staff if something earlier becomes available' : 'No earlier-opening request'} secondary="PSI never moves or contacts you automatically" />
         <SummaryRow label="Customer" value={`${form.firstName} ${form.lastName}`} secondary={`${form.email} · ${form.mobile}`} />
         {form.bookingType === 'service' ? (
-          <SummaryRow label="Future service reminders" value={form.serviceReminderConsent ? 'Opted in to 6- and 12-month messages' : 'Not opted in'} secondary="Can be unsubscribed without signing in" />
+          <SummaryRow label="Future service reminders" value={form.serviceReminderConsent ? '6- and 12-month reminders enabled' : 'Not enabled'} secondary="Calculated from the actual completed-service date" />
         ) : null}
         {form.bookingType === 'dyno' ? (
           <>
@@ -1825,8 +1825,8 @@ function ReviewStep({
       {form.bookingType === 'service' ? (
         <ToggleRow
           checked={form.serviceReminderConsent}
-          copy="After this service is completed, PSI may email “Ready for your next service?” at 6 and 12 months with rebook/contact links. Optional, separate from appointment logistics, and every message includes unsubscribe."
-          label="Send me 6- and 12-month service reminders"
+          copy="After PSI records this service as completed, we will calculate the 6- and 12-month due dates and contact you one month before each. The email and app alert include booking, email and phone options. Optional and separate from appointment updates."
+          label="Remind me before my 6- and 12-month services"
           onPress={() => update('serviceReminderConsent', !form.serviceReminderConsent)}
         />
       ) : null}

@@ -204,6 +204,9 @@ export const STAFF_PORTAL_PREVIEW_SNAPSHOT: StaffPortalSnapshot = {
     updated_at: sampleTime,
     last_error_code: null,
     provider_reference: null,
+    service_completion_id: null,
+    service_due_on: null,
+    service_interval_months: null,
   })),
   auditEvents: [
     { table: 'booking_requests', action: 'insert', actor: 'customer' },

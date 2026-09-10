@@ -20,7 +20,7 @@ import { GarageArtworkPicker, useGarageArtwork } from '@/components/garage-artwo
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import { australianDateToIso, formatAustralianDate, isoDateToAustralian } from '@/lib/australian-date';
+import { formatAustralianDate } from '@/lib/australian-date';
 import { saveCustomerOdometer } from '@/lib/customer-account';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
@@ -46,8 +46,6 @@ import type { DynoRecord, SecureVehicleAttachment } from '@/lib/vehicle-reports-
 const REPORT_IMAGE = require('../../../assets/images/dashboard/tile-vehicle-reports-blue-silver.jpg');
 
 type MaintenanceDraft = {
-  customerLastServiceDate: string;
-  customerNextCheckInDate: string;
   odometerKm: string;
 };
 
@@ -201,22 +199,11 @@ function GarageContent({
   const buildPlan = CUSTOMER_PREVIEW.buildPlans.find((plan) => plan.vehicleId === selectedVehicle.id);
   const vehicleLabel = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;
   const dynoFirst = section === 'dyno';
-  const localMaintenance = vehicleMaintenance[selectedVehicle.id];
-  const maintenance = secureVehicles ? {
-    customerLastServiceDate: localMaintenance?.customerLastServiceDate ?? null,
-    customerNextCheckInDate: localMaintenance?.customerNextCheckInDate ?? null,
-    odometerKm: selectedVehicle.odometerKm,
-    updatedLocally: Boolean(localMaintenance?.customerLastServiceDate || localMaintenance?.customerNextCheckInDate),
-  } : localMaintenance ?? {
-    customerLastServiceDate: null,
-    customerNextCheckInDate: null,
-    odometerKm: selectedVehicle.odometerKm,
-    updatedLocally: false,
-  };
+  const maintenance = secureVehicles
+    ? { odometerKm: selectedVehicle.odometerKm }
+    : vehicleMaintenance[selectedVehicle.id] ?? { odometerKm: selectedVehicle.odometerKm };
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const [maintenanceDraft, setMaintenanceDraft] = useState<MaintenanceDraft>({
-    customerLastServiceDate: isoDateToAustralian(maintenance.customerLastServiceDate),
-    customerNextCheckInDate: isoDateToAustralian(maintenance.customerNextCheckInDate),
     odometerKm: maintenance.odometerKm?.toString() ?? '',
   });
   const [maintenanceError, setMaintenanceError] = useState('');
@@ -273,15 +260,8 @@ function GarageContent({
 
   const resetMaintenanceDraft = (vehicle: PreviewVehicle) => {
     const local = vehicleMaintenance[vehicle.id];
-    const nextMaintenance = {
-      customerLastServiceDate: local?.customerLastServiceDate ?? null,
-      customerNextCheckInDate: local?.customerNextCheckInDate ?? null,
-      odometerKm: secureVehicles ? vehicle.odometerKm : local?.odometerKm ?? vehicle.odometerKm,
-    };
     setMaintenanceDraft({
-      customerLastServiceDate: isoDateToAustralian(nextMaintenance.customerLastServiceDate),
-      customerNextCheckInDate: isoDateToAustralian(nextMaintenance.customerNextCheckInDate),
-      odometerKm: nextMaintenance.odometerKm?.toString() ?? '',
+      odometerKm: (secureVehicles ? vehicle.odometerKm : local?.odometerKm ?? vehicle.odometerKm)?.toString() ?? '',
     });
   };
 
@@ -307,16 +287,9 @@ function GarageContent({
 
   const saveMaintenancePreview = async () => {
     const odometerKm = maintenanceDraft.odometerKm ? Number(maintenanceDraft.odometerKm) : null;
-    const customerLastServiceDate = maintenanceDraft.customerLastServiceDate ? australianDateToIso(maintenanceDraft.customerLastServiceDate) : null;
-    const customerNextCheckInDate = maintenanceDraft.customerNextCheckInDate ? australianDateToIso(maintenanceDraft.customerNextCheckInDate) : null;
-    const datesAreValid = (!maintenanceDraft.customerLastServiceDate || customerLastServiceDate)
-      && (!maintenanceDraft.customerNextCheckInDate || customerNextCheckInDate);
-    if (
-      (odometerKm !== null && (!Number.isInteger(odometerKm) || odometerKm < 0 || odometerKm > 9999999))
-      || !datesAreValid
-    ) {
+    if (odometerKm !== null && (!Number.isInteger(odometerKm) || odometerKm < 0 || odometerKm > 9999999)) {
       setMaintenanceNotice('');
-      setMaintenanceError('Enter a valid odometer and use DD/MM/YYYY for each date, or leave a field blank.');
+      setMaintenanceError('Enter a valid odometer reading, or leave the field blank.');
       return;
     }
     if (secureVehicles && odometerKm !== null && selectedVehicle.odometerKm !== null && odometerKm < selectedVehicle.odometerKm) {
@@ -332,14 +305,14 @@ function GarageContent({
         refreshAccount();
       }
       updateVehicleMaintenancePreview(selectedVehicle.id, {
-        customerLastServiceDate,
-        customerNextCheckInDate,
+        customerLastServiceDate: null,
+        customerNextCheckInDate: null,
         odometerKm,
       });
       setMaintenanceError('');
       setMaintenanceNotice(secureVehicles
-        ? `Odometer ${odometerKm !== null && odometerKm !== selectedVehicle.odometerKm ? 'updated' : 'unchanged'}. Personal reminders remain separate from PSI workshop records.`
-        : 'Demo maintenance details updated for this session.');
+        ? `Odometer ${odometerKm !== null && odometerKm !== selectedVehicle.odometerKm ? 'updated' : 'unchanged'}.`
+        : 'Demo odometer updated for this session.');
       setMaintenanceOpen(false);
     } catch {
       setMaintenanceNotice('');
@@ -378,7 +351,7 @@ function GarageContent({
           <Text style={styles.previewNoticeTitle}>{secureVehicles ? 'Your private garage' : 'Demo garage'}</Text>
           <Text style={styles.previewNoticeCopy}>
             {secureVehicles
-              ? 'Your vehicles, PSI history and photos are private. Personal reminder dates stay on this device.'
+              ? 'Your vehicles, PSI history, photos and customer odometer are private to your account.'
               : 'These example details and photos clear when the demo closes.'}
           </Text>
         </View>
@@ -476,10 +449,7 @@ function GarageContent({
               <VehicleStat label="Next PSI check-in" value={formatShortDate(selectedVehicle.nextDue)} />
               {secureVehicles ? <VehicleStat label="Latest PSI odometer" value={formatOdometer(selectedVehicle.latestPsiOdometerKm)} /> : null}
               {secureVehicles ? <VehicleStat label="Next PSI odometer" value={formatOdometer(selectedVehicle.nextPsiCheckInOdometerKm)} /> : null}
-              <VehicleStat label="Personal last service" value={formatShortDate(maintenance.customerLastServiceDate)} />
-              <VehicleStat label="Personal next check-in" value={formatShortDate(maintenance.customerNextCheckInDate)} />
             </View>
-            {maintenance.updatedLocally ? <Text style={styles.localMaintenanceLabel}>{secureVehicles ? 'Personal reminder · not a PSI record' : 'Demo details'}</Text> : null}
           </View>
         </View>
 
@@ -490,12 +460,12 @@ function GarageContent({
           <View style={styles.maintenanceHeading}>
             <View style={styles.maintenanceHeadingCopy}>
               <Text style={styles.primaryLabel}>Vehicle upkeep</Text>
-              <Text style={styles.maintenanceTitle}>Maintenance details</Text>
-              <Text style={styles.bodyCopy}>Track your odometer and add personal service reminders.</Text>
+              <Text style={styles.maintenanceTitle}>Odometer</Text>
+              <Text style={styles.bodyCopy}>Keep your current customer odometer reading with this vehicle.</Text>
             </View>
             <Ionicons color={colors.accent} name="create-outline" size={24} />
           </View>
-          <Text style={styles.maintenanceBoundary}>Personal entries do not change PSI workshop records.</Text>
+          <Text style={styles.maintenanceBoundary}>Your reading stays separate from PSI workshop service records.</Text>
           {maintenanceOpen ? (
             <View style={styles.maintenanceForm}>
               <Field hint="Customer reading · kilometres" label="Customer odometer">
@@ -507,10 +477,6 @@ function GarageContent({
                   value={maintenanceDraft.odometerKm}
                 />
               </Field>
-              <View style={styles.maintenanceDateGrid}>
-                <View style={styles.maintenanceDateField}><Field hint="DD/MM/YYYY · personal" label="Personal last service"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(customerLastServiceDate) => setMaintenanceDraft((draft) => ({ ...draft, customerLastServiceDate }))} placeholder="14/05/2026" value={maintenanceDraft.customerLastServiceDate} /></Field></View>
-                <View style={styles.maintenanceDateField}><Field hint="DD/MM/YYYY · personal" label="Personal next check-in"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(customerNextCheckInDate) => setMaintenanceDraft((draft) => ({ ...draft, customerNextCheckInDate }))} placeholder="14/11/2026" value={maintenanceDraft.customerNextCheckInDate} /></Field></View>
-              </View>
               {maintenanceError ? <Text accessibilityRole="alert" style={styles.maintenanceError}>{maintenanceError}</Text> : null}
               <View style={styles.maintenanceActions}>
                 <PrimaryButton label={secureVehicles ? 'Save details' : 'Save demo details'} loading={maintenanceSaving} onPress={() => void saveMaintenancePreview()} />
@@ -524,7 +490,7 @@ function GarageContent({
             </View>
           )}
           {maintenanceNotice ? <Text accessibilityRole="alert" style={styles.maintenanceNotice}>{maintenanceNotice}</Text> : null}
-          <Text style={styles.maintenanceExpiry}>{secureVehicles ? 'Odometer updates save to your account. Reminder dates are temporary and clear when the app closes.' : 'Demo entries clear when the app closes.'}</Text>
+          <Text style={styles.maintenanceExpiry}>{secureVehicles ? 'Odometer updates save to your account.' : 'Demo odometer changes clear when the app closes.'}</Text>
         </View>
 
         {dynoFirst ? <DynoResultCard accountConnected={Boolean(secureVehicles)} key={`dyno-first-${selectedVehicle.id}`} onOpenReports={() => router.push({ pathname: '/vehicle-reports', params: { vehicleId: selectedVehicle.id } })} results={dynoResults} vehicleLabel={vehicleLabel} /> : null}
@@ -804,7 +770,7 @@ const styles = StyleSheet.create({
   disclaimer: { color: colors.mutedDark, fontSize: 10, lineHeight: 16 },
   buildCard: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
   buildCardWide: { flexDirection: 'row' },
-  buildImageFrame: { width: '100%', aspectRatio: 16 / 10, overflow: 'hidden', backgroundColor: colors.inkSoft },
+  buildImageFrame: { width: '100%', aspectRatio: 16 / 10, overflow: 'hidden', backgroundColor: '#050505' },
   buildImageFrameWide: { width: '44%', aspectRatio: 1 },
   buildBody: { flex: 1, gap: spacing.md, padding: spacing.lg },
   buildTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },

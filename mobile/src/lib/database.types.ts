@@ -54,10 +54,13 @@ export type Database = {
           customer_id: string;
           dedupe_key: string;
           id: string;
-          job_kind: 'notify_customer_booking_confirmed' | 'notify_customer_cancelled' | 'notify_customer_date_approved' | 'notify_customer_date_proposed' | 'notify_customer_request_received' | 'notify_psi_booking_confirmed' | 'notify_psi_request_received' | 'sync_google_calendar_confirmed' | 'sync_google_calendar_cancelled';
+          job_kind: 'notify_customer_booking_confirmed' | 'notify_customer_cancelled' | 'notify_customer_date_approved' | 'notify_customer_date_proposed' | 'notify_customer_request_received' | 'notify_customer_service_due' | 'notify_psi_booking_confirmed' | 'notify_psi_request_received' | 'sync_google_calendar_confirmed' | 'sync_google_calendar_cancelled';
           last_attempt_at: string | null;
           last_error_code: string | null;
           provider_reference: string | null;
+          service_completion_id: string | null;
+          service_due_on: string | null;
+          service_interval_months: 6 | 12 | null;
           status: 'blocked_configuration' | 'cancelled' | 'failed' | 'pending' | 'processing' | 'succeeded';
           updated_at: string;
         };
@@ -343,6 +346,7 @@ export type Database = {
           id: string;
           invoice_date: string;
           invoice_number: string;
+          record_source: 'customer_entry' | 'psi_record';
           summary: string;
           updated_at: string;
           vehicle_id: string;
@@ -357,6 +361,7 @@ export type Database = {
           id?: string;
           invoice_date: string;
           invoice_number: string;
+          record_source: 'customer_entry' | 'psi_record';
           summary: string;
           updated_at?: string;
           vehicle_id: string;
@@ -367,6 +372,7 @@ export type Database = {
           currency?: 'AUD';
           invoice_date?: string;
           invoice_number?: string;
+          record_source?: 'customer_entry' | 'psi_record';
           summary?: string;
           updated_at?: string;
         };
@@ -377,9 +383,9 @@ export type Database = {
           body: string;
           booking_request_id: string | null;
           created_at: string;
-          deep_link: '/bookings' | '/events' | '/staff';
+          deep_link: '/booking' | '/bookings' | '/events' | '/staff';
           id: string;
-          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'new_booking_request' | 'psi_event_cancelled' | 'psi_event_published' | 'psi_event_updated';
+          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'new_booking_request' | 'psi_event_cancelled' | 'psi_event_published' | 'psi_event_updated' | 'service_reminder';
           psi_event_id: string | null;
           read_at: string | null;
           recipient_user_id: string;

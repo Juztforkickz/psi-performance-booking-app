@@ -4,9 +4,21 @@ import { createClient } from "@supabase/supabase-js";
 const cors = { "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Origin": "*" };
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { ...cors, "Cache-Control": "no-store" } });
 const env = (name: string) => Deno.env.get(name)?.trim() ?? "";
+const isProjectServiceRoleToken = (token: string, supabaseUrl: string) => {
+  try {
+    const encodedPayload = token.split(".")[1];
+    if (!encodedPayload) return false;
+    const paddedPayload = encodedPayload.replace(/-/gu, "+").replace(/_/gu, "/").padEnd(Math.ceil(encodedPayload.length / 4) * 4, "=");
+    const claims = JSON.parse(atob(paddedPayload)) as { iss?: unknown; ref?: unknown; role?: unknown };
+    const projectRef = new URL(supabaseUrl).hostname.split(".")[0];
+    return claims.iss === "supabase" && claims.ref === projectRef && claims.role === "service_role";
+  } catch {
+    return false;
+  }
+};
 
 type ActionBody = { action?: unknown; bookingId?: unknown; expoPushToken?: unknown; platform?: unknown };
-type EventRow = { body: string; deep_link: string; id: string; recipient_user_id: string; title: string };
+type EventRow = { body: string; deep_link: string; id: string; kind: string; recipient_user_id: string; title: string };
 type JobRow = { attempt_count: number; booking_request_id: string | null; event_id: string; id: string; recipient_user_id: string };
 
 Deno.serve(async (request) => {
@@ -18,42 +30,54 @@ Deno.serve(async (request) => {
   const token = (request.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (!supabaseUrl || !anonKey || !serviceRoleKey) return json({ error: "server_configuration_unavailable" }, 503);
   if (!token) return json({ error: "authentication_required" }, 401);
-  const userClient = createClient(supabaseUrl, anonKey, { auth: { autoRefreshToken: false, persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
-  const { data: userData, error: userError } = await userClient.auth.getUser(token);
-  if (userError || !userData.user) return json({ error: "invalid_session" }, 401);
   const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } });
   let body: ActionBody = {};
   try { body = await request.json(); } catch { return json({ error: "invalid_json" }, 400); }
+  const bookingId = typeof body.bookingId === "string" && /^[0-9a-f-]{36}$/iu.test(body.bookingId) ? body.bookingId : null;
+  const isInternalServiceCall = token === serviceRoleKey || isProjectServiceRoleToken(token, supabaseUrl);
+  const userClient = createClient(supabaseUrl, anonKey, { auth: { autoRefreshToken: false, persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
+  let userId = "";
+  let isAal2Staff = false;
+
+  if (isInternalServiceCall) {
+    if (body.action !== "process_due_service_reminders" || !bookingId) return json({ error: "internal_booking_id_required" }, 400);
+  } else {
+    const { data: userData, error: userError } = await userClient.auth.getUser(token);
+    if (userError || !userData.user) return json({ error: "invalid_session" }, 401);
+    userId = userData.user.id;
+    const [{ data: staff }, { data: claims }] = await Promise.all([
+      userClient.from("staff_members").select("id").eq("user_id", userId).eq("status", "active").maybeSingle(),
+      userClient.auth.getClaims(token),
+    ]);
+    isAal2Staff = Boolean(staff && claims?.claims?.aal === "aal2");
+  }
 
   if (body.action === "register_device") {
+    if (isInternalServiceCall) return json({ error: "action_not_allowed" }, 403);
     if (typeof body.expoPushToken !== "string" || !/^(Exponent|Expo)PushToken\[[A-Za-z0-9_-]+\]$/.test(body.expoPushToken)) return json({ error: "invalid_push_token" }, 400);
     if (body.platform !== "ios" && body.platform !== "android") return json({ error: "invalid_platform" }, 400);
-    await admin.from("push_devices").update({ enabled: false, updated_at: new Date().toISOString() }).eq("expo_push_token", body.expoPushToken).neq("user_id", userData.user.id);
-    const { error } = await admin.from("push_devices").upsert({ user_id: userData.user.id, expo_push_token: body.expoPushToken, platform: body.platform, enabled: true, last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: "expo_push_token" });
+    await admin.from("push_devices").update({ enabled: false, updated_at: new Date().toISOString() }).eq("expo_push_token", body.expoPushToken).neq("user_id", userId);
+    const { error } = await admin.from("push_devices").upsert({ user_id: userId, expo_push_token: body.expoPushToken, platform: body.platform, enabled: true, last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: "expo_push_token" });
     return error ? json({ error: "device_registration_failed" }, 500) : json({ registered: true });
   }
 
   if (body.action === "unregister_device") {
+    if (isInternalServiceCall) return json({ error: "action_not_allowed" }, 403);
     if (typeof body.expoPushToken !== "string") return json({ error: "invalid_push_token" }, 400);
-    const { error } = await admin.from("push_devices").update({ enabled: false, updated_at: new Date().toISOString() }).eq("user_id", userData.user.id).eq("expo_push_token", body.expoPushToken);
+    const { error } = await admin.from("push_devices").update({ enabled: false, updated_at: new Date().toISOString() }).eq("user_id", userId).eq("expo_push_token", body.expoPushToken);
     return error ? json({ error: "device_unregistration_failed" }, 500) : json({ unregistered: true });
   }
 
-  const bookingId = typeof body.bookingId === "string" ? body.bookingId : null;
-  const [{ data: staff }, { data: claims }] = await Promise.all([
-    userClient.from("staff_members").select("id").eq("user_id", userData.user.id).eq("status", "active").maybeSingle(),
-    userClient.auth.getClaims(token),
-  ]);
-  const isAal2Staff = Boolean(staff && claims?.claims?.aal === "aal2");
   let testJobs: JobRow[] | null = null;
   if (body.action === "send_test_alerts") {
+    if (isInternalServiceCall) return json({ error: "action_not_allowed" }, 403);
     if (!isAal2Staff) return json({ error: "aal2_staff_access_required" }, 403);
-    const testPrefix = `owner_push_test:${userData.user.id}:`;
+    const testPrefix = `owner_push_test:${userId}:`;
     const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
     const { count: recentTestCount, error: recentTestError } = await admin
       .from("notification_events")
       .select("id", { count: "exact", head: true })
-      .eq("recipient_user_id", userData.user.id)
+      .eq("recipient_user_id", userId)
       .like("source_event_key", `${testPrefix}%`)
       .gte("created_at", oneMinuteAgo);
     if (recentTestError) return json({ error: "notification_test_unavailable" }, 500);
@@ -62,7 +86,7 @@ Deno.serve(async (request) => {
     const { data: staleTestEvents, error: staleTestError } = await admin
       .from("notification_events")
       .select("id")
-      .eq("recipient_user_id", userData.user.id)
+      .eq("recipient_user_id", userId)
       .like("source_event_key", `${testPrefix}%`)
       .lt("created_at", oneMinuteAgo);
     if (staleTestError) return json({ error: "notification_test_unavailable" }, 500);
@@ -78,7 +102,7 @@ Deno.serve(async (request) => {
     const batchId = crypto.randomUUID();
     const { data: testEvents, error: testEventError } = await admin.from("notification_events").insert([
       {
-        recipient_user_id: userData.user.id,
+        recipient_user_id: userId,
         booking_request_id: null,
         kind: "new_booking_request",
         title: "PSI notification test",
@@ -87,7 +111,7 @@ Deno.serve(async (request) => {
         source_event_key: `${testPrefix}${batchId}:psi`,
       },
       {
-        recipient_user_id: userData.user.id,
+        recipient_user_id: userId,
         booking_request_id: null,
         kind: "booking_request_received",
         title: "Personal notification test",
@@ -104,10 +128,10 @@ Deno.serve(async (request) => {
     if (testJobError || !createdJobs || createdJobs.length !== 2) return json({ error: "notification_test_unavailable" }, 500);
     testJobs = createdJobs as JobRow[];
   }
-  if (bookingId) {
-    const { data: owned } = await userClient.from("booking_requests").select("id").eq("id", bookingId).eq("customer_id", userData.user.id).maybeSingle();
+  if (bookingId && !isInternalServiceCall) {
+    const { data: owned } = await userClient.from("booking_requests").select("id").eq("id", bookingId).eq("customer_id", userId).maybeSingle();
     if (!owned && !isAal2Staff) return json({ error: "booking_access_denied" }, 403);
-  } else if (!isAal2Staff) {
+  } else if (!bookingId && !isAal2Staff) {
     return json({ error: "aal2_staff_access_required" }, 403);
   }
 
@@ -115,6 +139,17 @@ Deno.serve(async (request) => {
   if (!jobs) {
     let jobsQuery = admin.from("push_notification_jobs").select("id,event_id,booking_request_id,recipient_user_id,attempt_count").in("status", ["pending", "failed"]).lte("available_at", new Date().toISOString()).lt("attempt_count", 20).order("created_at", { ascending: true }).limit(25);
     if (bookingId) jobsQuery = jobsQuery.eq("booking_request_id", bookingId);
+    if (isInternalServiceCall) {
+      const { data: reminderEvents, error: reminderEventsError } = await admin
+        .from("notification_events")
+        .select("id")
+        .eq("booking_request_id", bookingId)
+        .eq("kind", "service_reminder");
+      if (reminderEventsError) return json({ error: "notification_queue_unavailable" }, 500);
+      const reminderEventIds = (reminderEvents ?? []).map((event) => event.id);
+      if (!reminderEventIds.length) return json({ processed: 0, sent: 0 });
+      jobsQuery = jobsQuery.in("event_id", reminderEventIds);
+    }
     const { data, error } = await jobsQuery;
     if (error) return json({ error: "notification_queue_unavailable" }, 500);
     jobs = data as JobRow[] | null;
@@ -125,12 +160,14 @@ Deno.serve(async (request) => {
     const { data: claimed } = await admin.from("push_notification_jobs").update({ status: "processing", attempt_count: queued.attempt_count + 1, last_attempt_at: now, updated_at: now }).eq("id", queued.id).in("status", ["pending", "failed"]).select("id").maybeSingle();
     if (!claimed) continue;
     const [{ data: event }, { data: devices }, { data: preference }, { count }] = await Promise.all([
-      admin.from("notification_events").select("id,recipient_user_id,title,body,deep_link").eq("id", queued.event_id).single(),
+      admin.from("notification_events").select("id,recipient_user_id,title,body,deep_link,kind").eq("id", queued.event_id).single(),
       admin.from("push_devices").select("expo_push_token").eq("user_id", queued.recipient_user_id).eq("enabled", true),
-      admin.from("notification_preferences").select("booking_updates_enabled,event_alerts_enabled,workshop_alerts_enabled,sound_enabled").eq("user_id", queued.recipient_user_id).maybeSingle(),
+      admin.from("notification_preferences").select("booking_reminders_enabled,booking_updates_enabled,event_alerts_enabled,workshop_alerts_enabled,sound_enabled").eq("user_id", queued.recipient_user_id).maybeSingle(),
       admin.from("notification_events").select("id", { count: "exact", head: true }).eq("recipient_user_id", queued.recipient_user_id).is("read_at", null),
     ]);
-    const allowed = (event as EventRow | null)?.deep_link === "/staff"
+    const allowed = (event as EventRow | null)?.kind === "service_reminder"
+      ? preference?.booking_reminders_enabled !== false
+      : (event as EventRow | null)?.deep_link === "/staff"
       ? preference?.workshop_alerts_enabled !== false
       : (event as EventRow | null)?.deep_link === "/events"
         ? preference?.event_alerts_enabled !== false

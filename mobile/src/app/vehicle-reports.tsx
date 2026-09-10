@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -16,7 +16,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
-import { PerformanceVaultCard } from '@/components/performance-vault-card';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { australianDateToIso, formatAustralianDate } from '@/lib/australian-date';
@@ -25,6 +24,12 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
+import {
+  saveCustomerDyno,
+  saveCustomerInvoice,
+  saveCustomerRecommendation,
+  saveCustomerRepair,
+} from '@/lib/customer-report-publishing';
 import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 import { getSupabaseClient } from '@/lib/supabase';
 import {
@@ -119,6 +124,11 @@ type ReportsLoadState =
 function AuthenticatedVehicleReportsScreen({ account }: { account: CustomerAccountSnapshot }) {
   const [loadState, setLoadState] = useState<ReportsLoadState>({ reports: null, status: 'loading' });
 
+  const loadReports = useCallback(async () => {
+    const reports = await loadCustomerVehicleReports();
+    setLoadState({ reports, status: 'ready' });
+  }, []);
+
   useEffect(() => {
     let active = true;
     void loadCustomerVehicleReports()
@@ -139,7 +149,7 @@ function AuthenticatedVehicleReportsScreen({ account }: { account: CustomerAccou
   if (loadState.status === 'error') {
     return <VehicleReportsAccountState copy="Your vehicle records could not be loaded. Please try again." title="Vehicle reports unavailable" />;
   }
-  return <VehicleReportsContent secureAccount={account} secureReports={loadState.reports} />;
+  return <VehicleReportsContent onRefreshReports={loadReports} secureAccount={account} secureReports={loadState.reports} />;
 }
 
 function VehicleReportsAccountState({
@@ -169,9 +179,11 @@ function VehicleReportsAccountState({
 }
 
 function VehicleReportsContent({
+  onRefreshReports,
   secureAccount,
   secureReports,
 }: {
+  onRefreshReports?: () => Promise<void>;
   secureAccount: CustomerAccountSnapshot | null;
   secureReports: CustomerVehicleReportsSnapshot | null;
 }) {
@@ -191,18 +203,9 @@ function VehicleReportsContent({
   const selectedVehicleId = secureVehicles ? secureSelectedVehicleId : previewSelectedVehicleId;
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0];
   const vehicleLabel = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;
-  const localMaintenance = vehicleMaintenance[selectedVehicle.id];
-  const maintenance = secureVehicles ? {
-    customerLastServiceDate: localMaintenance?.customerLastServiceDate ?? null,
-    customerNextCheckInDate: localMaintenance?.customerNextCheckInDate ?? null,
-    odometerKm: selectedVehicle.odometerKm,
-    updatedLocally: Boolean(localMaintenance?.customerLastServiceDate || localMaintenance?.customerNextCheckInDate),
-  } : localMaintenance ?? {
-    customerLastServiceDate: null,
-    customerNextCheckInDate: null,
-    odometerKm: selectedVehicle.odometerKm,
-    updatedLocally: false,
-  };
+  const maintenance = secureVehicles
+    ? { odometerKm: selectedVehicle.odometerKm }
+    : vehicleMaintenance[selectedVehicle.id] ?? { odometerKm: selectedVehicle.odometerKm };
 
   const [localDynoRecords, setLocalDynoRecords] = useState<DynoRecord[]>([]);
   const [localRepairs, setLocalRepairs] = useState<RepairRecord[]>([]);
@@ -214,6 +217,8 @@ function VehicleReportsContent({
   const [invoiceDraft, setInvoiceDraft] = useState<InvoiceDraft>(EMPTY_INVOICE_DRAFT);
   const [openForm, setOpenForm] = useState<'dyno' | 'future' | 'invoice' | 'repair' | null>(null);
   const [formError, setFormError] = useState('');
+  const [formNotice, setFormNotice] = useState('');
+  const [savingForm, setSavingForm] = useState(false);
   const [attachmentError, setAttachmentError] = useState('');
   const [secureAttachmentError, setSecureAttachmentError] = useState('');
   const [loadingSecureAttachmentId, setLoadingSecureAttachmentId] = useState<string | null>(null);
@@ -246,6 +251,7 @@ function VehicleReportsContent({
     setInvoiceDraft(EMPTY_INVOICE_DRAFT);
     setOpenForm(null);
     setFormError('');
+    setFormNotice('');
     setAttachmentError('');
     setSecureAttachmentError('');
     setVehicleSelectorOpen(false);
@@ -306,7 +312,13 @@ function VehicleReportsContent({
         setAttachmentError('That image could not be opened. Choose a different image and try again.');
         return;
       }
-      const attachment = { height: asset.height, uri: asset.uri, width: asset.width };
+      const attachment = {
+        fileSizeBytes: asset.fileSize ?? null,
+        height: asset.height,
+        mimeType: asset.mimeType ?? null,
+        uri: asset.uri,
+        width: asset.width,
+      };
       if (current?.uri !== attachment.uri) releaseAttachment(current);
       ownedAttachmentsRef.current.set(attachment.uri, attachment);
       onChange(attachment);
@@ -350,6 +362,7 @@ function VehicleReportsContent({
 
   const startForm = (form: typeof openForm) => {
     setFormError('');
+    setFormNotice('');
     setAttachmentError('');
     setOpenForm((current) => current === form ? null : form);
   };
@@ -361,12 +374,30 @@ function VehicleReportsContent({
     setFormError('');
   };
 
-  const addDynoRecord = () => {
+  const addDynoRecord = async () => {
     const power = Number(dynoDraft.power);
     const torque = Number(dynoDraft.torque);
     const recordedAt = australianDateToIso(dynoDraft.date);
     if (!Number.isFinite(power) || power <= 0 || !Number.isFinite(torque) || torque <= 0 || !recordedAt || !dynoDraft.fuel.trim()) {
-      setFormError('Enter valid power, torque, date and fuel details before adding this temporary record.');
+      setFormError('Enter valid power, torque, date and fuel details before saving this record.');
+      return;
+    }
+    if (accountConnected) {
+      setSavingForm(true);
+      try {
+        const result = await saveCustomerDyno({ ...dynoDraft, vehicleId: selectedVehicle.id });
+        if (dynoDraft.graphImage) ownedAttachmentsRef.current.delete(dynoDraft.graphImage.uri);
+        if (dynoDraft.graphImage) releaseLocalVehiclePhoto(dynoDraft.graphImage);
+        await onRefreshReports?.();
+        setDynoDraft(EMPTY_DYNO_DRAFT);
+        setOpenForm(null);
+        setFormError('');
+        setFormNotice(result.attachmentWarning ?? 'Dyno result saved privately to your account. It is now locked in your vehicle history.');
+      } catch {
+        setFormError('The dyno result could not be saved. Check the details and your connection, then try again.');
+      } finally {
+        setSavingForm(false);
+      }
       return;
     }
     setLocalDynoRecords((records) => [{
@@ -386,11 +417,27 @@ function VehicleReportsContent({
     setFormError('');
   };
 
-  const addRepairRecord = () => {
+  const addRepairRecord = async () => {
     const odometer = repairDraft.odometer.trim() ? Number(repairDraft.odometer) : null;
     const repairedAt = australianDateToIso(repairDraft.date);
     if (!repairDraft.title.trim() || !repairedAt || !repairDraft.description.trim() || (odometer !== null && (!Number.isFinite(odometer) || odometer < 0))) {
-      setFormError('Enter a title, valid date and description. Odometer must be a valid number when provided.');
+      setFormError('Enter a title, valid date and description. Odometer must be a whole number when provided.');
+      return;
+    }
+    if (accountConnected) {
+      setSavingForm(true);
+      try {
+        await saveCustomerRepair({ ...repairDraft, vehicleId: selectedVehicle.id });
+        await onRefreshReports?.();
+        setRepairDraft(EMPTY_REPAIR_DRAFT);
+        setOpenForm(null);
+        setFormError('');
+        setFormNotice('Previous repair saved privately to your account. It is now locked in your vehicle history.');
+      } catch {
+        setFormError('The repair could not be saved. Check the details and your connection, then try again.');
+      } finally {
+        setSavingForm(false);
+      }
       return;
     }
     setLocalRepairs((records) => [{
@@ -407,9 +454,25 @@ function VehicleReportsContent({
     setFormError('');
   };
 
-  const addFutureRepair = () => {
+  const addFutureRepair = async () => {
     if (!futureDraft.title.trim() || !futureDraft.timing.trim() || !futureDraft.notes.trim()) {
-      setFormError('Enter a title, timing and notes before adding this temporary record.');
+      setFormError('Enter a title, timing and notes before saving this record.');
+      return;
+    }
+    if (accountConnected) {
+      setSavingForm(true);
+      try {
+        await saveCustomerRecommendation({ ...futureDraft, vehicleId: selectedVehicle.id });
+        await onRefreshReports?.();
+        setFutureDraft(EMPTY_FUTURE_DRAFT);
+        setOpenForm(null);
+        setFormError('');
+        setFormNotice('Future work note saved privately to your account. It is now locked in your vehicle history.');
+      } catch {
+        setFormError('The future work note could not be saved. Check the details and your connection, then try again.');
+      } finally {
+        setSavingForm(false);
+      }
       return;
     }
     setLocalFutureRepairs((records) => [{
@@ -433,11 +496,29 @@ function VehicleReportsContent({
     setFormError('');
   };
 
-  const addInvoice = () => {
+  const addInvoice = async () => {
     const amount = invoiceDraft.amount.trim() ? Number(invoiceDraft.amount) : null;
     const invoiceDate = australianDateToIso(invoiceDraft.date);
     if (!invoiceDraft.invoiceNumber.trim() || !invoiceDate || !invoiceDraft.summary.trim() || (amount !== null && (!Number.isFinite(amount) || amount < 0))) {
       setFormError('Enter an invoice number, valid date and work summary. Amount must be valid when provided.');
+      return;
+    }
+    if (accountConnected) {
+      setSavingForm(true);
+      try {
+        const result = await saveCustomerInvoice({ ...invoiceDraft, vehicleId: selectedVehicle.id });
+        if (invoiceDraft.attachment) ownedAttachmentsRef.current.delete(invoiceDraft.attachment.uri);
+        if (invoiceDraft.attachment) releaseLocalVehiclePhoto(invoiceDraft.attachment);
+        await onRefreshReports?.();
+        setInvoiceDraft(EMPTY_INVOICE_DRAFT);
+        setOpenForm(null);
+        setFormError('');
+        setFormNotice(result.attachmentWarning ?? 'Invoice saved privately to your account. It is now locked in your vehicle history.');
+      } catch {
+        setFormError('The invoice could not be saved. Check the details and your connection, then try again.');
+      } finally {
+        setSavingForm(false);
+      }
       return;
     }
     setLocalInvoices((records) => [{
@@ -491,10 +572,10 @@ function VehicleReportsContent({
 
         <View accessibilityRole="alert" style={styles.previewNotice}>
           <Text style={styles.previewNoticeTitle}>{accountConnected ? 'Your records' : 'Demo records'}</Text>
-          <Text style={styles.previewNoticeCopy}>{accountConnected ? 'PSI records and attachments are private and read-only. Entries you add here are temporary and are not saved to your account.' : 'Example records only. Anything you add clears when the demo closes.'}</Text>
+          <Text style={styles.previewNoticeCopy}>{accountConnected ? 'Entries you save here stay private and locked in your account. Customer entries are clearly separated from PSI-verified workshop records.' : 'Example records only. Anything you add clears when the demo closes.'}</Text>
         </View>
         <FormError message={secureAttachmentError} />
-        <PerformanceVaultCard vehicleId={selectedVehicle.id} />
+        {formNotice ? <Text accessibilityRole="alert" style={styles.savedNotice}>{formNotice}</Text> : null}
 
         <SectionHeading meta={`${vehicles.length} vehicles`} title="Vehicle selector" />
         <Pressable
@@ -542,10 +623,9 @@ function VehicleReportsContent({
           <Text style={styles.selectedVehicleName}>{vehicleLabel}</Text>
           <Text style={styles.selectedVehicleRegistration}>{selectedVehicle.registration}</Text>
           <Text style={styles.selectedVehicleMaintenance}>
-            Customer odometer · {maintenance.odometerKm == null ? 'Not added' : `${maintenance.odometerKm.toLocaleString('en-AU')} km`} · Personal next check-in · {maintenance.customerNextCheckInDate ? formatDate(maintenance.customerNextCheckInDate) : 'Not scheduled'}
+            Customer odometer · {maintenance.odometerKm == null ? 'Not added' : `${maintenance.odometerKm.toLocaleString('en-AU')} km`}
           </Text>
           {accountConnected ? <Text style={styles.selectedVehicleMaintenance}>Last PSI service · {selectedVehicle.lastVisit ? formatDate(selectedVehicle.lastVisit) : 'Not recorded'} · Next PSI check-in · {selectedVehicle.nextDue ? formatDate(selectedVehicle.nextDue) : 'Not scheduled'}</Text> : null}
-          {maintenance.updatedLocally ? <Text style={styles.selectedVehicleLocal}>Personal reminder · not a PSI record</Text> : null}
         </View>
 
         <ReportSection
@@ -556,8 +636,8 @@ function VehicleReportsContent({
         >
           {openForm === 'dyno' ? (
             <View style={styles.formCard}>
-              <FormHeading title="Add dyno result" />
-              <Text style={styles.formNotice}>Temporary entry · not saved to your account.</Text>
+              <FormHeading accountConnected={accountConnected} title="Add dyno result" />
+              <Text style={styles.formNotice}>{accountConnected ? 'Private customer entry · saved and locked after submission · not PSI verified.' : 'Temporary entry · not saved to your account.'}</Text>
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
                 <View style={styles.fieldCell}><Field label="Power · HP at hubs"><FormInput keyboardType="decimal-pad" maxLength={7} onChangeText={(power) => setDynoDraft((draft) => ({ ...draft, power }))} placeholder="426" value={dynoDraft.power} /></Field></View>
                 <View style={styles.fieldCell}><Field label="Torque · Nm at hubs"><FormInput keyboardType="decimal-pad" maxLength={7} onChangeText={(torque) => setDynoDraft((draft) => ({ ...draft, torque }))} placeholder="612" value={dynoDraft.torque} /></Field></View>
@@ -568,14 +648,14 @@ function VehicleReportsContent({
               <AttachmentPicker
                 attachment={dynoDraft.graphImage}
                 label="Dyno graph image"
-                notice="Temporary image · not saved to your account."
+                notice={accountConnected ? 'Private image · uploaded with this saved result.' : 'Temporary image · not saved to your account.'}
                 onChoose={() => void chooseImage(dynoDraft.graphImage, (graphImage) => setDynoDraft((draft) => ({ ...draft, graphImage })))}
                 onTakePhoto={() => void takeImage(dynoDraft.graphImage, (graphImage) => setDynoDraft((draft) => ({ ...draft, graphImage })))}
                 onRemove={() => { releaseAttachment(dynoDraft.graphImage); setDynoDraft((draft) => ({ ...draft, graphImage: null })); }}
                 onView={() => dynoDraft.graphImage && setViewingAttachment({ title: 'Dyno graph preview', uri: dynoDraft.graphImage.uri })}
               />
               <FormError message={formError || attachmentError} />
-              <View style={styles.formActions}><PrimaryButton label="Add temporary result" onPress={addDynoRecord} /><PrimaryButton label="Cancel" onPress={cancelDyno} variant="outline" /></View>
+              <View style={styles.formActions}><PrimaryButton label={accountConnected ? 'Save private result' : 'Add temporary result'} loading={savingForm} onPress={() => void addDynoRecord()} /><PrimaryButton disabled={savingForm} label="Cancel" onPress={cancelDyno} variant="outline" /></View>
             </View>
           ) : null}
           {dynoRecords.length ? dynoRecords.map((record) => <DynoCard attachmentLoading={loadingSecureAttachmentId === record.secureAttachment?.id} key={record.id} record={record} onView={() => record.graphImage ? setViewingAttachment({ title: 'Dyno graph preview', uri: record.graphImage.uri }) : record.secureAttachment ? void openSecureAttachment(record.secureAttachment, 'Private dyno graph') : undefined} />) : <EmptyState accountConnected={accountConnected} message="No dyno records for this vehicle yet." />}
@@ -589,16 +669,16 @@ function VehicleReportsContent({
         >
           {openForm === 'repair' ? (
             <View style={styles.formCard}>
-              <FormHeading title="Add previous repair" />
+              <FormHeading accountConnected={accountConnected} title="Add previous repair" />
               <Field label="Repair title"><FormInput autoCorrect maxLength={80} onChangeText={(title) => setRepairDraft((draft) => ({ ...draft, title }))} placeholder="Service & inspection" value={repairDraft.title} /></Field>
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
                 <View style={styles.fieldCell}><Field hint="DD/MM/YYYY" label="Date"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(date) => setRepairDraft((draft) => ({ ...draft, date }))} placeholder="23/08/2026" value={repairDraft.date} /></Field></View>
                 <View style={styles.fieldCell}><Field hint="Optional" label="Odometer · km"><FormInput keyboardType="number-pad" maxLength={8} onChangeText={(odometer) => setRepairDraft((draft) => ({ ...draft, odometer: odometer.replace(/\D/g, '') }))} placeholder="84210" value={repairDraft.odometer} /></Field></View>
               </View>
               <Field hint={`${repairDraft.description.length}/400`} label="Description / notes"><FormInput autoCorrect maxLength={400} multiline onChangeText={(description) => setRepairDraft((draft) => ({ ...draft, description }))} placeholder="Work completed or inspected" style={styles.notesInput} value={repairDraft.description} /></Field>
-              <Text style={styles.formNotice}>Temporary entry · not saved to your account.</Text>
+              <Text style={styles.formNotice}>{accountConnected ? 'Private customer entry · saved and locked after submission · not PSI verified.' : 'Temporary entry · not saved to your account.'}</Text>
               <FormError message={formError} />
-              <View style={styles.formActions}><PrimaryButton label="Add temporary repair" onPress={addRepairRecord} /><PrimaryButton label="Cancel" onPress={() => { setRepairDraft(EMPTY_REPAIR_DRAFT); setOpenForm(null); setFormError(''); }} variant="outline" /></View>
+              <View style={styles.formActions}><PrimaryButton label={accountConnected ? 'Save private repair' : 'Add temporary repair'} loading={savingForm} onPress={() => void addRepairRecord()} /><PrimaryButton disabled={savingForm} label="Cancel" onPress={() => { setRepairDraft(EMPTY_REPAIR_DRAFT); setOpenForm(null); setFormError(''); }} variant="outline" /></View>
             </View>
           ) : null}
           {repairRecords.length ? repairRecords.map((record) => <RepairCard key={record.id} record={record} />) : <EmptyState accountConnected={accountConnected} message="No previous repairs recorded." />}
@@ -612,7 +692,7 @@ function VehicleReportsContent({
         >
           {openForm === 'future' ? (
             <View style={styles.formCard}>
-              <FormHeading title="Add recommended work" />
+              <FormHeading accountConnected={accountConnected} title="Add recommended work" />
               <Field label="Repair / recommendation title"><FormInput autoCorrect maxLength={90} onChangeText={(title) => setFutureDraft((draft) => ({ ...draft, title }))} placeholder="Cooling system inspection" value={futureDraft.title} /></Field>
               <Field label="Timing"><FormInput autoCorrect maxLength={80} onChangeText={(timing) => setFutureDraft((draft) => ({ ...draft, timing }))} placeholder="At next service" value={futureDraft.timing} /></Field>
               <View style={styles.statusPicker} accessibilityRole="radiogroup">
@@ -623,9 +703,9 @@ function VehicleReportsContent({
                 })}</View>
               </View>
               <Field hint={`${futureDraft.notes.length}/400`} label="Notes"><FormInput autoCorrect maxLength={400} multiline onChangeText={(notes) => setFutureDraft((draft) => ({ ...draft, notes }))} placeholder="What should be checked or discussed" style={styles.notesInput} value={futureDraft.notes} /></Field>
-              <Text style={styles.formNotice}>Temporary entry · not saved to your account.</Text>
+              <Text style={styles.formNotice}>{accountConnected ? 'Private customer note · saved and locked after submission · not PSI advice.' : 'Temporary entry · not saved to your account.'}</Text>
               <FormError message={formError} />
-              <View style={styles.formActions}><PrimaryButton label="Add temporary note" onPress={addFutureRepair} /><PrimaryButton label="Cancel" onPress={() => { setFutureDraft(EMPTY_FUTURE_DRAFT); setOpenForm(null); setFormError(''); }} variant="outline" /></View>
+              <View style={styles.formActions}><PrimaryButton label={accountConnected ? 'Save private note' : 'Add temporary note'} loading={savingForm} onPress={() => void addFutureRepair()} /><PrimaryButton disabled={savingForm} label="Cancel" onPress={() => { setFutureDraft(EMPTY_FUTURE_DRAFT); setOpenForm(null); setFormError(''); }} variant="outline" /></View>
             </View>
           ) : null}
           {futureRepairs.length ? futureRepairs.map((record) => <FutureRepairCard key={record.id} record={record} />) : <EmptyState accountConnected={accountConnected} message="No recommended work currently shown." />}
@@ -637,10 +717,10 @@ function VehicleReportsContent({
           onAction={() => startForm('invoice')}
           title="Invoice Vault"
         >
-          <Text style={styles.sectionNotice}>{accountConnected ? 'PSI invoices and attachments are read-only. Temporary entries are not added to your account.' : 'Example invoices only. Temporary images are not uploaded.'}</Text>
+          <Text style={styles.sectionNotice}>{accountConnected ? 'Customer invoices save privately and lock after submission. PSI invoices stay separately labelled and read-only.' : 'Example invoices only. Temporary images are not uploaded.'}</Text>
           {openForm === 'invoice' ? (
             <View style={styles.formCard}>
-              <FormHeading title="Add invoice" />
+              <FormHeading accountConnected={accountConnected} title="Add invoice" />
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
                 <View style={styles.fieldCell}><Field label="Invoice number"><FormInput autoCapitalize="characters" maxLength={40} onChangeText={(invoiceNumber) => setInvoiceDraft((draft) => ({ ...draft, invoiceNumber }))} placeholder="PSI-INV-2026-0000" value={invoiceDraft.invoiceNumber} /></Field></View>
                 <View style={styles.fieldCell}><Field hint="DD/MM/YYYY" label="Invoice date"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(date) => setInvoiceDraft((draft) => ({ ...draft, date }))} placeholder="23/08/2026" value={invoiceDraft.date} /></Field></View>
@@ -650,14 +730,14 @@ function VehicleReportsContent({
               <AttachmentPicker
                 attachment={invoiceDraft.attachment}
                 label="Invoice image"
-                notice="Temporary image · not saved to your account."
+                notice={accountConnected ? 'Private image · uploaded with this saved invoice.' : 'Temporary image · not saved to your account.'}
                 onChoose={() => void chooseImage(invoiceDraft.attachment, (attachment) => setInvoiceDraft((draft) => ({ ...draft, attachment })))}
                 onTakePhoto={() => void takeImage(invoiceDraft.attachment, (attachment) => setInvoiceDraft((draft) => ({ ...draft, attachment })))}
                 onRemove={() => { releaseAttachment(invoiceDraft.attachment); setInvoiceDraft((draft) => ({ ...draft, attachment: null })); }}
                 onView={() => invoiceDraft.attachment && setViewingAttachment({ title: 'Invoice image preview', uri: invoiceDraft.attachment.uri })}
               />
               <FormError message={formError || attachmentError} />
-              <View style={styles.formActions}><PrimaryButton label="Add temporary invoice" onPress={addInvoice} /><PrimaryButton label="Cancel" onPress={cancelInvoice} variant="outline" /></View>
+              <View style={styles.formActions}><PrimaryButton label={accountConnected ? 'Save private invoice' : 'Add temporary invoice'} loading={savingForm} onPress={() => void addInvoice()} /><PrimaryButton disabled={savingForm} label="Cancel" onPress={cancelInvoice} variant="outline" /></View>
             </View>
           ) : null}
           {invoices.length ? invoices.map((record) => (
@@ -683,6 +763,7 @@ function VehicleReportsContent({
           </View>
           {viewingAttachment ? <Image accessibilityLabel={viewingAttachment.title} resizeMode="contain" source={{ uri: viewingAttachment.uri }} style={styles.attachmentModalImage} /> : null}
           <Text style={styles.attachmentModalNotice}>{viewingAttachment?.notice ?? 'Temporary image · not saved'}</Text>
+          <PrimaryButton label="Back to vehicle reports" onPress={() => setViewingAttachment(null)} />
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -697,8 +778,8 @@ function ReportSection({ actionLabel, children, meta, onAction, title }: { actio
   return <View style={styles.reportSection}><SectionHeading meta={meta} title={title} /><Pressable accessibilityLabel={actionLabel} accessibilityRole="button" onPress={onAction} style={({ pressed }) => [styles.addAction, pressed && styles.pressed]}><Ionicons color={colors.ink} name="add" size={18} /><Text style={styles.addActionText}>{actionLabel}</Text></Pressable>{children}</View>;
 }
 
-function FormHeading({ title }: { title: string }) {
-  return <View style={styles.formHeading}><Text style={styles.formKicker}>Temporary · not saved</Text><Text style={styles.formTitle}>{title}</Text></View>;
+function FormHeading({ accountConnected, title }: { accountConnected: boolean; title: string }) {
+  return <View style={styles.formHeading}><Text style={styles.formKicker}>{accountConnected ? 'Private · saved to your account' : 'Temporary · not saved'}</Text><Text style={styles.formTitle}>{title}</Text></View>;
 }
 
 function FormError({ message }: { message: string }) {
@@ -757,10 +838,11 @@ function StatusBadge({ status }: { status: FutureRepairStatus }) {
 
 function InvoiceCard({ attachmentLoading, onRemove, onReplace, onView, record, vehicleLabel }: { attachmentLoading: boolean; onRemove: () => void; onReplace: () => void; onView: () => void; record: InvoiceRecord; vehicleLabel: string }) {
   const local = record.createdBy === 'customer_preview';
-  const label = local ? 'TEMPORARY INVOICE' : record.createdBy === 'psi' ? 'PSI INVOICE' : 'PSI EXAMPLE';
-  const attachmentStatus = record.attachment ? 'TEMPORARY IMAGE · NOT UPLOADED' : record.attachmentStatus === 'preview_reference_only' ? 'EXAMPLE · NO FILE ATTACHED' : record.attachmentStatus === 'secure_attachment_available' ? 'PRIVATE PSI ATTACHMENT · READ ONLY' : record.attachmentStatus === 'secure_file_unavailable' ? 'NO ATTACHMENT AVAILABLE' : 'NO ATTACHMENT';
-  const footer = local ? 'Clears when the app closes.' : record.createdBy === 'psi' ? record.secureAttachment ? 'PSI invoice and attachment · read-only.' : 'PSI invoice · read-only.' : 'Example invoice only.';
-  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel label={label} local={local} /><Text style={styles.recordTitle}>{record.invoiceNumber}</Text><Text style={styles.invoiceDate}>{formatDate(record.invoiceDate)}</Text></View><Text adjustsFontSizeToFit numberOfLines={1} style={styles.invoiceAmount}>{record.amountAud == null ? '—' : formatCurrency(record.amountAud)}</Text></View><RecordMeta label="Vehicle" value={vehicleLabel} /><Text style={styles.recordDescription}>{record.summary}</Text><Text style={styles.attachmentStatus}>{attachmentStatus}</Text>{record.attachment ? <View style={styles.attachmentActions}><SmallAction icon="eye-outline" label="View attachment" onPress={onView} /><SmallAction icon="refresh-outline" label="Replace" onPress={onReplace} /><SmallAction icon="trash-outline" label="Remove" onPress={onRemove} /></View> : record.secureAttachment ? <SmallAction icon={attachmentLoading ? "hourglass-outline" : record.secureAttachment.mimeType === 'application/pdf' ? "document-text-outline" : "eye-outline"} label={attachmentLoading ? 'Opening private attachment…' : record.secureAttachment.mimeType === 'application/pdf' ? 'Open private PDF' : 'View private attachment'} onPress={onView} /> : local ? <SmallAction icon="image-outline" label="Choose image" onPress={onReplace} /> : null}<Text style={styles.localExpiry}>{footer}</Text></View>;
+  const customerAccount = record.createdBy === 'customer_account';
+  const label = local ? 'TEMPORARY INVOICE' : customerAccount ? 'CUSTOMER INVOICE' : record.createdBy === 'psi' ? 'PSI INVOICE' : 'PSI EXAMPLE';
+  const attachmentStatus = record.attachment ? 'TEMPORARY IMAGE · NOT UPLOADED' : record.attachmentStatus === 'preview_reference_only' ? 'EXAMPLE · NO FILE ATTACHED' : record.attachmentStatus === 'secure_attachment_available' ? customerAccount ? 'PRIVATE CUSTOMER ATTACHMENT · LOCKED' : 'PRIVATE PSI ATTACHMENT · READ ONLY' : record.attachmentStatus === 'secure_file_unavailable' ? 'NO ATTACHMENT AVAILABLE' : 'NO ATTACHMENT';
+  const footer = local ? 'Clears when the app closes.' : customerAccount ? 'Customer-provided · saved and locked · not PSI verified.' : record.createdBy === 'psi' ? record.secureAttachment ? 'PSI invoice and attachment · read-only.' : 'PSI invoice · read-only.' : 'Example invoice only.';
+  return <View style={styles.recordCard}><View style={styles.recordHeader}><View style={styles.recordHeaderCopy}><RecordLabel label={label} local={local || customerAccount} /><Text style={styles.recordTitle}>{record.invoiceNumber}</Text><Text style={styles.invoiceDate}>{formatDate(record.invoiceDate)}</Text></View><Text adjustsFontSizeToFit numberOfLines={1} style={styles.invoiceAmount}>{record.amountAud == null ? '—' : formatCurrency(record.amountAud)}</Text></View><RecordMeta label="Vehicle" value={vehicleLabel} /><Text style={styles.recordDescription}>{record.summary}</Text><Text style={styles.attachmentStatus}>{attachmentStatus}</Text>{record.attachment ? <View style={styles.attachmentActions}><SmallAction icon="eye-outline" label="View attachment" onPress={onView} /><SmallAction icon="refresh-outline" label="Replace" onPress={onReplace} /><SmallAction icon="trash-outline" label="Remove" onPress={onRemove} /></View> : record.secureAttachment ? <SmallAction icon={attachmentLoading ? "hourglass-outline" : record.secureAttachment.mimeType === 'application/pdf' ? "document-text-outline" : "eye-outline"} label={attachmentLoading ? 'Opening private attachment…' : record.secureAttachment.mimeType === 'application/pdf' ? 'Open private PDF' : 'View private attachment'} onPress={onView} /> : local ? <SmallAction icon="image-outline" label="Choose image" onPress={onReplace} /> : null}<Text style={styles.localExpiry}>{footer}</Text></View>;
 }
 
 function RecordMeta({ label, value }: { label: string; value: string }) {
@@ -842,6 +924,7 @@ const styles = StyleSheet.create({
   previewNotice: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.noticeSurface, padding: spacing.md },
   previewNoticeTitle: { color: colors.onNotice, fontSize: 10, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
   previewNoticeCopy: { color: colors.onNoticeMuted, fontSize: 11, lineHeight: 17 },
+  savedNotice: { ...mobileFrame, color: colors.ink, backgroundColor: colors.accent, padding: spacing.md, fontSize: 11, fontWeight: '900', lineHeight: 17 },
   sectionHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.sm },
   sectionTitle: { flexShrink: 1, color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
   sectionMeta: { color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: .5, textTransform: 'uppercase' },

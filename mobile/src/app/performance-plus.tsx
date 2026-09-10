@@ -110,9 +110,13 @@ export default function PerformancePlusScreen() {
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.choices}>{vehicles.map(v => <Pressable accessibilityRole="button" accessibilityState={{ selected: v.id === vehicle?.id }} key={v.id} onPress={() => { setSelected(v.id); setMessage(''); }} style={[s.choice, v.id === vehicle?.id && s.chosen]}><Text style={s.choiceText}>{v.make} {v.model}</Text></Pressable>)}</ScrollView>
     {demo ? <Text style={s.muted}>Demo records · explore a sample vault without making a purchase.</Text> : null}
     {!demo && !overview && vehicle && !message ? <ActivityIndicator color={colors.accent} /> : null}
+    {entitlementReady ? <View style={s.accessGuide}>
+      <View style={s.accessGuideRow}><View style={s.freeAccessBadge}><Text style={s.freeAccessBadgeText}>PSI FREE</Text></View><Text style={s.accessGuideCopy}>Bookings, reminders, notifications, garage, kilometres and current results.</Text></View>
+      <View style={s.accessGuideRow}><View style={s.plusAccessBadge}><Text style={s.plusAccessBadgeText}>PERFORMANCE+</Text></View><Text style={s.accessGuideCopy}>The complete PSI archive below. Locked records and files stay inaccessible on Free.</Text></View>
+    </View> : null}
     <View onLayout={event => setVaultGridWidth(event.nativeEvent.layout.width)} style={s.grid}>{VAULT_KINDS.map(kind => <Pressable accessibilityRole="button" key={kind} onPress={() => { if (demo || activePlus) router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle?.id ?? '', kind } }); else setMessage('Choose Performance+ below to unlock your private vehicle archive. Your free PSI features remain available.'); }} style={({ pressed }) => [s.vault, singleColumn && s.vaultFullWidth, pressed && s.pressed]}>
-      <View style={s.row}><View style={s.vaultIcon}><Ionicons name={VAULT_ICONS[kind]} color={colors.accent} size={24} /></View><Ionicons name={activePlus || demo ? 'arrow-forward' : 'lock-closed'} color={colors.accent} size={18} /></View>
-      <View style={s.vaultCopy}><Text style={s.vaultTitle}>{VAULT_LABELS[kind]}</Text><Text style={s.recordCount}>{overview ? `${overview.counts[kind] ?? 0} PSI records available` : 'Your private PSI records'}</Text><Text style={s.vaultDescription}>{VAULT_DESCRIPTIONS[kind]}</Text></View>
+      <View style={s.row}><View style={s.vaultIcon}><Ionicons name={VAULT_ICONS[kind]} color={colors.accent} size={24} /></View>{activePlus || demo ? <Ionicons name="arrow-forward" color={colors.accent} size={18} /> : <View style={s.lockBadge}><Ionicons name="lock-closed" color={colors.accent} size={12} /><Text style={s.lockBadgeText}>PLUS ONLY</Text></View>}</View>
+      <View style={s.vaultCopy}><Text style={s.vaultTitle}>{VAULT_LABELS[kind]}</Text><Text style={s.recordCount}>{overview ? activePlus || demo ? `${overview.counts[kind] ?? 0} PSI records available` : `${overview.counts[kind] ?? 0} premium PSI records · locked` : 'Your private PSI records'}</Text><Text style={s.vaultDescription}>{VAULT_DESCRIPTIONS[kind]}</Text></View>
       <View style={s.vaultAction}><Text style={s.vaultActionText}>{activePlus || demo ? 'Open vault' : 'Unlock with Performance+'}</Text><Ionicons name="chevron-forward" color={colors.accent} size={15} /></View>
     </Pressable>)}</View>
     {vehicle ? <PrimaryButton label={demo ? 'Explore sample vehicle history' : 'Open vehicle history'} onPress={() => router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle.id } })} variant="outline" /> : null}
@@ -159,11 +163,20 @@ export const s = StyleSheet.create({
   chosen: { borderColor: colors.accent, backgroundColor: colors.inkSoft },
   choiceText: { color: colors.white, fontSize: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  accessGuide: { backgroundColor: colors.inkSoft, borderColor: colors.line, borderWidth: 1, padding: 14, gap: 10 },
+  accessGuideRow: { flexDirection: 'row', alignItems: 'flex-start', flexWrap: 'wrap', gap: 9 },
+  accessGuideCopy: { flex: 1, minWidth: 190, color: colors.silver, fontSize: 12, lineHeight: 18 },
+  freeAccessBadge: { backgroundColor: colors.line, paddingHorizontal: 8, paddingVertical: 5 },
+  freeAccessBadgeText: { color: colors.white, fontSize: 8, fontWeight: '900', letterSpacing: .8 },
+  plusAccessBadge: { backgroundColor: colors.accent, paddingHorizontal: 8, paddingVertical: 5 },
+  plusAccessBadgeText: { color: colors.ink, fontSize: 8, fontWeight: '900', letterSpacing: .8 },
   vault: { flexGrow: 1, flexBasis: '45%', minWidth: 0, padding: 17, backgroundColor: colors.panel, borderColor: colors.accentDark, borderWidth: 1, borderRadius: 8, gap: 14 },
   vaultFullWidth: { flexBasis: '100%' },
   pressed: { opacity: .76 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   vaultIcon: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.inkSoft, borderRadius: 21 },
+  lockBadge: { flexDirection: 'row', alignItems: 'center', borderColor: colors.accentDark, borderWidth: 1, paddingHorizontal: 7, paddingVertical: 5, gap: 4 },
+  lockBadgeText: { color: colors.accent, fontSize: 8, fontWeight: '900', letterSpacing: .5 },
   vaultCopy: { flex: 1, gap: 5 },
   vaultTitle: { color: colors.white, fontSize: 18, fontWeight: '800' },
   recordCount: { color: colors.accent, fontSize: 12, fontWeight: '900' },

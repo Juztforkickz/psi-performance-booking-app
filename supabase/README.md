@@ -63,6 +63,17 @@ closed again.
   booking messages through Expo's push service. Device tokens are private,
   revocable and automatically disabled when Expo reports an unregistered
   device. Native push requires explicit permission; email remains independent.
+- A completed service with explicit reminder consent creates two protected,
+  deduplicated integration jobs. They are based on the actual completed-service
+  date and become due one calendar month before the six- and twelve-month
+  service dates. The daily Supabase Cron call processes only those due reminder
+  jobs, sends the email, creates the private customer alert and queues its push
+  delivery. Free accounts receive these reminders; the Performance+ archive is
+  a separate entitlement.
+- The reminder worker runs daily at `00:05 UTC` (`10:05 AEST` or `11:05 AEDT`).
+  Its project URL and service-role credential are stored in Supabase Vault as
+  `psi_service_reminder_project_url` and
+  `psi_service_reminder_service_role`; neither value belongs in source control.
 
 ## Database acceptance test
 

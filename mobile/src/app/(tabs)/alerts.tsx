@@ -264,10 +264,10 @@ export default function AlertsScreen() {
             previewOnly={!privateMode}
           />
           <PreferenceRow
-            copy="Reminders before visits and service milestones."
+            copy="Email, banners and sounds before visits and opted-in service milestones. Turn this off to stop future reminders."
             enabled={securePreference('reminder')}
             icon="time-outline"
-            label="Visit reminders"
+            label="Service & visit reminders"
             onPress={() => togglePreference('reminder')}
             previewOnly={!privateMode}
           />

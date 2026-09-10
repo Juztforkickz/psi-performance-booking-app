@@ -209,6 +209,7 @@ export async function publishPsiInvoice(input: InvoicePublishInput): Promise<Pub
     id: recordId,
     invoice_date: requiredDate(input.date, 'INVOICE_DATE_INVALID'),
     invoice_number: requiredText(input.invoiceNumber, 'INVOICE_NUMBER_REQUIRED').toUpperCase(),
+    record_source: 'psi_record',
     summary: requiredText(input.summary, 'INVOICE_SUMMARY_REQUIRED'),
     vehicle_id: input.vehicleId,
   };

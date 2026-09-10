@@ -120,7 +120,9 @@ test("uses one native responsive contract across every customer screen", async (
   assert.match(booking, /depositCopyStacked:\s*\{[^}]*flex:\s*0[^}]*width:\s*'100%'/);
   assert.match(dashboardTile, /aspectRatio:\s*1/);
   assert.match(dashboardTile, /imageResizeMode = 'contain'/);
-  assert.match(dashboardTile, /imageArea:\s*\{[\s\S]*?bottom:\s*50[\s\S]*?overflow:\s*'hidden'[\s\S]*?backgroundColor:\s*colors\.ink[\s\S]*?padding:\s*spacing\.xs/);
+  assert.match(dashboardTile, /imageArea:\s*\{[\s\S]*?bottom:\s*50[\s\S]*?overflow:\s*'hidden'[\s\S]*?backgroundColor:\s*'#050505'/);
+  assert.match(dashboardTile, /cornerBadge/u);
+  assert.match(home, /cornerBadge="\$"/u);
   assert.match(dashboardTile, /transform:\s*\[\{ scale:\s*1\.55 \}\]/);
   assert.match(dashboardTile, /adjustsFontSizeToFit[\s\S]*?maxFontSizeMultiplier=\{1\.2\}[\s\S]*?numberOfLines=\{2\}/);
   assert.match(home, /lowerTileImage:\s*\{ transform:\s*\[\{ scale:\s*1\.55 \}, \{ translateY:\s*7 \}\] \}/);

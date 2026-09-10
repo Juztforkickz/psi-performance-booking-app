@@ -70,7 +70,7 @@ function responseHref(data: Record<string, unknown> | undefined): Href | null {
   const url = data?.url;
   const bookingId = typeof data?.bookingId === 'string' ? data.bookingId : '';
   if (url === '/staff') return bookingId ? { pathname: '/staff', params: { bookingId, section: 'bookings' } } : { pathname: '/staff', params: { section: 'alerts' } };
-  if (url === '/bookings' || url === '/events') return url;
+  if (url === '/booking' || url === '/bookings' || url === '/events') return url;
   return null;
 }
 

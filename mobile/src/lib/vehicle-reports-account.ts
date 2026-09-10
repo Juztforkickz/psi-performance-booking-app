@@ -125,7 +125,7 @@ export function getAccountInvoices(reports: CustomerVehicleReportsSnapshot): Inv
       amountAud: record.amount_cents == null ? null : record.amount_cents / 100,
       attachment: null,
       attachmentStatus: secureAttachment ? 'secure_attachment_available' : 'secure_file_unavailable',
-      createdBy: 'psi',
+      createdBy: record.record_source === 'psi_record' ? 'psi' : 'customer_account',
       id: record.id,
       invoiceDate: record.invoice_date,
       invoiceNumber: record.invoice_number,

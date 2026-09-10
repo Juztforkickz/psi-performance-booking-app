@@ -213,6 +213,7 @@ export default function CustomerHomeScreen() {
         return (
           <DashboardTile
             accessibilityHint="Opens PSI-cared-for vehicles currently listed by their owners"
+            cornerBadge="$"
             image={DASHBOARD_TILES.customerCarsForSale}
             imageStyle={styles.customerCarsTileImage}
             label="Customer Cars for Sale"
@@ -381,6 +382,7 @@ export default function CustomerHomeScreen() {
           <TileCell threeColumns={threeColumns}>
             <DashboardTile
               accessibilityHint="Opens PSI-cared-for vehicles currently listed by their owners"
+              cornerBadge="$"
               image={DASHBOARD_TILES.customerCarsForSale}
               imageStyle={styles.customerCarsTileImage}
               label="Customer Cars for Sale"

@@ -137,10 +137,15 @@ suppresses them. These messages contain booking logistics only and do not add a
 sales or review request.
 
 Six- and twelve-month “Ready for your next service?” reminders are created only
-for completed service bookings where the customer explicitly opted in. Each
-message identifies PSI, links to rebook or contact the workshop, and provides a
-working unsubscribe that does not require account sign-in. Reminders do not ask
-for a public review and do not promote curated vehicle packages.
+for completed service bookings where the customer explicitly opted in. The
+actual PSI service-completion date is the authority; the original enquiry date,
+preferred date and booking-created date never start the service interval. The
+six-month reminder becomes available one calendar month before the six-month
+due date, and the twelve-month reminder becomes available one calendar month
+before the twelve-month due date. Each message identifies PSI and provides the
+vehicle, due date, in-app booking action, `info@psiperformance.com.au` and
+`0433 431 781`. Reminders do not ask for a public review and do not promote
+curated vehicle packages.
 
 ## Integration gates
 
