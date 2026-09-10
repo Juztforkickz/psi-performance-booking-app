@@ -52,7 +52,8 @@ test('Trusted Partners is a public referral directory with ten approved shortest
   assert.match(screen, /trb-visuals\.jpg/u);
   assert.match(screen, /martini-racing-products\.jpg/u);
   assert.match(screen, /fab-car-audio\.jpg/u);
-  assert.match(screen, /'martini-racing-products': 1\.52/u);
+  assert.match(screen, /'martini-racing-products': 1\.2/u);
+  assert.match(screen, /'martini-racing-products': colors\.white/u);
   assert.match(screen, /'fab-car-audio': 0\.9/u);
   assert.match(screen, /'fab-car-audio': colors\.white/u);
   assert.match(screen, /TRUSTED_PARTNERS\.map/u);
