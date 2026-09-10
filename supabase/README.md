@@ -53,7 +53,8 @@ closed again.
 - The Google OAuth app is in production mode with Matt as its only authorised
   PSI user. Its sole scope is `calendar.events.owned`. Customers receive no
   Google token, Calendar list or event feed, and the worker never invites a
-  customer to PSI's private workshop event.
+  customer to PSI's workshop event. Event visibility inherits the workshop
+  calendar's sharing settings so authorised staff can see the full booking.
 - Booking inserts and trusted status changes also create protected rows in
   `notification_events` and `push_notification_jobs`. The customer owns the
   in-app event view; the delivery queue remains private and service-role

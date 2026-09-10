@@ -1,4 +1,4 @@
--- Keep PSI's private Calendar event aligned when a confirmed booking date changes
+-- Keep PSI's team-visible Calendar event aligned when a confirmed booking date changes
 -- or a confirmed booking is cancelled.
 alter table public.booking_integration_jobs
   drop constraint booking_integration_jobs_job_kind_check;

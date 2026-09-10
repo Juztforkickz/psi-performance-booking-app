@@ -346,7 +346,8 @@ Function secrets. Booking-specific email delivery is active in controlled QA.
 They are not stored in customer tables, the mobile app or GitHub. Matt's
 server-side consent is active with only the `calendar.events.owned` scope and a
 durable refresh token. Customers cannot list or read Matt's Calendar and are
-never invited to the private PSI event. Duplicate/cancellation/time-zone and
+never invited to the PSI workshop event. The event inherits the Calendar's
+sharing settings so authorised staff can see it. Duplicate/cancellation/time-zone and
 full queue-delivery acceptance tests still need to pass before customer launch.
 Deposit/payment implementation is deliberately left for the final integration
 stage.

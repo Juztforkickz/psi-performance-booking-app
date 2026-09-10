@@ -375,11 +375,12 @@ const syncGoogleCalendar = async (admin: SupabaseClient, job: IntegrationJob, co
       `Vehicle: ${vehicleLabel(context)}`,
       `Mobile: ${context.customer.mobile ?? "Not supplied"}`,
       `PSI booking reference: ${context.booking.id}`,
-      "Private PSI workshop event. Customer attendee invitations are intentionally disabled.",
+      "PSI workshop event. Customer attendee invitations are intentionally disabled.",
     ].join("\n"),
     start: { date: approvedDate },
     end: { date: nextCalendarDate(approvedDate!) },
     attendees: [],
+    visibility: "default",
     extendedProperties: { private: { psiBookingRequestId: context.booking.id } },
   };
   const commonHeaders = { Authorization: `Bearer ${tokenBody.access_token}`, "Content-Type": "application/json" };

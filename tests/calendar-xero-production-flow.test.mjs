@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const read = relativePath => readFile(new URL(relativePath, import.meta.url), 'utf8');
 
-test('Calendar reconciliation creates, updates and removes one private deterministic event', async () => {
+test('Calendar reconciliation creates, updates and removes one team-visible deterministic event', async () => {
   const [worker, migration] = await Promise.all([
     read('../supabase/functions/process-booking-integrations/index.ts'),
     read('../supabase/migrations/20260910132000_calendar_reconciliation.sql'),
@@ -17,6 +17,8 @@ test('Calendar reconciliation creates, updates and removes one private determini
   assert.match(worker, /method: "POST"/u);
   assert.match(worker, /method: "DELETE"/u);
   assert.match(worker, /attendees: \[\]/u);
+  assert.match(worker, /visibility: "default"/u);
+  assert.doesNotMatch(worker, /visibility: "public"/u);
   assert.match(worker, /sendUpdates=none/u);
   assert.match(worker, /sync_state: "removed"/u);
 });
