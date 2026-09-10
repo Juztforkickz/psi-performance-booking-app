@@ -205,9 +205,24 @@ function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { dis
   const invoiceNumber = typeof identifiers.invoiceNumber === 'string' ? identifiers.invoiceNumber : 'Awaiting inspection';
   const invoiceDate = typeof identifiers.invoiceDate === 'string' ? identifiers.invoiceDate : '';
   const totalCents = typeof identifiers.totalCents === 'number' ? identifiers.totalCents : null;
+  const invoiceStatus = identifiers.invoiceStatus === 'PAID' ? 'PAID' : identifiers.invoiceStatus === 'AUTHORISED' ? 'ISSUED' : '';
+  const amountDueCents = typeof identifiers.amountDueCents === 'number' ? identifiers.amountDueCents : null;
   const contactName = typeof identifiers.contactName === 'string' ? identifiers.contactName : 'Xero contact not loaded';
   const vehicles = snapshot.vehicles.filter(vehicle => vehicle.customer_id === customerId && !vehicle.archived_at);
   const canMatch = owner && item.status === 'needs_review' && Boolean(reference && invoiceDate && customerId && vehicleId && confirmed);
+
+  const keepInXeroOnly = async () => {
+    if (!owner || disabled || working || !['needs_review', 'failed'].includes(item.status)) return;
+    setWorking(true); setMessage('');
+    try {
+      const result = await vaultClient().rpc('ignore_xero_import', { p_queue_id: item.id });
+      if (result.error) throw result.error;
+      setMessage('Kept in Xero only. It will not appear in an app customer’s vault.');
+      await onDone();
+    } catch {
+      setMessage('The invoice was not changed. Re-open owner security and try again.');
+    } finally { setWorking(false); }
+  };
 
   const matchAndImport = async () => {
     if (!canMatch || disabled || working) return;
@@ -229,6 +244,7 @@ function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { dis
   return <View style={styles.card}>
     <View style={styles.importHeading}><Text style={styles.copy}>Xero invoice · {invoiceNumber}</Text><Text style={styles.importStatus}>{item.status.replaceAll('_', ' ')}</Text></View>
     <Text style={styles.muted}>{contactName}{invoiceDate ? ` · ${invoiceDate}` : ''}{totalCents !== null ? ` · ${aud(totalCents)}` : ''}</Text>
+    {invoiceStatus ? <Text style={styles.importStatus}>Xero · {invoiceStatus}{amountDueCents !== null ? ` · ${aud(amountDueCents)} due` : ''}</Text> : null}
     {reference ? <Text selectable style={styles.copy}>PSI job reference · {reference}</Text> : null}
     <Text style={styles.muted}>{item.reason}{item.last_error_code ? ` · ${item.last_error_code.replaceAll('_', ' ')}` : ''}</Text>
     {item.status === 'pending' || item.status === 'matched' || item.status === 'processing' ? <Text style={styles.message}>Secure inspection is queued.</Text> : null}
@@ -240,6 +256,7 @@ function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { dis
         <Text style={styles.confirmText}>I checked the Xero contact, customer, registration and exact PSI job reference. Import this invoice to that vehicle.</Text>
       </Pressable>
       <PrimaryButton disabled={!canMatch || disabled || working} loading={working} label="Match and import invoice" onPress={() => void matchAndImport()} />
+      <PrimaryButton disabled={disabled || working} label="Keep in Xero only" variant="outline" onPress={() => void keepInXeroOnly()} />
     </> : null}
     {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
   </View>;

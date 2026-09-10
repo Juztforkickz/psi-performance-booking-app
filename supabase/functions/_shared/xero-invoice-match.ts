@@ -2,14 +2,15 @@
 export type XeroInvoice = {
   InvoiceID?: string; Type?: string; Status?: string; CurrencyCode?: string;
   SentToContact?: boolean; Reference?: string; InvoiceNumber?: string;
-  Date?: string; DateString?: string; Total?: number;
+  Date?: string; DateString?: string; Total?: number; AmountDue?: number; AmountPaid?: number;
+  LineItems?: { Description?: string }[];
   Contact?: { ContactID?: string; Name?: string };
 };
 export type VerifiedContactLink = {
   tenant_id: string; contact_id: string; customer_id: string;
   verified_by: string | null; verified_at: string;
 };
-export type CheckedJob = { id: string; reference: string; customer_id: string; vehicle_id: string };
+export type CheckedJob = { id: string; reference: string; customer_id: string; vehicle_id: string; booking_request_id?: string | null };
 export type CheckedVehicle = { id: string; customer_id: string; archived_at: string | null };
 type Input = {
   tenantId: string; expectedTenantId: string; expectedInvoiceId: string;
@@ -49,6 +50,7 @@ export function matchXeroInvoice(input: Input) {
   if (vehicles.length !== 1 || vehicles[0].customer_id !== link.customer_id || vehicles[0].archived_at !== null) return review('vehicle_ownership_requires_review');
   return {
     status: 'eligible' as const, customerId: link.customer_id, vehicleId: job.vehicle_id,
-    jobId: job.id, sourceReference: `${tenantId}:${expectedInvoiceId}`,
+    jobId: job.id, bookingRequestId: uuid(job.booking_request_id) ? job.booking_request_id : null,
+    sourceReference: `${tenantId}:${expectedInvoiceId}`,
   };
 }

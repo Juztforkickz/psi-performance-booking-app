@@ -6,7 +6,7 @@ import tempfile
 import time
 import unittest
 from PIL import Image
-from psi_uploads import Connection, RequestFailure, ensure_object, manifest_for, prepare_file, process_job
+from psi_uploads import Connection, RequestFailure, create_job_folder, ensure_object, manifest_for, prepare_file, process_job
 
 
 class WorkshopImporterTests(unittest.TestCase):
@@ -79,6 +79,26 @@ class WorkshopImporterTests(unittest.TestCase):
         (self.folder / 'psi-job.json').unlink()
         with self.assertRaises(FileNotFoundError):
             process_job(self.folder)
+
+    def test_downloaded_manifest_creates_verified_category_folders(self):
+        source = self.folder / 'downloaded.json'
+        source.write_text(json.dumps(self.manifest))
+        root = self.folder / 'uploads'
+        job = create_job_folder(root, source)
+        self.assertEqual(job.name, 'PSI-TEST-ABC123')
+        self.assertEqual(json.loads((job / 'psi-job.json').read_text()), self.manifest)
+        self.assertEqual(set(path.name for path in job.iterdir() if path.is_dir()), set(('before', 'progress', 'after', 'dyno', 'invoices', 'documents')))
+        self.assertEqual(create_job_folder(root, source), job)
+
+    def test_manifest_cannot_replace_another_job_folder(self):
+        source = self.folder / 'downloaded.json'
+        source.write_text(json.dumps(self.manifest))
+        root = self.folder / 'uploads'
+        job = create_job_folder(root, source)
+        changed = {**self.manifest, 'job_id': 'a4300000-0000-4000-8000-000000000009'}
+        source.write_text(json.dumps(changed))
+        with self.assertRaisesRegex(ValueError, 'different PSI job'):
+            create_job_folder(root, source)
 
     def test_mismatched_server_owner_environment_and_date_rejected(self):
         manifest = self.manifest

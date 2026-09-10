@@ -7,12 +7,12 @@ const make = () => ({
   tenantId: id(1), expectedTenantId: id(1), expectedInvoiceId: id(2),
   invoice: { InvoiceID: id(2), Type: 'ACCREC', Status: 'AUTHORISED', CurrencyCode: 'AUD', SentToContact: true, Reference: 'PSI-2026-0123', Contact: { ContactID: id(3) } },
   links: [{ tenant_id: id(1), contact_id: id(3), customer_id: id(4), verified_by: id(5), verified_at: '2026-09-09T00:00:00Z' }],
-  jobs: [{ id: id(6), reference: 'PSI-2026-0123', customer_id: id(4), vehicle_id: id(7) }],
+  jobs: [{ id: id(6), reference: 'PSI-2026-0123', customer_id: id(4), vehicle_id: id(7), booking_request_id: id(10) }],
   vehicles: [{ id: id(7), customer_id: id(4), archived_at: null }, { id: id(8), customer_id: id(4), archived_at: null }],
   activeCustomerIds: [id(4)],
 });
 test('verified exact job selects correct vehicle for a multi-vehicle customer', () => {
-  assert.deepEqual(matchXeroInvoice(make()), { status: 'eligible', customerId: id(4), vehicleId: id(7), jobId: id(6), sourceReference: `${id(1)}:${id(2)}` });
+  assert.deepEqual(matchXeroInvoice(make()), { status: 'eligible', customerId: id(4), vehicleId: id(7), jobId: id(6), bookingRequestId: id(10), sourceReference: `${id(1)}:${id(2)}` });
 });
 const cases = [
   ['different organisation', v => { v.tenantId = id(9); }, 'organisation_mismatch'],

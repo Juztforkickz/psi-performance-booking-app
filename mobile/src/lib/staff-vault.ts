@@ -3,7 +3,28 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import type { DocumentPickerAsset } from 'expo-document-picker';
 import { Image } from 'react-native';
 import { getSupabaseClient } from '@/lib/supabase';
-import { vaultClient, type VaultKind, type WorkshopJob } from '@/lib/performance-plus';
+import { vaultClient, type ServiceCompletionCandidate, type VaultKind, type WorkshopJob } from '@/lib/performance-plus';
+
+export async function loadServiceCompletionCandidate(bookingId: string): Promise<ServiceCompletionCandidate | null> {
+  const { data, error } = await vaultClient()
+    .from('service_completion_candidates')
+    .select('*')
+    .eq('booking_request_id', bookingId)
+    .eq('state', 'pending')
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function loadWorkshopJobForBooking(bookingId: string): Promise<WorkshopJob | null> {
+  const { data, error } = await vaultClient()
+    .from('workshop_jobs')
+    .select('*')
+    .eq('booking_request_id', bookingId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
 
 export async function createOrFindWorkshopJob(input: { customerId: string; vehicleId: string; reference: string; title: string; date: string }) {
   const client = vaultClient();

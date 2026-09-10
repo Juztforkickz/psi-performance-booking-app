@@ -6,4 +6,10 @@ module.exports = defineConfig([
   {
     ignores: ['dist/**', '.expo/**'],
   },
+  {
+    files: ['scripts/**/*.cjs'],
+    languageOptions: {
+      globals: { __dirname: 'readonly' },
+    },
+  },
 ]);

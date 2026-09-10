@@ -4,9 +4,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, spacing } from '@/constants/brand';
-import { todayAustralianDate } from '@/lib/australian-date';
+import { isoDateToAustralian, todayAustralianDate } from '@/lib/australian-date';
 import type { BookingRequestRow } from '@/lib/database.types';
+import type { ServiceCompletionCandidate } from '@/lib/performance-plus';
 import { completePsiService } from '@/lib/staff-record-publishing';
+import { loadServiceCompletionCandidate } from '@/lib/staff-vault';
 import { useStaffDiscardConfirmation } from '@/hooks/use-staff-discard-confirmation';
 
 type Props = {
@@ -30,6 +32,8 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
   const [nextCheckInDate, setNextCheckInDate] = useState('');
   const [nextCheckInOdometerKm, setNextCheckInOdometerKm] = useState('');
   const [feedback, setFeedback] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
+  const [candidate, setCandidate] = useState<ServiceCompletionCandidate | null>(null);
+  const [candidateLoading, setCandidateLoading] = useState(false);
   const values = JSON.stringify([completedDate, odometerKm, summary, nextCheckInDate, nextCheckInOdometerKm]);
   const [savedValues, setSavedValues] = useState(() => JSON.stringify([initialCompletedDate, '', '', '', '']));
   const dirty = values !== savedValues || confirmed;
@@ -37,6 +41,29 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
   useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
   useEffect(() => () => { onDirtyChange?.(false); onBusyChange?.(false); }, [onDirtyChange, onBusyChange]);
+  useEffect(() => {
+    if (!open || booking.booking_type !== 'service' || booking.state !== 'confirmed') return;
+    let active = true;
+    void loadServiceCompletionCandidate(booking.id)
+      .then(value => {
+        if (!active) return;
+        setCandidate(value);
+        if (value) setSummary(current => {
+          if (current.trim()) return current;
+          setCompletedDate(isoDateToAustralian(value.suggested_completed_date) || initialCompletedDate);
+          setConfirmed(false);
+          return value.suggested_summary;
+        });
+      })
+      .catch(() => { if (active) setCandidate(null); })
+      .finally(() => { if (active) setCandidateLoading(false); });
+    return () => { active = false; };
+  }, [booking.booking_type, booking.id, booking.state, initialCompletedDate, open]);
+
+  const openCompletion = () => {
+    setCandidateLoading(true);
+    setOpen(true);
+  };
 
   const close = () => {
     if (busy) return;
@@ -83,7 +110,7 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
   if (!open) {
     return (
       <View style={styles.launch}>
-        <PrimaryButton label="Complete service" onPress={() => setOpen(true)} />
+        <PrimaryButton label="Complete service" onPress={openCompletion} />
       </View>
     );
   }
@@ -106,6 +133,13 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
             <Text style={styles.identity}>{customerLabel}</Text>
             <Text style={styles.vehicle}>{vehicleLabel}</Text>
           </View>
+          {candidateLoading ? <Text style={styles.helper}>Checking for an imported Xero invoice…</Text> : candidate ? (
+            <View style={styles.xeroBox}>
+              <Text style={styles.xeroTitle}>Xero assisted · {candidate.invoice_number}</Text>
+              <Text style={styles.helper}>{candidate.invoice_status === 'PAID' ? 'Xero marks this invoice as paid.' : 'Xero marks this invoice as issued. Payment is not confirmed in Xero.'}</Text>
+              <Text style={styles.helper}>The invoice date and line descriptions have filled this form. Check the actual finish date, odometer and work before completing it.</Text>
+            </View>
+          ) : null}
           <Text style={styles.warning}>Creates a permanent service record and closes this booking.</Text>
           <Field hint="DD/MM/YYYY" label="Completed date">
             <FormInput editable={!busy} keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(value) => { setCompletedDate(value); setConfirmed(false); }} value={completedDate} />
@@ -173,6 +207,9 @@ const styles = StyleSheet.create({
   identity: { color: colors.white, fontSize: 14, fontWeight: '600' },
   vehicle: { color: colors.muted, fontSize: 13 },
   warning: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  helper: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  xeroBox: { backgroundColor: colors.ink, borderColor: colors.accent, borderRadius: 8, borderWidth: 1, gap: spacing.xs, padding: spacing.sm },
+  xeroTitle: { color: colors.accent, fontSize: 13, fontWeight: '800' },
   notes: { minHeight: 88 },
   twoColumn: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   column: { flexGrow: 1, flexBasis: 220, minWidth: 0 },

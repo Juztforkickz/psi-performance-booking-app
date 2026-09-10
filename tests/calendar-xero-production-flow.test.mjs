@@ -48,6 +48,9 @@ test('Xero imports rotate tokens, require an owner-confirmed match and publish o
   assert.match(worker, /IDs', '00000000-0000-4000-8000-000000000000'/u);
   assert.match(worker, /return json\(\{ connected: true \}\)/u);
   assert.match(webhook, /status: 'pending'/u);
+  assert.match(webhook, /source_key: `\$\{tenant\}:\$\{e\.resourceId\}`/u);
+  assert.match(webhook, /\.neq\('status', 'ignored'\)/u);
+  assert.doesNotMatch(webhook, /source_key: `\$\{tenant\}:\$\{e\.resourceId\}:\$\{e\.eventDateUtc\}/u);
   assert.match(webhook, /EdgeRuntime\.waitUntil/u);
   assert.match(webhook, /functions\/v1\/process-xero-imports/u);
   assert.match(webhook, /SUPABASE_SERVICE_ROLE_KEY/u);

@@ -11,6 +11,7 @@ import { StaffXeroConnection } from '@/components/staff-xero-connection';
 import { StaffBookingReview } from '@/components/staff-booking-review';
 import { StaffEventsManager } from '@/components/staff-events-manager';
 import { StaffServiceCompletion } from '@/components/staff-service-completion';
+import { StaffWorkshopJob } from '@/components/staff-workshop-job';
 import { colors, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
@@ -667,6 +668,7 @@ export function StaffWorkspace({
               <PrimaryButton label="Open workshop actions" onPress={() => setBookingPanel('actions')} />
               </> : <>
               <StaffBookingReview previewMode={previewMode} booking={booking} onRefresh={onRefresh} onDirtyChange={setBookingDirty} onBusyChange={setBookingBusy} />
+              {!previewMode ? <StaffWorkshopJob key={booking.id} booking={booking} vehicle={vehicle} /> : null}
               {previewMode ? booking.state === 'confirmed' ? <PreviewNotice title="Complete service">Record completed work and publish it to this vehicle. Completion is disabled in the design preview.</PreviewNotice> : ['cancelled', 'completed'].includes(booking.state) ? <PreviewNotice title="Archived booking">This visit is kept in the booking history.</PreviewNotice> : null : <StaffServiceCompletion
                 booking={booking}
                 onDirtyChange={setCompletionDirty}

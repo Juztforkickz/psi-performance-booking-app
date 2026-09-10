@@ -37,14 +37,30 @@ Deno.serve(async request => {
     const payload = JSON.parse(new TextDecoder().decode(raw));
     if (!Array.isArray(payload.events) || payload.events.length > 100) return json({ error: 'invalid_events' }, 400);
     const rows = payload.events.filter((e: Record<string, unknown>) => e.tenantId === tenant && e.eventCategory === 'INVOICE' && uuid(e.resourceId)).map((e: Record<string, unknown>) => ({
-      source: 'xero', source_key: `${tenant}:${e.resourceId}:${e.eventDateUtc}:${e.eventType}`,
+      source: 'xero', source_key: `${tenant}:${e.resourceId}`,
       status: 'pending',
-      identifiers: { tenantId: tenant, invoiceId: e.resourceId, eventType: e.eventType },
+      identifiers: { tenantId: tenant, invoiceId: e.resourceId, eventDateUtc: e.eventDateUtc, eventType: e.eventType },
       reason: 'Queued for secure Xero invoice inspection.',
     }));
     if (rows.length) {
-      const { error } = await adminClient().from('vault_import_queue').upsert(rows, { onConflict: 'source,source_key', ignoreDuplicates: true });
+      const admin = adminClient();
+      const { error } = await admin.from('vault_import_queue').upsert(rows, { onConflict: 'source,source_key', ignoreDuplicates: true });
       if (error) throw error;
+      const refreshes = await Promise.all(rows.map(row => admin
+        .from('vault_import_queue')
+        .update({
+          identifiers: row.identifiers,
+          status: 'pending',
+          reason: row.reason,
+          attempt_count: 0,
+          available_at: new Date().toISOString(),
+          completed_at: null,
+          last_error_code: null,
+        })
+        .eq('source', row.source)
+        .eq('source_key', row.source_key)
+        .neq('status', 'ignored')));
+      if (refreshes.some(result => result.error)) throw new Error('xero_queue_refresh_failed');
       startImportWorker();
     }
     return json({ received: true });

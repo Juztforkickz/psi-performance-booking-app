@@ -616,7 +616,6 @@ Deno.serve(async (request) => {
   const authorization = request.headers.get("Authorization") ?? "";
   const accessToken = authorization.replace(/^Bearer\s+/i, "");
   if (!supabaseUrl || !anonKey || !serviceRoleKey) return json({ error: "server_configuration_unavailable" }, 503);
-  if (!accessToken) return json({ error: "authentication_required" }, 401);
 
   let body: WorkerRequest = {};
   try {
@@ -629,11 +628,21 @@ Deno.serve(async (request) => {
   const dueReminderRun = body.action === "process_due_service_reminders";
   const requestedLimit = typeof body.limit === "number" && Number.isFinite(body.limit) ? Math.trunc(body.limit) : 10;
   const limit = Math.min(10, Math.max(1, requestedLimit));
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const cronToken = request.headers.get("x-psi-cron-token")?.trim() ?? "";
+  let isScheduledCron = false;
+  if (dueReminderRun && cronToken) {
+    const verified = await admin.rpc("verify_service_reminder_cron_token", { p_token: cronToken });
+    isScheduledCron = !verified.error && verified.data === true;
+  }
+  if (!accessToken) return json({ error: "authentication_required" }, 401);
   // Supabase can rotate the runtime service-role secret independently from a
   // still-valid legacy service-role JWT. The gateway validates the JWT before
   // this protected function runs, so accept either exact secret or a validated
   // service-role token scoped to this project.
-  const isInternalServiceCall = accessToken === serviceRoleKey || isProjectServiceRoleToken(accessToken, supabaseUrl);
+  const isInternalServiceCall = isScheduledCron || accessToken === serviceRoleKey || isProjectServiceRoleToken(accessToken, supabaseUrl);
   let isAal2Staff = isInternalServiceCall;
 
   if (isInternalServiceCall) {
@@ -673,10 +682,6 @@ Deno.serve(async (request) => {
       if (ownedBookingError || !ownedBooking) return json({ error: "booking_access_denied" }, 403);
     }
   }
-
-  const admin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 
   let jobsQuery = admin
     .from("booking_integration_jobs")

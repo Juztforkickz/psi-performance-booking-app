@@ -6,11 +6,25 @@ This local Python tool prepares photographs and imports PDFs into the existing p
 
 Use Python 3.11 or newer. In this directory run `python -m pip install -r requirements.txt`. Staff must already have an active PSI portal account and an enrolled authenticator. Never use a service-role or secret API key on the PC.
 
+For the intended workshop PC, copy this whole folder to that computer and run the installer once from PowerShell:
+
+```powershell
+.\Install-PSIWorkshopUploader.ps1 -ProjectUrl "https://PROJECT.supabase.co" -PublishableKey "PUBLISHABLE_KEY" -StaffEmail "YOUR_STAFF_EMAIL"
+```
+
+It creates `C:\PSI Uploads` and a **PSI Workshop Uploads** desktop shortcut for the signed-in Windows user. The saved configuration contains only the public project address, publishable key, staff email and folder path. Customer records and privileged keys are not stored in it. Email-code and authenticator login is still required whenever the watcher starts.
+
 ## Each workshop job
 
-1. In the PSI staff portal, select the actual customer and vehicle, verify the registration, enter the PSI job reference and date, and confirm the association.
-2. Choose **Download verified PC folder manifest**. Put that `psi-job.json` inside the matching job folder. The file contains identifiers, not credentials. Keep it on the protected workshop PC.
-3. Copy the selected files into these subfolders:
+1. Confirm the app booking. The protected backend automatically creates its workshop job and exact Xero reference.
+2. In **Booking details → Workshop actions**, choose **Download PC folder file**. The file contains identifiers, not credentials.
+3. On the workshop PC, create the complete verified folder tree from that downloaded file:
+
+```powershell
+python psi_uploads.py --root "C:/PSI Uploads" --add-job "C:/Users/YOU/Downloads/PSI-REFERENCE-REG-psi-job.json"
+```
+
+4. Copy files into the folder that command creates:
 
 ```text
 C:/PSI Uploads/
@@ -24,13 +38,13 @@ C:/PSI Uploads/
     documents/
 ```
 
-4. First inspect local preparation:
+5. First inspect local preparation:
 
 ```powershell
 python psi_uploads.py --root "C:/PSI Uploads" --prepare-only
 ```
 
-5. To upload, supply your environment's public project URL and **publishable** key, then enter the email code and authenticator code when prompted:
+6. To upload, supply your environment's public project URL and **publishable** key, then enter the email code and authenticator code when prompted:
 
 ```powershell
 python psi_uploads.py --root "C:/PSI Uploads" --url "https://PROJECT.supabase.co" --key "PUBLISHABLE_KEY" --email "YOUR_STAFF_EMAIL"
@@ -40,9 +54,9 @@ Add `--watch` to scan every 30 seconds while the process is open. Stop with Ctrl
 
 ## Behaviour and recovery
 
-- Folder names are labels. No customer name, partial registration or filename can authorize a match. The manifest's project, job, customer, vehicle, registration and date must match live records. A changed registration requires a new verified manifest.
+- Folder names and filenames are labels. No customer name, partial registration or filename can authorize a match. The portal manifest's project, job, customer, vehicle, registration and date must match live records. A changed registration requires a new verified manifest.
 - JPEG, PNG, WebP and TIFF photographs are oriented correctly and resized to at most 1600 pixels on the longest edge; JPEG quality 82. Thumbnails use a maximum 360-pixel edge and quality 72. EXIF/GPS is removed. HEIC and video are not supported by this initial tool: export JPEG first.
-- PDF originals stay byte-for-byte intact. There is no assumed Mainline API, OCR, or automatic numerical extraction. Enter verified HP/Nm in the portal when needed.
+- PDF originals stay byte-for-byte intact. Save a Mainline result as PDF into the job's `dyno` folder; it uploads to that vehicle's Dyno Vault. There is no assumed Mainline API or automatic numerical extraction, so enter verified HP/Nm in the portal when needed.
 - Originals remain untouched. Local `.psi-prepared` files are safe previews; `.psi-upload-status.json` reports prepared, uploaded, or needs_review. Neither is cloud backup.
 - Identical prepared content within the same job and category is deduplicated by SHA-256 and a server unique source reference. A before and an after folder can deliberately retain the same image. Re-encoded variants are different content.
 - Files must stop changing for at least five seconds. Symlinked folders/files are ignored. Maximum source 40 MB; maximum uploaded object 20 MB. Oversized/invalid files require review.

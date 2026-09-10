@@ -66,6 +66,59 @@ function invoiceAmountCents(invoice: XeroInvoice) {
   return cents;
 }
 
+function optionalAmountCents(value: unknown) {
+  if (!Number.isFinite(Number(value)) || Number(value) < 0) return null;
+  const cents = Math.round(Number(value) * 100);
+  return Number.isSafeInteger(cents) && cents <= 2147483647 ? cents : null;
+}
+
+function suggestedWorkSummary(invoice: XeroInvoice) {
+  const descriptions = Array.isArray(invoice.LineItems)
+    ? invoice.LineItems
+      .map(item => typeof item?.Description === 'string' ? item.Description.replace(/\s+/gu, ' ').trim() : '')
+      .filter(Boolean)
+    : [];
+  const unique = [...new Set(descriptions)].join('; ').slice(0, 2000);
+  const number = typeof invoice.InvoiceNumber === 'string' && invoice.InvoiceNumber.trim()
+    ? invoice.InvoiceNumber.trim().slice(0, 120)
+    : 'Xero invoice';
+  return unique || `Work invoiced under ${number}. Verify the completed work before closing the booking.`;
+}
+
+async function syncServiceCompletionCandidate(
+  admin: SupabaseClient,
+  matched: { bookingRequestId: string | null; customerId: string; vehicleId: string; jobId: string },
+  invoice: XeroInvoice,
+  recordId: string,
+) {
+  if (!matched.bookingRequestId) return;
+  const { data: booking, error: bookingError } = await admin
+    .from('booking_requests')
+    .select('id,booking_type,state,customer_id,vehicle_id')
+    .eq('id', matched.bookingRequestId)
+    .maybeSingle();
+  if (bookingError) throw new Error('xero_booking_lookup_failed');
+  if (!booking || booking.booking_type !== 'service' || booking.state !== 'confirmed'
+    || booking.customer_id !== matched.customerId || booking.vehicle_id !== matched.vehicleId) return;
+
+  const invoiceNumber = typeof invoice.InvoiceNumber === 'string' && invoice.InvoiceNumber.trim()
+    ? invoice.InvoiceNumber.trim().slice(0, 120)
+    : String(invoice.InvoiceID).slice(0, 8).toUpperCase();
+  const invoiceStatus = invoice.Status === 'PAID' ? 'PAID' : 'AUTHORISED';
+  const { error } = await admin.from('service_completion_candidates').upsert({
+    booking_request_id: booking.id,
+    job_id: matched.jobId,
+    customer_id: matched.customerId,
+    vehicle_id: matched.vehicleId,
+    source_record_id: recordId,
+    invoice_number: invoiceNumber,
+    invoice_status: invoiceStatus,
+    suggested_completed_date: invoiceDate(invoice),
+    suggested_summary: suggestedWorkSummary(invoice),
+  }, { onConflict: 'booking_request_id' });
+  if (error) throw new Error('xero_completion_candidate_failed');
+}
+
 const hexDigest = async (bytes: Uint8Array) => Array.from(
   new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)),
   byte => byte.toString(16).padStart(2, '0'),
@@ -125,6 +178,8 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     invoiceNumber: typeof invoice.InvoiceNumber === 'string' ? invoice.InvoiceNumber.slice(0, 120) : null,
     invoiceDate: invoiceDate(invoice),
     totalCents: invoiceAmountCents(invoice),
+    amountDueCents: optionalAmountCents(invoice.AmountDue),
+    amountPaidCents: optionalAmountCents(invoice.AmountPaid),
     currency: invoice.CurrencyCode ?? null,
     invoiceStatus: invoice.Status ?? null,
   };
@@ -135,7 +190,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   if (linkError) throw new Error('xero_customer_link_unavailable');
   const links = linked && typeof linked === 'object' && uuid(linked.customer_id) ? [linked as VerifiedContactLink] : [];
 
-  let jobsQuery = admin.from('workshop_jobs').select('id,reference,customer_id,vehicle_id').eq('reference', reference);
+  let jobsQuery = admin.from('workshop_jobs').select('id,reference,customer_id,vehicle_id,booking_request_id').eq('reference', reference);
   if (queued.job_id) jobsQuery = jobsQuery.eq('id', queued.job_id);
   const { data: jobs, error: jobsError } = await jobsQuery.limit(2);
   if (jobsError) throw new Error('xero_job_lookup_failed');
@@ -172,6 +227,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   const { data: existing, error: existingError } = await admin.from('vault_records').select('id,published_at').eq('source', 'xero').eq('source_reference', sourceReference).maybeSingle();
   if (existingError) throw new Error('xero_record_lookup_failed');
   if (existing?.published_at) {
+    await syncServiceCompletionCandidate(admin, matched, invoice, existing.id);
     await setQueue(admin, queued.id, { status: 'imported', job_id: matched.jobId, record_id: existing.id, identifiers: enriched, reason: 'Invoice already imported.', completed_at: new Date().toISOString(), last_error_code: null });
     return { id: queued.id, status: 'imported', recordId: existing.id };
   }
@@ -225,6 +281,8 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   if (assetReady.error) throw new Error('xero_asset_publish_failed');
   const recordReady = await admin.from('vault_records').update({ published_at: new Date().toISOString() }).eq('id', recordId);
   if (recordReady.error) throw new Error('xero_record_publish_failed');
+
+  await syncServiceCompletionCandidate(admin, matched, invoice, recordId);
 
   await setQueue(admin, queued.id, {
     status: 'imported', job_id: matched.jobId, record_id: recordId,

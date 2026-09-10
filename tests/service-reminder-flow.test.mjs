@@ -38,12 +38,21 @@ test('due reminder worker sends email and creates one private app and push event
 });
 
 test('daily scheduler keeps the protected project settings in Vault', async () => {
-  const schedule = await read('../supabase/migrations/20260911094500_schedule_service_due_reminders.sql');
+  const [schedule, gateway] = await Promise.all([
+    read('../supabase/migrations/20260911150000_secure_service_reminder_cron.sql'),
+    read('../supabase/migrations/20260911151500_service_reminder_gateway_auth.sql'),
+  ]);
   assert.match(schedule, /psi_service_reminder_project_url/u);
-  assert.match(schedule, /psi_service_reminder_service_role/u);
+  assert.match(schedule, /psi_service_reminder_cron_token/u);
+  assert.match(schedule, /verify_service_reminder_cron_token/u);
+  assert.match(schedule, /x-psi-cron-token/u);
   assert.match(schedule, /'5 0 \* \* \*'/u);
   assert.match(schedule, /"action":"process_due_service_reminders"/u);
   assert.doesNotMatch(schedule, /eyJ[A-Za-z0-9_-]+\./u);
+  assert.doesNotMatch(schedule, /psi_service_reminder_service_role/u);
+  assert.match(gateway, /psi_service_reminder_anon_jwt/u);
+  assert.match(gateway, /'Authorization', 'Bearer ' \|\| anon_jwt/u);
+  assert.match(gateway, /'x-psi-cron-token', cron_token/u);
 });
 
 test('customer screens state the Free and Performance+ boundary and reminder authority', async () => {

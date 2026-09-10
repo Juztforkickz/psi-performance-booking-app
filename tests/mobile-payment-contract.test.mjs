@@ -26,7 +26,8 @@ test("mobile payments remain approval-first and server-confirmed", async () => {
   assert.match(webhook, /confirm_booking_payment/u);
   assert.match(webhook, /processConfirmedBooking\(supabaseUrl, serviceKey, bookingId\)/u);
   assert.match(webhook, /booking_integrations_pending/u);
-  assert.match(integrationWorker, /isInternalServiceCall = accessToken === serviceRoleKey/u);
+  assert.match(integrationWorker, /isInternalServiceCall = isScheduledCron \|\| accessToken === serviceRoleKey/u);
+  assert.match(integrationWorker, /verify_service_reminder_cron_token/u);
   assert.match(integrationWorker, /internal_booking_id_required/u);
 
   assert.match(bankVerifier, /claims\?\.claims\?\.aal !== "aal2"/u);

@@ -17,6 +17,7 @@ import urllib.parse
 import urllib.request
 import uuid
 from datetime import date
+import re
 from PIL import Image, ImageOps
 
 CATEGORIES = {'before': ('media', 'before'), 'progress': ('media', 'progress'), 'after': ('media', 'after'), 'dyno': ('dyno', None), 'invoices': ('invoice', None), 'documents': ('document', None)}
@@ -128,6 +129,34 @@ def manifest_for(folder, connection=None):
             raise ValueError('Vehicle identity changed; PSI must review the folder')
     return manifest
 
+def create_job_folder(root, manifest_path):
+    """Create one verified folder tree from a portal-downloaded manifest."""
+    source = Path(manifest_path).resolve(strict=True)
+    temporary = source.parent / (source.name + '.psi-verify')
+    temporary.mkdir(exist_ok=False)
+    try:
+        (temporary / 'psi-job.json').write_bytes(source.read_bytes())
+        manifest = manifest_for(temporary)
+    finally:
+        (temporary / 'psi-job.json').unlink(missing_ok=True)
+        temporary.rmdir()
+    label = re.sub(r'[^A-Z0-9._-]+', '-', f'{manifest["reference"]} - {manifest["registration"]}'.upper())
+    label = re.sub(r'-{2,}', '-', label).strip('-._')
+    if not label:
+        raise ValueError('Manifest has no safe job folder label')
+    folder = root / label
+    folder.mkdir(parents=True, exist_ok=True)
+    destination = folder / 'psi-job.json'
+    if destination.exists():
+        existing = json.loads(destination.read_text(encoding='utf-8-sig'))
+        if existing != manifest:
+            raise ValueError('This folder already contains a different PSI job manifest')
+    else:
+        atomic_json(destination, manifest)
+    for category in CATEGORIES:
+        (folder / category).mkdir(exist_ok=True)
+    return folder
+
 def ensure_object(connection, path, content, mime):
     """Resume only when an existing private object's bytes are identical."""
     try:
@@ -219,9 +248,16 @@ def main():
     parser.add_argument('--root', required=True)
     parser.add_argument('--prepare-only', action='store_true')
     parser.add_argument('--watch', action='store_true')
+    parser.add_argument('--add-job', metavar='MANIFEST', help='Create verified job folders from a portal-downloaded manifest')
     parser.add_argument('--url'); parser.add_argument('--key'); parser.add_argument('--email')
     args = parser.parse_args()
-    root = Path(args.root).resolve(strict=True)
+    root = Path(args.root).resolve()
+    if args.add_job:
+        root.mkdir(parents=True, exist_ok=True)
+        folder = create_job_folder(root, args.add_job)
+        print(f'Created PSI job folder: {folder}')
+        return
+    root = root.resolve(strict=True)
     connection = None
     if not args.prepare_only:
         if not all((args.url, args.key, args.email)):
