@@ -1,23 +1,32 @@
 # PSI Performance App Privacy Policy
 
-Status: **Performance+ update draft, 10 September 2026 — not yet approved or
+Status: **Performance+ entity-role update draft, 12 September 2026 — not yet approved or
 published.** The preceding policy was owner-approved and published on
 2 September 2026 under **PSI Performance App Privacy Policy** within PSI's
 Shopify privacy page at https://psiperformance.com.au/policies/privacy-policy.
 That publication is not evidence that the new subscription disclosures below
-are live. PSI PERFORMANCE PTY LTD was owner-confirmed as the sole operator.
+are live. The owner has since confirmed that the company publishes the App and
+the existing sole-trader business continues to supply workshop services.
 This document records the proposed update and must not be represented as legal
 advice.
 
 ## Privacy Policy
 
-**Draft updated: 10 September 2026. Effective date pending publication.**
+**Draft updated: 12 September 2026. Effective date pending publication.**
 
 ### 1. Who we are
 
-The PSI Performance App (the **App**) is operated by **PSI PERFORMANCE PTY LTD,
-trading as PSI Performance**. In this policy, **PSI**, **we**, **us** and **our**
-refer to PSI PERFORMANCE PTY LTD.
+**PSI PERFORMANCE PTY LTD** owns and publishes the PSI Performance App and
+supplies optional Performance+ digital subscriptions (the **App Publisher**).
+**PSI Performance Garage**, operated through the owner's existing sole-trader
+business, supplies vehicle servicing, repairs, dyno work and other workshop
+services, and accepts workshop booking deposits (the **Workshop Operator**).
+
+Both use the PSI Performance brand for their respective services. In this
+policy, **PSI**, **we**, **us** and **our** refer to the App Publisher, the
+Workshop Operator or both, according to the service being described. The
+checkout, receipt, invoice or store purchase confirmation identifies the
+applicable supplier for a transaction.
 
 Privacy enquiries can be sent to info@psiperformance.com.au. You can also call
 0433 431 781 or write to PSI Performance, 21 Exchange Drive, Pakenham VIC 3810,
@@ -35,7 +44,10 @@ vehicle records, booking communications and related support. We do not sell App
 customer information, use it for third-party advertising or use it to track
 people across unrelated apps or websites.
 
-The App does not collect full payment-card or bank-account credentials. General
+The App does not collect full payment-card or bank-account credentials. The
+Workshop Operator uses Stripe or separately verified bank transfer for
+workshop booking deposits. The App Publisher uses the applicable device app
+store for Performance+ digital subscriptions. General
 customer activation of optional Performance+ purchases remains pending. The
 Apple and RevenueCat connection is configured for controlled purchase testing;
 this does not mean live customer charging has opened. When enabled, Apple
@@ -134,7 +146,7 @@ photographs and documents; provide customer support; respond to access,
 correction, complaint and deletion requests; and maintain accurate business,
 taxation, warranty, safety and dispute records.
 
-For Performance+, PSI also verifies subscription purchases and restores,
+For Performance+, the App Publisher also verifies subscription purchases and restores,
 maintains the resulting access status, and responds to subscription-related
 account support requests.
 
@@ -215,8 +227,9 @@ notification information outside Australia, including in the United States.
 delivery. Depending on the device, notification information may be processed
 outside Australia, including in the United States.
 
-**Apple and RevenueCat** support optional Performance+ subscriptions. Apple
-processes the purchase. RevenueCat receives the PSI account identifier and
+**Apple, Google Play and RevenueCat** support optional Performance+ subscriptions.
+The applicable device app store processes the purchase for the App Publisher.
+RevenueCat receives the PSI account identifier and
 subscription transaction information to verify purchases, renewals and
 restores; PSI uses the verified result to control premium access. Workshop
 photographs, invoice PDFs and other private vault files are not sent to
@@ -364,7 +377,10 @@ The following internal actions are intentionally outside the public policy
 copy. The Performance+ changes require review and publication before general
 paid activation:
 
-1. Confirm ABN/ACN details if they will be added to the public page.
+1. Confirm the Workshop Operator's sole-trader ABN before adding it to receipts
+   or invoices. Keep the App Publisher's company ACN/ABN separate. Public policy
+   copy may use the registered workshop business name while the required legal
+   supplier identity remains on transactional documents.
 2. Approve the five-year minimum for transaction records and document any
    categories that require a longer period.
 3. Confirm the real backup rotation and ensure the published retention wording
@@ -373,9 +389,11 @@ paid activation:
 5. Resolve Open-Meteo commercial licensing or replace the provider, then update
    sections 7 and 9 if needed.
 6. Re-run the signed-binary App Store and Google Play data-disclosure audit.
-7. Verify Apple and RevenueCat disclosures against the final signed build and
+7. Verify Apple, Google Play and RevenueCat disclosures against the final signed build and
    provider configuration, approve this draft, publish the updated public
-   policy and collection notices, and record their effective date. Do not treat
+   policy and collection notices, and record their effective date. Obtain
+   professional review of the App Publisher/Workshop Operator split before
+   paid activation. Do not treat
    this repository draft as proof that the public policy has changed.
 
 ## Principal review sources

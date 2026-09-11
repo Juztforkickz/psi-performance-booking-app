@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { APP_PUBLISHER, ENTITY_ROLE_SUMMARY, WORKSHOP_OPERATOR } from '@/constants/legal-entities';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { subscriptionPurchaseTestMode, subscriptionPurchasesAvailable, subscriptionStorefrontName } from '@/lib/performance-purchases';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
@@ -11,7 +12,11 @@ import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 const SECTIONS = [
   {
     title: 'Who operates the app',
-    copy: 'PSI PERFORMANCE PTY LTD, trading as PSI Performance, operates the PSI Performance app and administers the workshop bookings, vehicle services and customer records shown here. PSI Free remains available without a subscription.',
+    copy: `${ENTITY_ROLE_SUMMARY} Both use the PSI Performance brand for their respective services. PSI Free remains available without a subscription.`,
+  },
+  {
+    title: 'Who receives your payments',
+    copy: `${APP_PUBLISHER} is the supplier of Performance+ digital subscriptions purchased through Apple or Google Play. ${WORKSHOP_OPERATOR} is the supplier of vehicle servicing, repairs, dyno work and workshop booking deposits processed separately through Stripe or bank transfer. Your checkout or invoice identifies the applicable supplier before payment.`,
   },
   {
     title: 'Information we handle',
@@ -19,7 +24,7 @@ const SECTIONS = [
   },
   {
     title: 'Why we use it',
-    copy: 'We use this information to authenticate you, provide customer-owned vehicle records, review and administer workshop requests, communicate booking changes, display PSI-published workshop history, protect the service from misuse and meet accounting, safety, dispute and legal obligations. We do not sell customer personal information.',
+    copy: 'The app publisher uses this information to authenticate you, provide and protect the app and administer Performance+ access. The workshop operator uses relevant information to assess bookings, communicate booking changes, provide vehicle services and maintain workshop history. Both use information only for their applicable operational, accounting, safety, dispute and legal obligations. Neither sells customer personal information.',
   },
   {
     title: 'Storage and service providers',
@@ -74,7 +79,7 @@ export default function PrivacyScreen() {
           </View>
         ))}
         <PrimaryButton label="Request account deletion" onPress={() => router.push('/delete-account')} variant="outline" />
-        <Text style={styles.updated}>LAST UPDATED · 11/09/2026</Text>
+        <Text style={styles.updated}>LAST UPDATED · 12/09/2026</Text>
       </ScrollView>
     </SafeAreaView>
   );

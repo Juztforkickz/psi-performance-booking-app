@@ -12,13 +12,22 @@ signed release build and final owner/legal checks are complete.
 - D-U-N-S status: **Active D&B record confirmed by the owner on 29 August 2026**
 - Company ACN: **175 164 626** — owner-confirmed; recheck against current ASIC documentation during enrolment
 - Company ABN: **98 175 164 626** — owner-confirmed; recheck against current ABR documentation during enrolment
-- Workshop supplier wording: **Matthew Ebert trading as PSI Performance**
+- Public workshop supplier wording: **PSI Performance Garage**
+- Entity split: **PSI PERFORMANCE PTY LTD** owns/publishes the apps and supplies
+  Performance+ digital subscriptions; the owner's sole-trader business **PSI
+  Performance Garage** supplies workshop services and accepts workshop deposits.
 - Primary category: **Business**
 - Secondary/category description: **Automotive customer and workshop services**
 - First Apple release devices: **iPhone only**
 - Price: **Free**
 - Paid digital products/subscriptions: **Optional PSI Performance+ subscription
   at A$9.99 monthly or A$99 annually**
+- Store subscription proceeds: company App Store/Google Play agreements and
+  company tax/accounting identity. A destination bank account does not change
+  the contractual supplier. Confirm the final payout account and inter-entity
+  treatment with PSI's accountant before paid activation.
+- Workshop deposits and invoices: sole-trader Stripe/bank/Xero route, separate
+  from the app-store subscription products.
 - Support email: `info@psiperformance.com.au`
 - Support phone: `0433 431 781`
 - Workshop: `21 Exchange Drive, Pakenham VIC 3810, Australia`

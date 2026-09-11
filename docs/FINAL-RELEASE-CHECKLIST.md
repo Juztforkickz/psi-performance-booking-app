@@ -1,6 +1,13 @@
 # Final release checklist
 
-Status: controlled QA, 11 September 2026. Payments are deliberately last.
+Status: controlled QA, 12 September 2026. Payments are deliberately last.
+
+Legal-entity direction confirmed by the owner: PSI PERFORMANCE PTY LTD owns and
+publishes the apps and supplies Performance+ digital subscriptions. The owner's
+sole-trader business, publicly identified as PSI Performance Garage, remains the
+workshop operator and supplier of workshop services and deposits. Exact
+sole-trader ABN/GST details and the final accounting treatment remain
+professional-review gates.
 
 ## Ready in controlled QA
 
@@ -55,6 +62,10 @@ Status: controlled QA, 11 September 2026. Payments are deliberately last.
   annual base plans, connect Play service credentials to RevenueCat, then test
   purchase, restore, renewal, cancellation, expiry and refund on a license
   tester account.
+- [ ] Upload the unedited PSI PERFORMANCE PTY LTD registration certificate to
+  complete Google Play organisation verification, then complete the unlocked
+  phone verification. Do not use that company document as evidence of the
+  separate sole-trader workshop supplier.
 - [x] Record current Supabase plan, region and capacity; add a guarded encrypted
   logical-backup procedure for controlled QA.
 - [ ] Upgrade before external onboarding, confirm scheduled backup retention and
@@ -89,6 +100,10 @@ Status: controlled QA, 11 September 2026. Payments are deliberately last.
   separately verified option.
 - [ ] Confirm AUD/GST, cancellation and refund
   wording with PSI's professional advisers.
+- [ ] Confirm the sole-trader ABN and GST status for workshop invoices and
+  deposit receipts; configure Stripe, Xero and the workshop payout account to
+  that supplier. Configure Apple/Google subscription agreements, tax details
+  and payout accounting for PSI PERFORMANCE PTY LTD.
 - [x] Implement raw-body Stripe signature verification, an idempotent payment
   ledger and a service-role-only confirmation transition.
 - [x] Deploy the payment migration and three payment functions; verify the
