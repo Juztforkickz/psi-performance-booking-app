@@ -219,7 +219,7 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
           <Text maxFontSizeMultiplier={2} style={styles.backText}>Account</Text>
         </Pressable>
         <Image
-          accessibilityLabel="PSI Performance Garage"
+          accessibilityLabel="PSI Performance"
           resizeMode="contain"
           source={require('../../../assets/images/psi-logo.png')}
           style={styles.logo}

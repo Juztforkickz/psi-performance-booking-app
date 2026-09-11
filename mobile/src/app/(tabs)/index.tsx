@@ -256,7 +256,7 @@ export default function CustomerHomeScreen() {
         <View style={styles.header}>
           <Image
             accessibilityIgnoresInvertColors
-            accessibilityLabel="PSI Performance Garage"
+            accessibilityLabel="PSI Performance"
             resizeMode="contain"
             source={require('../../../assets/images/psi-logo.png')}
             style={[styles.logo, compact && styles.logoCompact, { tintColor: theme.text }]}

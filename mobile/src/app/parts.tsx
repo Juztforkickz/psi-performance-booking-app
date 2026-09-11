@@ -208,7 +208,7 @@ export default function PlanBuildScreen() {
           <Text maxFontSizeMultiplier={2} style={styles.backText}>Back</Text>
         </Pressable>
         <Image
-          accessibilityLabel="PSI Performance Garage"
+          accessibilityLabel="PSI Performance"
           resizeMode="contain"
           source={require('../../assets/images/psi-logo.png')}
           style={styles.logo}
@@ -485,7 +485,7 @@ export default function PlanBuildScreen() {
               })}
             />
             <HandoffAction
-              detail="PSI Performance Garage"
+              detail="PSI Performance"
               disabled={!canOpenHandoff}
               icon="logo-facebook"
               label="Open Facebook to message"

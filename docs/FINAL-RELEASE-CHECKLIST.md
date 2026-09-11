@@ -4,7 +4,7 @@ Status: controlled QA, 12 September 2026. Payments are deliberately last.
 
 Legal-entity direction confirmed by the owner: PSI PERFORMANCE PTY LTD owns and
 publishes the apps and supplies Performance+ digital subscriptions. The owner's
-sole-trader business, publicly identified as PSI Performance Garage, remains the
+sole-trader business, publicly identified as PSI Performance, remains the
 workshop operator and supplier of workshop services and deposits. Exact
 sole-trader ABN/GST details and the final accounting treatment remain
 professional-review gates.

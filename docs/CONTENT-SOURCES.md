@@ -1,6 +1,6 @@
 # Content and asset sources
 
-This build uses publicly available PSI Performance Garage information and owner-published brand media gathered on 20 August 2026.
+This build uses publicly available PSI Performance information and owner-published brand media gathered on 20 August 2026.
 
 ## Public sources
 
@@ -20,7 +20,7 @@ No reliable PSI Pakenham customer review literally rating the business â€œ10/10â
 
 The public business details used in the interface are:
 
-- PSI Performance Garage
+- PSI Performance
 - 21 Exchange Drive, Pakenham VIC 3810
 - 0433 431 781
 - info@psiperformance.com.au
@@ -137,7 +137,7 @@ These third-party marks are used nominatively to identify vehicle manufacturers 
 
 The current PSI website and native mobile app use one restrained, high-end performance system:
 
-- official white PSI Performance Garage wordmark on carbon black;
+- official white PSI Performance wordmark on carbon black;
 - carbon black `#050505`, graphite `#111111` and cool silver `#DBE3E7` surfaces;
 - ice blue `#65CFF8` for primary interaction, with deep petrol `#155D78` for supporting contrast;
 - PSI's Ethnocentric display face for major web headings, paired with a clean system sans serif for readable form content;
@@ -170,7 +170,7 @@ Final prompt:
 >
 > Primary request: Create a complete, polished social card for an Australian performance workshop booking experience.
 >
-> Input images: Image 1 is the approved PSI vehicle/hero photography and should guide the vehicle subject and premium photographic finish. Image 2 is the exact PSI Performance Garage logo reference; reproduce that supplied wordmark faithfully and clearly.
+> Input images: Image 1 is the approved PSI vehicle/hero photography and should guide the vehicle subject and premium photographic finish. Image 2 is the exact PSI Performance logo reference; reproduce that supplied wordmark faithfully and clearly.
 >
 > Scene/backdrop: deep black and steel-grey automotive setting with restrained industrial texture and a subtle amber/gold highlight.
 >

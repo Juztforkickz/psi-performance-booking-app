@@ -628,7 +628,7 @@ function BookingScreenContent({
         </Pressable>
         <View style={styles.topBarBrand}>
           <Image
-            accessibilityLabel="PSI Performance Garage"
+            accessibilityLabel="PSI Performance"
             resizeMode="contain"
             source={require('../../assets/images/psi-logo.png')}
             style={[styles.topBarLogo, compactHeader && styles.topBarLogoCompact]}
@@ -1804,7 +1804,7 @@ function ReviewStep({
       <View style={styles.paymentCard}>
         <Text style={styles.paymentTitle}>What happens next</Text>
         <Text style={styles.paymentCopy}>
-          PSI reviews the date and sends a deposit link only after approval. Workshop services and deposits are supplied by PSI Performance Garage. Your booking is confirmed only after the deposit is verified.
+          PSI reviews the date and sends a deposit link only after approval. Workshop services and deposits are supplied by PSI Performance. Your booking is confirmed only after the deposit is verified.
         </Text>
       </View>
 

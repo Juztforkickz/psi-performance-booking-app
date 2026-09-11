@@ -275,7 +275,7 @@ export default function AccountScreen() {
           <Text maxFontSizeMultiplier={2} style={styles.backText}>Back</Text>
         </Pressable>
         <Image
-          accessibilityLabel="PSI Performance Garage"
+          accessibilityLabel="PSI Performance"
           resizeMode="contain"
           source={require('../../../assets/images/psi-logo.png')}
           style={styles.logo}

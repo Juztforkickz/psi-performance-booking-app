@@ -33,7 +33,7 @@ payment integration, and only that later transition can queue Google Calendar.
 ## Customer journey
 
 Workshop services, dyno work and booking deposits in this workflow are supplied
-by the sole-trader business **PSI Performance Garage**. They are separate from
+by the sole-trader business **PSI Performance**. They are separate from
 Performance+ digital subscriptions supplied by **PSI PERFORMANCE PTY LTD**
 through Apple or Google Play.
 
@@ -87,7 +87,7 @@ explicit PSI/manual decision.
 The guide price is not a final quote. PSI confirms scope and any additional
 costs before work outside the agreed scope proceeds.
 
-The workshop checkout and receipt must identify **PSI Performance Garage** and
+The workshop checkout and receipt must identify **PSI Performance** and
 the verified sole-trader ABN as the supplier. Do not insert the company ABN into
 a workshop receipt. Add the sole-trader ABN only after it has been checked
 against the current business registration and GST position.

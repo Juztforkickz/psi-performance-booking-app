@@ -18,7 +18,7 @@ advice.
 
 **PSI PERFORMANCE PTY LTD** owns and publishes the PSI Performance App and
 supplies optional Performance+ digital subscriptions (the **App Publisher**).
-**PSI Performance Garage**, operated through the owner's existing sole-trader
+**PSI Performance**, operated through the owner's existing sole-trader
 business, supplies vehicle servicing, repairs, dyno work and other workshop
 services, and accepts workshop booking deposits (the **Workshop Operator**).
 

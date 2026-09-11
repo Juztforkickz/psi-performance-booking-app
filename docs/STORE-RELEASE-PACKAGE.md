@@ -12,7 +12,7 @@ signed release build and final owner/legal checks are complete.
 - D-U-N-S status: **Active D&B record confirmed by the owner on 29 August 2026**
 - Company ACN: **175 164 626** — owner-confirmed; recheck against current ASIC documentation during enrolment
 - Company ABN: **98 175 164 626** — owner-confirmed; recheck against current ABR documentation during enrolment
-- Public workshop supplier wording: **PSI Performance Garage**
+- Public workshop supplier wording: **PSI Performance**
 - Entity split: **PSI PERFORMANCE PTY LTD** owns/publishes the apps and supplies
   Performance+ digital subscriptions; the owner's sole-trader business **PSI
   Performance Garage** supplies workshop services and accepts workshop deposits.
