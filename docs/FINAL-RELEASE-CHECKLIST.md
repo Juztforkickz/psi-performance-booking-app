@@ -95,6 +95,12 @@ professional-review gates.
 
 ## Deliberately last: payments
 
+- [ ] Obtain the accountant's written entity allocation for workshop deposits,
+  native store subscriptions, optional web subscriptions and the Apple/Google
+  setup costs already paid from the PSI sole-trader account. Follow
+  [PAYMENT-ENTITY-DECISION.md](PAYMENT-ENTITY-DECISION.md); keep all live payment
+  activation off until this is settled.
+
 - [x] Select Stripe-hosted Checkout for cards and eligible Apple Pay, Google Pay
   and Australian BECS Direct Debit, while retaining ordinary bank transfer as a
   separately verified option.
@@ -116,6 +122,10 @@ professional-review gates.
   ordinary bank transfer can be recorded. Customers cannot self-confirm it.
 - [ ] Verify receipt email, refund handling and the trusted payment-confirmed
   transition that creates the internal Google Calendar event.
+- [ ] Decide whether to retain native store purchases only or add a separate
+  RevenueCat Web provider. Paddle Billing is the documented merchant-of-record
+  option; Stripe Billing is the direct-merchant option. Neither web provider is
+  currently configured.
 
 No public store release or general customer onboarding is approved until every
 applicable item above is completed and recorded with evidence.
