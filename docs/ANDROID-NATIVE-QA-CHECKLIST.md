@@ -2,9 +2,11 @@
 
 Status: signed internal QA APK prepared; physical-device acceptance remains
 outstanding. The current APK is build
-`9f2e7825-c512-483c-acfa-1e8f3eca03b3`, produced on 8 September 2026 from
-checkpoint `dcb2942`; it expires on 22 September 2026. This checklist begins
-when a supported Android phone is available.
+`ad1827e6-252b-4d23-a402-9e4aaa77f435`, completed on 11 September 2026 from
+checkpoint `3e54292`; it expires on 25 September 2026 Sydney time. It contains
+the current workshop/Xero/reminder checkpoint; Google Play subscriptions remain
+closed until the separate Play app, products and RevenueCat key are configured.
+This checklist begins when a supported Android phone is available.
 
 ## Evidence to record
 
@@ -29,6 +31,9 @@ material or private service credentials in this file or an issue.
   the isolated `production` update channel.
 - [x] Prepare the PSI launcher icon, adaptive icon, splash treatment and Google
   Play feature graphic.
+- [x] Prepare platform-specific RevenueCat key selection and server-side
+  App Store/Google Play receipt allowlists; leave the Google key and product
+  allowlist unset until the Play catalogue is real.
 - [ ] Install the latest protected QA APK on a supported physical Android phone.
 - [ ] Confirm the PSI launcher icon, splash, dark presentation and first launch.
 - [ ] Confirm the installed package, app version and version code match the EAS

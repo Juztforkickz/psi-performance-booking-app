@@ -13,7 +13,7 @@ const purchasesSource = await compile('../mobile/src/lib/performance-purchases.t
 const termsSource = await compile('../mobile/src/app/subscription-terms.tsx');
 const privacySource = await compile('../mobile/src/app/privacy.tsx');
 
-function renderLegalScreen(source, { platform = 'ios', auth = true, review = false, key = '', purchaseTest = false, appleReview = false } = {}) {
+function renderLegalScreen(source, { platform = 'ios', auth = true, review = false, key = '', googleKey = '', purchaseTest = false, appleReview = false, googleReview = false } = {}) {
   const pricing = { monthly: 999, annual: 9900 };
   const imports = {
     'react-native': { Platform: { OS: platform }, Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', View: 'View', StyleSheet: { create: (styles) => styles } },
@@ -38,8 +38,10 @@ function renderLegalScreen(source, { platform = 'ios', auth = true, review = fal
     require: (name) => imports[name],
     process: { env: {
       EXPO_PUBLIC_REVENUECAT_APPLE_KEY: key,
+      EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY: googleKey,
       EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST: String(purchaseTest),
       EXPO_PUBLIC_PSI_APPLE_REVIEW: String(appleReview),
+      EXPO_PUBLIC_PSI_GOOGLE_REVIEW: String(googleReview),
     } },
   });
   imports['@/lib/performance-purchases'] = purchases;
@@ -80,10 +82,22 @@ test('configured live iOS build has normal purchase guidance', () => {
   assert.doesNotMatch(text, /unavailable in this build|Sandbox purchase testing/);
 });
 
-test('unsupported platforms and test-store keys cannot advertise Apple subscriptions', () => {
+test('unsupported platforms, wrong-store keys and test-store keys cannot advertise subscriptions', () => {
   for (const options of [{ platform: 'web', key: 'appl_fixture' }, { platform: 'android', key: 'appl_fixture' }, { key: 'test_fixture' }]) {
     assert.match(renderTerms(options), /Paid subscriptions are unavailable/);
   }
+});
+
+test('configured live Android build uses Google Play purchase and cancellation guidance', () => {
+  const text = renderTerms({ platform: 'android', googleKey: 'goog_fixture' });
+  assert.match(text, /Google Play confirms product availability/);
+  assert.match(text, /Google Play subscriptions/);
+  assert.doesNotMatch(text, /unavailable in this build|Apple Account/);
+});
+
+test('isolated Android purchase-test build names the Google Play license tester', () => {
+  const text = renderTerms({ platform: 'android', googleKey: 'goog_fixture', purchaseTest: true, googleReview: true });
+  assert.match(text, /Google Play license tester/);
 });
 
 test('privacy preserves unavailable wording for beta, demo and unsupported purchase configurations', () => {
@@ -112,7 +126,7 @@ test('privacy keeps provider, subscription-data and cancellation disclosures in 
     assert.match(text, /RevenueCat verifies subscription transactions linked to your PSI account identifier/);
     assert.match(text, /Workshop photographs and PDFs are not sent to RevenueCat/);
     assert.match(text, /may process subscription data outside Australia/);
-    assert.match(text, /Deleting your PSI account or app does not cancel an Apple subscription/);
+    assert.match(text, /Deleting your PSI account or app does not cancel an Apple App Store or Google Play subscription/);
     assert.match(text, /Payment-card details are not collected or stored by this app/);
   }
 });

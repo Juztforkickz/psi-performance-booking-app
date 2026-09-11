@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { colors } from '@/constants/brand';
@@ -11,7 +11,7 @@ import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { aud, loadVaultOverview, PERFORMANCE_PRICING, VAULT_KINDS, VAULT_LABELS, type VaultOverview } from '@/lib/performance-plus';
-import { purchasePerformancePlus, restorePerformancePlus, subscriptionPurchasesAvailable, verifyWithServer } from '@/lib/performance-purchases';
+import { purchasePerformancePlus, restorePerformancePlus, subscriptionManagementUrl, subscriptionPurchasesAvailable, subscriptionStorefrontName, verifyWithServer } from '@/lib/performance-purchases';
 
 const VAULT_DESCRIPTIONS = {
   invoice: 'Itemised PSI invoices and supporting paperwork.',
@@ -68,11 +68,13 @@ export default function PerformancePlusScreen() {
   const activePlus = overview?.plan === 'performance_plus' && (!overview.expires_at || Date.parse(overview.expires_at) > now);
   const permanentPlus = activePlus && overview?.is_permanent;
   const entitlementReady = demo || !!overview;
+  const storefront = subscriptionStorefrontName();
+  const managementUrl = subscriptionManagementUrl();
   const refresh = async () => {
     if (busy) return;
     setBusy(true);
     try { if (!permanentPlus && subscriptionPurchasesAvailable() && auth.user) await verifyWithServer(); setMessage(''); }
-    catch { setMessage('Apple status could not be verified right now. Your last verified access remains in effect until its expiry.'); }
+    catch { setMessage('Your subscription status could not be verified right now. Your last verified access remains in effect until its expiry.'); }
     finally { setRevision(v => v + 1); setBusy(false); }
   };
   const subscribe = async (period: 'monthly' | 'annual' | 'restore') => {
@@ -131,7 +133,7 @@ export default function PerformancePlusScreen() {
       <Text style={s.muted}>Subscriptions renew automatically unless cancelled before renewal. Cancellation keeps your records safe and locks premium access after the paid period ends.</Text>
     </View> : null}
     {entitlementReady && !permanentPlus ? <PrimaryButton disabled={busy || !subscriptionPurchasesAvailable()} label="Restore purchases" onPress={() => void subscribe('restore')} variant="outline" /> : null}
-    {entitlementReady && !permanentPlus && Platform.OS === 'ios' ? <PrimaryButton label="Manage Apple subscription" variant="outline" onPress={() => void Linking.openURL('https://apps.apple.com/account/subscriptions').catch(() => setMessage('Open iPhone Settings, your Apple Account, then Subscriptions.'))} /> : null}
+    {entitlementReady && !permanentPlus && storefront && managementUrl ? <PrimaryButton label={`Manage ${storefront} subscription`} variant="outline" onPress={() => void Linking.openURL(managementUrl).catch(() => setMessage(`Open ${storefront} on your device and choose Subscriptions.`))} /> : null}
     <PrimaryButton disabled={busy} label={permanentPlus ? 'Refresh access status' : 'Refresh subscription status'} onPress={() => void refresh()} variant="outline" />
     {message ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
     <View style={s.free}><Text style={s.section}>Always part of PSI Free</Text><Text style={s.copy}>Your account and garage, vehicle photos, bookings, kilometre recording, maintenance reminders, current dyno results, notifications and contacting PSI.</Text></View>

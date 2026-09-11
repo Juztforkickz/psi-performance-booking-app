@@ -69,6 +69,26 @@
         "EXPO_PUBLIC_REVENUECAT_APPLE_KEY": "appl_qJcOAgyhLBExQHfYkgStIaOxQGj"
       }
     },
+    "google-performance-test": {
+      "autoIncrement": true,
+      "distribution": "store",
+      "channel": "google-review",
+      "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST": "true",
+        "EXPO_PUBLIC_PSI_GOOGLE_REVIEW": "true",
+        "EXPO_PUBLIC_PSI_APPLE_REVIEW": "false",
+        "EXPO_PUBLIC_PSI_UPDATE_CHANNEL": "google-review",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://jwikoldibbpxyhbdrsow.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_ehO9_cXAkXQ6fffoDmzvZA_c8erSaqP",
+        "EXPO_PUBLIC_SUPABASE_AUTH_ENABLED": "true",
+        "EXPO_PUBLIC_SUPABASE_BOOKING_ENABLED": "true",
+        "EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED": "false"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "channel": "production",

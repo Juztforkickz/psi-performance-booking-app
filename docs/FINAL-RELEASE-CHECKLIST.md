@@ -1,6 +1,6 @@
 # Final release checklist
 
-Status: controlled QA, 2 September 2026. Payments are deliberately last.
+Status: controlled QA, 11 September 2026. Payments are deliberately last.
 
 ## Ready in controlled QA
 
@@ -18,6 +18,9 @@ Status: controlled QA, 2 September 2026. Payments are deliberately last.
   contents and no event is created before the trusted confirmed transition.
 - [x] Public GitHub Pages demo remains synthetic and submission-disabled.
 - [x] Customer privacy, support and booking-policy screens.
+- [x] Prepare platform-aware RevenueCat client and server verification for
+  Apple App Store and Google Play products. Google product IDs remain unset, so
+  Android subscription charging stays closed until its store setup is tested.
 
 ## Required before inviting external customers
 
@@ -47,6 +50,11 @@ Status: controlled QA, 2 September 2026. Payments are deliberately last.
 - [ ] Complete equivalent Android testing on a supported borrowed or dedicated
   test device before Google Play release, recording the evidence in
   `ANDROID-NATIVE-QA-CHECKLIST.md`.
+- [ ] Create the Google Play Console app for `com.psiperformance.booking`,
+  upload a signed internal-test App Bundle, create and activate the monthly and
+  annual base plans, connect Play service credentials to RevenueCat, then test
+  purchase, restore, renewal, cancellation, expiry and refund on a license
+  tester account.
 - [x] Record current Supabase plan, region and capacity; add a guarded encrypted
   logical-backup procedure for controlled QA.
 - [ ] Upgrade before external onboarding, confirm scheduled backup retention and

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/ui';
 import { mobileFrame, spacing } from '@/constants/brand';
@@ -9,6 +9,7 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { aud, loadVaultOverview, PERFORMANCE_PRICING, type VaultOverview } from '@/lib/performance-plus';
+import { subscriptionManagementUrl, subscriptionStorefrontName } from '@/lib/performance-purchases';
 import { useThemePreference } from '@/lib/theme-preference';
 
 const BENEFITS = [
@@ -40,6 +41,8 @@ export function PerformancePlanCard({ hideForPermanent = false }: { hideForPerma
   const permanentPlus = activePlus && overview?.is_permanent;
   const loadingOverview = CUSTOMER_AUTH.enabled && auth.status === 'signed_in' && Boolean(vehicleId) && state?.key !== key;
   const openPerformancePlus = () => router.push({ pathname: '/performance-plus', params: vehicleId ? { vehicleId } : {} });
+  const storefront = subscriptionStorefrontName();
+  const managementUrl = subscriptionManagementUrl();
 
   if (hideForPermanent && (loadingOverview || permanentPlus)) return null;
 
@@ -68,7 +71,7 @@ export function PerformancePlanCard({ hideForPermanent = false }: { hideForPerma
       {!activePlus ? <View style={styles.benefits}>{BENEFITS.map(benefit => <View key={benefit} style={styles.benefitRow}><Ionicons color={theme.accent} name="checkmark-circle" size={18} /><Text style={[styles.benefit, { color: theme.text }]}>{benefit}</Text></View>)}</View> : null}
 
       <PrimaryButton label={activePlus ? 'Open Performance+' : 'Upgrade to Performance+'} onPress={openPerformancePlus} />
-      {activePlus && !permanentPlus && Platform.OS === 'ios' ? <Pressable accessibilityRole="button" onPress={() => void Linking.openURL('https://apps.apple.com/account/subscriptions')} style={({ pressed }) => [styles.manage, { borderColor: theme.border }, pressed && styles.pressed]}><Text style={[styles.manageText, { color: theme.accent }]}>Manage Apple subscription</Text><Ionicons color={theme.accent} name="open-outline" size={18} /></Pressable> : null}
+      {activePlus && !permanentPlus && storefront && managementUrl ? <Pressable accessibilityRole="button" onPress={() => void Linking.openURL(managementUrl)} style={({ pressed }) => [styles.manage, { borderColor: theme.border }, pressed && styles.pressed]}><Text style={[styles.manageText, { color: theme.accent }]}>Manage {storefront} subscription</Text><Ionicons color={theme.accent} name="open-outline" size={18} /></Pressable> : null}
       {!permanentPlus ? <Pressable accessibilityRole="button" onPress={openPerformancePlus} style={({ pressed }) => [styles.restore, pressed && styles.pressed]}><Text style={[styles.restoreText, { color: theme.textMuted }]}>{activePlus ? 'View plan and restore purchases' : 'Already subscribed? Restore purchases'}</Text><Ionicons color={theme.textMuted} name="chevron-forward" size={17} /></Pressable> : null}
     </View>
   );

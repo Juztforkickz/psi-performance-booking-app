@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import { subscriptionPurchasesAvailable } from '@/lib/performance-purchases';
+import { subscriptionPurchaseTestMode, subscriptionPurchasesAvailable, subscriptionStorefrontName } from '@/lib/performance-purchases';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 const SECTIONS = [
@@ -31,11 +31,11 @@ const SECTIONS = [
   },
   {
     title: 'Performance+ vehicle records',
-    copy: 'PSI may publish private invoice PDFs, workshop photographs, documents and vehicle history linked to your account, vehicle and workshop job. Free accounts can see their own record counts; premium contents require current access. Expiration or cancellation does not delete these records. When Apple purchases are enabled, Apple processes the purchase and RevenueCat verifies subscription transactions linked to your PSI account identifier. Workshop photographs and PDFs are not sent to RevenueCat. These providers may process subscription data outside Australia.',
+    copy: 'PSI may publish private invoice PDFs, workshop photographs, documents and vehicle history linked to your account, vehicle and workshop job. Free accounts can see their own record counts; premium contents require current access. Expiration or cancellation does not delete these records. When store purchases are enabled, Apple or Google Play processes the purchase and RevenueCat verifies subscription transactions linked to your PSI account identifier. Workshop photographs and PDFs are not sent to RevenueCat. These providers may process subscription data outside Australia.',
   },
   {
     title: 'Account deletion',
-    copy: 'Signed-in customers can initiate deletion from Account. PSI normally completes verified requests within 30 days. Customer profile data, login access, notification tokens and customer-uploaded files will be removed. Information that must still be retained for workshop, accounting, legal, safety or dispute purposes will be limited, protected and, where appropriate, de-identified. PSI confirms when the process is complete. Deleting your PSI account or app does not cancel an Apple subscription; manage that separately in your Apple Account subscription settings.',
+    copy: 'Signed-in customers can initiate deletion from Account. PSI normally completes verified requests within 30 days. Customer profile data, login access, notification tokens and customer-uploaded files will be removed. Information that must still be retained for workshop, accounting, legal, safety or dispute purposes will be limited, protected and, where appropriate, de-identified. PSI confirms when the process is complete. Deleting your PSI account or app does not cancel an Apple App Store or Google Play subscription; manage that separately in the store subscription settings.',
   },
   {
     title: 'Retention and security',
@@ -50,11 +50,12 @@ const SECTIONS = [
 export default function PrivacyScreen() {
   const router = useRouter();
   const { horizontalPadding } = useResponsiveLayout();
+  const storefront = subscriptionStorefrontName();
   const purchaseNotice = !subscriptionPurchasesAvailable()
     ? 'Optional Performance+ paid subscriptions are unavailable in this build.'
-    : REVIEW_ENVIRONMENT.enabled
-      ? 'Optional Performance+ subscriptions are available for Apple sandbox purchase testing in this build.'
-      : 'Optional Performance+ subscriptions can be purchased through Apple when the products are available.';
+    : REVIEW_ENVIRONMENT.enabled || subscriptionPurchaseTestMode()
+      ? `Optional Performance+ subscriptions are available for ${storefront ?? 'store'} sandbox purchase testing in this build.`
+      : `Optional Performance+ subscriptions can be purchased through ${storefront ?? 'the device app store'} when the products are available.`;
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]} showsVerticalScrollIndicator={false}>
@@ -73,7 +74,7 @@ export default function PrivacyScreen() {
           </View>
         ))}
         <PrimaryButton label="Request account deletion" onPress={() => router.push('/delete-account')} variant="outline" />
-        <Text style={styles.updated}>LAST UPDATED · 10/09/2026</Text>
+        <Text style={styles.updated}>LAST UPDATED · 11/09/2026</Text>
       </ScrollView>
     </SafeAreaView>
   );

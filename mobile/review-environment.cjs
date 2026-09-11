@@ -4,8 +4,10 @@ const REVIEW_URL = `https://${REVIEW_PROJECT_REF}.supabase.co`;
 const REVIEW_PUBLIC_KEY = 'sb_publishable_ehO9_cXAkXQ6fffoDmzvZA_c8erSaqP';
 const REVIEW_CHANNEL = 'apple-review';
 const REVIEW_RUNTIME = '1.0.0-apple-review-performance-plus-1';
+const GOOGLE_REVIEW_CHANNEL = 'google-review';
+const GOOGLE_REVIEW_RUNTIME = '1.0.0-google-performance-purchase-test-1';
 
-function resolveReviewEnvironment(input) {
+function resolvePinnedReviewEnvironment(input, channel) {
   const flag = input.flag?.trim() ?? '';
   const url = input.url?.trim() ?? '';
   const key = input.key?.trim() ?? '';
@@ -15,11 +17,19 @@ function resolveReviewEnvironment(input) {
     if (url !== REVIEW_URL || key !== REVIEW_PUBLIC_KEY) throw new Error('REVIEW_BACKEND_MISMATCH');
     if (input.registration !== 'false') throw new Error('REVIEW_REGISTRATION_MUST_BE_DISABLED');
     if (input.auth !== 'true' || input.booking !== 'true') throw new Error('REVIEW_FEATURES_MUST_BE_ENABLED');
-    if (input.channel !== REVIEW_CHANNEL) throw new Error('REVIEW_CHANNEL_MISMATCH');
-  } else if (url.includes(REVIEW_PROJECT_REF) || key === REVIEW_PUBLIC_KEY || input.channel === REVIEW_CHANNEL) {
+    if (input.channel !== channel) throw new Error('REVIEW_CHANNEL_MISMATCH');
+  } else if (url.includes(REVIEW_PROJECT_REF) || key === REVIEW_PUBLIC_KEY || input.channel === channel) {
     throw new Error('SANDBOX_REQUIRES_EXPLICIT_REVIEW_MODE');
   }
   return Object.freeze({ enabled, projectRef: enabled ? REVIEW_PROJECT_REF : null });
 }
 
-module.exports = { resolveReviewEnvironment, REVIEW_PROJECT_REF, REVIEW_URL, REVIEW_PUBLIC_KEY, REVIEW_CHANNEL, REVIEW_RUNTIME };
+function resolveReviewEnvironment(input) {
+  return resolvePinnedReviewEnvironment(input, REVIEW_CHANNEL);
+}
+
+function resolveGoogleReviewEnvironment(input) {
+  return resolvePinnedReviewEnvironment(input, GOOGLE_REVIEW_CHANNEL);
+}
+
+module.exports = { resolveReviewEnvironment, resolveGoogleReviewEnvironment, REVIEW_PROJECT_REF, REVIEW_URL, REVIEW_PUBLIC_KEY, REVIEW_CHANNEL, REVIEW_RUNTIME, GOOGLE_REVIEW_CHANNEL, GOOGLE_REVIEW_RUNTIME };

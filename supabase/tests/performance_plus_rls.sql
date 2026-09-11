@@ -112,7 +112,7 @@ reset role;
 select public.record_verified_performance_subscription('a4100000-0000-4000-8000-000000000001','production','revoked',now()-interval '1 day',false,now());
 select public.record_verified_performance_subscription('a4100000-0000-4000-8000-000000000001','production','active',now()+interval '1 year',true,now()-interval '1 hour');
 do $$ begin
- if not exists(select 1 from public.performance_subscriptions where customer_id='a4100000-0000-4000-8000-000000000001' and provider='apple' and status='revoked' and not auto_renews) then
+ if not exists(select 1 from public.performance_subscriptions where customer_id='a4100000-0000-4000-8000-000000000001' and provider='revenuecat' and status='revoked' and not auto_renews) then
  raise exception 'stale provider response restored revoked access'; end if;
 end $$;
 select 'PASS: free counts, entitlement forgery, paid/permanent access, cross-account denial, cancellation, expiry/revocation, sandbox, private storage, deleted identity' as result;

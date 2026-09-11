@@ -11,8 +11,12 @@ export function adminClient() { return createClient(env('SUPABASE_URL'), env('SU
 export async function syncSubscription(customerId: string) {
   if (!uuid(customerId)) throw new Error('invalid_customer');
   const secret = env('REVENUECAT_SECRET_KEY');
-  const products = env('PERFORMANCE_APPLE_PRODUCT_IDS').split(',').map(v => v.trim()).filter(Boolean);
-  if (!secret || products.length !== 2) throw new Error('subscription_configuration_required');
+  const products = {
+    appStore: env('PERFORMANCE_APPLE_PRODUCT_IDS').split(',').map(v => v.trim()).filter(Boolean),
+    playStore: env('PERFORMANCE_GOOGLE_PRODUCT_IDS').split(',').map(v => v.trim()).filter(Boolean),
+  };
+  const configuredStores = [products.appStore, products.playStore].filter(values => values.length > 0);
+  if (!secret || configuredStores.length === 0 || configuredStores.some(values => values.length !== 2)) throw new Error('subscription_configuration_required');
   const startedAt = new Date().toISOString();
   const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(customerId)}`, { headers: { Authorization: `Bearer ${secret}`, Accept: 'application/json' }, signal: AbortSignal.timeout(10000) });
   if (!response.ok) throw new Error('provider_verification_unavailable');

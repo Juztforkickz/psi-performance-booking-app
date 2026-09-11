@@ -1,9 +1,10 @@
-import { resolveReviewEnvironment, REVIEW_PROJECT_REF } from '../../review-environment.cjs';
+import { resolveGoogleReviewEnvironment, resolveReviewEnvironment, REVIEW_PROJECT_REF } from '../../review-environment.cjs';
 import { createDemoRuntime, resolveDemoBuild } from '../../demo-mode.cjs';
 
 // Explicit property references are required for Expo's public-env replacement.
-const reviewOnly = resolveReviewEnvironment({
-  flag: process.env.EXPO_PUBLIC_PSI_APPLE_REVIEW,
+const googleReview = process.env.EXPO_PUBLIC_PSI_GOOGLE_REVIEW === 'true';
+const reviewOnly = (googleReview ? resolveGoogleReviewEnvironment : resolveReviewEnvironment)({
+  flag: googleReview ? process.env.EXPO_PUBLIC_PSI_GOOGLE_REVIEW : process.env.EXPO_PUBLIC_PSI_APPLE_REVIEW,
   url: process.env.EXPO_PUBLIC_SUPABASE_URL,
   key: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   auth: process.env.EXPO_PUBLIC_SUPABASE_AUTH_ENABLED,
@@ -14,7 +15,7 @@ const reviewOnly = resolveReviewEnvironment({
 
 export const DEMO_MODE_AVAILABLE = resolveDemoBuild({
   demo: process.env.EXPO_PUBLIC_PSI_DEMO_MODE_ENABLED,
-  review: process.env.EXPO_PUBLIC_PSI_APPLE_REVIEW,
+  review: googleReview ? process.env.EXPO_PUBLIC_PSI_GOOGLE_REVIEW : process.env.EXPO_PUBLIC_PSI_APPLE_REVIEW,
   url: process.env.EXPO_PUBLIC_SUPABASE_URL,
   key: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   auth: process.env.EXPO_PUBLIC_SUPABASE_AUTH_ENABLED,

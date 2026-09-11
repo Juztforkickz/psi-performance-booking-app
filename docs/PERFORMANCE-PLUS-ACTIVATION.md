@@ -1,6 +1,6 @@
 # Performance+ activation checklist
 
-Updated 10 September 2026. Prices: **A$9.99/month or A$99/year**. This checklist records the verified rollout checkpoint and remaining activation work. Preserve existing beta accounts and the sandbox.
+Updated 11 September 2026. Prices: **A$9.99/month or A$99/year**. This checklist records the verified rollout checkpoint and remaining activation work. Preserve existing beta accounts and the sandbox.
 
 Following explicit approval for the main rollout, the Performance+ foundation migrations, including the permanent complimentary owner-access update, and all four vault/provider functions are deployed to **main and sandbox**. Main `complete-account-deletion` remains **ACTIVE, version 10**, including the premium storage bucket. The JWT compatibility repair migration `20260910115915` is applied; that database repair did not replace the function. These checks do not constitute completion of a customer's permanent deletion request.
 
@@ -19,6 +19,15 @@ environment and database acceptance gates are open only in the isolated Apple
 Review Sandbox so the controlled purchase test can run.
 Xero is connected separately and is no longer an activation blocker for
 Performance+.
+
+The native purchase adapter and server verifier now support matching Apple App
+Store and Google Play products without mixing their allowlists. Both backends
+store one provider-neutral RevenueCat entitlement per customer, so access can
+be restored on either supported mobile platform without creating competing
+store rows. Google Play charging remains closed: the Play Console app,
+subscriptions, service credentials, RevenueCat Google app and public `goog_`
+SDK key still need to be created and accepted before an Android purchase build
+is produced.
 
 iOS **build 9**, EAS build ID `5839004a-e7ea-435e-a7dc-cbeaf63d6e8d`, is **FINISHED and uploaded to Apple for TestFlight**. [EAS submission `f2c83882-557e-467d-bcfa-ec15c0631cc2`](https://expo.dev/accounts/psi-performance/projects/matt-psi/submissions/f2c83882-557e-467d-bcfa-ec15c0631cc2) finished on 9 September 2026 at 09:12:42 Sydney time (`2026-09-08T23:12:42Z`). App Store Connect subsequently confirmed **VALID / IN_BETA_TESTING** for internal testing. Its external status is **READY_FOR_BETA_SUBMISSION**, so external beta review remains. Build 7 remains valid, in internal testing and unexpired. No public App Store review or release has been submitted.
 
@@ -88,10 +97,13 @@ Set secrets through the destination project's secure settings, never in chat, Gi
 
 | Name | Location and purpose |
 |---|---|
-| `EXPO_PUBLIC_REVENUECAT_APPLE_KEY` | Expo build environment; RevenueCat Apple public SDK key beginning `appl_` |
+| `EXPO_PUBLIC_REVENUECAT_APPLE_KEY` | Expo iOS build environment; RevenueCat Apple public SDK key beginning `appl_` |
+| `EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY` | Expo Android build environment; RevenueCat Google Play public SDK key beginning `goog_`; leave unset until the Play app is connected |
 | `EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST` | `true` only in the isolated `performance-test` build profile described below |
+| `EXPO_PUBLIC_PSI_GOOGLE_REVIEW` | `true` only in the isolated `google-performance-test` build; ordinary Android QA leaves it unset |
 | `REVENUECAT_SECRET_KEY` | Supabase Edge Function secret; permission to retrieve subscribers through RevenueCat API v1 |
 | `PERFORMANCE_APPLE_PRODUCT_IDS` | Supabase secret/configuration; exactly two comma-separated Apple product IDs, monthly and annual |
+| `PERFORMANCE_GOOGLE_PRODUCT_IDS` | Supabase secret/configuration; exactly two comma-separated Google Play product identifiers including base-plan IDs; leave unset until copied exactly from Play Console/RevenueCat |
 | `REVENUECAT_WEBHOOK_AUTHORIZATION` | Supabase secret; exact value configured for RevenueCat's webhook Authorization header, including `Bearer ` if used |
 | `PERFORMANCE_ALLOW_SANDBOX` | Supabase configuration; `false` on main; only `true` in the isolated purchase-test backend |
 | `XERO_WEBHOOK_SIGNING_KEY` | Supabase secret; Xero webhook HMAC key, not its OAuth client secret |
@@ -102,6 +114,13 @@ The verified value for `PERFORMANCE_APPLE_PRODUCT_IDS` is
 `psi_performance_plus_monthly,psi_performance_plus_annual`. Set it in each
 Supabase project's secure function configuration with the matching provider
 credentials; never place server secrets in a public build variable.
+
+Google Play identifiers are not invented in advance. Create and activate the
+monthly and annual base plans in Play Console, connect that app to RevenueCat,
+then copy the exact RevenueCat product identifiers into
+`PERFORMANCE_GOOGLE_PRODUCT_IDS`. A nonempty store allowlist must contain
+exactly two products. The server accepts an App Store product only with an
+`app_store` receipt and a Google product only with a `play_store` receipt.
 
 The per-project base URL is `https://PROJECT_REF.supabase.co/functions/v1/`:
 
@@ -141,10 +160,18 @@ TestFlight purchases run in Apple's sandbox and renewal timing is accelerated. T
 
 The new native purchase, document-picker and image-manipulation modules require a **new signed iOS build**. An over-the-air update to an old binary is insufficient; build 9 now supplies that foundation binary and has been uploaded and processed for internal testing. It is not the separately configured `performance-test` build. That purchase-test build must use the intended EAS environment, signing identity, bundle ID, runtime and update channel; its build and signed-device acceptance remain pending. The ordinary review/demo path keeps purchases disabled. Before submitting subscriptions, implement and verify the isolated purchase route in the actual binary selected for App Review; do not describe the ordinary demo as purchase-enabled or promise to substitute a different binary after review.
 
+The `google-performance-test` profile is pinned to the same isolated sandbox,
+uses its own `google-review` update channel and produces an Android App Bundle.
+Its native code selects only a RevenueCat public key beginning `goog_`. The key
+is intentionally absent until the Google Play app is connected. Do not build or
+upload this profile until that public key, both activated Play base plans and
+the matching server allowlist are set. Ordinary `qa` remains the installable
+APK for non-payment device checks.
+
 ## 4. Required acceptance checks before charging
 
 - Run the repository's Performance+ RLS and entitlement tests. Verify free/expired users cannot retrieve premium rows, legacy invoices or objects; paid users can retrieve only their own; staff MFA and deleted-account denial remain intact.
-- Test monthly and annual purchase, user cancellation of the purchase sheet, restore after reinstall and on a second device, account switching, and attempts to restore another PSI customer's receipt. Confirm no anonymous receipt migration. Define support recovery for a lost/deleted/recreated PSI account using the same Apple receipt before launch; the strict original-account policy can otherwise leave a new account unable to access its purchase.
+- Test monthly and annual purchase on each enabled store, user cancellation of the purchase sheet, restore after reinstall and on a second device, account switching, and attempts to restore another PSI customer's receipt. Confirm no anonymous receipt migration. Define support recovery for a lost/deleted/recreated PSI account using the same store receipt before launch; the strict original-account policy can otherwise leave a new account unable to access its purchase.
 - Test renewal, switching monthly/annual, auto-renew cancellation with access through expiry, expiration, billing retry, verified grace period, recovery, refund and revocation. Check the server record and actual content access, not only the UI label.
 - Test forged/unknown products, non-AUD price mismatch, sandbox receipt rejection on main, duplicate/out-of-order webhook events, provider outage and retry after a successful Apple payment. Never ask a customer to buy again to fix delayed verification.
 - Test a free, complimentary and paid account with the same representative PDFs/photos. Check short-lived original/thumbnail links, sign-out, stale screens, account deletion and active-subscription cancellation instructions.

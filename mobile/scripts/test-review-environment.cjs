@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { readFileSync } = require('node:fs');
-const { resolveReviewEnvironment, REVIEW_URL, REVIEW_PUBLIC_KEY, REVIEW_CHANNEL, REVIEW_RUNTIME } = require('../review-environment.cjs');
+const { resolveGoogleReviewEnvironment, resolveReviewEnvironment, REVIEW_URL, REVIEW_PUBLIC_KEY, REVIEW_CHANNEL, REVIEW_RUNTIME, GOOGLE_REVIEW_CHANNEL, GOOGLE_REVIEW_RUNTIME } = require('../review-environment.cjs');
 
 const valid = {
   flag: 'true', url: REVIEW_URL, key: REVIEW_PUBLIC_KEY, auth: 'true', booking: 'true',
@@ -23,6 +23,25 @@ test('purchase tests require the isolated profile and distinct native runtime', 
   assert.notEqual(run('performance-test', { EXPO_PUBLIC_PSI_APPLE_REVIEW: 'false' }).status, 0);
 });
 
+test('Google Play purchase tests require their pinned sandbox profile and runtime', () => {
+  const { spawnSync } = require('node:child_process');
+  const eas = JSON.parse(readFileSync(require.resolve('../eas.json'), 'utf8'));
+  const script = "const base=require('./app.json').expo; console.log(JSON.stringify(require('./app.config.js')({config:base})))";
+  const run = (profile, override = {}) => spawnSync(process.execPath, ['-e', script], {
+    cwd: require('node:path').resolve(__dirname, '..'), encoding: 'utf8',
+    env: { ...process.env, ...eas.build['google-performance-test'].env, EAS_BUILD_PROFILE: profile, ...override },
+  });
+  const good = run('google-performance-test');
+  assert.equal(good.status, 0, good.stderr);
+  const config = JSON.parse(good.stdout);
+  assert.equal(config.name, 'PSI Google Test');
+  assert.equal(config.runtimeVersion, GOOGLE_REVIEW_RUNTIME);
+  assert.equal(config.android.package, 'com.psiperformance.booking');
+  for (const profile of ['production', 'beta', 'apple-review', 'qa', 'performance-test']) assert.notEqual(run(profile).status, 0);
+  assert.notEqual(run('google-performance-test', { EXPO_PUBLIC_PSI_GOOGLE_REVIEW: 'false' }).status, 0);
+  assert.notEqual(run('google-performance-test', { EXPO_PUBLIC_PSI_APPLE_REVIEW: 'true' }).status, 0);
+});
+
 test('live and disabled public-demo configurations are unchanged', () => {
   assert.equal(resolveReviewEnvironment({}).enabled, false);
   assert.equal(resolveReviewEnvironment({ flag: 'false', url: 'https://lslhfrujyuqcavsnugfx.supabase.co', key: 'live-public-key', auth: 'true' }).enabled, false);
@@ -38,6 +57,14 @@ test('review only accepts the pinned isolated project with closed registration',
     { url: `http://${REVIEW_URL.slice(8)}` }, { registration: 'true' }, { registration: undefined },
     { auth: 'false' }, { booking: 'false' }, { channel: 'production' }, { channel: 'qa' },
   ]) assert.throws(() => resolveReviewEnvironment({ ...valid, ...override }));
+});
+
+test('Google review uses the same pinned backend with a separate update channel', () => {
+  const input = { ...valid, channel: GOOGLE_REVIEW_CHANNEL };
+  assert.equal(resolveGoogleReviewEnvironment(input).enabled, true);
+  for (const override of [{ channel: REVIEW_CHANNEL }, { url: 'https://lslhfrujyuqcavsnugfx.supabase.co' }, { registration: 'true' }]) {
+    assert.throws(() => resolveGoogleReviewEnvironment({ ...input, ...override }));
+  }
 });
 
 test('sandbox cannot be mistaken for the live app when the flag is absent or malformed', () => {

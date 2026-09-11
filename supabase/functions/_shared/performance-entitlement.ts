@@ -7,14 +7,16 @@ type ProviderSubscriber = {
   entitlements?: Record<string, { product_identifier: string; expires_date?: string | null }>;
   subscriptions?: Record<string, ProviderSubscription>;
 };
+export type PerformanceStoreProducts = { appStore: string[]; playStore: string[] };
 
 // Pure interpretation of an already authenticated provider response. Never call
 // this with client-supplied receipt/SDK JSON to grant an entitlement.
-export function interpretPerformanceEntitlement(subscriber: ProviderSubscriber, customerId: string, products: string[], allowSandbox: boolean, now = Date.now()) {
+export function interpretPerformanceEntitlement(subscriber: ProviderSubscriber, customerId: string, products: PerformanceStoreProducts, allowSandbox: boolean, now = Date.now()) {
   if (!subscriber || subscriber.original_app_user_id !== customerId) throw new Error('subscription_account_review_required');
   const entitlement = subscriber.entitlements?.performance_plus;
   const subscription = entitlement ? subscriber.subscriptions?.[entitlement.product_identifier] : undefined;
-  const allowed = !!entitlement && products.includes(entitlement.product_identifier) && subscription?.store === 'app_store'
+  const productsForStore = subscription?.store === 'app_store' ? products.appStore : subscription?.store === 'play_store' ? products.playStore : [];
+  const allowed = !!entitlement && productsForStore.includes(entitlement.product_identifier)
     && subscription.ownership_type === 'PURCHASED' && typeof subscription.is_sandbox === 'boolean';
   const sandbox = subscription?.is_sandbox === true;
   if (allowed && sandbox && !allowSandbox) throw new Error('sandbox_subscription_not_allowed');

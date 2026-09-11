@@ -5,12 +5,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { subscriptionManagementUrl, subscriptionStorefrontName } from '@/lib/performance-purchases';
 
 const deletionEmail = 'mailto:info@psiperformance.com.au?subject=PSI%20Performance%20App%20Account%20Deletion%20Request&body=Please%20send%20this%20request%20from%20the%20email%20address%20used%20for%20your%20PSI%20Performance%20App%20account.%20Do%20not%20include%20a%20password%20or%20sign-in%20code.';
 
 export default function DeleteAccountScreen() {
   const router = useRouter();
   const { horizontalPadding } = useResponsiveLayout();
+  const storefront = subscriptionStorefrontName();
+  const managementUrl = subscriptionManagementUrl();
   return (
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]} showsVerticalScrollIndicator={false}>
@@ -38,12 +41,12 @@ export default function DeleteAccountScreen() {
 
         <View style={styles.notice}>
           <Text style={styles.noticeTitle}>Manage subscriptions separately</Text>
-          <Text style={styles.copy}>Deleting your PSI account or removing the app does not cancel an Apple subscription. Cancel it in your Apple Account subscription settings. Account deletion does not remove rights or remedies under the Australian Consumer Law.</Text>
-          <PrimaryButton label="Open Apple subscriptions" onPress={() => void Linking.openURL('https://apps.apple.com/account/subscriptions')} variant="outline" />
+          <Text style={styles.copy}>Deleting your PSI account or removing the app does not cancel an Apple App Store or Google Play subscription. Cancel it separately in the store where you subscribed. Account deletion does not remove rights or remedies under the Australian Consumer Law.</Text>
+          {storefront && managementUrl ? <PrimaryButton label={`Open ${storefront} subscriptions`} onPress={() => void Linking.openURL(managementUrl)} variant="outline" /> : null}
         </View>
 
         <PrimaryButton label="Privacy & data handling" onPress={() => router.push('/privacy')} variant="outline" />
-        <Text style={styles.updated}>PSI PERFORMANCE APP · LAST UPDATED 10/09/2026</Text>
+        <Text style={styles.updated}>PSI PERFORMANCE APP · LAST UPDATED 11/09/2026</Text>
       </ScrollView>
     </SafeAreaView>
   );
