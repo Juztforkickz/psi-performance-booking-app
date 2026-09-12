@@ -69,9 +69,12 @@ const PSI_PROMISES = [
 
 export default function CustomerHomeScreen() {
   const router = useRouter();
-  const { prepareBookingVehicle, selectedVehicleId } = useCustomerPreview();
+  const { pendingBookingVehicle, prepareBookingVehicle, prepareBookingVehicleRecord, selectedVehicleId } = useCustomerPreview();
   const { account: garageAccount } = useCustomerAccount();
-  const homeVehicleId = garageAccount?.vehicles.find(v => v.is_primary)?.id ?? garageAccount?.vehicles[0]?.id ?? selectedVehicleId;
+  const selectedAccountVehicle = garageAccount?.vehicles.find((vehicle) => vehicle.id === pendingBookingVehicle?.id)
+    ?? garageAccount?.vehicles.find((vehicle) => vehicle.is_primary)
+    ?? garageAccount?.vehicles[0];
+  const homeVehicleId = selectedAccountVehicle?.id ?? selectedVehicleId;
   const garageArtwork = useGarageArtwork(homeVehicleId);
   const { compact, horizontalPadding, largeText, tablet, width } = useResponsiveLayout();
   const { activeTheme, theme } = useThemePreference();
@@ -90,7 +93,22 @@ export default function CustomerHomeScreen() {
 
   const openBooking = (type: 'service' | 'dyno') => {
     setBookingChooserOpen(false);
-    prepareBookingVehicle(selectedVehicleId);
+    if (selectedAccountVehicle) {
+      prepareBookingVehicleRecord({
+        id: selectedAccountVehicle.id,
+        isPrimary: selectedAccountVehicle.is_primary,
+        lastVisit: null,
+        make: selectedAccountVehicle.make,
+        model: selectedAccountVehicle.model,
+        nextDue: null,
+        odometerKm: selectedAccountVehicle.odometer_km,
+        registration: selectedAccountVehicle.registration,
+        vinLastFour: selectedAccountVehicle.vin_last_four,
+        year: selectedAccountVehicle.year,
+      });
+    } else {
+      prepareBookingVehicle(selectedVehicleId);
+    }
     router.push({ pathname: '/booking', params: { type } });
   };
 

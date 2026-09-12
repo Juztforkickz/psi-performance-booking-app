@@ -102,12 +102,14 @@ export default function AccountScreen() {
   useEffect(() => {
     let cancelled = false;
     if (auth.status !== 'signed_in' || !authenticatedUserId) {
-      setDeletionRequest(null);
-      setDeletionError('');
-      return;
+      return () => { cancelled = true; };
     }
-    setDeletionRequest(null);
-    setDeletionError('');
+    const resetTimer = setTimeout(() => {
+      if (!cancelled) {
+        setDeletionRequest(null);
+        setDeletionError('');
+      }
+    }, 0);
     void loadOwnAccountDeletionRequest(authenticatedUserId)
       .then((request) => {
         if (!cancelled) setDeletionRequest(request);
@@ -115,7 +117,7 @@ export default function AccountScreen() {
       .catch(() => {
         if (!cancelled) setDeletionError('Account-deletion status could not be loaded. Your account has not been changed.');
       });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(resetTimer); };
   }, [auth.status, authenticatedUserId]);
 
   useEffect(() => {
@@ -458,7 +460,7 @@ export default function AccountScreen() {
           <View style={styles.timelineCard}>
             <Text style={styles.timelineTitle}>Booking status history</Text>
             <AccountStatus label="Request received" copy="Pending PSI staff review · no payment due" />
-            <AccountStatus label="Date approved" copy="Secure deposit link sent" />
+            <AccountStatus label="Date approved" copy="Deposit payment choices available in Bookings" />
             <AccountStatus label="Deposit verified" copy="Booking confirmed · internal calendar entry created" />
             <AccountStatus label="Visit completed" copy="Added to the vehicle’s service and booking history" last />
           </View>

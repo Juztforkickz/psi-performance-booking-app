@@ -40,8 +40,15 @@ test("mobile payments remain approval-first and server-confirmed", async () => {
 });
 
 test("customer payment copy distinguishes wallets from bank transfer", async () => {
-  const bookings = await read("../mobile/src/app/(tabs)/bookings.tsx");
+  const [bookings, integrationWorker, depositPromptMigration] = await Promise.all([
+    read("../mobile/src/app/(tabs)/bookings.tsx"),
+    read("../supabase/functions/process-booking-integrations/index.ts"),
+    read("../supabase/migrations/20260912194500_clarify_booking_deposit_prompt.sql"),
+  ]);
   assert.match(bookings, /Card \/ Apple Pay \/ Google Pay/u);
   assert.match(bookings, /Bank transfer/u);
   assert.match(bookings, /stays unconfirmed until PSI matches the cleared transfer/u);
+  assert.match(integrationWorker, /Date approved · deposit ready/u);
+  assert.match(integrationWorker, /Open Bookings in the PSI app now to choose card, Apple Pay, Google Pay or bank transfer/u);
+  assert.match(depositPromptMigration, /Open Bookings now to choose card, Apple Pay, Google Pay or bank transfer for your deposit/u);
 });

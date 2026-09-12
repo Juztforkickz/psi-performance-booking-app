@@ -5,9 +5,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
+import { CalendarDateField } from '@/components/calendar-date-field';
 import { StaffScrollSelect } from '@/components/staff-scroll-select';
 import { colors, spacing } from '@/constants/brand';
-import { todayAustralianDate } from '@/lib/australian-date';
+import { australianDateToIso, todayAustralianDate } from '@/lib/australian-date';
 import type { StaffPortalSnapshot } from '@/lib/staff-portal';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import {
@@ -226,7 +227,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
         {recordType === 'repair' ? (
           <>
             <Field label="Title"><FormInput editable={!busy} onChangeText={edit(setTitle)} placeholder="Service & workshop inspection" value={title} /></Field>
-            <Field hint="DD/MM/YYYY" label="Completed date"><FormInput editable={!busy} keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={edit(setDate)} value={date} /></Field>
+            <CalendarDateField disabled={busy} label="Completed date" maximumDate={australianDateToIso(initialDate) ?? undefined} onChange={edit(setDate)} value={date} />
             <Field hint="Optional" label="Odometer (km)"><FormInput editable={!busy} keyboardType="number-pad" onChangeText={(value) => edit(setOdometer)(value.replace(/\D/gu, ''))} placeholder="84210" value={odometer} /></Field>
             <Text style={styles.smallLabel}>Record category</Text>
             <View style={styles.inlineChoices}>{(['service', 'repair', 'inspection'] as const).map((value) => <SmallChoice disabled={busy} key={value} label={capitalize(value)} onPress={() => edit(setRepairKind)(value)} selected={repairKind === value} />)}</View>
@@ -246,7 +247,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
 
         {recordType === 'dyno' ? (
           <>
-            <Field hint="DD/MM/YYYY" label="Dyno date"><FormInput editable={!busy} keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={edit(setDate)} value={date} /></Field>
+            <CalendarDateField disabled={busy} label="Dyno date" maximumDate={australianDateToIso(initialDate) ?? undefined} onChange={edit(setDate)} value={date} />
             <View style={styles.twoColumn}>
               <View style={styles.column}><Field label="Peak power · HP at hubs"><FormInput editable={!busy} keyboardType="decimal-pad" onChangeText={edit(setPower)} placeholder="426" value={power} /></Field></View>
               <View style={styles.column}><Field hint="Optional" label="Peak torque · Nm at hubs"><FormInput editable={!busy} keyboardType="decimal-pad" onChangeText={edit(setTorque)} placeholder="684" value={torque} /></Field></View>
@@ -269,7 +270,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
         {recordType === 'invoice' ? (
           <>
             <Field label="Invoice number"><FormInput editable={!busy} autoCapitalize="characters" onChangeText={edit(setInvoiceNumber)} placeholder="PSI-INV-2026-0514" value={invoiceNumber} /></Field>
-            <Field hint="DD/MM/YYYY" label="Invoice date"><FormInput editable={!busy} keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={edit(setDate)} value={date} /></Field>
+            <CalendarDateField disabled={busy} label="Invoice date" maximumDate={australianDateToIso(initialDate) ?? undefined} onChange={edit(setDate)} value={date} />
             <Field hint="Optional · AUD" label="Amount"><FormInput editable={!busy} keyboardType="decimal-pad" onChangeText={edit(setAmountAud)} placeholder="423.50" value={amountAud} /></Field>
             <NotesField disabled={busy} label="Summary" onChangeText={edit(setNotes)} value={notes} />
             <PrivateImagePicker

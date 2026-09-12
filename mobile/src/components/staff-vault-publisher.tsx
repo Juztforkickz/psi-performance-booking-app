@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
+import { CalendarDateField } from '@/components/calendar-date-field';
 import { StaffScrollSelect } from '@/components/staff-scroll-select';
 import { colors, spacing } from '@/constants/brand';
 import { australianDateToIso, todayAustralianDate } from '@/lib/australian-date';
@@ -111,7 +112,7 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
       <View style={styles.card}>
         <Field label="PSI job reference"><FormInput editable={!busy} value={reference} onChangeText={value => { setReference(value); setConfirmed(false); }} placeholder="PSI-2026-0123" /></Field>
         <Field label="Title"><FormInput editable={!busy} value={title} onChangeText={value => { setTitle(value); setConfirmed(false); }} placeholder="Major service" /></Field>
-        <Field label="Job date" hint="DD/MM/YYYY"><FormInput editable={!busy} value={date} maxLength={10} keyboardType="numbers-and-punctuation" onChangeText={value => { setDate(value); setConfirmed(false); }} /></Field>
+        <CalendarDateField disabled={busy} label="Job date" maximumDate={australianDateToIso(initialDate) ?? undefined} onChange={value => { setDate(value); setConfirmed(false); }} value={date} />
         {!fixedKind ? <View style={styles.choices}>{VAULT_KINDS.map(value => <Choice disabled={busy} key={value} label={VAULT_LABELS[value]} selected={kind === value} onPress={() => { setKind(value); setFiles([]); setConfirmed(false); }} />)}</View> : null}
         {kind === 'media' || kind === 'dyno' ? <View style={styles.choices}>{(['before', 'progress', 'after'] as const).map(value => <Choice disabled={busy} key={value} label={value === 'progress' && kind === 'dyno' ? 'Baseline' : `${value[0].toUpperCase()}${value.slice(1)}`} selected={phase === value} onPress={() => { setPhase(value); setConfirmed(false); }} />)}</View> : null}
         {kind === 'dyno' ? <><Field label="Power · HP at hubs" hint="Optional"><FormInput editable={!busy} value={power} onChangeText={value => { setPower(value); setConfirmed(false); }} keyboardType="decimal-pad" /></Field><Field label="Torque · Nm at hubs" hint="Optional"><FormInput editable={!busy} value={torque} onChangeText={value => { setTorque(value); setConfirmed(false); }} keyboardType="decimal-pad" /></Field></> : null}

@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
+import { CalendarDateField } from '@/components/calendar-date-field';
 import { colors, spacing } from '@/constants/brand';
-import { isoDateToAustralian, todayAustralianDate } from '@/lib/australian-date';
+import { australianDateToIso, isoDateToAustralian, todayAustralianDate } from '@/lib/australian-date';
 import type { BookingRequestRow } from '@/lib/database.types';
 import type { ServiceCompletionCandidate } from '@/lib/performance-plus';
 import { completePsiService } from '@/lib/staff-record-publishing';
@@ -141,9 +142,13 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
             </View>
           ) : null}
           <Text style={styles.warning}>Creates a permanent service record and closes this booking.</Text>
-          <Field hint="DD/MM/YYYY" label="Completed date">
-            <FormInput editable={!busy} keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(value) => { setCompletedDate(value); setConfirmed(false); }} value={completedDate} />
-          </Field>
+          <CalendarDateField
+            disabled={busy}
+            label="Completed date"
+            maximumDate={australianDateToIso(todayInSydney()) ?? undefined}
+            onChange={(value) => { setCompletedDate(value); setConfirmed(false); }}
+            value={completedDate}
+          />
           <Field hint="Optional · whole kilometres" label="Odometer">
             <FormInput editable={!busy} keyboardType="number-pad" maxLength={8} onChangeText={(value) => { setOdometerKm(value.replace(/\D/gu, '')); setConfirmed(false); }} placeholder="84210" value={odometerKm} />
           </Field>
@@ -152,9 +157,14 @@ export function StaffServiceCompletion({ booking, customerLabel, onRefresh, vehi
           </Field>
           <View style={styles.twoColumn}>
             <View style={styles.column}>
-              <Field hint="Optional · DD/MM/YYYY" label="Next check-in date">
-                <FormInput editable={!busy} keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(value) => { setNextCheckInDate(value); setConfirmed(false); }} placeholder="DD/MM/YYYY" value={nextCheckInDate} />
-              </Field>
+              <CalendarDateField
+                disabled={busy}
+                label="Next check-in date"
+                minimumDate={australianDateToIso(completedDate) ?? undefined}
+                onChange={(value) => { setNextCheckInDate(value); setConfirmed(false); }}
+                optional
+                value={nextCheckInDate}
+              />
             </View>
             <View style={styles.column}>
               <Field hint="Optional · whole kilometres" label="Next check-in odometer">

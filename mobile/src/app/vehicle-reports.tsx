@@ -16,9 +16,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
+import { CalendarDateField } from '@/components/calendar-date-field';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import { australianDateToIso, formatAustralianDate } from '@/lib/australian-date';
+import { australianDateToIso, formatAustralianDate, todayAustralianDate } from '@/lib/australian-date';
 import type { CustomerAccountSnapshot } from '@/lib/customer-account';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
@@ -641,7 +642,7 @@ function VehicleReportsContent({
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
                 <View style={styles.fieldCell}><Field label="Power · HP at hubs"><FormInput keyboardType="decimal-pad" maxLength={7} onChangeText={(power) => setDynoDraft((draft) => ({ ...draft, power }))} placeholder="426" value={dynoDraft.power} /></Field></View>
                 <View style={styles.fieldCell}><Field label="Torque · Nm at hubs"><FormInput keyboardType="decimal-pad" maxLength={7} onChangeText={(torque) => setDynoDraft((draft) => ({ ...draft, torque }))} placeholder="612" value={dynoDraft.torque} /></Field></View>
-                <View style={styles.fieldCell}><Field hint="DD/MM/YYYY" label="Date"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(date) => setDynoDraft((draft) => ({ ...draft, date }))} placeholder="23/08/2026" value={dynoDraft.date} /></Field></View>
+                <View style={styles.fieldCell}><CalendarDateField label="Date" maximumDate={australianDateToIso(todayAustralianDate()) ?? undefined} onChange={(date) => setDynoDraft((draft) => ({ ...draft, date }))} value={dynoDraft.date} /></View>
                 <View style={styles.fieldCell}><Field label="Fuel"><FormInput maxLength={40} onChangeText={(fuel) => setDynoDraft((draft) => ({ ...draft, fuel }))} placeholder="98 RON" value={dynoDraft.fuel} /></Field></View>
               </View>
               <Field hint={`${dynoDraft.notes.length}/400`} label="Setup / run notes · optional"><FormInput autoCorrect maxLength={400} multiline onChangeText={(notes) => setDynoDraft((draft) => ({ ...draft, notes }))} placeholder="Notes for this result" style={styles.notesInput} value={dynoDraft.notes} /></Field>
@@ -672,7 +673,7 @@ function VehicleReportsContent({
               <FormHeading accountConnected={accountConnected} title="Add previous repair" />
               <Field label="Repair title"><FormInput autoCorrect maxLength={80} onChangeText={(title) => setRepairDraft((draft) => ({ ...draft, title }))} placeholder="Service & inspection" value={repairDraft.title} /></Field>
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
-                <View style={styles.fieldCell}><Field hint="DD/MM/YYYY" label="Date"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(date) => setRepairDraft((draft) => ({ ...draft, date }))} placeholder="23/08/2026" value={repairDraft.date} /></Field></View>
+                <View style={styles.fieldCell}><CalendarDateField label="Date" maximumDate={australianDateToIso(todayAustralianDate()) ?? undefined} onChange={(date) => setRepairDraft((draft) => ({ ...draft, date }))} value={repairDraft.date} /></View>
                 <View style={styles.fieldCell}><Field hint="Optional" label="Odometer · km"><FormInput keyboardType="number-pad" maxLength={8} onChangeText={(odometer) => setRepairDraft((draft) => ({ ...draft, odometer: odometer.replace(/\D/g, '') }))} placeholder="84210" value={repairDraft.odometer} /></Field></View>
               </View>
               <Field hint={`${repairDraft.description.length}/400`} label="Description / notes"><FormInput autoCorrect maxLength={400} multiline onChangeText={(description) => setRepairDraft((draft) => ({ ...draft, description }))} placeholder="Work completed or inspected" style={styles.notesInput} value={repairDraft.description} /></Field>
@@ -723,7 +724,7 @@ function VehicleReportsContent({
               <FormHeading accountConnected={accountConnected} title="Add invoice" />
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
                 <View style={styles.fieldCell}><Field label="Invoice number"><FormInput autoCapitalize="characters" maxLength={40} onChangeText={(invoiceNumber) => setInvoiceDraft((draft) => ({ ...draft, invoiceNumber }))} placeholder="PSI-INV-2026-0000" value={invoiceDraft.invoiceNumber} /></Field></View>
-                <View style={styles.fieldCell}><Field hint="DD/MM/YYYY" label="Invoice date"><FormInput autoCapitalize="none" keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(date) => setInvoiceDraft((draft) => ({ ...draft, date }))} placeholder="23/08/2026" value={invoiceDraft.date} /></Field></View>
+                <View style={styles.fieldCell}><CalendarDateField label="Invoice date" maximumDate={australianDateToIso(todayAustralianDate()) ?? undefined} onChange={(date) => setInvoiceDraft((draft) => ({ ...draft, date }))} value={invoiceDraft.date} /></View>
               </View>
               <Field hint="Optional · AUD" label="Amount"><FormInput keyboardType="decimal-pad" maxLength={10} onChangeText={(amount) => setInvoiceDraft((draft) => ({ ...draft, amount }))} placeholder="423.50" value={invoiceDraft.amount} /></Field>
               <Field hint={`${invoiceDraft.summary.length}/300`} label="Completed work summary"><FormInput autoCorrect maxLength={300} multiline onChangeText={(summary) => setInvoiceDraft((draft) => ({ ...draft, summary }))} placeholder="Service & workshop inspection" style={styles.notesInput} value={invoiceDraft.summary} /></Field>

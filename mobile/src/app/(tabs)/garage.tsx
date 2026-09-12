@@ -273,7 +273,10 @@ function GarageContent({
     setVehicleSelectorOpen(false);
     setMaintenanceError('');
     setMaintenanceNotice('');
-    if (secureVehicles) setSecureSelectedVehicleId(vehicleId);
+    if (secureVehicles) {
+      setSecureSelectedVehicleId(vehicleId);
+      prepareBookingVehicleRecord(vehicle);
+    }
     else selectPreviewVehicle(vehicleId);
   };
 

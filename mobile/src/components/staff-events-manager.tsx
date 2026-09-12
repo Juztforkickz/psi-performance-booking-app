@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
+import { MonthCalendarPicker } from '@/components/month-calendar-picker';
 import { colors, spacing } from '@/constants/brand';
 import { formatAustralianDateTime } from '@/lib/australian-date';
 import type { PsiEventRow } from '@/lib/database.types';
@@ -181,19 +182,16 @@ export function StaffEventsManager({ onDirtyChange, onBusyChange }: {
         </View>
 
         {showDatePicker && !busy ? (
-          <DateTimePicker
-            display={Platform.OS === 'ios' ? 'compact' : 'default'}
-            minimumDate={new Date()}
-            mode="date"
-            onChange={(_, selected) => {
-              if (selected) {
-                const merged = new Date(startsAt);
-                merged.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
-                setStartsAt(merged);
-              }
+          <MonthCalendarPicker
+            minimumDate={localIsoDate(new Date())}
+            onChange={(isoDate) => {
+              const [year, month, day] = isoDate.split('-').map(Number);
+              const merged = new Date(startsAt);
+              merged.setFullYear(year, month - 1, day);
+              setStartsAt(merged);
               setShowDatePicker(false);
             }}
-            value={startsAt}
+            value={localIsoDate(startsAt)}
           />
         ) : null}
         {showTimePicker && !busy ? (
@@ -276,6 +274,10 @@ export function StaffEventsManager({ onDirtyChange, onBusyChange }: {
       </>}
     </View>
   );
+}
+
+function localIsoDate(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 function eventIsArchived(event: PsiEventRow, referenceTime: number) {

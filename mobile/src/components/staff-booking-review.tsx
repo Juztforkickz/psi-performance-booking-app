@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
+import { MonthCalendarPicker } from '@/components/month-calendar-picker';
 import { colors, spacing } from '@/constants/brand';
-import { isoDateToAustralian, todayAustralianDate } from '@/lib/australian-date';
+import { australianDateToIso, isoDateToAustralian, todayAustralianDate } from '@/lib/australian-date';
+import { isEligibleBookingDate } from '@/lib/booking';
 import type { BookingRequestRow } from '@/lib/database.types';
 import { confirmBankTransferPayment, reviewBookingRequest, type StaffBookingReviewInput } from '@/lib/staff-portal';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
@@ -72,7 +74,7 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
       setFeedback({
         kind: 'success',
         text: action === 'approve_date'
-          ? 'Date approved. The booking remains unconfirmed until payment is verified.'
+          ? 'Date approved. The customer’s email and app payment prompt are queued. The booking remains unconfirmed until payment is verified.'
           : action === 'propose_date'
             ? 'Alternative date proposed. The customer still needs to accept it.'
             : 'Booking request cancelled.',
@@ -147,8 +149,18 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
       ) : (
         <>
           {action !== 'cancel' ? (
-            <Field hint="DD/MM/YYYY" label={action === 'approve_date' ? 'Approved date' : 'Proposed date'}>
-              <FormInput editable={!busy} keyboardType="numbers-and-punctuation" maxLength={10} onChangeText={(value) => { setApprovedDate(value); setConfirmed(false); }} value={approvedDate} />
+            <Field hint="Choose the day from the month below" label={action === 'approve_date' ? 'Approved date' : 'Proposed date'}>
+              <Text style={styles.dateSelection}>{approvedDate}</Text>
+              <MonthCalendarPicker
+                disabled={busy}
+                isDateEnabled={(isoDate) => isEligibleBookingDate(booking.booking_type, isoDate)}
+                minimumDate={australianDateToIso(todayInSydney()) ?? undefined}
+                onChange={(isoDate) => {
+                  setApprovedDate(isoDateToAustralian(isoDate));
+                  setConfirmed(false);
+                }}
+                value={australianDateToIso(approvedDate) ?? undefined}
+              />
             </Field>
           ) : null}
           <Field hint={action === 'cancel' ? 'Required' : 'Optional · visible to the customer'} label={action === 'cancel' ? 'Cancellation reason' : 'Customer note'}>
@@ -199,6 +211,7 @@ const styles = StyleSheet.create({
   cancelText: { color: colors.danger, fontSize: 13, fontWeight: '600' },
   bankVerification: { gap: spacing.md },
   bankCopy: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  dateSelection: { color: colors.accent, fontSize: 15, fontWeight: '800', marginBottom: spacing.sm },
   notes: { minHeight: 88 },
   confirmRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
   checkbox: { alignItems: 'center', borderColor: colors.accent, borderWidth: 1, borderRadius: 4, height: 24, justifyContent: 'center', width: 24 },

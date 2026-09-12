@@ -1,4 +1,3 @@
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -20,6 +19,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ChoiceCard, Eyebrow, Field, FormInput, PrimaryButton, UiToneProvider } from '@/components/ui';
+import { MonthCalendarPicker } from '@/components/month-calendar-picker';
 import { bookingColors, colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAustralianDate } from '@/lib/australian-date';
@@ -35,7 +35,6 @@ import {
   BOOKING_PURPOSES,
   BookingApiError,
   createBookingRequest,
-  dateFromIso,
   depositAmountForBookingType,
   displayDate,
   displayMoney,
@@ -535,14 +534,6 @@ function BookingScreenContent({
     }
   };
 
-  const handleDateChange = (event: DateTimePickerEvent, selected?: Date) => {
-    if (Platform.OS === 'android') setShowDatePicker(false);
-    if (event.type === 'set' && selected) {
-      update('preferredDate', localIsoDate(selected));
-      update('appointmentPreferenceMode', 'specific');
-    }
-  };
-
   const clearDraft = async () => {
     if (!initialType) return;
     setDraftDirty(false);
@@ -703,7 +694,6 @@ function BookingScreenContent({
                 errors={errors}
                 form={form}
                 maxDate={maxDate}
-                onDateChange={handleDateChange}
                 setShowDatePicker={setShowDatePicker}
                 showDatePicker={showDatePicker}
                 update={update}
@@ -1494,7 +1484,6 @@ function DateStep({
   showDatePicker,
   setShowDatePicker,
   maxDate,
-  onDateChange,
 }: {
   form: BookingFormState;
   errors: BookingErrors;
@@ -1502,14 +1491,11 @@ function DateStep({
   showDatePicker: boolean;
   setShowDatePicker: (visible: boolean) => void;
   maxDate: Date;
-  onDateChange: (event: DateTimePickerEvent, selected?: Date) => void;
 }) {
-  const { compact, fontScale, shortLandscape, width } = useResponsiveLayout();
+  const { compact } = useResponsiveLayout();
   const [forecast, setForecast] = useState<WeatherItem[]>([]);
   const [forecastLoading, setForecastLoading] = useState(true);
   const [forecastUnavailable, setForecastUnavailable] = useState(false);
-  const useInlineCalendar = width >= 390 && !shortLandscape && fontScale <= 1.3;
-  const selectedDate = form.preferredDate ? dateFromIso(form.preferredDate) : new Date();
   const scheduleCopy = form.bookingType === 'dyno'
     ? 'Dyno requests: Monday, Wednesday and Thursday.'
     : 'Service requests: Monday to Friday.';
@@ -1642,23 +1628,20 @@ function DateStep({
             ) : null}
             {showDatePicker ? (
               <View style={[styles.datePickerWrap, compact && styles.datePickerWrapCompact]}>
-                <DateTimePicker
-                  accentColor={bookingColors.accent}
-                  display={Platform.OS === 'ios' ? (useInlineCalendar ? 'inline' : 'spinner') : 'calendar'}
-                  maximumDate={maxDate}
-                  minimumDate={new Date()}
-                  mode="date"
-                  onChange={onDateChange}
-                  themeVariant="dark"
-                  timeZoneName="Australia/Melbourne"
-                  value={selectedDate}
-                  style={styles.datePicker}
+                <MonthCalendarPicker
+                  isDateEnabled={(isoDate) => isEligibleBookingDate(form.bookingType, isoDate)}
+                  maximumDate={localIsoDate(maxDate)}
+                  minimumDate={localIsoDate(new Date())}
+                  onChange={(isoDate) => {
+                    update('preferredDate', isoDate);
+                    update('appointmentPreferenceMode', 'specific');
+                    setShowDatePicker(false);
+                  }}
+                  value={form.preferredDate}
                 />
-                {Platform.OS === 'ios' ? (
-                  <Pressable accessibilityRole="button" onPress={() => setShowDatePicker(false)} style={styles.dateDone}>
-                    <Text style={styles.dateDoneText}>Done</Text>
-                  </Pressable>
-                ) : null}
+                <Pressable accessibilityRole="button" onPress={() => setShowDatePicker(false)} style={styles.dateDone}>
+                  <Text style={styles.dateDoneText}>Close calendar</Text>
+                </Pressable>
               </View>
             ) : null}
           </Field>

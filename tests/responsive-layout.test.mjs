@@ -55,6 +55,7 @@ test("uses one native responsive contract across every customer screen", async (
     signUp,
     parts,
     vehicleReports,
+    monthCalendar,
   ] = await Promise.all([
     read("../mobile/app.json"),
     read("../mobile/src/hooks/use-responsive-layout.ts"),
@@ -71,6 +72,7 @@ test("uses one native responsive contract across every customer screen", async (
     read("../mobile/src/app/account/sign-up.tsx"),
     read("../mobile/src/app/parts.tsx"),
     read("../mobile/src/app/vehicle-reports.tsx"),
+    read("../mobile/src/components/month-calendar-picker.tsx"),
   ]);
 
   assert.match(appConfig, /"orientation":\s*"default"/);
@@ -129,12 +131,17 @@ test("uses one native responsive contract across every customer screen", async (
   assert.match(home, /DASHBOARD_TILES\.bookings\}[\s\S]*?imageStyle=\{styles\.lowerTileImage\}/);
   assert.match(home, /DASHBOARD_TILES\.bookAhead\}[\s\S]*?imageStyle=\{styles\.lowerTileImage\}/);
   assert.match(home, /DASHBOARD_TILES\.alerts\}[\s\S]*?imageStyle=\{styles\.lowerTileImage\}/);
+  assert.match(home, /prepareBookingVehicleRecord/);
+  assert.match(home, /garageAccount\?\.vehicles\.find\(\(vehicle\) => vehicle\.id === pendingBookingVehicle\?\.id\)/);
   assert.doesNotMatch(home, /trustedPartnersTileImage|planBuildTileImage/);
   assert.match(alerts, /adjustsFontSizeToFit[\s\S]*?numberOfLines=\{1\}[\s\S]*?themeModeOptionText/);
   assert.match(alerts, /tile-my-bookings-blue-silver\.jpg/);
   assert.match(parts, /stackAreaCards\s*=\s*compact\s*\|\|\s*largeText/);
   assert.match(parts, /!stackAreaCards\s*&&\s*styles\.areaCardTwoColumn/);
   assert.match(parts, /areaCard:\s*\{[^}]*minHeight:\s*132/);
+  assert.deepEqual([...monthCalendar.matchAll(/'((?:Mon|Tue|Wed|Thu|Fri|Sat|Sun))'/gu)].map((match) => match[1]), ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+  assert.match(monthCalendar, /Previous month/);
+  assert.match(monthCalendar, /Next month/);
 });
 
 test("private dyno graphs scale without cropping and PDF reports remain accessible", async () => {

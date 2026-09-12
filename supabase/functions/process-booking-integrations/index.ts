@@ -148,6 +148,9 @@ const customerName = (context: BookingContext) =>
 const bookingLabel = (context: BookingContext) =>
   context.booking.booking_type === "dyno" ? "Dyno tuning" : "Service & Workshop";
 
+const depositLabel = (context: BookingContext) =>
+  context.booking.booking_type === "dyno" ? "A$300" : "A$100";
+
 const humanize = (value: string) => value
   .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
   .replaceAll("_", " ")
@@ -258,8 +261,8 @@ const buildEmail = (job: IntegrationJob, context: BookingContext) => {
       break;
     case "notify_customer_date_approved":
       subject = `Your PSI date is approved for ${approvedDate}`;
-      heading = "Workshop date approved";
-      message = `Your requested date has been approved for ${approvedDate}. The booking is not confirmed until the later deposit step is completed.`;
+      heading = "Date approved · deposit ready";
+      message = `Your requested date has been approved for ${approvedDate}. Open Bookings in the PSI app now to choose card, Apple Pay, Google Pay or bank transfer for the ${depositLabel(context)} deposit. The booking is confirmed only after payment is verified.`;
       break;
     case "notify_customer_cancelled":
       subject = "PSI booking request update";

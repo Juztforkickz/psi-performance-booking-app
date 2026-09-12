@@ -26,6 +26,11 @@ function renderLegalScreen(source, { platform = 'ios', auth = true, review = fal
     './performance-plus': { s: {} },
     '@/components/ui': { PrimaryButton: 'PrimaryButton' },
     '@/constants/brand': { colors: {}, mobileFrame: {}, spacing: {} },
+    '@/constants/legal-entities': {
+      APP_PUBLISHER: 'PSI PERFORMANCE PTY LTD',
+      ENTITY_ROLE_SUMMARY: 'PSI PERFORMANCE PTY LTD publishes the app. PSI Performance supplies workshop services.',
+      WORKSHOP_OPERATOR: 'PSI Performance',
+    },
     '@/hooks/use-responsive-layout': { useResponsiveLayout: () => ({ horizontalPadding: 22 }) },
     '@/lib/customer-auth': { CUSTOMER_AUTH: { enabled: auth } },
     '@/lib/review-environment': { REVIEW_ENVIRONMENT: { enabled: review } },

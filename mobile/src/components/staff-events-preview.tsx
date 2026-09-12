@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
+import { CalendarDateField } from '@/components/calendar-date-field';
 import { colors } from '@/constants/brand';
 import { useStaffDiscardConfirmation } from '@/hooks/use-staff-discard-confirmation';
+import { australianDateToIso, todayAustralianDate } from '@/lib/australian-date';
 
 type EventDraft = { title: string; location: string; date: string; time: string; description: string };
 type PreviewEvent = EventDraft & { id: string; status: 'Published' | 'Draft' };
@@ -68,7 +70,7 @@ export function StaffEventsPreview({ onDirtyChange }: { onDirtyChange?: (dirty: 
       <Field label="Event title" hint="Required · up to 80 characters"><FormInput value={draft.title} onChangeText={value => update('title', value)} placeholder="Name your event" maxLength={80} /></Field>
       <Field label="Location" hint="Optional"><FormInput value={draft.location} onChangeText={value => update('location', value)} placeholder="Venue or meeting point" maxLength={180} /></Field>
       <View style={styles.dateRow}>
-        <View style={styles.dateField}><Field label="Date" hint="DD/MM/YYYY"><FormInput value={draft.date} onChangeText={value => update('date', value)} placeholder="19/09/2026" maxLength={10} keyboardType="numbers-and-punctuation" /></Field></View>
+        <View style={styles.dateField}><CalendarDateField label="Date" minimumDate={australianDateToIso(todayAustralianDate()) ?? undefined} onChange={value => update('date', value)} value={draft.date} /></View>
         <View style={styles.timeField}><Field label="Time"><FormInput value={draft.time} onChangeText={value => update('time', value)} placeholder="9:00 am" maxLength={12} /></Field></View>
       </View>
       <Field label="Details" hint="Optional"><FormInput value={draft.description} onChangeText={value => update('description', value)} placeholder="What customers need to know" multiline textAlignVertical="top" style={styles.notes} maxLength={1200} /></Field>
