@@ -4,6 +4,7 @@ tools/*.ttf
 tools/__pycache__/
 preview/
 source/
+archive/
 social/*.mp4
 social/*.jpg
 social/*.png

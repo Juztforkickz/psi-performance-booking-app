@@ -39,7 +39,7 @@ class Scene:
         f = f"drawtext=fontfile=tools/{'bold' if bold else 'regular'}.ttf:textfile={rel(file)}:fontsize={size}:fontcolor={color}:x={x}:y={y}"
         if alpha: f += f":alpha='{alpha}'"
         self.apply(f)
-    def image(self,path,x,y,w,h,bg=BG,video=False,zoom=False,grade=None):
+    def image(self,path,x,y,w,h,bg=BG,video=False,zoom=False,grade=None,zoom_amount=0.035):
         self.inputs.append(str(path))
         idx = len(self.inputs)
         if video: self.cmd += ['-stream_loop','-1','-i',str(path)]
@@ -47,7 +47,7 @@ class Scene:
         label = f'img{idx}'
         chain=(grade+',' if grade else '')+f'scale={w}:{h}:force_original_aspect_ratio=decrease:force_divisible_by=2,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:color={bg},setsar=1'
         if zoom:
-            chain += f",zoompan=z='1+0.035*on/{max(1,int(self.d*30))}':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d=1:s={w}x{h}:fps=30"
+            chain += f",zoompan=z='1+{zoom_amount}*on/{max(1,int(self.d*30))}':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d=1:s={w}x{h}:fps=30"
         self.filters.append(f'[{idx}:v]{chain},setpts=PTS-STARTPTS[{label}]')
         self.seq += 1
         nextlabel=f'b{self.seq}'
@@ -126,17 +126,21 @@ def make(name,h,d):
         s.text('One subscription. Every vehicle in your PSI account.',1100 if feed else 1560,27 if feed else 30,MUTED)
         s.text('Actual app preview · demonstration records',1144 if feed else 1608,22,MUTED,bold=False)
     elif name=='dyno':
-        # Only the final approved AI artwork may be used in the revised edit.
-        # The recovered dyno-card-loop.mp4 is an earlier, superseded revision.
-        dyno=next((ROOT/'source'/file for file in ['original-ai-dyno-loop.mp4','original-ai-dyno.png'] if (ROOT/'source'/file).exists()),None)
-        if dyno is None:
-            raise FileNotFoundError('Restore the final approved AI dyno artwork from Build Meta App Ad before rendering the revised campaign. Do not substitute dyno-card-loop.mp4.')
-        s.shell(3,'PERFORMANCE+')
-        s.heading('SEE THE RESULTS.','KEEP THE HISTORY.')
-        y,ah=(410,626) if feed else (580,924)
-        s.image(dyno,240 if feed else 150,y,600 if feed else 780,ah,video=dyno.suffix=='.mp4',zoom=dyno.suffix!='.mp4')
-        s.text('Dyno PDFs. Comparisons. Your PSI journey.',1080 if feed else 1560,32 if feed else 36)
-        s.text('Illustrated dyno example',1130 if feed else 1614,24,MUTED,bold=False)
+        # The supplied Instagram poster is the approved source. Preserve its
+        # original chart, result panels and car; generated chart variants are
+        # deliberately excluded. Its cleaned header is a separate video layer.
+        dyno=ROOT/'source/dyno-restored-2026-09-13/psi-dyno-original-chart-master.mp4'
+        if not dyno.exists():
+            raise FileNotFoundError('Run restore_dyno_video.py using the supplied Instagram screenshot before rendering.')
+        if feed:
+            # Fill the shorter feed frame and reveal the whole portrait from
+            # heading to car. Hold both ends instead of stretching the poster.
+            travel=max(0.1,d-1.3)
+            s.image(dyno,0,0,1080,h,video=True,grade=f"scale=1080:-2:flags=lanczos,crop=1080:{h}:x=0:y='max(0,min(ih-oh,(t-0.65)/{travel}*(ih-oh)))'")
+        else:
+            s.image(dyno,0,0,1080,h,video=True,grade=f'scale=1080:{h}:force_original_aspect_ratio=increase,crop=1080:{h},boxblur=30:2,eq=brightness=-0.45')
+            s.image(dyno,0,0,1080,h,video=True,zoom=True,zoom_amount=0.015,bg='black')
+        return s
     elif name=='partners':
         s.shell(4,'TRUSTED PARTNERS')
         s.heading('TRUSTED TEAMS.','ONE PLACE.')

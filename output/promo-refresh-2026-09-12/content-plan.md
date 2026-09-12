@@ -1,6 +1,6 @@
-# PSI app campaign refresh — 12 September 2026
+# PSI app campaign refresh — 13 September 2026
 
-Prepared from the current app implementation. The website launch artwork replaces the previous opener as requested on 13 September. Separate full-screen 9:16 and 4:5 compositions preserve the workshop, cars, phone, PSI icon and wording. Restore the final approved AI digital dyno scene when its original source is supplied. Performance+ receives the strongest and longest feature sequence. Use real interface captures with fictional demo records; never publish Matt's private details, invoices or vehicle registrations.
+Prepared from the current app implementation. The website launch artwork replaces the previous opener as requested on 13 September. Separate full-screen 9:16 and 4:5 compositions preserve the workshop, cars, phone, PSI icon and wording. The supplied Instagram screenshot identifies the approved dyno poster: THE RESULT. THE PROOF. Its original chart, results and car remain in the video, with restored heading and Instagram controls removed. Performance+ receives the strongest and longest feature sequence. Use real interface captures with fictional demo records; never publish Matt's private details, invoices or vehicle registrations.
 
 ## Release wording
 
@@ -22,7 +22,7 @@ Verified public preview paths in repo:
 | 0–3 | Approved website launch artwork, recomposed to fill each video format | IT’S ARRIVED. PSI PERFORMANCE. Performance+ | Your car. Its whole story. |
 | 3–7 | Performance+ tile | PERFORMANCE+ | THE GAME CHANGER. |
 | 7–12 | Vehicle vault and demonstration app records | YOUR PRIVATE VEHICLE VAULT. | PSI invoices. Workshop photos. Dyno reports. Service history. Build milestones. |
-| 12–17 | Final approved AI digital dyno artwork, pending original source recovery | SEE THE RESULTS. | KEEP THE HISTORY. |
+| 12–17 | Restored supplied dyno poster with restrained motion | THE RESULT. THE PROOF. | Original 613.8 HP / 1151.2 dNm result panels |
 | 17–23 | All ten genuine partner logos together on one screen | TRUSTED TEAMS. ONE PLACE. | The specialists we work with. |
 | 23–28 | Customer Cars for Sale tile | YOUR NEXT CHAPTER. SELL YOUR PSI CAR. | Ask us to feature it. |
 | 28–32 | Garage, Bookings and Plan & Build tiles | YOUR GARAGE. ALWAYS WITH YOU. | Less searching. More enjoying your car. |
@@ -40,7 +40,7 @@ Optional voiceover, approximately 72 words:
 | --- | --- | --- |
 | 0–2 | Approved website launch artwork filling the portrait frame | IT’S ARRIVED. PSI PERFORMANCE. Performance+ |
 | 2–5 | Performance+ tile | PERFORMANCE+ / THE GAME CHANGER. |
-| 5–8 | Final approved AI dyno artwork, pending original source recovery | SEE THE RESULTS. KEEP THE HISTORY. |
+| 5–8 | Restored supplied dyno poster with restrained motion | THE RESULT. THE PROOF. |
 | 8–11 | All ten trusted teams together on one screen | TRUSTED TEAMS. ONE PLACE. |
 | 11–13 | Customer Cars for Sale tile | YOUR NEXT CHAPTER. SELL YOUR PSI CAR. |
 | 13–15 | App/Performance+ end card | YOUR CAR. ITS COMPLETE STORY. |

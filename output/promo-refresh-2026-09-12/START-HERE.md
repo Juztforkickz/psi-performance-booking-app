@@ -1,8 +1,8 @@
 # PSI app — refreshed promotional pack
 
-Prepared 12 September 2026; opening revised 13 September 2026. The approved website launch artwork is now the new opening, with separate full-screen Reel and Feed compositions. See `OPENING-REVISION.md` for the standalone pictures and opening previews.
+13 September 2026 campaign revision. The approved website launch artwork opens the videos in separate full-screen Reel and Feed compositions. Performance+ remains the main hook, all ten trusted teams share one screen, and the dyno scene uses the newly supplied **THE RESULT. THE PROOF.** poster. See `OPENING-REVISION.md` and `PARTNER-REVISION.md` for the section previews and source details.
 
-**Revision in progress:** all ten trusted teams now share one screen. The two `PSI-Trusted-Teams-One-Page` videos preview that corrected section. The full 36-second and 15-second files and existing ZIP remain the preserved first cuts: their dyno scene uses an earlier artwork revision. The final approved AI-generated dyno image or final old video from **Build Meta App Ad** must be restored before exporting the corrected full campaign. See `PARTNER-REVISION.md`.
+**Delivery status:** final rendering and visual/media verification passed on 13 September. All ten MP4s fully decode and match their expected dimensions and lengths. The original 12 September first cuts are retained in the workspace archive and earlier delivery pack. The revised pack is named **App Promo - 13 September 2026**, under **Desktop → PSI APP → Organized → Branding**, with **PSI-App-Promo-Pack-2026-09-13.zip** alongside the finished files. See `MEDIA-VALIDATION.md` for the checks and full-video hashes.
 
 ## Social videos
 
@@ -12,9 +12,11 @@ Prepared 12 September 2026; opening revised 13 September 2026. The approved webs
 | `social/PSI-Performance-App-15s-Reel-9x16.mp4` | Short hook / teaser | 15 seconds · 1080 × 1920 |
 | `social/PSI-Performance-App-36s-Feed-4x5.mp4` | Instagram/Facebook feed | 36 seconds · 1080 × 1350 |
 
-All three use H.264 MP4 at 30fps, with readable text built into the video. They are silent, matching the earlier app-only edit. Add a licensed music track inside Facebook/Instagram if wanted. `social/Captions.txt` has ready-to-copy caption options. The JPEG covers can also be used as static posts.
+All three are H.264 MP4 at 30fps, with readable text built into the video. They are silent so licensed music can be added inside Facebook or Instagram. `social/Captions.txt` provides launch copy and separate preview-safe copy. The matching JPEG covers can also be used as static posts.
 
 The full video includes Performance+, the private vehicle vault, dyno history, all ten trusted teams, Customer Cars for Sale, and everyday Garage / Bookings / Plan & Build. The revised timeline retains 36 seconds and 15 seconds respectively, with one partner screen held for six seconds in the main edit and three seconds in the short edit.
+
+`social/PSI-Dyno-Artwork-Clean.png` is the clean standalone dyno picture. Instagram controls have been removed and the heading restored. The original chart, displayed result panels, slogan and car are preserved from the supplied screenshot. The lossless master comparison scored SSIM 1.000000 across the original chart/result region. See `DYNO-RESTORATION.md` for source details and prompts. The feed video slowly reveals the portrait from heading to car; the vertical videos show it complete.
 
 ## Website artwork and video
 
@@ -30,9 +32,9 @@ The Shopify section is ready to install. It defaults to the preview, and only sh
 
 ## What is live
 
-These files have been created and checked locally. Nothing has been posted to social media or installed/published to the live Shopify theme.
+These are locally prepared promotional assets. Nothing in this campaign revision has been posted to social media or installed/published to the live Shopify theme. Full-video verification is complete.
 
-Apple still showed **Prepare for Submission** during this work. Therefore the “It's arrived” artwork is a prepared launch asset, not an announcement that the app is currently available publicly. Public Android availability has not been verified. Do not publish the launch edition until the relevant store download page and Performance+ purchases are available.
+The last verified Apple status was **Prepare for Submission**, and public Android availability has not been verified. The revised full social videos open with **IT'S ARRIVED**, so they are launch assets: hold them until the public store links for every advertised platform and Performance+ availability are verified. A prepared image or video does not establish public availability. Before release, use only the website's **Meet the PSI app** image/video with the preview-safe caption.
 
 The preview link is: https://juztforkickz.github.io/psi-performance-booking-app/
 
