@@ -1,0 +1,204 @@
+{% comment %}
+  PSI app launch section. Install as sections/psi-app-launch.liquid.
+  Preview is the default. Launch copy and store buttons require a verified
+  HTTPS store URL, its verification switch, and the launch-mode switch.
+  Launch artwork is never selected in preview mode.
+{% endcomment %}
+{% liquid
+  assign preview_url = 'https://juztforkickz.github.io/psi-performance-booking-app/'
+  assign plus_url = 'https://juztforkickz.github.io/psi-performance-booking-app/performance-plus'
+  assign partners_url = 'https://juztforkickz.github.io/psi-performance-booking-app/trusted-partners'
+  assign cars_url = 'https://juztforkickz.github.io/psi-performance-booking-app/customer-cars-for-sale'
+  assign ios_prefix = section.settings.ios_url | slice: 0, 23
+  assign android_prefix = section.settings.android_url | slice: 0, 24
+  assign ios_ready = false
+  assign android_ready = false
+  assign launched = false
+  if section.settings.ios_verified and ios_prefix == 'https://apps.apple.com/'
+    assign ios_ready = true
+  endif
+  if section.settings.android_verified and android_prefix == 'https://play.google.com/'
+    assign android_ready = true
+  endif
+  if section.settings.launch_mode
+    if ios_ready or android_ready
+      assign launched = true
+    endif
+  endif
+  assign hero_image = section.settings.preview_image
+  assign hero_video = section.settings.preview_video
+  if launched
+    if section.settings.launch_image != blank or section.settings.launch_video != blank
+      assign hero_image = section.settings.launch_image
+      assign hero_video = section.settings.launch_video
+    endif
+  endif
+  assign hero_poster = blank
+  if hero_image != blank
+    assign hero_poster = hero_image | image_url: width: 1600
+  endif
+%}
+
+<section class="psi-launch" id="psi-app-{{ section.id }}" aria-labelledby="psi-app-title-{{ section.id }}">
+  <div class="psi-launch__inner">
+    <div class="psi-launch__hero">
+      <div class="psi-launch__intro">
+        <p class="psi-launch__eyebrow">PSI PERFORMANCE APP</p>
+        <h2 id="psi-app-title-{{ section.id }}">{% if launched %}IT’S ARRIVED.{% else %}MEET THE PSI APP.{% endif %}<span>YOUR CAR.<br>CONNECTED.</span></h2>
+        <p class="psi-launch__lead">Your garage, booking requests and next build in one place. Discover trusted teams, customer cars for sale and Performance+ — your private PSI vehicle history.</p>
+        <div class="psi-launch__actions">
+          {% if launched %}
+            {% if ios_ready %}
+              <a class="psi-launch__button" href="{{ section.settings.ios_url | escape }}"><span class="psi-launch__button-caption">Download for iPhone</span><span>App Store <span aria-hidden="true">↗</span></span></a>
+            {% endif %}
+            {% if android_ready %}
+              <a class="psi-launch__button" href="{{ section.settings.android_url | escape }}"><span class="psi-launch__button-caption">Download for Android</span><span>Google Play <span aria-hidden="true">↗</span></span></a>
+            {% endif %}
+          {% else %}
+            <a class="psi-launch__button psi-launch__button--primary" href="{{ preview_url }}">Explore the preview <span aria-hidden="true">↗</span></a>
+          {% endif %}
+          <a class="psi-launch__text-link" href="#psi-plus-{{ section.id }}">Discover Performance+ <span aria-hidden="true">↓</span></a>
+        </div>
+        <p class="psi-launch__note">The everyday PSI account is free. Performance+ is an optional paid subscription.{% unless launched %} The preview uses sample records and does not take payments.{% endunless %}</p>
+      </div>
+
+      <div class="psi-launch__media">
+        {% if hero_video != blank %}
+          {{ hero_video | video_tag: image_size: '1600x', autoplay: false, controls: true, muted: true, loop: true, playsinline: true, preload: 'none', poster: hero_poster, class: 'psi-launch__video' }}
+        {% elsif hero_image != blank %}
+          {{ hero_image | image_url: width: 1800 | image_tag: widths: '480, 720, 960, 1200, 1600, 1800', sizes: '(min-width: 900px) 50vw, 100vw', loading: 'lazy', alt: section.settings.image_alt, class: 'psi-launch__image' }}
+        {% else %}
+          <div class="psi-launch__art" aria-hidden="true"><span class="psi-launch__art-plus">+</span><span class="psi-launch__art-label">PERFORMANCE+</span><span class="psi-launch__art-line">YOUR CAR.<br>ITS COMPLETE STORY.</span></div>
+        {% endif %}
+        {% if hero_video != blank %}
+          <details class="psi-launch__transcript"><summary>Video description</summary><p>The PSI app brings your garage, booking requests and build planning together. Optional Performance+ opens PSI invoices, workshop photos, dyno records, service history and build milestones in one private vehicle vault. Discover trusted teams and ask PSI to feature your car for sale.</p></details>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="psi-launch__plus" id="psi-plus-{{ section.id }}">
+      <div class="psi-launch__plus-heading"><span class="psi-launch__plus-mark" aria-hidden="true">+</span><div><p class="psi-launch__eyebrow">PERFORMANCE+</p><h3>THE GAME CHANGER.</h3></div></div>
+      <p class="psi-launch__plus-copy">Your PSI invoices, workshop photos, dyno reports, service records and build milestones. Together in one private vehicle vault. One optional subscription covers every vehicle in your PSI account.</p>
+      <ul class="psi-launch__vaults" aria-label="Performance Plus vehicle records"><li>Invoices & paperwork</li><li>Workshop photo galleries</li><li>Dyno reports & history</li><li>Service & repair records</li><li>Vehicle documents</li><li>Build milestones</li></ul>
+      <p class="psi-launch__note">Records vary by vehicle and the work and files PSI has added. Workshop services and parts are separate from the subscription.</p>
+      <a class="psi-launch__text-link" href="{{ plus_url }}">Explore the Performance+ preview <span aria-hidden="true">↗</span></a>
+    </div>
+
+    <div class="psi-launch__features">
+      <article class="psi-launch__feature"><p class="psi-launch__eyebrow">TRUSTED PARTNERS</p><h3>THE TEAMS<br>WE WORK WITH.</h3><p>Find the specialists PSI works with, with their services and contact details in one place.</p><a class="psi-launch__text-link" href="{{ partners_url }}">Preview trusted teams <span aria-hidden="true">↗</span></a></article>
+      <article class="psi-launch__feature"><p class="psi-launch__eyebrow">CUSTOMER CARS FOR SALE</p><h3>TIME FOR<br>THE NEXT CHAPTER?</h3><p>Selling a car PSI has worked on? Ask us to feature it. Listings appear with the owner’s permission and PSI approval.</p><a class="psi-launch__text-link" href="{{ cars_url }}">Preview cars for sale <span aria-hidden="true">↗</span></a></article>
+    </div>
+
+    {% if section.blocks.size > 0 %}
+      <div class="psi-launch__partners" aria-label="Trusted teams PSI works with">
+        {% for block in section.blocks %}
+          <div class="psi-launch__partner" {{ block.shopify_attributes }}>
+            {% if block.settings.logo != blank %}
+              {{ block.settings.logo | image_url: width: 320 | image_tag: loading: 'lazy', widths: '160, 240, 320', sizes: '160px', alt: block.settings.name, class: 'psi-launch__partner-logo' }}
+            {% else %}
+              <span>{{ block.settings.name | escape }}</span>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+{% style %}
+  #psi-app-{{ section.id }} { --psi-ice:#65cff8; --psi-silver:#c7d0d5; background:#040606; color:#fff; padding:clamp(44px,7vw,100px) clamp(18px,5vw,76px); font-family:var(--font-body-family,Arial,sans-serif); }
+  #psi-app-{{ section.id }} * { box-sizing:border-box; }
+  #psi-app-{{ section.id }} h2,#psi-app-{{ section.id }} h3,#psi-app-{{ section.id }} p,#psi-app-{{ section.id }} a,#psi-app-{{ section.id }} li { overflow-wrap:anywhere; }
+  #psi-app-{{ section.id }} .psi-launch__inner { width:min(1280px,100%); margin-inline:auto; }
+  #psi-app-{{ section.id }} .psi-launch__hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:clamp(28px,5vw,74px); align-items:center; }
+  #psi-app-{{ section.id }} .psi-launch__intro { min-width:0; }
+  #psi-app-{{ section.id }} .psi-launch__eyebrow { color:var(--psi-ice); margin:0 0 14px; font-size:12px; line-height:1.5; letter-spacing:.14em; font-weight:800; }
+  #psi-app-{{ section.id }} h2 { color:#fff; font-size:clamp(29px,3.5vw,51px); line-height:1.06; letter-spacing:-.035em; margin:0 0 24px; font-weight:900; }
+  #psi-app-{{ section.id }} h2 span { display:block; margin-top:15px; font-size:clamp(40px,5.5vw,77px); color:var(--psi-silver); }
+  #psi-app-{{ section.id }} .psi-launch__lead { color:#c7d0d5; max-width:530px; margin:0 0 26px; font-size:17px; line-height:1.65; }
+  #psi-app-{{ section.id }} .psi-launch__actions { display:flex; flex-wrap:wrap; align-items:center; gap:14px; }
+  #psi-app-{{ section.id }} a { text-decoration:none; }
+  #psi-app-{{ section.id }} .psi-launch__button { display:flex; flex-direction:column; justify-content:center; gap:3px; min-height:58px; padding:13px 20px; border:1px solid #d9e0e4; border-radius:6px; background:#0d1113; color:#fff; font-size:17px; line-height:1.3; font-weight:800; }
+  #psi-app-{{ section.id }} .psi-launch__button-caption { color:#b9c2c7; font-weight:500; font-size:11px; letter-spacing:.03em; }
+  #psi-app-{{ section.id }} .psi-launch__button--primary { flex-direction:row; align-items:center; gap:22px; background:var(--psi-ice); border-color:var(--psi-ice); color:#031117; font-size:15px; }
+  #psi-app-{{ section.id }} .psi-launch__text-link { display:inline-flex; align-items:center; gap:14px; min-height:46px; color:var(--psi-ice); font-weight:750; font-size:14px; line-height:1.4; text-decoration:underline; text-underline-offset:5px; }
+  #psi-app-{{ section.id }} a:hover { filter:brightness(1.14); }
+  #psi-app-{{ section.id }} :focus-visible { outline:3px solid #fff; outline-offset:5px; }
+  #psi-app-{{ section.id }} .psi-launch__note { margin:20px 0 0; color:#aab6bd; font-size:12px; line-height:1.7; max-width:700px; }
+  #psi-app-{{ section.id }} .psi-launch__media { min-width:0; border:1px solid #31434b; border-radius:16px; overflow:hidden; background:#000; }
+  #psi-app-{{ section.id }} .psi-launch__image,#psi-app-{{ section.id }} .psi-launch__video { display:block; width:100%; height:auto; max-height:680px; object-fit:contain; background:#000; }
+  #psi-app-{{ section.id }} .psi-launch__art { display:flex; flex-direction:column; min-height:430px; justify-content:center; align-items:center; text-align:center; padding:30px; background:radial-gradient(ellipse at 50% 40%,#153541 0%,#091115 44%,#000 78%); }
+  #psi-app-{{ section.id }} .psi-launch__art-plus { color:#e0e9ef; font-size:140px; line-height:1; font-weight:300; text-shadow:0 0 35px #3b899d; }
+  #psi-app-{{ section.id }} .psi-launch__art-label { margin:12px 0 22px; color:var(--psi-ice); letter-spacing:.17em; font-weight:850; font-size:14px; }
+  #psi-app-{{ section.id }} .psi-launch__art-line { color:#fff; font-size:clamp(23px,3vw,38px); line-height:1.12; font-weight:850; }
+  #psi-app-{{ section.id }} .psi-launch__transcript { color:#c7d0d5; padding:16px; font-size:13px; line-height:1.6; border-top:1px solid #26363d; }
+  #psi-app-{{ section.id }} .psi-launch__transcript summary { cursor:pointer; min-height:30px; }
+  #psi-app-{{ section.id }} .psi-launch__transcript p { margin:12px 0 0; }
+  #psi-app-{{ section.id }} .psi-launch__plus { margin-top:clamp(38px,6vw,74px); padding:clamp(23px,4vw,48px); border:1px solid #42768c; background:linear-gradient(125deg,#11232c,#070c10 75%); border-radius:12px; scroll-margin-top:28px; }
+  #psi-app-{{ section.id }} .psi-launch__plus-heading { display:flex; align-items:center; gap:22px; }
+  #psi-app-{{ section.id }} .psi-launch__plus-heading .psi-launch__eyebrow { margin-bottom:5px; }
+  #psi-app-{{ section.id }} .psi-launch__plus-mark { display:grid; place-items:center; width:70px; height:70px; flex:0 0 70px; font-size:64px; line-height:1; color:#e5eff4; border:1px solid #578496; border-radius:12px; }
+  #psi-app-{{ section.id }} h3 { color:#fff; margin:0; font-size:clamp(25px,3vw,40px); line-height:1.1; letter-spacing:-.025em; font-weight:850; }
+  #psi-app-{{ section.id }} .psi-launch__plus-copy { max-width:850px; color:#d2dce1; font-size:17px; line-height:1.65; margin:24px 0; }
+  #psi-app-{{ section.id }} .psi-launch__vaults { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); list-style:none; padding:0; margin:0; gap:10px; }
+  #psi-app-{{ section.id }} .psi-launch__vaults li { padding:14px 15px; border:1px solid #31474f; background:#050c10; color:#e0e8ec; font-size:14px; line-height:1.5; }
+  #psi-app-{{ section.id }} .psi-launch__features { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; margin-top:24px; }
+  #psi-app-{{ section.id }} .psi-launch__feature { padding:clamp(24px,3vw,38px); border:1px solid #303a40; border-radius:12px; background:#090d0f; }
+  #psi-app-{{ section.id }} .psi-launch__feature p:not(.psi-launch__eyebrow) { color:#bbc6cd; font-size:15px; line-height:1.65; margin:20px 0 12px; max-width:470px; }
+  #psi-app-{{ section.id }} .psi-launch__partners { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin-top:25px; }
+  #psi-app-{{ section.id }} .psi-launch__partner { min-width:0; min-height:100px; display:flex; align-items:center; justify-content:center; padding:12px; border:1px solid #29353c; border-radius:7px; background:#080b0d; text-align:center; font-size:13px; font-weight:750; line-height:1.45; color:#d3dce1; }
+  #psi-app-{{ section.id }} .psi-launch__partner-logo { display:block; width:100%; height:82px; object-fit:contain; }
+  @media(max-width:899px) { #psi-app-{{ section.id }} .psi-launch__hero { grid-template-columns:1fr; } #psi-app-{{ section.id }} .psi-launch__media { max-width:720px; width:100%; } #psi-app-{{ section.id }} .psi-launch__art { min-height:330px; } #psi-app-{{ section.id }} .psi-launch__partners { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media(max-width:559px) { #psi-app-{{ section.id }} .psi-launch__features { grid-template-columns:1fr; } #psi-app-{{ section.id }} .psi-launch__vaults { grid-template-columns:repeat(2,minmax(0,1fr)); } #psi-app-{{ section.id }} .psi-launch__partners { grid-template-columns:repeat(2,minmax(0,1fr)); } #psi-app-{{ section.id }} .psi-launch__plus-heading { gap:14px; } #psi-app-{{ section.id }} .psi-launch__plus-mark { width:48px; height:48px; flex-basis:48px; font-size:43px; } #psi-app-{{ section.id }} .psi-launch__lead { font-size:16px; } }
+  @media(max-width:359px) { #psi-app-{{ section.id }} .psi-launch__vaults { grid-template-columns:1fr; } #psi-app-{{ section.id }} .psi-launch__button { width:100%; } }
+{% endstyle %}
+
+{% schema %}
+{
+  "name": "PSI app launch",
+  "tag": "div",
+  "class": "psi-app-launch-section",
+  "settings": [
+    { "type": "header", "content": "Preview or public launch" },
+    { "type": "paragraph", "content": "Preview is safe by default. Launch copy appears only with launch mode and at least one verified public store URL. Never use a beta or unapproved store listing as a public download." },
+    { "type": "checkbox", "id": "launch_mode", "label": "Enable public launch mode", "default": false },
+    { "type": "url", "id": "ios_url", "label": "Verified iPhone App Store URL" },
+    { "type": "checkbox", "id": "ios_verified", "label": "iPhone listing is live and checked", "default": false },
+    { "type": "url", "id": "android_url", "label": "Verified Google Play URL" },
+    { "type": "checkbox", "id": "android_verified", "label": "Android listing is live and checked", "default": false },
+    { "type": "header", "content": "Preview media" },
+    { "type": "paragraph", "content": "Use preview-safe artwork here. Do not select an image or video saying It’s arrived or Download now until that claim is true." },
+    { "type": "image_picker", "id": "preview_image", "label": "Preview image / video poster" },
+    { "type": "video", "id": "preview_video", "label": "Preview video (optional)" },
+    { "type": "header", "content": "Launch media" },
+    { "type": "image_picker", "id": "launch_image", "label": "Launch image / video poster" },
+    { "type": "video", "id": "launch_video", "label": "Launch video (optional)" },
+    { "type": "text", "id": "image_alt", "label": "Image description", "default": "PSI Performance app with garage, vehicle history and Performance Plus features" }
+  ],
+  "blocks": [
+    {
+      "type": "partner",
+      "name": "Trusted team",
+      "settings": [
+        { "type": "text", "id": "name", "label": "Business name", "default": "Trusted PSI team" },
+        { "type": "image_picker", "id": "logo", "label": "Approved logo" }
+      ]
+    }
+  ],
+  "max_blocks": 10,
+  "presets": [
+    { "name": "PSI app launch", "blocks": [
+      { "type": "partner", "settings": { "name": "Dark Side of the Film" } },
+      { "type": "partner", "settings": { "name": "Race Wires Auto Electrics" } },
+      { "type": "partner", "settings": { "name": "Elite Autobody" } },
+      { "type": "partner", "settings": { "name": "KNG TOW" } },
+      { "type": "partner", "settings": { "name": "EyeCandy Motorsports Melbourne" } },
+      { "type": "partner", "settings": { "name": "Luxe Automotive Interiors" } },
+      { "type": "partner", "settings": { "name": "Elite Car Detailing Studio" } },
+      { "type": "partner", "settings": { "name": "TRB Visuals Photography" } },
+      { "type": "partner", "settings": { "name": "Martini Racing Products" } },
+      { "type": "partner", "settings": { "name": "Fab Car Audio" } }
+    ] }
+  ]
+}
+{% endschema %}

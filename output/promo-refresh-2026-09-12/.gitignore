@@ -1,0 +1,13 @@
+# Reproducible source/configuration stays small; finished delivery is backed up separately.
+tools/ffmpeg.exe
+tools/*.ttf
+tools/__pycache__/
+preview/
+source/
+social/*.mp4
+social/*.jpg
+website/*.png
+website/*.webp
+website/*.mp4
+website/partner-logos/
+*.zip
