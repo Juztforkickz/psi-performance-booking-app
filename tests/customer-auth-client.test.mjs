@@ -13,6 +13,7 @@ const [
   accountAdapter,
   authStorage,
   supabaseClient,
+  accountDeletion,
   appConfig,
   easConfig,
   pagesWorkflow,
@@ -25,6 +26,7 @@ const [
   read('../mobile/src/lib/customer-account.ts'),
   read('../mobile/src/lib/supabase-auth-storage.ts'),
   read('../mobile/src/lib/supabase.ts'),
+  read('../mobile/src/lib/account-deletion.ts'),
   read('../mobile/app.json'),
   read('../mobile/eas.json'),
   read('../.github/workflows/mobile-pages-preview.yml'),
@@ -53,6 +55,12 @@ test('authenticated account adapter binds all rows to the verified user', () => 
   assert.match(accountAdapter, /email,\s*first_name:/u);
   assert.doesNotMatch(accountAdapter, /service_role|sb_secret_|EXPO_PUBLIC_API_BASE_URL/u);
   assert.doesNotMatch(accountAdapter, /AsyncStorage|localStorage|route\.params|searchParams/u);
+});
+
+test('customer deletion status is always scoped to the signed-in identity', () => {
+  assert.match(accountDeletion, /loadOwnAccountDeletionRequest\(userId: string\)/u);
+  assert.match(accountDeletion, /\.eq\('user_id', userId\)\s*\.maybeSingle\(\)/u);
+  assert.match(accountDeletion, /const remaining = await loadOwnAccountDeletionRequest\(userId\)/u);
 });
 
 test('public Pages preview keeps real account activation explicitly disabled', () => {

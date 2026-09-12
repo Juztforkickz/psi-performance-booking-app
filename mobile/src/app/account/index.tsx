@@ -101,8 +101,14 @@ export default function AccountScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    if (auth.status !== 'signed_in' || !authenticatedUserId) return;
-    void loadOwnAccountDeletionRequest()
+    if (auth.status !== 'signed_in' || !authenticatedUserId) {
+      setDeletionRequest(null);
+      setDeletionError('');
+      return;
+    }
+    setDeletionRequest(null);
+    setDeletionError('');
+    void loadOwnAccountDeletionRequest(authenticatedUserId)
       .then((request) => {
         if (!cancelled) setDeletionRequest(request);
       })

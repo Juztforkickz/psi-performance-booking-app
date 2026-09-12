@@ -1,10 +1,11 @@
 import type { AccountDeletionRequestRow } from '@/lib/database.types';
 import { getSupabaseClient } from '@/lib/supabase';
 
-export async function loadOwnAccountDeletionRequest() {
+export async function loadOwnAccountDeletionRequest(userId: string) {
   const { data, error } = await getSupabaseClient()
     .from('account_deletion_requests')
     .select('*')
+    .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;
   return data;
@@ -29,5 +30,10 @@ export async function cancelOwnAccountDeletionRequest(userId: string) {
     .select('user_id')
     .maybeSingle();
   if (error) throw error;
-  if (!data) throw new Error('No pending account-deletion request was found.');
+  if (data) return;
+
+  // Treat an already-absent request as cancelled. This clears stale UI without
+  // ever deleting a request that belongs to a different account.
+  const remaining = await loadOwnAccountDeletionRequest(userId);
+  if (remaining) throw new Error('The pending account-deletion request is still active.');
 }
