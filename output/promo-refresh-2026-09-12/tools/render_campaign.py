@@ -96,7 +96,10 @@ def make(name,h,d):
     s=Scene(name,h,d)
     feed=s.feed
     if name=='opening':
-        s.image(ROOT/'source/updated-opening.png',0,0,1080,h,zoom=True)
+        opening=ROOT/'source/opening-refresh-2026-09-13'/f"psi-app-arrived-opening-{'4x5' if feed else '9x16'}-v1.png"
+        # Uniformly fill the video frame with the approved recomposed artwork.
+        # Only outer workshop/floor scenery is trimmed; no inset or stretching.
+        s.image(opening,0,0,1080,h,zoom=True,grade=f'scale=1080:{h}:force_original_aspect_ratio=increase,crop=1080:{h}')
         return s
     if name=='plus':
         s.shell(1,'PERFORMANCE+')

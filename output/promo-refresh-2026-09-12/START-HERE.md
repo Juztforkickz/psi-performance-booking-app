@@ -1,6 +1,6 @@
 # PSI app — refreshed promotional pack
 
-Prepared 12 September 2026. Black, silver and ice blue, with the familiar PSI garage opening.
+Prepared 12 September 2026; opening revised 13 September 2026. The approved website launch artwork is now the new opening, with separate full-screen Reel and Feed compositions. See `OPENING-REVISION.md` for the standalone pictures and opening previews.
 
 **Revision in progress:** all ten trusted teams now share one screen. The two `PSI-Trusted-Teams-One-Page` videos preview that corrected section. The full 36-second and 15-second files and existing ZIP remain the preserved first cuts: their dyno scene uses an earlier artwork revision. The final approved AI-generated dyno image or final old video from **Build Meta App Ad** must be restored before exporting the corrected full campaign. See `PARTNER-REVISION.md`.
 

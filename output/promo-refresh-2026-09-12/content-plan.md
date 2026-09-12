@@ -1,6 +1,6 @@
 # PSI app campaign refresh — 12 September 2026
 
-Prepared from the current app implementation. Production assets should retain the previous PSI app/phone opener and animated digital dyno scene, with black, silver and ice-blue graphics. Performance+ receives the strongest and longest feature sequence. Use real interface captures with fictional demo records; never publish Matt's private details, invoices or vehicle registrations.
+Prepared from the current app implementation. The website launch artwork replaces the previous opener as requested on 13 September. Separate full-screen 9:16 and 4:5 compositions preserve the workshop, cars, phone, PSI icon and wording. Restore the final approved AI digital dyno scene when its original source is supplied. Performance+ receives the strongest and longest feature sequence. Use real interface captures with fictional demo records; never publish Matt's private details, invoices or vehicle registrations.
 
 ## Release wording
 
@@ -19,7 +19,7 @@ Verified public preview paths in repo:
 
 | Time | Visual | Main on-screen copy | Supporting copy |
 | --- | --- | --- | --- |
-| 0–3 | Familiar garage opening with updated app artwork | YOUR GARAGE. ALWAYS WITH YOU. | MEET THE PSI APP. |
+| 0–3 | Approved website launch artwork, recomposed to fill each video format | IT’S ARRIVED. PSI PERFORMANCE. Performance+ | Your car. Its whole story. |
 | 3–7 | Performance+ tile | PERFORMANCE+ | THE GAME CHANGER. |
 | 7–12 | Vehicle vault and demonstration app records | YOUR PRIVATE VEHICLE VAULT. | PSI invoices. Workshop photos. Dyno reports. Service history. Build milestones. |
 | 12–17 | Final approved AI digital dyno artwork, pending original source recovery | SEE THE RESULTS. | KEEP THE HISTORY. |
@@ -38,7 +38,7 @@ Optional voiceover, approximately 72 words:
 
 | Time | Visual | Copy |
 | --- | --- | --- |
-| 0–2 | Familiar app opener | MEET THE PSI APP. |
+| 0–2 | Approved website launch artwork filling the portrait frame | IT’S ARRIVED. PSI PERFORMANCE. Performance+ |
 | 2–5 | Performance+ tile | PERFORMANCE+ / THE GAME CHANGER. |
 | 5–8 | Final approved AI dyno artwork, pending original source recovery | SEE THE RESULTS. KEEP THE HISTORY. |
 | 8–11 | All ten trusted teams together on one screen | TRUSTED TEAMS. ONE PLACE. |
