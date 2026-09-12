@@ -13,10 +13,10 @@ Video exports are silent for licensed music to be added within the social platfo
 | social/PSI-App-Launch-Opening-Feed-4x5.mp4 | 00:00:03.00 | 1080 × 1350 | `cbc9590f158058834dc50f3634bf90cb00e22ef84d6b27796b421c2018ece168` |
 | social/PSI-App-Launch-Opening-Reel-9x16.mp4 | 00:00:03.00 | 1080 × 1920 | `3fecaaef770b571d9f33f6754438b85f4ff9fba64630e08c459c0189ba903ace` |
 | social/PSI-App-Launch-Opening-Short-Reel-9x16.mp4 | 00:00:02.00 | 1080 × 1920 | `8b27f99933f180c908bc179151cc93d9f1ebf9ca5b8b120a579804c0ec92a89b` |
-| social/PSI-Performance-App-15s-Reel-9x16.mp4 | 00:00:15.00 | 1080 × 1920 | `52ed13ed2e7d10d20216fa66ea334272cb198f0e2c23742b8596b3d228887089` |
-| social/PSI-Performance-App-36s-Feed-4x5.mp4 | 00:00:36.00 | 1080 × 1350 | `3ef68afbda18fb2e8f0d61266be9246562d1e07c4262bc207491a358b5963a82` |
-| social/PSI-Performance-App-36s-Reel-9x16.mp4 | 00:00:36.00 | 1080 × 1920 | `f579392d043f9e78cbbef7a0ab887156b9172da3305c061b39767c15d56b1118` |
-| social/PSI-Trusted-Teams-One-Page-4x5.mp4 | 00:00:06.00 | 1080 × 1350 | `d55bffe4ee564da558b9055dc13955bde42b803eb99d4cbe2ef189996faaa3ed` |
-| social/PSI-Trusted-Teams-One-Page-9x16.mp4 | 00:00:06.00 | 1080 × 1920 | `8b79771775bd0279a92ec7142a2f52669243ea583425459b65350eac89dd1d59` |
+| social/PSI-Performance-App-15s-Reel-9x16.mp4 | 00:00:15.00 | 1080 × 1920 | `e6f74b56ae1bbccbc1daa047841ea084f4b970033e138d9d0a5a5d0bf4b1bc62` |
+| social/PSI-Performance-App-36s-Feed-4x5.mp4 | 00:00:36.00 | 1080 × 1350 | `7a272083d69ade0dafee3b838c3c8ac3f99f83f15f085aa30432b8a5f2497b65` |
+| social/PSI-Performance-App-36s-Reel-9x16.mp4 | 00:00:36.00 | 1080 × 1920 | `2c387ac1c393cb73682d1e30a9153731155b5f71762346f441dd2424a6be115b` |
+| social/PSI-Trusted-Teams-One-Page-4x5.mp4 | 00:00:06.00 | 1080 × 1350 | `cb9dcfa7a1f4c4f2c50b8f51b6203cd2b53fc7138619fabcd98997fcbf8b74d2` |
+| social/PSI-Trusted-Teams-One-Page-9x16.mp4 | 00:00:06.00 | 1080 × 1920 | `21824459139282bb1c4301c447f96e9670b7e6c212f872a6babd7b4402a78a29` |
 | website/psi-app-arrived-loop-16x9.mp4 | 00:00:12.00 | 1920 × 1080 | `bda8d962ea6edd95235656712841a1ee63c8cca5aedc6ccba56c581ea046d0bb` |
 | website/psi-app-preview-loop-16x9.mp4 | 00:00:12.00 | 1920 × 1080 | `ee8039a63869f03cf905ca2cc0cd5daa5e3a869328cffb99e8b37c4995393b50` |

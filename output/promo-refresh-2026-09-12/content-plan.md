@@ -112,4 +112,4 @@ Use the existing genuine files from `mobile/assets/images/partners/`, preserve t
 | Martini Racing Products | `martini-racing-products.jpg` |
 | Fab Car Audio | `fab-car-audio.jpg` |
 
-Martini and Fab use a white circle/background in the approved app treatment. Avoid clipping the text to manufacture a larger logo.
+For the promotional advert, Martini uses a clean black cell with only the original shield visible; the shield's lettering and white interior remain unchanged. Fab retains its brightened black treatment. Avoid clipping either logo's text to manufacture a larger mark.

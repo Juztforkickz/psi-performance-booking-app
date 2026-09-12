@@ -1,11 +1,11 @@
 $ErrorActionPreference = 'Stop'
 $campaignSource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $desktopBase = 'C:\Users\PSI PERFORMANCE\Desktop\PSI APP\Organized\Branding'
-$deliveryTarget = [IO.Path]::GetFullPath((Join-Path $desktopBase 'App Promo - 13 September 2026'))
+$deliveryTarget = [IO.Path]::GetFullPath((Join-Path $desktopBase 'App Promo - Martini Black - 13 September 2026'))
 if (-not (Test-Path -LiteralPath $desktopBase -PathType Container)) { throw 'The established PSI APP Branding folder was not found.' }
 if (-not $deliveryTarget.StartsWith(([IO.Path]::GetFullPath($desktopBase) + '\'), [StringComparison]::OrdinalIgnoreCase)) { throw 'Delivery path is outside PSI APP Branding.' }
 if (-not (Test-Path -LiteralPath $deliveryTarget)) { New-Item -ItemType Directory -Path $deliveryTarget | Out-Null }
-foreach ($entry in @('social', 'website', 'START-HERE.md', 'MEDIA-VALIDATION.md', 'OPENING-REVISION.md', 'PARTNER-REVISION.md', 'DYNO-RESTORATION.md', 'OPENING-ARTWORK-PROMPTS.md', 'PSI-App-Promo-Pack-2026-09-13.zip')) {
+foreach ($entry in @('social', 'website', 'START-HERE.md', 'MEDIA-VALIDATION.md', 'OPENING-REVISION.md', 'PARTNER-REVISION.md', 'DYNO-RESTORATION.md', 'OPENING-ARTWORK-PROMPTS.md', 'PSI-App-Promo-Pack-2026-09-13-Martini-Black.zip')) {
     $sourceEntry = Join-Path $campaignSource $entry
     $sourceFiles = if (Test-Path -LiteralPath $sourceEntry -PathType Container) { Get-ChildItem -LiteralPath $sourceEntry -Recurse -File } else { Get-Item -LiteralPath $sourceEntry }
     foreach ($sourceFile in $sourceFiles) {

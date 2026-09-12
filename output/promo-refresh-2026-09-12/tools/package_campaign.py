@@ -33,7 +33,7 @@ docs = ['START-HERE.md', 'MEDIA-VALIDATION.md', 'OPENING-REVISION.md',
 files = [ROOT / name for name in docs]
 for folder in ['social', 'website']:
     files.extend(path for path in (ROOT / folder).rglob('*') if path.is_file())
-archive = ROOT / 'PSI-App-Promo-Pack-2026-09-13.zip'
+archive = ROOT / 'PSI-App-Promo-Pack-2026-09-13-Martini-Black.zip'
 if archive.exists():
     raise FileExistsError('The final dated ZIP already exists; inspect rather than overwrite.')
 with zipfile.ZipFile(archive, 'x', zipfile.ZIP_DEFLATED, compresslevel=6) as bundle:

@@ -150,7 +150,9 @@ def make(name,h,d):
             x,y=82+(i%2)*478,top+(i//2)*rh
             iw,ih=(430,106) if feed else (430,144)
             s.box(x-2,y-2,iw+4,ih+4,'0x5F8494',1)
-            s.image(ASSETS/'partners'/file,x,y,iw,ih,bg='white' if file=='martini-racing-products.jpg' else 'black',grade='eq=gamma=1.8' if file=='fab-car-audio.jpg' else None)
+            partner_asset=(ROOT/'source/partner-ad-assets/martini-racing-products-black.png'
+                           if file=='martini-racing-products.jpg' else ASSETS/'partners'/file)
+            s.image(partner_asset,x,y,iw,ih,bg='black',grade='eq=gamma=1.8' if file=='fab-car-audio.jpg' else None)
             s.text(label,y+ih+12,23 if feed else 25,x=f'{x}+({iw}-text_w)/2',bold=True)
         s.text('The specialists we work with.',1170 if feed else 1606,27 if feed else 30,MUTED,bold=False)
     elif name=='cars':

@@ -2,7 +2,7 @@
 
 13 September 2026 campaign revision. The approved website launch artwork opens the videos in separate full-screen Reel and Feed compositions. Performance+ remains the main hook, all ten trusted teams share one screen, and the dyno scene uses the newly supplied **THE RESULT. THE PROOF.** poster. See `OPENING-REVISION.md` and `PARTNER-REVISION.md` for the section previews and source details.
 
-**Delivery status:** final rendering and visual/media verification passed on 13 September. All ten MP4s fully decode and match their expected dimensions and lengths. The original 12 September first cuts are retained in the workspace archive and earlier delivery pack. The revised pack is named **App Promo - 13 September 2026**, under **Desktop → PSI APP → Organized → Branding**, with **PSI-App-Promo-Pack-2026-09-13.zip** alongside the finished files. See `MEDIA-VALIDATION.md` for the checks and full-video hashes.
+**Delivery status:** final rendering and visual/media verification passed on 13 September. All ten MP4s fully decode and match their expected dimensions and lengths. The original 12 September first cuts and earlier 13 September delivery are retained. The latest corrected pack is named **App Promo - Martini Black - 13 September 2026**, under **Desktop → PSI APP → Organized → Branding**, with **PSI-App-Promo-Pack-2026-09-13-Martini-Black.zip** alongside the finished files. See `MEDIA-VALIDATION.md` for the checks and full-video hashes.
 
 ## Social videos
 
