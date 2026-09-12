@@ -84,7 +84,7 @@ PARTNERS=[
  ('race-wires.jpg','Race Wires Auto Electrics'),
  ('elite-autobody.jpg','Elite Autobody'),
  ('kng-tow.jpg','KNG TOW'),
- ('eye-candy.jpg','EyeCandy Motorsports'),
+ ('eye-candy.jpg','EyeCandy Motorsports Melbourne'),
  ('luxe-interiors.jpg','Luxe Automotive Interiors'),
  ('elite-detailing.jpg','Elite Car Detailing Studio'),
  ('trb-visuals.jpg','TRB Visuals Photography'),
@@ -123,27 +123,31 @@ def make(name,h,d):
         s.text('One subscription. Every vehicle in your PSI account.',1100 if feed else 1560,27 if feed else 30,MUTED)
         s.text('Actual app preview · demonstration records',1144 if feed else 1608,22,MUTED,bold=False)
     elif name=='dyno':
+        # Only the final approved AI artwork may be used in the revised edit.
+        # The recovered dyno-card-loop.mp4 is an earlier, superseded revision.
+        dyno=next((ROOT/'source'/file for file in ['original-ai-dyno-loop.mp4','original-ai-dyno.png'] if (ROOT/'source'/file).exists()),None)
+        if dyno is None:
+            raise FileNotFoundError('Restore the final approved AI dyno artwork from Build Meta App Ad before rendering the revised campaign. Do not substitute dyno-card-loop.mp4.')
         s.shell(3,'PERFORMANCE+')
         s.heading('SEE THE RESULTS.','KEEP THE HISTORY.')
         y,ah=(410,626) if feed else (580,924)
-        s.image(ROOT/'source/dyno-card-loop.mp4',240 if feed else 150,y,600 if feed else 780,ah,video=True)
+        s.image(dyno,240 if feed else 150,y,600 if feed else 780,ah,video=dyno.suffix=='.mp4',zoom=dyno.suffix!='.mp4')
         s.text('Dyno PDFs. Comparisons. Your PSI journey.',1080 if feed else 1560,32 if feed else 36)
         s.text('Illustrated dyno example',1130 if feed else 1614,24,MUTED,bold=False)
-    elif name in ['partners-a','partners-b']:
-        s.shell(4 if name.endswith('a') else 5,'TRUSTED PARTNERS')
+    elif name=='partners':
+        s.shell(4,'TRUSTED PARTNERS')
         s.heading('TRUSTED TEAMS.','ONE PLACE.')
-        off=0 if name.endswith('a') else 5
-        top=424 if feed else 594
-        rh=208 if feed else 298
-        positions=[(82,top),(560,top),(82,top+rh),(560,top+rh),(321,top+rh*2)]
-        for (file,label),(x,y) in zip(PARTNERS[off:off+5],positions):
-            iw,ih=(430,148) if feed else (430,220)
+        top=394 if feed else 584
+        rh=150 if feed else 196
+        for i,(file,label) in enumerate(PARTNERS):
+            x,y=82+(i%2)*478,top+(i//2)*rh
+            iw,ih=(430,106) if feed else (430,144)
             s.box(x-2,y-2,iw+4,ih+4,'0x5F8494',1)
             s.image(ASSETS/'partners'/file,x,y,iw,ih,bg='white' if file=='martini-racing-products.jpg' else 'black',grade='eq=gamma=1.8' if file=='fab-car-audio.jpg' else None)
-            s.text(label,y+ih+17,23 if feed else 25,x=f'{x}+({iw}-text_w)/2',bold=True)
-        s.text('The specialists we work with.',1142 if feed else 1586,30,MUTED,bold=False)
+            s.text(label,y+ih+12,23 if feed else 25,x=f'{x}+({iw}-text_w)/2',bold=True)
+        s.text('The specialists we work with.',1170 if feed else 1606,27 if feed else 30,MUTED,bold=False)
     elif name=='cars':
-        s.shell(6,'CUSTOMER CARS FOR SALE')
+        s.shell(5,'CUSTOMER CARS FOR SALE')
         s.heading('YOUR NEXT CHAPTER.','SELL YOUR PSI CAR.')
         y,sz=(405,590) if feed else (570,810)
         s.image(ASSETS/'dashboard/tile-customer-cars-for-sale-blue-silver.jpg',(1080-sz)//2,y,sz,sz,bg='black',zoom=True)
@@ -154,7 +158,7 @@ def make(name,h,d):
         s.text('Ask us to feature it.',1105 if feed else 1514,36,BLUE)
         s.text('Owner permission and PSI approval required.',1154 if feed else 1580,24,MUTED,bold=False)
     elif name=='everyday':
-        s.shell(7,'YOUR EVERYDAY PSI')
+        s.shell(6,'YOUR EVERYDAY PSI')
         s.heading('YOUR GARAGE.','ALWAYS WITH YOU.')
         top=420 if feed else 600
         size=300
@@ -168,7 +172,7 @@ def make(name,h,d):
         s.text('Garage, booking requests and reminders are free.',1020 if feed else 1318,29,MUTED,bold=False)
         s.text('Unlock deeper vehicle history with Performance+.',1080 if feed else 1380,29,BLUE,bold=False)
     elif name=='end':
-        s.shell(8,'DISCOVER PERFORMANCE+')
+        s.shell(7,'DISCOVER PERFORMANCE+')
         s.heading('YOUR CAR.','ITS COMPLETE STORY.')
         size=300 if feed else 470
         y=430 if feed else 650
@@ -180,8 +184,8 @@ def make(name,h,d):
     else: raise ValueError(name)
     return s
 
-MAIN=[('opening',3),('plus',4),('vault',5),('dyno',5),('partners-a',3),('partners-b',3),('cars',5),('everyday',4),('end',4)]
-SHORT=[('opening',2),('plus',3),('dyno',3),('partners-a',1.5),('partners-b',1.5),('cars',2),('end',2)]
+MAIN=[('opening',3),('plus',4),('vault',5),('dyno',5),('partners',6),('cars',5),('everyday',4),('end',4)]
+SHORT=[('opening',2),('plus',3),('dyno',3),('partners',3),('cars',2),('end',2)]
 
 def render_cut(name,h,timeline):
     scenes=[make(n,h,d) for n,d in timeline]
@@ -207,11 +211,14 @@ def website(edition='arrived'):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser()
-    parser.add_argument('--cut',choices=['vertical','feed','short','website','all'],default='all')
+    parser.add_argument('--cut',choices=['vertical','feed','short','partners','website','all'],default='all')
     args=parser.parse_args()
     if args.cut in ['vertical','all']: render_cut('PSI-Performance-App-36s-Reel-9x16',1920,MAIN)
     if args.cut in ['feed','all']: render_cut('PSI-Performance-App-36s-Feed-4x5',1350,MAIN)
     if args.cut in ['short','all']: render_cut('PSI-Performance-App-15s-Reel-9x16',1920,SHORT)
+    if args.cut=='partners':
+        render_cut('PSI-Trusted-Teams-One-Page-9x16',1920,[('partners',6)])
+        render_cut('PSI-Trusted-Teams-One-Page-4x5',1350,[('partners',6)])
     if args.cut in ['website','all']:
         website()
         if (ROOT/'website/psi-app-preview-hero.png').exists(): website('preview')

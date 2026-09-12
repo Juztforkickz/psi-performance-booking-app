@@ -15,18 +15,18 @@ Verified public preview paths in repo:
 - Trusted Partners: https://juztforkickz.github.io/psi-performance-booking-app/trusted-partners
 - Customer Cars for Sale: https://juztforkickz.github.io/psi-performance-booking-app/customer-cars-for-sale
 
-## Main social reel — 35 seconds
+## Main social reel — 36 seconds
 
 | Time | Visual | Main on-screen copy | Supporting copy |
 | --- | --- | --- | --- |
-| 0–3 | Existing PSI app/phone opener, restrained motion and silver light sweep | YOUR CAR HAS A STORY. | KEEP IT TOGETHER. |
-| 3–7 | Updated Home and Garage, a smooth phone-screen transition | MEET THE PSI APP. | Bookings. Your garage. Your next build. |
-| 7–11 | Performance+ tile grows into premium vault overview | PERFORMANCE+ | THE GAME CHANGER. |
-| 11–16 | Vault cards reveal in a clear rhythm | YOUR PRIVATE VEHICLE VAULT. | Invoices. Workshop photos. Service history. |
-| 16–21 | Preserve the digital animated dyno artwork; move to dyno-history screen | SEE THE RESULTS. | KEEP THE HISTORY. |
-| 21–26 | Two clean panels of five genuine partner logos | TRUSTED TEAMS. ONE PLACE. | The specialists we work with. |
-| 26–30 | Customer Cars for Sale tile and listing-request action | SELLING YOUR PSI-WORKED CAR? | Ask PSI to feature it. |
-| 30–35 | Return to app icon/phone and Performance+ symbol; held readable end card | YOUR CAR. ITS COMPLETE STORY. | Explore PSI. Discover Performance+. |
+| 0–3 | Familiar garage opening with updated app artwork | YOUR GARAGE. ALWAYS WITH YOU. | MEET THE PSI APP. |
+| 3–7 | Performance+ tile | PERFORMANCE+ | THE GAME CHANGER. |
+| 7–12 | Vehicle vault and demonstration app records | YOUR PRIVATE VEHICLE VAULT. | PSI invoices. Workshop photos. Dyno reports. Service history. Build milestones. |
+| 12–17 | Final approved AI digital dyno artwork, pending original source recovery | SEE THE RESULTS. | KEEP THE HISTORY. |
+| 17–23 | All ten genuine partner logos together on one screen | TRUSTED TEAMS. ONE PLACE. | The specialists we work with. |
+| 23–28 | Customer Cars for Sale tile | YOUR NEXT CHAPTER. SELL YOUR PSI CAR. | Ask us to feature it. |
+| 28–32 | Garage, Bookings and Plan & Build tiles | YOUR GARAGE. ALWAYS WITH YOU. | Less searching. More enjoying your car. |
+| 32–36 | App icon and held end card | YOUR CAR. ITS COMPLETE STORY. | EXPLORE THE PSI APP. |
 
 Launch end card: **IT'S ARRIVED.** / **Download PSI Performance** with verified store buttons/landing-page URL. Pre-release end card: **EXPLORE THE PSI APP.** / **Preview available now.** Small readable footer: **Performance+ is an optional paid subscription.** Avoid displaying subscription price until store availability/pricing is checked.
 
@@ -38,11 +38,12 @@ Optional voiceover, approximately 72 words:
 
 | Time | Visual | Copy |
 | --- | --- | --- |
-| 0–3 | Existing app opener | YOUR CAR HAS A STORY. |
-| 3–7 | Performance+ vault and animated dyno | PERFORMANCE+ / THE GAME CHANGER. |
-| 7–10 | Workshop gallery and invoice/document cards | YOUR PSI HISTORY. ONE PRIVATE VAULT. |
-| 10–12 | Partners and cars-for-sale tile | TRUSTED TEAMS. CUSTOMER CARS FOR SALE. |
-| 12–15 | App/Performance+ end card | DISCOVER PSI PERFORMANCE. |
+| 0–2 | Familiar app opener | MEET THE PSI APP. |
+| 2–5 | Performance+ tile | PERFORMANCE+ / THE GAME CHANGER. |
+| 5–8 | Final approved AI dyno artwork, pending original source recovery | SEE THE RESULTS. KEEP THE HISTORY. |
+| 8–11 | All ten trusted teams together on one screen | TRUSTED TEAMS. ONE PLACE. |
+| 11–13 | Customer Cars for Sale tile | YOUR NEXT CHAPTER. SELL YOUR PSI CAR. |
+| 13–15 | App/Performance+ end card | YOUR CAR. ITS COMPLETE STORY. |
 
 Launch or preview CTA follows the same release rule above. Keep the optional paid-subscription footer on the end card.
 

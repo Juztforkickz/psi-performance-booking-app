@@ -1,6 +1,8 @@
 # PSI app — refreshed promotional pack
 
-Prepared 12 September 2026. Black, silver and ice blue, with the familiar PSI garage opening and original animated digital dyno illustration.
+Prepared 12 September 2026. Black, silver and ice blue, with the familiar PSI garage opening.
+
+**Revision in progress:** all ten trusted teams now share one screen. The two `PSI-Trusted-Teams-One-Page` videos preview that corrected section. The full 36-second and 15-second files and existing ZIP remain the preserved first cuts: their dyno scene uses an earlier artwork revision. The final approved AI-generated dyno image or final old video from **Build Meta App Ad** must be restored before exporting the corrected full campaign. See `PARTNER-REVISION.md`.
 
 ## Social videos
 
@@ -12,7 +14,7 @@ Prepared 12 September 2026. Black, silver and ice blue, with the familiar PSI ga
 
 All three use H.264 MP4 at 30fps, with readable text built into the video. They are silent, matching the earlier app-only edit. Add a licensed music track inside Facebook/Instagram if wanted. `social/Captions.txt` has ready-to-copy caption options. The JPEG covers can also be used as static posts.
 
-The full video includes Performance+, the private vehicle vault, dyno history, all ten trusted teams, Customer Cars for Sale, and everyday Garage / Bookings / Plan & Build. The 15-second cut is deliberately shorter and focuses on the hook.
+The full video includes Performance+, the private vehicle vault, dyno history, all ten trusted teams, Customer Cars for Sale, and everyday Garage / Bookings / Plan & Build. The revised timeline retains 36 seconds and 15 seconds respectively, with one partner screen held for six seconds in the main edit and three seconds in the short edit.
 
 ## Website artwork and video
 
