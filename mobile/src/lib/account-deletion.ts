@@ -8,6 +8,7 @@ export async function loadOwnAccountDeletionRequest(userId: string) {
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;
+  if (data && data.user_id !== userId) throw new Error('ACCOUNT_DELETION_IDENTITY_MISMATCH');
   return data;
 }
 
@@ -18,6 +19,7 @@ export async function requestOwnAccountDeletion(userId: string): Promise<Account
     .select('*')
     .single();
   if (error) throw error;
+  if (data.user_id !== userId) throw new Error('ACCOUNT_DELETION_IDENTITY_MISMATCH');
   return data;
 }
 
@@ -30,7 +32,10 @@ export async function cancelOwnAccountDeletionRequest(userId: string) {
     .select('user_id')
     .maybeSingle();
   if (error) throw error;
-  if (data) return;
+  if (data) {
+    if (data.user_id !== userId) throw new Error('ACCOUNT_DELETION_IDENTITY_MISMATCH');
+    return;
+  }
 
   // Treat an already-absent request as cancelled. This clears stale UI without
   // ever deleting a request that belongs to a different account.

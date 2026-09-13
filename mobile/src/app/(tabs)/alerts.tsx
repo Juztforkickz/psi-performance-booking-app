@@ -22,7 +22,7 @@ import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import type { NotificationEventRow } from '@/lib/database.types';
-import { sendTestPushNotifications, useNotifications } from '@/lib/notifications';
+import { useNotifications } from '@/lib/notifications';
 import { profileAlertLabel } from '@/lib/profile-alert-label';
 import { ThemePreference, useThemePreference } from '@/lib/theme-preference';
 
@@ -292,7 +292,7 @@ export default function AlertsScreen() {
           ) : null}
           {privateMode && signedIn ? (
             <PreferenceRow
-              copy="Play a sound with device notifications."
+              copy="Play a sound with alerts. Silent mode and your phone’s sound settings still apply."
               enabled={notifications.preferences?.sound_enabled ?? true}
               icon="volume-high-outline"
               label="Notification sound"
@@ -309,7 +309,7 @@ export default function AlertsScreen() {
             <View style={styles.howItWorksCopy}>
               <Text style={styles.howItWorksTitle}>Device alerts</Text>
               <Text style={styles.bodyCopy}>{notifications.pushStatus === 'ready'
-                ? 'Banners, sound and app-icon badges are enabled on this device.'
+                ? 'Device notifications are enabled. Your phone controls banners, sounds and badges.'
                 : 'Enable alerts for banners, sound and badges. Updates still appear in the app.'}</Text>
             </View>
             {notificationFeedback ? <Text accessibilityRole="alert" style={styles.notificationFeedback}>{notificationFeedback}</Text> : null}
@@ -330,22 +330,6 @@ export default function AlertsScreen() {
                 ? 'Updating device notifications'
                 : notifications.pushStatus === 'ready' ? 'Disable device notifications' : 'Enable device notifications'}</Text>
             </Pressable>
-            {staffMode && notifications.pushStatus === 'ready' ? <Pressable accessibilityHint="Sends one PSI test alert and one personal test alert to this device" accessibilityRole="button" accessibilityState={{ busy: notificationSaving, disabled: notificationSaving }} disabled={notificationSaving} onPress={() => {
-              setNotificationFeedback('');
-              setNotificationSaving(true);
-              void sendTestPushNotifications()
-                .then(async (result) => {
-                  await notifications.refresh();
-                  setNotificationFeedback(result.sent === 2
-                    ? 'Two test alerts sent. Check the PSI and Matt badges, banners and sound.'
-                    : 'The test alerts were saved, but push delivery needs attention.');
-                })
-                .catch(() => setNotificationFeedback('Open the protected workshop portal, complete MFA, then try the notification test again.'))
-                .finally(() => setNotificationSaving(false));
-            }} style={({ pressed }) => [styles.openBookings, styles.testNotifications, pressed && !notificationSaving && styles.pressed]}>
-              <Ionicons color={colors.ink} name="notifications-outline" size={19} />
-              <Text style={styles.testNotificationsText}>{notificationSaving ? 'Sending test alerts' : 'Test PSI & Matt alerts'}</Text>
-            </Pressable> : null}
           </View>
         ) : null}
 
@@ -544,8 +528,6 @@ const styles = StyleSheet.create({
   howItWorksTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
   openBookings: { ...mobileFrame, minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.ink, padding: spacing.md },
   openBookingsText: { color: colors.white, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  testNotifications: { backgroundColor: colors.accent },
-  testNotificationsText: { color: colors.ink, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   notificationFeedback: { color: colors.silver, fontSize: 10, fontWeight: '700', lineHeight: 16 },
   pressed: { opacity: .72 },
 });

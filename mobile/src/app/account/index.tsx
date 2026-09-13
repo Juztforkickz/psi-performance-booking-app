@@ -1,6 +1,6 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -56,10 +56,6 @@ export default function AccountScreen() {
   const [codeSent, setCodeSent] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [deletionBusy, setDeletionBusy] = useState(false);
-  const [deletionConfirmVisible, setDeletionConfirmVisible] = useState(false);
-  const [deletionError, setDeletionError] = useState('');
-  const [deletionRequest, setDeletionRequest] = useState<AccountDeletionRequestRow | null>(null);
   const [profilePhotoState, setProfilePhotoState] = useState<{ objectPath: string; uri: string; userId: string } | null>(null);
   const [profilePhotoBusy, setProfilePhotoBusy] = useState(false);
   const [profilePhotoNotice, setProfilePhotoNotice] = useState('');
@@ -98,27 +94,6 @@ export default function AccountScreen() {
     }, 1000);
     return () => clearInterval(timer);
   }, [resendSeconds]);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (auth.status !== 'signed_in' || !authenticatedUserId) {
-      return () => { cancelled = true; };
-    }
-    const resetTimer = setTimeout(() => {
-      if (!cancelled) {
-        setDeletionRequest(null);
-        setDeletionError('');
-      }
-    }, 0);
-    void loadOwnAccountDeletionRequest(authenticatedUserId)
-      .then((request) => {
-        if (!cancelled) setDeletionRequest(request);
-      })
-      .catch(() => {
-        if (!cancelled) setDeletionError('Account-deletion status could not be loaded. Your account has not been changed.');
-      });
-    return () => { cancelled = true; clearTimeout(resetTimer); };
-  }, [auth.status, authenticatedUserId]);
 
   useEffect(() => {
     let active = true;
@@ -208,35 +183,6 @@ export default function AccountScreen() {
       setNotice('The local sign-out could not be completed. Close the app and try again.');
     } finally {
       setBusy(false);
-    }
-  };
-
-  const submitDeletionRequest = async () => {
-    if (!auth.user || deletionBusy) return;
-    setDeletionBusy(true);
-    setDeletionError('');
-    try {
-      const request = await requestOwnAccountDeletion(auth.user.id);
-      setDeletionRequest(request);
-      setDeletionConfirmVisible(false);
-    } catch {
-      setDeletionError('The deletion request could not be recorded. Nothing was deleted. Please try again or contact PSI support.');
-    } finally {
-      setDeletionBusy(false);
-    }
-  };
-
-  const cancelDeletionRequest = async () => {
-    if (!auth.user || deletionBusy || deletionRequest?.status !== 'requested') return;
-    setDeletionBusy(true);
-    setDeletionError('');
-    try {
-      await cancelOwnAccountDeletionRequest(auth.user.id);
-      setDeletionRequest(null);
-    } catch {
-      setDeletionError('The pending request could not be cancelled. Please contact PSI support before the review is completed.');
-    } finally {
-      setDeletionBusy(false);
     }
   };
 
@@ -483,32 +429,8 @@ export default function AccountScreen() {
           />
         </View>}
 
-        {CUSTOMER_AUTH.enabled && auth.status === 'signed_in' ? (
-          <View accessibilityLabel="Account deletion controls" style={[styles.deletionCard, compact && styles.cardCompact]}>
-            <Text style={styles.deletionKicker}>Privacy & account control</Text>
-            <Text style={styles.deletionTitle}>Delete your PSI account</Text>
-            {deletionRequest ? (
-              <>
-                <Text style={styles.deletionStatus}>{deletionRequest.status === 'requested' ? 'REQUEST RECEIVED' : deletionRequest.status === 'in_review' ? 'DELETION IN REVIEW' : 'DELETION COMPLETED'}</Text>
-                <Text style={styles.deletionCopy}>
-                  Requested {formatAccountDate(deletionRequest.requested_at)}. PSI will normally complete verified deletion requests within 30 days. Customer profile data, login access and customer-uploaded files will be removed; records PSI must lawfully retain for workshop, accounting, dispute or safety purposes will be limited and protected or de-identified where appropriate.
-                </Text>
-                {deletionRequest.status === 'requested' ? <PrimaryButton label="Cancel pending deletion request" loading={deletionBusy} onPress={() => void cancelDeletionRequest()} variant="outline" /> : null}
-              </>
-            ) : deletionConfirmVisible ? (
-              <View style={styles.deletionConfirm}>
-                <Text style={styles.deletionWarning}>This requests deletion of your entire customer account—not merely this device’s session. PSI will verify and process it within 30 days. You can cancel while the request is still pending.</Text>
-                <PrimaryButton label="Confirm account deletion request" loading={deletionBusy} onPress={() => void submitDeletionRequest()} />
-                <PrimaryButton label="Keep my account" disabled={deletionBusy} onPress={() => setDeletionConfirmVisible(false)} variant="outline" />
-              </View>
-            ) : (
-              <>
-                <Text style={styles.deletionCopy}>Initiate deletion inside the app. PSI will confirm the request and remove account data that is not legally required to be retained. This does not affect Australian Consumer Law rights or valid workshop records that PSI must keep.</Text>
-                <PrimaryButton label="Request account deletion" onPress={() => setDeletionConfirmVisible(true)} variant="outline" />
-              </>
-            )}
-            {deletionError ? <Text accessibilityRole="alert" style={styles.errorText}>{deletionError}</Text> : null}
-          </View>
+        {CUSTOMER_AUTH.enabled && auth.status === 'signed_in' && authenticatedUserId ? (
+          <AccountDeletionControls key={authenticatedUserId} compact={compact} sessionRevision={auth.sessionRevision} userId={authenticatedUserId} />
         ) : null}
 
         <View style={styles.legalLinks}>
@@ -523,6 +445,140 @@ export default function AccountScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+// Keyed by the authenticated identity so another account can never inherit this
+// component's pending request, confirmation, or in-flight mutation result.
+export function AccountDeletionControls({ compact, sessionRevision, userId }: { compact: boolean; sessionRevision: number; userId: string }) {
+  const [request, setRequest] = useState<AccountDeletionRequestRow | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const readRevision = useRef(0);
+  const mutationActive = useRef(false);
+  const checkedSessionRevision = useRef(sessionRevision);
+
+  const refreshStatus = useCallback(async () => {
+    if (mutationActive.current) return;
+    const revision = ++readRevision.current;
+    try {
+      const current = await loadOwnAccountDeletionRequest(userId);
+      if (readRevision.current !== revision) return;
+      setRequest(current);
+      setLoaded(true);
+      setError('');
+      setNotice('');
+    } catch {
+      if (readRevision.current !== revision) return;
+      setRequest(null);
+      setLoaded(false);
+      setNotice('');
+      setError('Account-deletion status could not be checked. Retry or sign in again. Your account has not been changed.');
+    }
+  }, [userId]);
+
+  useFocusEffect(useCallback(() => {
+    void refreshStatus();
+    return () => { readRevision.current += 1; };
+  }, [refreshStatus]));
+
+  useEffect(() => {
+    if (checkedSessionRevision.current === sessionRevision) return;
+    checkedSessionRevision.current = sessionRevision;
+    void refreshStatus();
+  }, [refreshStatus, sessionRevision]);
+
+  const submitRequest = async () => {
+    if (mutationActive.current || !loaded || request || !confirmVisible) return;
+    mutationActive.current = true;
+    readRevision.current += 1;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      setRequest(await requestOwnAccountDeletion(userId));
+      setConfirmVisible(false);
+    } catch {
+      setError('The deletion request could not be recorded. Nothing was deleted. Please try again or contact PSI support.');
+    } finally {
+      mutationActive.current = false;
+      setBusy(false);
+    }
+  };
+
+  const cancelRequest = async () => {
+    if (mutationActive.current || request?.status !== 'requested') return;
+    mutationActive.current = true;
+    readRevision.current += 1;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      await cancelOwnAccountDeletionRequest(userId);
+      setRequest(null);
+      setConfirmVisible(false);
+      setNotice('No account-deletion request is pending. Your account and files are being kept.');
+    } catch {
+      // A failed response can follow a successful cancellation, or PSI may have
+      // started review. Reconcile the current row before claiming either result.
+      try {
+        const current = await loadOwnAccountDeletionRequest(userId);
+        setRequest(current);
+        if (!current) {
+          setConfirmVisible(false);
+          setNotice('No account-deletion request is pending. Your account and files are being kept.');
+        } else {
+          setError(current.status === 'requested'
+            ? 'The request is still pending. Please retry or contact PSI to cancel it.'
+            : 'The request status has changed. Contact PSI to review it before any further action.');
+        }
+      } catch {
+        setRequest(null);
+        setLoaded(false);
+        setError('Cancellation could not be verified. Retry the status check or sign in again; do not assume it has been cancelled.');
+      }
+    } finally {
+      mutationActive.current = false;
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View accessibilityLabel="Account deletion controls" style={[styles.deletionCard, compact && styles.cardCompact]}>
+      <Text style={styles.deletionKicker}>Privacy & account control</Text>
+      <Text style={styles.deletionTitle}>Delete your PSI account</Text>
+      {!loaded ? (
+        <>
+          {!error ? <Text style={styles.deletionCopy}>Checking your account status…</Text> : null}
+          {error ? <PrimaryButton label="Retry status check" onPress={() => void refreshStatus()} variant="outline" /> : null}
+        </>
+      ) : request ? (
+        <>
+          <Text style={styles.deletionStatus}>{request.status === 'requested' ? 'REQUEST RECEIVED' : request.status === 'in_review' ? 'DELETION IN REVIEW' : 'DELETION COMPLETED'}</Text>
+          <Text style={styles.deletionCopy}>
+            Requested {formatAccountDate(request.requested_at)}. PSI will normally complete verified deletion requests within 30 days. Customer profile data, login access and customer-uploaded files will be removed; records PSI must lawfully retain for workshop, accounting, dispute or safety purposes will be limited and protected or de-identified where appropriate.
+          </Text>
+          {request.status === 'requested' ? <PrimaryButton label="Cancel pending deletion request" loading={busy} onPress={() => void cancelRequest()} variant="outline" /> : null}
+        </>
+      ) : confirmVisible ? (
+        <View style={styles.deletionConfirm}>
+          <Text style={styles.deletionWarning}>This requests deletion of your entire customer account—not merely this device’s session. PSI will verify and process it within 30 days. You can cancel while the request is still pending.</Text>
+          <PrimaryButton label="Confirm account deletion request" loading={busy} onPress={() => void submitRequest()} />
+          <PrimaryButton label="Keep my account" disabled={busy} onPress={() => setConfirmVisible(false)} variant="outline" />
+        </View>
+      ) : (
+        <>
+          <Text style={styles.deletionCopy}>No account-deletion request is pending.</Text>
+          <Text style={styles.deletionCopy}>Initiate deletion inside the app. PSI will confirm the request and remove account data that is not legally required to be retained. This does not affect Australian Consumer Law rights or valid workshop records that PSI must keep.</Text>
+          <PrimaryButton label="Request account deletion" onPress={() => { setNotice(''); setConfirmVisible(true); }} variant="outline" />
+        </>
+      )}
+      {notice ? <Text accessibilityRole="alert" style={styles.deletionCopy}>{notice}</Text> : null}
+      {error ? <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text> : null}
+    </View>
   );
 }
 
