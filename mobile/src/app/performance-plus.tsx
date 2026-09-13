@@ -14,12 +14,12 @@ import { aud, loadVaultOverview, PERFORMANCE_PRICING, VAULT_KINDS, VAULT_LABELS,
 import { purchasePerformancePlus, restorePerformancePlus, subscriptionManagementUrl, subscriptionPurchasesAvailable, subscriptionStorefrontName, verifyWithServer } from '@/lib/performance-purchases';
 
 const VAULT_DESCRIPTIONS = {
-  invoice: 'Itemised PSI invoices and supporting paperwork.',
-  media: 'Before, progress and after workshop galleries.',
-  dyno: 'Mainline PDFs, figures and before/after results.',
-  service: 'Complete PSI service and repair records.',
-  document: 'Reports and private vehicle documentation.',
-  modification: 'A lasting record of each build milestone.',
+  invoice: 'Your in-app invoice and receipt PDF archive. Xero invoices are still emailed to every customer.',
+  media: 'Before, progress and after workshop galleries with full-screen viewing and downloads.',
+  dyno: 'Mainline PDFs, graph images and historical comparisons.',
+  service: 'Detailed PSI service files organised around each workshop visit.',
+  document: 'Supporting reports, paperwork and private vehicle documents.',
+  modification: 'A lasting file archive for each build milestone.',
 } as const;
 
 const VAULT_ICONS = {
@@ -104,7 +104,7 @@ export default function PerformancePlusScreen() {
         <View style={s.planHeading}><Ionicons name={activePlus ? 'shield-checkmark' : 'car-sport-outline'} color={colors.accent} size={22} /><View style={s.planHeadingCopy}><Text style={s.planLabel}>CURRENT PLAN</Text><Text style={s.planName}>{activePlus ? 'PSI Performance+' : 'PSI Free'}</Text></View></View>
         <View style={[s.badge, activePlus && s.activeBadge]}><Text style={[s.badgeText, activePlus && s.activeBadgeText]}>{activePlus ? 'ACTIVE' : 'FREE'}</Text></View>
       </View>
-      <Text style={s.copy}>{activePlus ? 'Your complete private PSI vehicle record is unlocked.' : 'Your everyday PSI account remains free. Upgrade whenever you want the complete digital history.'}</Text>
+      <Text style={s.copy}>{activePlus ? 'Your complete private PSI vehicle file is unlocked.' : 'Your everyday PSI account remains free. Upgrade whenever you want the complete file, photo, invoice and dyno archive.'}</Text>
     </View>
     {permanentPlus ? <Text style={s.muted}>Permanent complimentary PSI owner access · A$0 · no renewal or expiry.</Text> : null}
     {activePlus && overview?.expires_at ? <Text style={s.muted}>Access through {new Date(overview.expires_at).toLocaleDateString('en-AU')}. Turning off renewal retains access until expiry.</Text> : null}
@@ -113,8 +113,8 @@ export default function PerformancePlusScreen() {
     {demo ? <Text style={s.muted}>Demo records · explore a sample vault without making a purchase.</Text> : null}
     {!demo && !overview && vehicle && !message ? <ActivityIndicator color={colors.accent} /> : null}
     {entitlementReady ? <View style={s.accessGuide}>
-      <View style={s.accessGuideRow}><View style={s.freeAccessBadge}><Text style={s.freeAccessBadgeText}>PSI FREE</Text></View><Text style={s.accessGuideCopy}>Bookings, reminders, notifications, garage, kilometres and current results.</Text></View>
-      <View style={s.accessGuideRow}><View style={s.plusAccessBadge}><Text style={s.plusAccessBadgeText}>PERFORMANCE+</Text></View><Text style={s.accessGuideCopy}>The complete PSI archive below. Locked records and files stay inaccessible on Free.</Text></View>
+      <View style={s.accessGuideRow}><View style={s.freeAccessBadge}><Text style={s.freeAccessBadgeText}>PSI FREE</Text></View><Text style={s.accessGuideCopy}>Profile, garage, vehicle photo, bookings, reminders, notifications, service dates, work summaries and recommendations.</Text></View>
+      <View style={s.accessGuideRow}><View style={s.plusAccessBadge}><Text style={s.plusAccessBadgeText}>PERFORMANCE+</Text></View><Text style={s.accessGuideCopy}>Workshop photos, invoice copies, dyno files, supporting documents, downloads and the complete organised archive.</Text></View>
     </View> : null}
     <View onLayout={event => setVaultGridWidth(event.nativeEvent.layout.width)} style={s.grid}>{VAULT_KINDS.map(kind => <Pressable accessibilityRole="button" key={kind} onPress={() => { if (demo || activePlus) router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle?.id ?? '', kind } }); else setMessage('Choose Performance+ below to unlock your private vehicle archive. Your free PSI features remain available.'); }} style={({ pressed }) => [s.vault, singleColumn && s.vaultFullWidth, pressed && s.pressed]}>
       <View style={s.row}><View style={s.vaultIcon}><Ionicons name={VAULT_ICONS[kind]} color={colors.accent} size={24} /></View>{activePlus || demo ? <Ionicons name="arrow-forward" color={colors.accent} size={18} /> : <View style={s.lockBadge}><Ionicons name="lock-closed" color={colors.accent} size={12} /><Text style={s.lockBadgeText}>PLUS ONLY</Text></View>}</View>
@@ -136,7 +136,7 @@ export default function PerformancePlusScreen() {
     {entitlementReady && !permanentPlus && storefront && managementUrl ? <PrimaryButton label={`Manage ${storefront} subscription`} variant="outline" onPress={() => void Linking.openURL(managementUrl).catch(() => setMessage(`Open ${storefront} on your device and choose Subscriptions.`))} /> : null}
     <PrimaryButton disabled={busy} label={permanentPlus ? 'Refresh access status' : 'Refresh subscription status'} onPress={() => void refresh()} variant="outline" />
     {message ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
-    <View style={s.free}><Text style={s.section}>Always part of PSI Free</Text><Text style={s.copy}>Your account and garage, vehicle photos, bookings, kilometre recording, maintenance reminders, current dyno results, notifications and contacting PSI.</Text></View>
+    <View style={s.free}><Text style={s.section}>Always part of PSI Free</Text><Text style={s.copy}>Your profile and garage, profile and vehicle photos, enquiries, every booking option, kilometre recording, service dates and summaries, PSI recommendations, maintenance reminders, notifications and contacting PSI. Xero invoices are still emailed normally.</Text></View>
     <View style={[s.row, s.legalLinks]}><Pressable accessibilityRole="link" onPress={() => router.push('/privacy')}><Text style={s.link}>Privacy</Text></Pressable><Pressable accessibilityRole="link" onPress={() => router.push('/subscription-terms')}><Text style={s.link}>Subscription terms</Text></Pressable></View>
   </ScrollView></SafeAreaView>;
 }

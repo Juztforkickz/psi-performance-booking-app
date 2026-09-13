@@ -4,7 +4,7 @@ import { getSupabaseClient } from '@/lib/supabase';
 export const PERFORMANCE_PRICING = Object.freeze({ monthly: 999, annual: 9900, currency: 'AUD' });
 export const VAULT_KINDS = ['invoice', 'media', 'dyno', 'service', 'document', 'modification'] as const;
 export type VaultKind = typeof VAULT_KINDS[number];
-export const VAULT_LABELS: Record<VaultKind, string> = { invoice: 'Invoice Vault', media: 'Media Vault', dyno: 'Dyno Vault', service: 'Service history', document: 'Documents', modification: 'Build history' };
+export const VAULT_LABELS: Record<VaultKind, string> = { invoice: 'Invoice Vault', media: 'Workshop Photos', dyno: 'Dyno File Vault', service: 'Detailed Service Archive', document: 'Documents', modification: 'Build History' };
 export type VaultRecord = {
   id: string; customer_id: string; vehicle_id: string; job_id: string; kind: VaultKind;
   title: string; notes: string; occurred_on: string; power_kw: number | null; torque_nm: number | null;

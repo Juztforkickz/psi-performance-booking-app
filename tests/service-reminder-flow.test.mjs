@@ -66,7 +66,7 @@ test('customer screens state the Free and Performance+ boundary and reminder aut
   assert.match(plus, /PSI FREE/u);
   assert.match(plus, /PERFORMANCE\+/u);
   assert.match(plus, /premium PSI records · locked/u);
-  assert.match(vault, /Performance\+ archive locked/u);
+  assert.match(vault, /Performance\+ files locked/u);
   assert.match(booking, /Calculated from the actual completed-service date/u);
   assert.match(booking, /contact you one month before each/u);
   assert.match(notifications, /url === '\/booking'/u);

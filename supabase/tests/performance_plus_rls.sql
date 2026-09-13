@@ -15,6 +15,14 @@ values('a4600000-0000-4000-8000-000000000001','a4100000-0000-4000-8000-000000000
 insert into public.vehicle_files(id,customer_id,vehicle_id,invoice_id,file_kind,record_source,bucket_id,object_path,mime_type,file_size_bytes,created_by)
 values('a4700000-0000-4000-8000-000000000001','a4100000-0000-4000-8000-000000000001','a4200000-0000-4000-8000-000000000001','a4600000-0000-4000-8000-000000000001','invoice','psi_record','vehicle-documents','a4100000-0000-4000-8000-000000000001/vehicles/a4200000-0000-4000-8000-000000000001/invoices/test.pdf','application/pdf',10,'a4100000-0000-4000-8000-000000000001');
 insert into storage.objects(bucket_id,name) values('vehicle-documents','a4100000-0000-4000-8000-000000000001/vehicles/a4200000-0000-4000-8000-000000000001/invoices/test.pdf');
+insert into public.dyno_records(id,customer_id,vehicle_id,tested_at,power_kw_at_hubs,torque_nm_at_hubs,record_source,created_by)
+values('a4800000-0000-4000-8000-000000000001','a4100000-0000-4000-8000-000000000001','a4200000-0000-4000-8000-000000000001',now(),300,650,'customer_entry','a4100000-0000-4000-8000-000000000001');
+insert into public.vehicle_files(id,customer_id,vehicle_id,dyno_record_id,file_kind,record_source,bucket_id,object_path,mime_type,file_size_bytes,created_by)
+values('a4900000-0000-4000-8000-000000000001','a4100000-0000-4000-8000-000000000001','a4200000-0000-4000-8000-000000000001','a4800000-0000-4000-8000-000000000001','dyno_graph','customer_entry','vehicle-documents','a4100000-0000-4000-8000-000000000001/vehicles/a4200000-0000-4000-8000-000000000001/dyno/test.png','image/png',10,'a4100000-0000-4000-8000-000000000001'),
+('a4900000-0000-4000-8000-000000000002','a4100000-0000-4000-8000-000000000001','a4200000-0000-4000-8000-000000000001',null,'vehicle_photo','customer_entry','vehicle-photos','a4100000-0000-4000-8000-000000000001/vehicles/a4200000-0000-4000-8000-000000000001/photos/profile.png','image/png',10,'a4100000-0000-4000-8000-000000000001');
+insert into storage.objects(bucket_id,name) values
+('vehicle-documents','a4100000-0000-4000-8000-000000000001/vehicles/a4200000-0000-4000-8000-000000000001/dyno/test.png'),
+('vehicle-photos','a4100000-0000-4000-8000-000000000001/vehicles/a4200000-0000-4000-8000-000000000001/photos/profile.png');
 do $$ begin
  if exists(select 1 from storage.buckets where id='performance-vault' and public) then raise exception 'public vault bucket'; end if;
  if has_table_privilege('anon','public.vault_records','select') then raise exception 'anon table grant'; end if;
@@ -30,7 +38,20 @@ do $$ declare overview jsonb; begin
  overview:=public.performance_vault_overview('a4200000-0000-4000-8000-000000000001');
  if overview->>'plan'<>'free' or overview->'counts'->>'invoice'<>'2' then raise exception 'free counts incorrect'; end if;
  if exists(select 1 from public.invoices where id='a4600000-0000-4000-8000-000000000001') or exists(select 1 from public.vehicle_files where id='a4700000-0000-4000-8000-000000000001') then raise exception 'free legacy invoice exposed'; end if;
+ if not exists(select 1 from public.dyno_records where id='a4800000-0000-4000-8000-000000000001') then raise exception 'free dyno information missing'; end if;
+ if exists(select 1 from public.vehicle_files where id='a4900000-0000-4000-8000-000000000001') then raise exception 'free dyno file exposed'; end if;
+ if not exists(select 1 from public.vehicle_files where id='a4900000-0000-4000-8000-000000000002') then raise exception 'free vehicle profile photo missing'; end if;
+ if exists(select 1 from storage.objects where bucket_id='vehicle-documents' and name like '%/dyno/test.png') then raise exception 'free dyno object exposed'; end if;
+ if not exists(select 1 from storage.objects where bucket_id='vehicle-photos' and name like '%/photos/profile.png') then raise exception 'free vehicle photo object missing'; end if;
  if overview::text like '%Private invoice%' or overview::text like '%original.pdf%' then raise exception 'premium metadata leaked'; end if;
+ begin
+ insert into public.vehicle_files(customer_id,vehicle_id,file_kind,record_source,bucket_id,object_path,mime_type,file_size_bytes,created_by)
+ values('a4100000-0000-4000-8000-000000000001','a4200000-0000-4000-8000-000000000001','repair_document','customer_entry','vehicle-documents','a4100000-0000-4000-8000-000000000001/vehicles/a4200000-0000-4000-8000-000000000001/documents/free-forgery.pdf','application/pdf',10,'a4100000-0000-4000-8000-000000000001');
+ raise exception 'free document metadata upload accepted'; exception when insufficient_privilege then null; end;
+ begin
+ insert into storage.objects(bucket_id,name)
+ values('vehicle-documents','a4100000-0000-4000-8000-000000000001/vehicles/a4200000-0000-4000-8000-000000000001/documents/free-forgery.pdf');
+ raise exception 'free document object upload accepted'; exception when insufficient_privilege then null; end;
  begin
  insert into public.performance_subscriptions(customer_id,provider,provider_reference,environment,status,expires_at)
  values('a4100000-0000-4000-8000-000000000001','complimentary','forged','production','active',now()+interval '1 year');
@@ -52,6 +73,8 @@ do $$ begin
  if exists(select 1 from storage.objects where bucket_id='performance-vault') then raise exception 'customer can mint arbitrary storage links'; end if;
  if (select count(*) from public.invoices where id='a4600000-0000-4000-8000-000000000001')<>1 then raise exception 'paid legacy invoice missing'; end if;
  if (select count(*) from public.vehicle_files where id='a4700000-0000-4000-8000-000000000001')<>1 then raise exception 'paid legacy file missing'; end if;
+ if (select count(*) from public.vehicle_files where id='a4900000-0000-4000-8000-000000000001')<>1 then raise exception 'paid dyno file missing'; end if;
+ if (select count(*) from storage.objects where bucket_id='vehicle-documents' and name like '%/dyno/test.png')<>1 then raise exception 'paid dyno object missing'; end if;
  if exists(select 1 from storage.objects where name like '%/invoices/test.pdf') then raise exception 'legacy invoice arbitrary URL allowed'; end if;
  update public.vault_records set title='Forged by customer' where id='a4400000-0000-4000-8000-000000000001';
  if found then raise exception 'customer modified workshop record'; end if;

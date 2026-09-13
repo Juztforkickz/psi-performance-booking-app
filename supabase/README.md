@@ -36,8 +36,10 @@ closed again.
   Auth-enabled QA build. The object path begins with the authenticated customer
   UUID, matching metadata is RLS-scoped, and the app displays a short-lived
   signed URL rather than a public object URL.
-- PSI invoice and dyno images remain in the private `vehicle-documents` bucket
-  and are published only from the AAL2 staff workspace.
+- PSI invoice copies, dyno files, workshop images and supporting documents remain
+  in the private `vehicle-documents` bucket. Customer access requires an active
+  Performance+ entitlement; active PSI staff retain operational access. Vehicle
+  profile photos remain part of PSI Free in the private `vehicle-photos` bucket.
 - Booking changes create durable, deduplicated rows in
   `booking_integration_jobs`. Customers and anonymous clients cannot read or
   change this queue; AAL2 staff receive read-only status and the service role is
@@ -68,8 +70,10 @@ closed again.
   date and become due one calendar month before the six- and twelve-month
   service dates. The daily Supabase Cron call processes only those due reminder
   jobs, sends the email, creates the private customer alert and queues its push
-  delivery. Free accounts receive these reminders; the Performance+ archive is
-  a separate entitlement.
+  delivery. Free accounts receive these reminders, service dates, work summaries
+  and recommendations; attached files and the detailed archive are a separate
+  Performance+ entitlement. Xero invoice delivery by email remains independent
+  of the app subscription.
 - The reminder worker runs daily at `00:05 UTC` (`10:05 AEST` or `11:05 AEDT`).
   Its project URL and service-role credential are stored in Supabase Vault as
   `psi_service_reminder_project_url` and

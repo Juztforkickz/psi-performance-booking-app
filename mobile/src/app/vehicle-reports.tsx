@@ -32,6 +32,7 @@ import {
   saveCustomerRepair,
 } from '@/lib/customer-report-publishing';
 import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
+import { loadVaultOverview, type VaultOverview } from '@/lib/performance-plus';
 import { getSupabaseClient } from '@/lib/supabase';
 import {
   getAccountDynoRecords,
@@ -224,6 +225,8 @@ function VehicleReportsContent({
   const [secureAttachmentError, setSecureAttachmentError] = useState('');
   const [loadingSecureAttachmentId, setLoadingSecureAttachmentId] = useState<string | null>(null);
   const [viewingAttachment, setViewingAttachment] = useState<{ notice?: string; title: string; uri: string } | null>(null);
+  const [performanceAccess, setPerformanceAccess] = useState<{ key: string; overview: VaultOverview } | null>(null);
+  const [performanceAccessError, setPerformanceAccessError] = useState('');
   const ownedAttachmentsRef = useRef(new Map<string, PreviewAttachment>());
 
   useEffect(() => () => {
@@ -232,6 +235,30 @@ function VehicleReportsContent({
   }, []);
 
   const accountConnected = Boolean(secureAccount);
+  const performanceAccessKey = `${secureAccount?.user.id ?? 'preview'}:${selectedVehicle.id}`;
+  const performanceOverview = performanceAccess?.key === performanceAccessKey ? performanceAccess.overview : null;
+  const performanceFilesUnlocked = !accountConnected || performanceOverview?.plan === 'performance_plus';
+  const performanceAccessReady = !accountConnected || performanceOverview !== null || Boolean(performanceAccessError);
+
+  useEffect(() => {
+    if (!accountConnected) return;
+    let active = true;
+    setPerformanceAccessError('');
+    void loadVaultOverview(selectedVehicle.id)
+      .then((overview) => {
+        if (active) setPerformanceAccess({ key: performanceAccessKey, overview });
+      })
+      .catch(() => {
+        if (active) {
+          setPerformanceAccess(null);
+          setPerformanceAccessError('Performance+ file access could not be verified. Your free vehicle information remains available.');
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [accountConnected, performanceAccessKey, selectedVehicle.id]);
+
   const dynoRecords = filterVehicleRecords([...(secureReports ? getAccountDynoRecords(secureReports) : PREVIEW_DYNO_RECORDS), ...localDynoRecords], selectedVehicle.id);
   const repairRecords = filterVehicleRecords([...(secureReports ? getAccountRepairRecords(secureReports) : PREVIEW_REPAIR_RECORDS), ...localRepairs], selectedVehicle.id);
   const futureRepairs = [...(secureReports ? getAccountFutureRepairs(secureReports) : PREVIEW_FUTURE_REPAIRS), ...localFutureRepairs].filter((record) => record.vehicleId === selectedVehicle.id);
@@ -332,6 +359,10 @@ function VehicleReportsContent({
 
   const openSecureAttachment = async (attachment: SecureVehicleAttachment, title: string) => {
     if (!secureAccount || loadingSecureAttachmentId) return;
+    if (!performanceFilesUnlocked) {
+      setSecureAttachmentError('Workshop files and images are available with Performance+. Your vehicle information and PSI recommendations remain free.');
+      return;
+    }
     setSecureAttachmentError('');
     setLoadingSecureAttachmentId(attachment.id);
     try {
@@ -573,7 +604,7 @@ function VehicleReportsContent({
 
         <View accessibilityRole="alert" style={styles.previewNotice}>
           <Text style={styles.previewNoticeTitle}>{accountConnected ? 'Your records' : 'Demo records'}</Text>
-          <Text style={styles.previewNoticeCopy}>{accountConnected ? 'Entries you save here stay private and locked in your account. Customer entries are clearly separated from PSI-verified workshop records.' : 'Example records only. Anything you add clears when the demo closes.'}</Text>
+          <Text style={styles.previewNoticeCopy}>{accountConnected ? 'Vehicle details, service dates, work summaries and PSI recommendations stay available with PSI Free. Workshop files and images are stored in Performance+.' : 'Example records only. Anything you add clears when the demo closes.'}</Text>
         </View>
         <FormError message={secureAttachmentError} />
         {formNotice ? <Text accessibilityRole="alert" style={styles.savedNotice}>{formNotice}</Text> : null}
@@ -629,6 +660,21 @@ function VehicleReportsContent({
           {accountConnected ? <Text style={styles.selectedVehicleMaintenance}>Last PSI service · {selectedVehicle.lastVisit ? formatDate(selectedVehicle.lastVisit) : 'Not recorded'} · Next PSI check-in · {selectedVehicle.nextDue ? formatDate(selectedVehicle.nextDue) : 'Not scheduled'}</Text> : null}
         </View>
 
+        {accountConnected && !performanceAccessReady ? <ActivityIndicator color={colors.accent} /> : null}
+        {accountConnected && performanceAccessReady ? (
+          <View style={styles.performanceAccessCard}>
+            <View style={styles.performanceAccessHeading}>
+              <Ionicons color={colors.accent} name={performanceFilesUnlocked ? 'lock-open-outline' : 'lock-closed-outline'} size={20} />
+              <Text style={styles.performanceAccessTitle}>{performanceFilesUnlocked ? 'Performance+ files unlocked' : 'Your vehicle information stays free'}</Text>
+            </View>
+            <Text style={styles.performanceAccessCopy}>{performanceFilesUnlocked
+              ? 'Open and download your workshop photos, invoice PDFs, dyno graphs and supporting documents.'
+              : 'Dates, work summaries, recommendations, bookings and service reminders remain available. Performance+ unlocks the attached photos, invoice copies, dyno files and documents.'}</Text>
+            {!performanceFilesUnlocked ? <PrimaryButton label="Explore Performance+ files" onPress={() => router.push({ pathname: '/performance-plus', params: { vehicleId: selectedVehicle.id } })} variant="outline" /> : null}
+            {performanceAccessError ? <Text accessibilityRole="alert" style={styles.formError}>{performanceAccessError}</Text> : null}
+          </View>
+        ) : null}
+
         <ReportSection
           actionLabel={openForm === 'dyno' ? 'Close Dyno Form' : 'Add Dyno Record'}
           meta={`${dynoRecords.length} shown`}
@@ -646,7 +692,7 @@ function VehicleReportsContent({
                 <View style={styles.fieldCell}><Field label="Fuel"><FormInput maxLength={40} onChangeText={(fuel) => setDynoDraft((draft) => ({ ...draft, fuel }))} placeholder="98 RON" value={dynoDraft.fuel} /></Field></View>
               </View>
               <Field hint={`${dynoDraft.notes.length}/400`} label="Setup / run notes · optional"><FormInput autoCorrect maxLength={400} multiline onChangeText={(notes) => setDynoDraft((draft) => ({ ...draft, notes }))} placeholder="Notes for this result" style={styles.notesInput} value={dynoDraft.notes} /></Field>
-              <AttachmentPicker
+              {performanceFilesUnlocked ? <AttachmentPicker
                 attachment={dynoDraft.graphImage}
                 label="Dyno graph image"
                 notice={accountConnected ? 'Private image · uploaded with this saved result.' : 'Temporary image · not saved to your account.'}
@@ -654,7 +700,7 @@ function VehicleReportsContent({
                 onTakePhoto={() => void takeImage(dynoDraft.graphImage, (graphImage) => setDynoDraft((draft) => ({ ...draft, graphImage })))}
                 onRemove={() => { releaseAttachment(dynoDraft.graphImage); setDynoDraft((draft) => ({ ...draft, graphImage: null })); }}
                 onView={() => dynoDraft.graphImage && setViewingAttachment({ title: 'Dyno graph preview', uri: dynoDraft.graphImage.uri })}
-              />
+              /> : <PerformanceAttachmentGate label="Dyno graph images" onPress={() => router.push({ pathname: '/performance-plus', params: { vehicleId: selectedVehicle.id } })} />}
               <FormError message={formError || attachmentError} />
               <View style={styles.formActions}><PrimaryButton label={accountConnected ? 'Save private result' : 'Add temporary result'} loading={savingForm} onPress={() => void addDynoRecord()} /><PrimaryButton disabled={savingForm} label="Cancel" onPress={cancelDyno} variant="outline" /></View>
             </View>
@@ -718,7 +764,7 @@ function VehicleReportsContent({
           onAction={() => startForm('invoice')}
           title="Invoice Vault"
         >
-          <Text style={styles.sectionNotice}>{accountConnected ? 'Customer invoices save privately and lock after submission. PSI invoices stay separately labelled and read-only.' : 'Example invoices only. Temporary images are not uploaded.'}</Text>
+          <Text style={styles.sectionNotice}>{accountConnected ? 'Invoice details and completed-work summaries remain available. Invoice images and PDF copies are stored in Performance+; Xero still emails the original invoice.' : 'Example invoices only. Temporary images are not uploaded.'}</Text>
           {openForm === 'invoice' ? (
             <View style={styles.formCard}>
               <FormHeading accountConnected={accountConnected} title="Add invoice" />
@@ -728,7 +774,7 @@ function VehicleReportsContent({
               </View>
               <Field hint="Optional · AUD" label="Amount"><FormInput keyboardType="decimal-pad" maxLength={10} onChangeText={(amount) => setInvoiceDraft((draft) => ({ ...draft, amount }))} placeholder="423.50" value={invoiceDraft.amount} /></Field>
               <Field hint={`${invoiceDraft.summary.length}/300`} label="Completed work summary"><FormInput autoCorrect maxLength={300} multiline onChangeText={(summary) => setInvoiceDraft((draft) => ({ ...draft, summary }))} placeholder="Service & workshop inspection" style={styles.notesInput} value={invoiceDraft.summary} /></Field>
-              <AttachmentPicker
+              {performanceFilesUnlocked ? <AttachmentPicker
                 attachment={invoiceDraft.attachment}
                 label="Invoice image"
                 notice={accountConnected ? 'Private image · uploaded with this saved invoice.' : 'Temporary image · not saved to your account.'}
@@ -736,7 +782,7 @@ function VehicleReportsContent({
                 onTakePhoto={() => void takeImage(invoiceDraft.attachment, (attachment) => setInvoiceDraft((draft) => ({ ...draft, attachment })))}
                 onRemove={() => { releaseAttachment(invoiceDraft.attachment); setInvoiceDraft((draft) => ({ ...draft, attachment: null })); }}
                 onView={() => invoiceDraft.attachment && setViewingAttachment({ title: 'Invoice image preview', uri: invoiceDraft.attachment.uri })}
-              />
+              /> : <PerformanceAttachmentGate label="Invoice images and PDFs" onPress={() => router.push({ pathname: '/performance-plus', params: { vehicleId: selectedVehicle.id } })} />}
               <FormError message={formError || attachmentError} />
               <View style={styles.formActions}><PrimaryButton label={accountConnected ? 'Save private invoice' : 'Add temporary invoice'} loading={savingForm} onPress={() => void addInvoice()} /><PrimaryButton disabled={savingForm} label="Cancel" onPress={cancelInvoice} variant="outline" /></View>
             </View>
@@ -785,6 +831,14 @@ function FormHeading({ accountConnected, title }: { accountConnected: boolean; t
 
 function FormError({ message }: { message: string }) {
   return message ? <Text accessibilityRole="alert" style={styles.formError}>{message}</Text> : null;
+}
+
+function PerformanceAttachmentGate({ label, onPress }: { label: string; onPress: () => void }) {
+  return <View style={styles.performanceAttachmentGate}>
+    <View style={styles.performanceAccessHeading}><Ionicons color={colors.accent} name="lock-closed-outline" size={19} /><Text style={styles.performanceAttachmentTitle}>{label} · Performance+</Text></View>
+    <Text style={styles.performanceAccessCopy}>Save and open this attachment in your permanent vehicle file with Performance+.</Text>
+    <PrimaryButton label="View Performance+" onPress={onPress} variant="outline" />
+  </View>;
 }
 
 function EmptyState({ accountConnected, message }: { accountConnected: boolean; message: string }) {
@@ -944,6 +998,12 @@ const styles = StyleSheet.create({
   selectedVehicleRegistration: { color: colors.muted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   selectedVehicleMaintenance: { color: colors.silver, fontSize: 10, fontWeight: '800', lineHeight: 16, marginTop: spacing.xs },
   selectedVehicleLocal: { color: colors.accent, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
+  performanceAccessCard: { ...mobileFrame, gap: spacing.sm, borderColor: colors.accentDark, backgroundColor: colors.inkSoft, padding: spacing.md },
+  performanceAccessHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  performanceAccessTitle: { flex: 1, color: colors.white, fontSize: 12, fontWeight: '900', lineHeight: 18, textTransform: 'uppercase' },
+  performanceAccessCopy: { color: colors.muted, fontSize: 10, lineHeight: 16 },
+  performanceAttachmentGate: { gap: spacing.sm, borderWidth: 1, borderColor: colors.accentDark, backgroundColor: colors.ink, padding: spacing.md },
+  performanceAttachmentTitle: { flex: 1, color: colors.accent, fontSize: 10, fontWeight: '900', lineHeight: 16, textTransform: 'uppercase' },
   reportSection: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
   addAction: { ...mobileFrame, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.white, paddingHorizontal: spacing.md },
   addActionText: { color: colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: .6, textAlign: 'center', textTransform: 'uppercase' },
