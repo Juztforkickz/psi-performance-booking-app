@@ -52,7 +52,11 @@ test("the Shopify Version 3 handoff is self-contained, enquiry-only and responsi
   assert.match(liquid, /Describe your general enquiry, service request, symptoms, repairs or concerns\./u);
   assert.match(liquid, /<span data-psi-customer-step>02<\/span>/u);
   assert.match(liquid, /data-psi-customer-step[^\n]+kind==='plan'\?'03':'02'/u);
-  assert.match(liquid, /PSI App · Coming Soon/u);
+  assert.doesNotMatch(liquid, /PSI App · Coming Soon/u);
+  assert.match(liquid, /psi-app-arrived-hero\.png\?v=1789260666/u);
+  assert.match(liquid, /Explore the PSI app/u);
+  assert.match(liquid, /https:\/\/juztforkickz\.github\.io\/psi-performance-booking-app\//u);
+  assert.match(liquid, /aspect-ratio:1674\/943;object-fit:contain/u);
   assert.match(liquid, /@media\(max-width:760px\)/u);
   assert.match(liquid, /Book an Appointment/u);
   assert.match(liquid, /label==='contact'/u);
