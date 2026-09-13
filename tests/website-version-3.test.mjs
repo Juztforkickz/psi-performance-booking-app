@@ -57,6 +57,7 @@ test("the Shopify Version 3 handoff is self-contained, enquiry-only and responsi
   assert.match(liquid, /Explore the PSI app/u);
   assert.match(liquid, /https:\/\/juztforkickz\.github\.io\/psi-performance-booking-app\//u);
   assert.match(liquid, /aspect-ratio:1674\/943;object-fit:contain/u);
+  assert.match(liquid, /@media\(min-width:1181px\)\{\.psi-v3\{overflow:clip\}\}/u);
   assert.match(liquid, /@media\(min-width:1500px\)\{\.psi-v3__intro,\.psi-v3__layout\{width:min\(1540px,100%\)\}/u);
   assert.match(liquid, /grid-template-columns:minmax\(0,1fr\) minmax\(470px,\.5fr\)/u);
   assert.match(liquid, /\.psi-v3__app--available\{min-height:560px;display:flex;flex-direction:column\}/u);
