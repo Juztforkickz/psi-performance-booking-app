@@ -14,6 +14,7 @@ import io
 import json
 import os
 from pathlib import Path
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -172,8 +173,17 @@ class Connection:
             return False
 
     def login(self, email):
-        self.call('/auth/v1/otp', 'POST', {'email': email, 'create_user': False})
-        session = self.call('/auth/v1/verify', 'POST', {'email': email, 'token': getpass.getpass('PSI email code: '), 'type': 'email'})
+        try:
+            self.call('/auth/v1/otp', 'POST', {'email': email, 'create_user': False})
+            prompt = 'PSI email code: '
+        except RequestFailure as error:
+            if error.status != 429:
+                raise
+            prompt = 'Email limit reached. Enter a recent unused PSI email code, or press Enter to wait: '
+        email_code = getpass.getpass(prompt).strip()
+        if not email_code:
+            raise RuntimeError('Supabase has temporarily limited new sign-in emails. Wait at least 60 seconds; if the project uses the built-in email service, its shared limit can be two emails per hour.')
+        session = self.call('/auth/v1/verify', 'POST', {'email': email, 'token': email_code, 'type': 'email'})
         self.set_session(session)
         user = self.call('/auth/v1/user')
         factors = [f for f in user.get('factors', []) if f.get('factor_type') == 'totp' and f.get('status') == 'verified']
@@ -518,4 +528,8 @@ def main():
             except Exception: pass
 
 if __name__ == '__main__':
-    main()
+    try:
+        raise SystemExit(main() or 0)
+    except (RequestFailure, RuntimeError, ValueError, OSError) as error:
+        print('PSI Workshop Uploads: ' + str(error), file=sys.stderr)
+        raise SystemExit(1) from None

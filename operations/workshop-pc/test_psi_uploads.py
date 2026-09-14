@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 from PIL import Image
 from psi_uploads import (
     Connection, RequestFailure, SessionStore, create_job_folder, create_manual_job,
@@ -127,6 +128,48 @@ class WorkshopImporterTests(unittest.TestCase):
             Connection('https://example.com', 'sb_publishable_test')
         with self.assertRaises(ValueError):
             Connection('http://test.supabase.co', 'sb_publishable_test')
+
+    def test_rate_limited_login_can_use_recent_unused_email_code(self):
+        class FakeConnection(Connection):
+            def __init__(inner):
+                inner.calls = []
+                inner.token = inner.refresh = ''
+                inner.expires = 0
+                inner.session_store = None
+                inner.verified_jobs = {}
+            def call(inner, path, method='GET', data=None, **kwargs):
+                inner.calls.append((path, data))
+                if path == '/auth/v1/otp':
+                    raise RequestFailure(429)
+                if path == '/auth/v1/verify':
+                    return {'access_token': 'email-token', 'refresh_token': 'email-refresh'}
+                if path == '/auth/v1/user':
+                    return {'id': 'staff-id', 'factors': [{'id': 'factor-id', 'factor_type': 'totp', 'status': 'verified'}]}
+                if path.endswith('/challenge'):
+                    return {'id': 'challenge-id'}
+                if path.endswith('/verify'):
+                    return {'access_token': 'mfa-token', 'refresh_token': 'mfa-refresh'}
+                raise AssertionError(path)
+            def set_session(inner, session):
+                inner.token = session['access_token']
+                inner.refresh = session['refresh_token']
+            def validate_staff(inner):
+                inner.user_id = 'staff-id'
+        connection = FakeConnection()
+        with patch('psi_uploads.getpass.getpass', side_effect=('123456', '654321')):
+            connection.login('staff@example.invalid')
+        verification = next(data for path, data in connection.calls if path == '/auth/v1/verify')
+        self.assertEqual(verification['token'], '123456')
+        self.assertEqual(connection.token, 'mfa-token')
+
+    def test_rate_limited_login_without_recent_code_is_actionable(self):
+        class FakeConnection(Connection):
+            def call(inner, path, *args, **kwargs):
+                raise RequestFailure(429)
+        connection = FakeConnection('https://test.supabase.co', 'sb_publishable_test')
+        with patch('psi_uploads.getpass.getpass', return_value=''):
+            with self.assertRaisesRegex(RuntimeError, 'temporarily limited'):
+                connection.login('staff@example.invalid')
 
     def test_interrupted_upload_only_resumes_identical_or_missing_objects(self):
         class FakeStorage:

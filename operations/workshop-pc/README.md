@@ -16,6 +16,8 @@ It creates the upload root and a **PSI Workshop Uploads** desktop shortcut for t
 
 Open the desktop shortcut once, choose **Sign in and start automatic watching**, and enter the PSI email code and authenticator code. Only the rotating refresh token is remembered; Windows DPAPI encrypts it for this Windows account. The watcher then starts hidden at Windows sign-in, refreshes the session, checks that it is still AAL2 and active staff, and scans every 30 seconds. Revoking the session, disabling the staff account or changing security settings makes it fail closed and require sign-in again.
 
+If Supabase temporarily rate-limits a new email, the uploader accepts a recent unused email code instead. Otherwise, wait at least 60 seconds before requesting another. Projects using Supabase's built-in email sender can share a much lower project-wide email allowance; production should use PSI's configured SMTP provider.
+
 ## Each workshop job
 
 1. Confirm the app booking. The protected backend automatically creates its workshop job and exact Xero reference.
