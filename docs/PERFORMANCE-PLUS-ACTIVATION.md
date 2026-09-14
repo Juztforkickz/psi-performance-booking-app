@@ -31,6 +31,15 @@ is produced.
 
 iOS **build 9**, EAS build ID `5839004a-e7ea-435e-a7dc-cbeaf63d6e8d`, is **FINISHED and uploaded to Apple for TestFlight**. [EAS submission `f2c83882-557e-467d-bcfa-ec15c0631cc2`](https://expo.dev/accounts/psi-performance/projects/matt-psi/submissions/f2c83882-557e-467d-bcfa-ec15c0631cc2) finished on 9 September 2026 at 09:12:42 Sydney time (`2026-09-08T23:12:42Z`). App Store Connect subsequently confirmed **VALID / IN_BETA_TESTING** for internal testing. Its external status is **READY_FOR_BETA_SUBMISSION**, so external beta review remains. Build 7 remains valid, in internal testing and unexpired. No public App Store review or release has been submitted.
 
+The isolated iOS **Performance+ purchase-test build 10**, EAS build ID
+`13c4690e-9ac5-4664-bf59-8753d7775d30`, finished successfully on 14 September
+2026 with runtime `1.0.0-performance-purchase-test-1` and the isolated Apple
+Review Sandbox. [EAS submission `fb6d05c0-5355-4292-beb2-e13036943acb`](https://expo.dev/accounts/psi-performance/projects/matt-psi/submissions/fb6d05c0-5355-4292-beb2-e13036943acb)
+also finished successfully, placing the binary into Apple's TestFlight processing
+pipeline. Apple requires the Paid Apps Agreement to be Active before sandbox
+In-App Purchase testing. The agreement is still Processing at this checkpoint,
+so no purchase transaction has been attempted.
+
 The [permanent-owner beta update](https://expo.dev/accounts/psi-performance/projects/matt-psi/updates/0da20f28-80d4-4fb8-b007-cf025d0fb0df) was published from commit `abee1bb5c12e9c8148a1f6faf94d70104c89f1ef`: group `0da20f28-80d4-4fb8-b007-cf025d0fb0df`, iOS update `01a083c4-5a5b-771d-8bd9-eabed8f06264`, beta branch, runtime `1.0.0-beta-performance-plus-1`. It is compatible with build 9 and does not affect build 7 or require another Apple binary.
 
 Matt's verified owner/customer account (`matt@psiperformance.com.au`) has **permanent complimentary PSI Performance+ access**. Cost: **A$0**. It has no purchase, renewal, billing period or expiry and is excluded from Apple/RevenueCat billing. The former 30-day beta row is retained in revoked state for audit. This owner entitlement does not replace Apple purchase and restore testing.
@@ -158,7 +167,7 @@ The ordinary `apple-review` and fictional demo modes keep purchases disabled. No
 
 TestFlight purchases run in Apple's sandbox and renewal timing is accelerated. Test renewal and billing failure using Apple's supported test controls, not live charges. [Apple TestFlight purchase testing](https://developer.apple.com/help/app-store-connect/test-a-beta-version/testing-subscriptions-and-in-app-purchases-in-testflight/)
 
-The new native purchase, document-picker and image-manipulation modules require a **new signed iOS build**. An over-the-air update to an old binary is insufficient; build 9 now supplies that foundation binary and has been uploaded and processed for internal testing. It is not the separately configured `performance-test` build. That purchase-test build must use the intended EAS environment, signing identity, bundle ID, runtime and update channel; its build and signed-device acceptance remain pending. The ordinary review/demo path keeps purchases disabled. Before submitting subscriptions, implement and verify the isolated purchase route in the actual binary selected for App Review; do not describe the ordinary demo as purchase-enabled or promise to substitute a different binary after review.
+The new native purchase, document-picker and image-manipulation modules require a **new signed iOS build**. An over-the-air update to an old binary is insufficient; build 9 supplies the ordinary beta foundation. The separately configured `performance-test` build 10 now supplies the signed isolated purchase binary and has been uploaded to Apple. Its Apple processing and signed-device purchase acceptance remain pending. The ordinary review/demo path keeps purchases disabled. Before submitting subscriptions, verify the isolated purchase route in the actual binary selected for App Review; do not describe the ordinary demo as purchase-enabled or promise to substitute a different binary after review.
 
 The `google-performance-test` profile is pinned to the same isolated sandbox,
 uses its own `google-review` update channel and produces an Android App Bundle.

@@ -36,9 +36,11 @@ does not erase their evidence or rollback records.
 
 ## 2. Complete Apple Performance+ acceptance
 
-- [ ] Produce the isolated signed `performance-test` iOS build using the Apple
-  sandbox backend and RevenueCat Apple SDK key. Do not enable sandbox receipts
-  on the main customer backend.
+- [x] Produce and upload isolated iOS `performance-test` build 10 using the Apple
+  sandbox backend and RevenueCat Apple SDK key. EAS build
+  `13c4690e-9ac5-4664-bf59-8753d7775d30` and submission
+  `fb6d05c0-5355-4292-beb2-e13036943acb` finished on 14 September 2026. Sandbox
+  receipts remain disabled on the main customer backend.
 - [ ] With a free synthetic customer, test monthly and annual purchase, cancelled
   purchase sheet, restore after reinstall/second device, renewal, plan change,
   expiry, billing retry/grace, refund and revocation.
