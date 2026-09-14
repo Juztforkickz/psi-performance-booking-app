@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
+  type LayoutChangeEvent,
   Linking,
   Modal,
   Pressable,
@@ -89,6 +90,15 @@ type InvoiceDraft = {
   invoiceNumber: string;
   summary: string;
 };
+
+type CustomerRecordForm = 'dyno' | 'future' | 'invoice' | 'repair';
+
+const CUSTOMER_RECORD_ACTIONS: { closeLabel: string; form: CustomerRecordForm; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+  { closeLabel: 'Close dyno record form', form: 'dyno', icon: 'speedometer-outline', label: 'Add your own dyno record' },
+  { closeLabel: 'Close repair history form', form: 'repair', icon: 'construct-outline', label: 'Add your own repair history' },
+  { closeLabel: 'Close future-work form', form: 'future', icon: 'clipboard-outline', label: 'Add your own future-work note' },
+  { closeLabel: 'Close invoice details form', form: 'invoice', icon: 'receipt-outline', label: 'Add your own invoice details' },
+];
 
 const EMPTY_DYNO_DRAFT: DynoDraft = { date: '', fuel: '', graphImage: null, notes: '', power: '', torque: '' };
 const EMPTY_REPAIR_DRAFT: RepairDraft = { date: '', description: '', odometer: '', title: '' };
@@ -217,7 +227,8 @@ function VehicleReportsContent({
   const [repairDraft, setRepairDraft] = useState<RepairDraft>(EMPTY_REPAIR_DRAFT);
   const [futureDraft, setFutureDraft] = useState<FutureRepairDraft>(EMPTY_FUTURE_DRAFT);
   const [invoiceDraft, setInvoiceDraft] = useState<InvoiceDraft>(EMPTY_INVOICE_DRAFT);
-  const [openForm, setOpenForm] = useState<'dyno' | 'future' | 'invoice' | 'repair' | null>(null);
+  const [customerRecordToolsOpen, setCustomerRecordToolsOpen] = useState(false);
+  const [openForm, setOpenForm] = useState<CustomerRecordForm | null>(null);
   const [formError, setFormError] = useState('');
   const [formNotice, setFormNotice] = useState('');
   const [savingForm, setSavingForm] = useState(false);
@@ -228,6 +239,8 @@ function VehicleReportsContent({
   const [performanceAccess, setPerformanceAccess] = useState<{ key: string; overview: VaultOverview } | null>(null);
   const [performanceAccessError, setPerformanceAccessError] = useState('');
   const ownedAttachmentsRef = useRef(new Map<string, PreviewAttachment>());
+  const reportScrollRef = useRef<ScrollView>(null);
+  const reportSectionOffsetsRef = useRef<Record<CustomerRecordForm, number>>({ dyno: 0, future: 0, invoice: 0, repair: 0 });
 
   useEffect(() => () => {
     ownedAttachmentsRef.current.forEach(releaseLocalVehiclePhoto);
@@ -392,11 +405,17 @@ function VehicleReportsContent({
     }
   };
 
-  const startForm = (form: typeof openForm) => {
+  const startForm = (form: CustomerRecordForm) => {
     setFormError('');
     setFormNotice('');
     setAttachmentError('');
-    setOpenForm((current) => current === form ? null : form);
+    setOpenForm((current) => {
+      const next = current === form ? null : form;
+      if (next) {
+        setTimeout(() => reportScrollRef.current?.scrollTo({ animated: true, y: Math.max(0, reportSectionOffsetsRef.current[next] - spacing.md) }), 0);
+      }
+      return next;
+    });
   };
 
   const cancelDyno = () => {
@@ -589,6 +608,7 @@ function VehicleReportsContent({
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]}
         keyboardShouldPersistTaps="handled"
+        ref={reportScrollRef}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
@@ -675,15 +695,57 @@ function VehicleReportsContent({
           </View>
         ) : null}
 
+        <View style={styles.customerRecordTools}>
+          <Pressable
+            accessibilityHint="Shows controls for adding your own unverified vehicle records"
+            accessibilityRole="button"
+            accessibilityState={{ expanded: customerRecordToolsOpen }}
+            onPress={() => setCustomerRecordToolsOpen((current) => {
+              if (current) setOpenForm(null);
+              return !current;
+            })}
+            style={({ pressed }) => [styles.customerRecordToolsHeader, pressed && styles.pressed]}
+          >
+            <View style={styles.customerRecordToolsHeading}>
+              <Ionicons color={colors.accent} name="person-add-outline" size={21} />
+              <View style={styles.customerRecordToolsCopy}>
+                <Text style={styles.customerRecordToolsTitle}>Add your own records</Text>
+                <Text style={styles.customerRecordToolsDescription}>Customer-provided entries are separate from PSI records and lock after submission.</Text>
+              </View>
+            </View>
+            <Ionicons color={colors.silver} name={customerRecordToolsOpen ? 'chevron-up' : 'chevron-down'} size={20} />
+          </Pressable>
+          {customerRecordToolsOpen ? (
+            <View style={styles.customerRecordChoices}>
+              <Text style={styles.customerRecordNotice}>These entries are visible to PSI but are never marked as PSI verified. Attached files require Performance+.</Text>
+              {CUSTOMER_RECORD_ACTIONS.map((action) => {
+                const selected = openForm === action.form;
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: selected }}
+                    key={action.form}
+                    onPress={() => startForm(action.form)}
+                    style={({ pressed }) => [styles.customerRecordChoice, selected && styles.customerRecordChoiceSelected, pressed && styles.pressed]}
+                  >
+                    <Ionicons color={selected ? colors.ink : colors.accent} name={action.icon} size={20} />
+                    <Text style={[styles.customerRecordChoiceText, selected && styles.customerRecordChoiceTextSelected]}>{selected ? action.closeLabel : action.label}</Text>
+                    <Ionicons color={selected ? colors.ink : colors.silver} name={selected ? 'close' : 'chevron-forward'} size={18} />
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
+
         <ReportSection
-          actionLabel={openForm === 'dyno' ? 'Close Dyno Form' : 'Add Dyno Record'}
           meta={`${dynoRecords.length} shown`}
-          onAction={() => startForm('dyno')}
+          onLayout={(event) => { reportSectionOffsetsRef.current.dyno = event.nativeEvent.layout.y; }}
           title="Dyno History"
         >
           {openForm === 'dyno' ? (
             <View style={styles.formCard}>
-              <FormHeading accountConnected={accountConnected} title="Add dyno result" />
+              <FormHeading accountConnected={accountConnected} title="Add your own dyno record" />
               <Text style={styles.formNotice}>{accountConnected ? 'Private customer entry · saved and locked after submission · not PSI verified.' : 'Temporary entry · not saved to your account.'}</Text>
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
                 <View style={styles.fieldCell}><Field label="Power · HP at hubs"><FormInput keyboardType="decimal-pad" maxLength={7} onChangeText={(power) => setDynoDraft((draft) => ({ ...draft, power }))} placeholder="426" value={dynoDraft.power} /></Field></View>
@@ -709,14 +771,13 @@ function VehicleReportsContent({
         </ReportSection>
 
         <ReportSection
-          actionLabel={openForm === 'repair' ? 'Close Repair Form' : 'Add Previous Repair'}
           meta={`${repairRecords.length} shown`}
-          onAction={() => startForm('repair')}
+          onLayout={(event) => { reportSectionOffsetsRef.current.repair = event.nativeEvent.layout.y; }}
           title="Previous Repairs"
         >
           {openForm === 'repair' ? (
             <View style={styles.formCard}>
-              <FormHeading accountConnected={accountConnected} title="Add previous repair" />
+              <FormHeading accountConnected={accountConnected} title="Add your own repair history" />
               <Field label="Repair title"><FormInput autoCorrect maxLength={80} onChangeText={(title) => setRepairDraft((draft) => ({ ...draft, title }))} placeholder="Service & inspection" value={repairDraft.title} /></Field>
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
                 <View style={styles.fieldCell}><CalendarDateField label="Date" maximumDate={australianDateToIso(todayAustralianDate()) ?? undefined} onChange={(date) => setRepairDraft((draft) => ({ ...draft, date }))} value={repairDraft.date} /></View>
@@ -732,14 +793,13 @@ function VehicleReportsContent({
         </ReportSection>
 
         <ReportSection
-          actionLabel={openForm === 'future' ? 'Close Recommendation Form' : 'Add Recommended Repair'}
           meta={`${futureRepairs.length} shown`}
-          onAction={() => startForm('future')}
+          onLayout={(event) => { reportSectionOffsetsRef.current.future = event.nativeEvent.layout.y; }}
           title="Future Repairs / Recommended Work"
         >
           {openForm === 'future' ? (
             <View style={styles.formCard}>
-              <FormHeading accountConnected={accountConnected} title="Add recommended work" />
+              <FormHeading accountConnected={accountConnected} title="Add your own future-work note" />
               <Field label="Repair / recommendation title"><FormInput autoCorrect maxLength={90} onChangeText={(title) => setFutureDraft((draft) => ({ ...draft, title }))} placeholder="Cooling system inspection" value={futureDraft.title} /></Field>
               <Field label="Timing"><FormInput autoCorrect maxLength={80} onChangeText={(timing) => setFutureDraft((draft) => ({ ...draft, timing }))} placeholder="At next service" value={futureDraft.timing} /></Field>
               <View style={styles.statusPicker} accessibilityRole="radiogroup">
@@ -759,15 +819,14 @@ function VehicleReportsContent({
         </ReportSection>
 
         <ReportSection
-          actionLabel={openForm === 'invoice' ? 'Close Invoice Form' : 'Add Invoice'}
           meta={`${invoices.length} shown`}
-          onAction={() => startForm('invoice')}
+          onLayout={(event) => { reportSectionOffsetsRef.current.invoice = event.nativeEvent.layout.y; }}
           title="Invoice Vault"
         >
           <Text style={styles.sectionNotice}>{accountConnected ? 'Invoice details and completed-work summaries remain available. Invoice images and PDF copies are stored in Performance+; Xero still emails the original invoice.' : 'Example invoices only. Temporary images are not uploaded.'}</Text>
           {openForm === 'invoice' ? (
             <View style={styles.formCard}>
-              <FormHeading accountConnected={accountConnected} title="Add invoice" />
+              <FormHeading accountConnected={accountConnected} title="Add your own invoice details" />
               <View style={[styles.fieldGrid, (tablet && !largeText) && styles.fieldGridWide]}>
                 <View style={styles.fieldCell}><Field label="Invoice number"><FormInput autoCapitalize="characters" maxLength={40} onChangeText={(invoiceNumber) => setInvoiceDraft((draft) => ({ ...draft, invoiceNumber }))} placeholder="PSI-INV-2026-0000" value={invoiceDraft.invoiceNumber} /></Field></View>
                 <View style={styles.fieldCell}><CalendarDateField label="Invoice date" maximumDate={australianDateToIso(todayAustralianDate()) ?? undefined} onChange={(date) => setInvoiceDraft((draft) => ({ ...draft, date }))} value={invoiceDraft.date} /></View>
@@ -821,12 +880,12 @@ function SectionHeading({ meta, title }: { meta: string; title: string }) {
   return <View style={styles.sectionHeading}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionMeta}>{meta}</Text></View>;
 }
 
-function ReportSection({ actionLabel, children, meta, onAction, title }: { actionLabel: string; children: React.ReactNode; meta: string; onAction: () => void; title: string }) {
-  return <View style={styles.reportSection}><SectionHeading meta={meta} title={title} /><Pressable accessibilityLabel={actionLabel} accessibilityRole="button" onPress={onAction} style={({ pressed }) => [styles.addAction, pressed && styles.pressed]}><Ionicons color={colors.ink} name="add" size={18} /><Text style={styles.addActionText}>{actionLabel}</Text></Pressable>{children}</View>;
+function ReportSection({ children, meta, onLayout, title }: { children: React.ReactNode; meta: string; onLayout: (event: LayoutChangeEvent) => void; title: string }) {
+  return <View onLayout={onLayout} style={styles.reportSection}><SectionHeading meta={meta} title={title} />{children}</View>;
 }
 
 function FormHeading({ accountConnected, title }: { accountConnected: boolean; title: string }) {
-  return <View style={styles.formHeading}><Text style={styles.formKicker}>{accountConnected ? 'Private · saved to your account' : 'Temporary · not saved'}</Text><Text style={styles.formTitle}>{title}</Text></View>;
+  return <View style={styles.formHeading}><Text style={styles.formKicker}>{accountConnected ? 'Customer-provided · locked after save' : 'Temporary · not saved'}</Text><Text style={styles.formTitle}>{title}</Text></View>;
 }
 
 function FormError({ message }: { message: string }) {
@@ -1004,9 +1063,19 @@ const styles = StyleSheet.create({
   performanceAccessCopy: { color: colors.muted, fontSize: 10, lineHeight: 16 },
   performanceAttachmentGate: { gap: spacing.sm, borderWidth: 1, borderColor: colors.accentDark, backgroundColor: colors.ink, padding: spacing.md },
   performanceAttachmentTitle: { flex: 1, color: colors.accent, fontSize: 10, fontWeight: '900', lineHeight: 16, textTransform: 'uppercase' },
+  customerRecordTools: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
+  customerRecordToolsHeader: { minHeight: 82, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, padding: spacing.md },
+  customerRecordToolsHeading: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  customerRecordToolsCopy: { flex: 1, minWidth: 0, gap: 3 },
+  customerRecordToolsTitle: { color: colors.white, fontSize: 13, fontWeight: '900', lineHeight: 18, textTransform: 'uppercase' },
+  customerRecordToolsDescription: { color: colors.muted, fontSize: 9, lineHeight: 14 },
+  customerRecordChoices: { gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, padding: spacing.md },
+  customerRecordNotice: { color: colors.silver, fontSize: 10, lineHeight: 16 },
+  customerRecordChoice: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
+  customerRecordChoiceSelected: { borderColor: colors.white, backgroundColor: colors.silver },
+  customerRecordChoiceText: { flex: 1, color: colors.white, fontSize: 10, fontWeight: '900', lineHeight: 15, textTransform: 'uppercase' },
+  customerRecordChoiceTextSelected: { color: colors.ink },
   reportSection: { gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.lg },
-  addAction: { ...mobileFrame, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.white, paddingHorizontal: spacing.md },
-  addActionText: { color: colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: .6, textAlign: 'center', textTransform: 'uppercase' },
   formCard: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.lg },
   formHeading: { gap: 3 },
   formKicker: { color: colors.accent, fontSize: 9, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
