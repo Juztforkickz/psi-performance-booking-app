@@ -67,7 +67,10 @@ chooses card, Apple Pay or Google Pay. The date-approved email does not contain
 a pre-created payment URL. This avoids creating unused checkout sessions before
 the customer chooses how to pay.
 
-The rollback test proves the database transition and queueing contract. A real
-Stripe checkout, provider webhook, delivered push sound and created Google
-Calendar event still require a test-mode provider payment and physical-device
+The rollback test proves the database transition and queueing contract. The
+separate controlled Stripe sandbox checkout acceptance completed successfully
+and is retained as sufficient provider-contract evidence. PSI deliberately will
+not perform a live self-payment and refund through controlled accounts merely
+to repeat that proof. The first genuine customer payment will be monitored and
+reconciled end to end. Delivered push sound still requires physical-device
 acceptance.

@@ -1,13 +1,16 @@
 # Final release checklist
 
-Status: controlled QA, 12 September 2026. Payments are deliberately last.
+Status: controlled QA, 14 September 2026. Payments are deliberately last.
 
 Legal-entity direction confirmed by the owner: PSI PERFORMANCE PTY LTD owns and
 publishes the apps and supplies Performance+ digital subscriptions. The owner's
 sole-trader business, publicly identified as PSI Performance, remains the
 workshop operator and supplier of workshop services and deposits. Exact
 sole-trader ABN/GST details and the final accounting treatment remain
-professional-review gates.
+professional-review gates. Owner-supplied ATO evidence confirms PSI PERFORMANCE
+PTY LTD is registered for GST from 1 September 2026 with quarterly lodgment;
+the company ABN and source evidence are intentionally excluded from this public
+repository.
 
 ## Ready in controlled QA
 
@@ -107,17 +110,23 @@ professional-review gates.
 - [ ] Confirm AUD/GST, cancellation and refund
   wording with PSI's professional advisers.
 - [ ] Confirm the sole-trader ABN and GST status for workshop invoices and
-  deposit receipts; configure Stripe, Xero and the workshop payout account to
-  that supplier. Configure Apple/Google subscription agreements, tax details
-  and payout accounting for PSI PERFORMANCE PTY LTD.
+  deposit receipts. The workshop Stripe account, Xero connection and nominated
+  workshop payout account are configured for that supplier. PSI PERFORMANCE PTY
+  LTD's GST registration is confirmed effective 1 September 2026; add it to the
+  Apple/Google subscription tax profiles after each portal permits entry and
+  verify the company payout accounting.
 - [x] Implement raw-body Stripe signature verification, an idempotent payment
   ledger and a service-role-only confirmation transition.
 - [x] Deploy the payment migration and three payment functions; verify the
   ledger exists and public/customer roles cannot call the confirmation RPC.
 - [x] Expose only the signed Stripe webhook endpoint without a Supabase JWT
   requirement and verify an unsigned live request receives HTTP 401.
-- [ ] Configure encrypted Stripe/bank secrets, register the webhook's Stripe
-  test-mode destination and pass success/failure/expiry/replay acceptance.
+- [x] Configure encrypted Stripe/bank secrets, register the signed live webhook
+  destination and complete the controlled sandbox checkout acceptance. A live
+  self-payment and refund are deliberately not required because cycling money
+  through PSI-controlled accounts adds accounting noise without improving the
+  provider-contract proof. Monitor and reconcile the first genuine customer
+  payment instead.
 - [x] Require PSI staff AAL2 and a matched cleared-statement reference before an
   ordinary bank transfer can be recorded. Customers cannot self-confirm it.
 - [ ] Verify receipt email, refund handling and the trusted payment-confirmed

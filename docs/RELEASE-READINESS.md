@@ -1,7 +1,8 @@
 # PSI app release readiness
 
-Status: controlled TestFlight acceptance, 1 September 2026. Payments
-remain deliberately deferred.
+Status: controlled release acceptance, 14 September 2026. The workshop payment
+path is live-configured but has not taken a customer payment; store subscription
+sales remain deferred.
 
 On 29 August 2026, D&B confirmed an active D-U-N-S record for
 **PSI PERFORMANCE PTY LTD**. The identifier is intentionally not stored in the
@@ -272,11 +273,16 @@ advisor-recommended foreign-key indexes and consolidated the payment read
 policies; the production advisor now reports no payment-specific unindexed
 foreign key or duplicate-policy warning.
 
-Activation still requires encrypted Stripe/bank configuration, registering the
-destination in Stripe test mode, and passing success/failure/expiry/replay
-acceptance. Professional review of the final AUD/GST/refund wording also
-remains required before general release. The current TestFlight binary does
-not include these source changes. Signed Android QA APK build
+The encrypted Stripe/bank configuration and signed live webhook destination are
+active. The earlier controlled sandbox checkout acceptance is accepted as the
+provider-contract proof. A live self-payment/refund through PSI-controlled
+accounts is deliberately excluded because it adds accounting noise without
+improving that proof; the first genuine customer payment must instead be
+observed and reconciled end to end. Professional review of the final AUD/GST/
+refund wording still remains required before general release. Owner-supplied
+ATO evidence confirms PSI PERFORMANCE PTY LTD is GST registered from 1
+September 2026 with quarterly lodgment; the ABN and evidence are intentionally
+not committed. Signed Android QA APK build
 `9f2e7825-c512-483c-acfa-1e8f3eca03b3` completed successfully on 8 September
 2026 from checkpoint `dcb29429ea51dd5ae92713daf9ceb6eac7209e15`, using
 package `com.psiperformance.booking`, PSI's Expo-managed keystore and the

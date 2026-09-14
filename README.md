@@ -34,7 +34,7 @@ The public flow reads `GET /api/v1/booking-catalog` and submits an unpaid reques
 
 Service requests keep a short guided flow. Dyno customers can either complete the structured vehicle specification or ask PSI to inspect a setup they are unsure about. Web and native share the same validated contract. Unfinished forms are saved only on the customer's device for up to 30 days and can be cleared without sending anything to PSI.
 
-No live payment or provider credential is stored in source. The controlled mobile path stores and reviews a private request and records durable, deduplicated email/Calendar jobs. Resend email delivery and the least-privilege Google Calendar connection are configured only as encrypted Edge Function secrets. Stripe-hosted Checkout is implemented for cards and eligible Apple Pay, Google Pay and Australian BECS Direct Debit; its raw-body signed webhook is the only automatic confirmation path. Ordinary bank transfer uses a unique PSI reference and requires an audited AAL2 staff bank-statement match. The payment migration and three Edge Functions are deployed, but the path remains fail-closed until encrypted Stripe/bank configuration and Stripe test-mode acceptance are complete.
+No provider credential is stored in source. The controlled mobile path stores and reviews a private request and records durable, deduplicated email/Calendar jobs. Resend email delivery and the least-privilege Google Calendar connection are configured only as encrypted Edge Function secrets. Stripe-hosted Checkout is implemented for cards and eligible Apple Pay, Google Pay and Australian BECS Direct Debit; its raw-body signed webhook is the only automatic confirmation path. Ordinary bank transfer uses a unique PSI reference and requires an audited AAL2 staff bank-statement match. The payment migration and three Edge Functions are deployed, encrypted configuration and the signed live webhook are active, and controlled sandbox checkout acceptance is complete. No live customer payment has been taken; the first genuine payment must be monitored and reconciled end to end.
 
 Booking data is stored in the D1 binding named `DB`. The schema is in `db/schema.ts`; generated migrations are under `drizzle/`.
 
@@ -55,7 +55,7 @@ The OpenAI Sites web demo uses `PSI_PUBLIC_DEMO_MODE=true` as a second, server-s
 ## Operational launch checklist
 
 - Confirm the consumer guide prices of $423.50 including GST for Service & Report and $649 including GST for Dyno Tuning, the booking-type deposit amounts, workshop hours and contact details with PSI.
-- Select and configure the live deposit provider; register and verify its signed webhook before accepting customer traffic.
+- Monitor and reconcile the first genuine live deposit through Stripe, receipt delivery, booking confirmation and Google Calendar creation; pause checkout if any stage fails.
 - Confirm the legal entity name, ABN, GST registration, deposit GST treatment and cancellation/refund wording before issuing anything labelled a tax invoice.
 - Acceptance-test the selected Supabase passwordless identity and customer-owned account controls on signed native builds; keep public registration closed until PSI approves onboarding.
 - Authorise server-side, least-privilege access to PSI's chosen Google Calendar. Calendar contents must never be returned to customers.
