@@ -33,8 +33,10 @@ the two entities.
 
 ## External portal follow-up
 
-- Add or verify the company GST registration in Apple App Store Connect once
-  the tax profile permits entry.
+- Apple App Store Connect accepted the company ABN/GST registration document on
+  14 September 2026 and shows the tax form as **Active**. The Paid Apps Agreement
+  and nominated bank account are **Processing**; Apple advises that banking
+  updates can take up to 24 hours.
 - Add or verify the company tax details in Google Play after organisation
   verification unlocks the payments profile.
 - Keep workshop deposits under the separately configured sole-trader Stripe,

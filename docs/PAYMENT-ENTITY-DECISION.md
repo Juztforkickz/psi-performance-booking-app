@@ -9,7 +9,7 @@ income is not yet enabled.
 | Activity | Intended supplier | Current payment state |
 |---|---|---|
 | Workshop servicing, repairs, dyno work and booking deposits | **PSI Performance**, the owner's existing sole-trader business | The live Stripe account, signed webhook, encrypted configuration and nominated workshop payout route are configured; no live customer payment has been taken |
-| Performance+ digital subscriptions bought through the App Store or Google Play | **PSI PERFORMANCE PTY LTD**, the registered app publisher | Apple products are configured but not submitted; Google Play products do not yet exist; neither store has a verified payout route |
+| Performance+ digital subscriptions bought through the App Store or Google Play | **PSI PERFORMANCE PTY LTD**, the registered app publisher | Apple ABN/GST tax information is Active and its Paid Apps Agreement and bank update are processing; Google Play products and payout setup remain unavailable pending organisation verification |
 | Xero invoice import | The connected PSI Xero organisation | Connected for records and automation; Xero is not a payment processor |
 
 The payment card or bank account used to pay an establishment cost does not by
@@ -99,11 +99,12 @@ from the sole-trader Stripe setup used for workshop deposits.
 - Google Play: organisation account created; organisation and phone verification
   remain incomplete; no Play app or subscription products exist.
 - Company tax: GST registration is confirmed effective 1 September 2026 with
-  quarterly lodgment. Apple and Google portal tax-profile entry still needs
-  confirmation after the relevant portal allows it.
-- Apple: no verified active payout route is recorded; the latest release record
-  shows the Paid Apps Agreement, tax, banking and signed TestFlight subscription
-  purchase/restore acceptance remain incomplete.
+  quarterly lodgment. Apple marked the company ABN/GST form Active on 14
+  September 2026. Google tax-profile entry remains pending until the payments
+  profile is available.
+- Apple: the Paid Apps Agreement and nominated bank account are processing;
+  Apple advises that banking changes can take up to 24 hours. Signed TestFlight
+  subscription purchase/restore acceptance remains incomplete.
 
 References:
 

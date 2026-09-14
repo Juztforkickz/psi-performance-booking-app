@@ -112,9 +112,10 @@ repository.
 - [ ] Confirm the sole-trader ABN and GST status for workshop invoices and
   deposit receipts. The workshop Stripe account, Xero connection and nominated
   workshop payout account are configured for that supplier. PSI PERFORMANCE PTY
-  LTD's GST registration is confirmed effective 1 September 2026; add it to the
-  Apple/Google subscription tax profiles after each portal permits entry and
-  verify the company payout accounting.
+  LTD's GST registration is confirmed effective 1 September 2026. Apple marked
+  its ABN/GST form Active on 14 September 2026; the Paid Apps Agreement and bank
+  update are processing. Add or verify the company tax details in Google Play
+  after its payments profile unlocks, and verify the company payout accounting.
 - [x] Implement raw-body Stripe signature verification, an idempotent payment
   ledger and a service-role-only confirmation transition.
 - [x] Deploy the payment migration and three payment functions; verify the
