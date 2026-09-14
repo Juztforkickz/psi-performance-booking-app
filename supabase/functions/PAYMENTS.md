@@ -26,8 +26,9 @@ Required encrypted Edge Function secrets (never `EXPO_PUBLIC_*`):
 - `PSI_BANK_TRANSFER_BSB`
 - `PSI_BANK_TRANSFER_ACCOUNT_NUMBER`
 
-Stripe Dashboard setup must enable cards, Apple Pay, Google Pay and Australian
-BECS Direct Debit where the PSI account is eligible. Configure a webhook for:
+Stripe Dashboard setup must enable cards. Stripe Checkout can then present
+Apple Pay and Google Pay when the customer's device and wallet are eligible.
+PSI bank transfer remains a separate option in the app. Configure a webhook for:
 
 - `checkout.session.completed`
 - `checkout.session.async_payment_succeeded`

@@ -15,7 +15,7 @@ test("mobile payments remain approval-first and server-confirmed", async () => {
 
   assert.match(creator, /booking\.state !== "date_approved"/u);
   assert.match(creator, /"payment_method_types\[0\]": "card"/u);
-  assert.match(creator, /"payment_method_types\[1\]": "au_becs_debit"/u);
+  assert.doesNotMatch(creator, /au_becs_debit/u);
   assert.match(creator, /Idempotency-Key/u);
   assert.match(creator, /\(\?:sk\|rk\)_live_/u);
   assert.match(creator, /\(\?:sk\|rk\)_test_/u);

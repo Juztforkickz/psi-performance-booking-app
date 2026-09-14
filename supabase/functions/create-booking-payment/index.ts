@@ -137,7 +137,6 @@ Deno.serve(async (request) => {
     "line_items[0][price_data][product_data][name]": `PSI ${booking.booking_type === "dyno" ? "Dyno Tuning" : "Service & Report"} deposit`,
     "line_items[0][quantity]": "1",
     "payment_method_types[0]": "card",
-    "payment_method_types[1]": "au_becs_debit",
     "metadata[payment_attempt_id]": attemptId,
     "metadata[booking_request_id]": booking.id,
     "metadata[customer_id]": booking.customer_id,
