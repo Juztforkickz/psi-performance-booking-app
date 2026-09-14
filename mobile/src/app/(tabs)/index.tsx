@@ -415,17 +415,10 @@ export default function CustomerHomeScreen() {
         <View style={[styles.standardPanel, { borderColor: theme.frame, backgroundColor: theme.surface }]}>
           <View style={styles.standardImageFrame}>
             <Image
-              accessibilityLabel="PSI Performance Holden GTSR and Porsche outside the workshop"
+              accessibilityLabel="PSI Performance Plus app launch artwork"
               resizeMode="contain"
-              source={require('../../../assets/images/psi-gtsr-porsche-clean.jpg')}
+              source={require('../../../assets/images/psi-app-arrived-hero.webp')}
               style={styles.standardImage}
-            />
-            <Image
-              accessible={false}
-              accessibilityIgnoresInvertColors
-              resizeMode="contain"
-              source={require('../../../assets/images/psi-logo.png')}
-              style={styles.standardShedLogo}
             />
           </View>
         <View style={styles.promiseList}>
@@ -827,9 +820,8 @@ const styles = StyleSheet.create({
   raiseEventsTileImage: { transform: [{ scale: 1.55 }, { translateY: 3 }] },
   performancePlusTileImage: { transform: [{ scale: 1.08 }, { translateY: 2 }] },
   standardPanel: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
-  standardImageFrame: { width: '100%', aspectRatio: 1746 / 901, overflow: 'hidden', backgroundColor: colors.inkSoft },
+  standardImageFrame: { width: '100%', aspectRatio: 1672 / 941, overflow: 'hidden', backgroundColor: colors.inkSoft },
   standardImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
-  standardShedLogo: { position: 'absolute', top: '7%', left: '51%', width: '24%', height: '18%', opacity: .58 },
   promiseList: { paddingHorizontal: spacing.md },
   promise: { minHeight: 94, flexDirection: 'row', gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingVertical: spacing.md },
   promiseIndex: { color: colors.accent, fontSize: 10, fontWeight: '900' },

@@ -35,7 +35,7 @@ signed release build and final owner/legal checks are complete.
 ## Store URLs ready for QA
 
 - Support: `https://juztforkickz.github.io/psi-performance-booking-app/support`
-- Privacy: `https://juztforkickz.github.io/psi-performance-booking-app/privacy`
+- Privacy: `https://psiperformance.com.au/policies/privacy-policy`
 - Account deletion: `https://juztforkickz.github.io/psi-performance-booking-app/delete-account`
 
 These public routes contain no account data or production credentials. Move
