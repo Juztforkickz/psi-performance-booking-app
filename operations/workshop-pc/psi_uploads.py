@@ -173,13 +173,14 @@ class Connection:
             return False
 
     def login(self, email):
+        print(f'Requesting a six-digit PSI app portal sign-in code for {email}...')
         try:
             self.call('/auth/v1/otp', 'POST', {'email': email, 'create_user': False})
-            prompt = 'PSI email code: '
+            prompt = f'Enter the six-digit code sent to {email} (typing is hidden), then press Enter: '
         except RequestFailure as error:
             if error.status != 429:
                 raise
-            prompt = 'Email limit reached. Enter a recent unused PSI email code, or press Enter to wait: '
+            prompt = f'Email limit reached. Enter a recent unused code for {email} (typing is hidden), or press Enter to wait: '
         email_code = getpass.getpass(prompt).strip()
         if not email_code:
             raise RuntimeError('Supabase has temporarily limited new sign-in emails. Wait at least 60 seconds; if the project uses the built-in email service, its shared limit can be two emails per hour.')

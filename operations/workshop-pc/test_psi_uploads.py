@@ -156,11 +156,13 @@ class WorkshopImporterTests(unittest.TestCase):
             def validate_staff(inner):
                 inner.user_id = 'staff-id'
         connection = FakeConnection()
-        with patch('psi_uploads.getpass.getpass', side_effect=('123456', '654321')):
+        with patch('psi_uploads.getpass.getpass', side_effect=('123456', '654321')) as get_code:
             connection.login('staff@example.invalid')
         verification = next(data for path, data in connection.calls if path == '/auth/v1/verify')
         self.assertEqual(verification['token'], '123456')
         self.assertEqual(connection.token, 'mfa-token')
+        self.assertIn('staff@example.invalid', get_code.call_args_list[0].args[0])
+        self.assertIn('typing is hidden', get_code.call_args_list[0].args[0])
 
     def test_rate_limited_login_without_recent_code_is_actionable(self):
         class FakeConnection(Connection):
