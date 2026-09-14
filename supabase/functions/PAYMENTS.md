@@ -16,7 +16,8 @@ These functions implement the signed mobile-app deposit boundary:
 
 Required encrypted Edge Function secrets (never `EXPO_PUBLIC_*`):
 
-- `STRIPE_SECRET_KEY`
+- `STRIPE_SECRET_KEY` (a server secret key or a restricted key with Checkout
+  Sessions write access)
 - `STRIPE_WEBHOOK_SECRET`
 - `STRIPE_LIVE_MODE` (`false` during acceptance; deliberately change with the
   matching key and webhook only after sign-off)

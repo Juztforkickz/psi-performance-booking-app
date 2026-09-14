@@ -14,6 +14,8 @@ const env = (name: string) => Deno.env.get(name)?.trim() ?? "";
 const json = (body: unknown, status = 200) => Response.json(body, { headers, status });
 const isUuid = (value: unknown): value is string =>
   typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
+const isStripeServerKeyForMode = (key: string, liveMode: boolean) =>
+  liveMode ? /^(?:sk|rk)_live_/u.test(key) : /^(?:sk|rk)_test_/u.test(key);
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers });
@@ -101,7 +103,7 @@ Deno.serve(async (request) => {
   const stripeKey = env("STRIPE_SECRET_KEY");
   const liveMode = env("STRIPE_LIVE_MODE") === "true";
   const returnOrigin = env("PSI_PAYMENT_RETURN_ORIGIN").replace(/\/$/u, "");
-  if (!stripeKey || !/^https:\/\/[^/?#]+/u.test(returnOrigin) || (liveMode ? !stripeKey.startsWith("sk_live_") : !stripeKey.startsWith("sk_test_"))) {
+  if (!stripeKey || !/^https:\/\/[^/?#]+/u.test(returnOrigin) || !isStripeServerKeyForMode(stripeKey, liveMode)) {
     return json({ error: "stripe_not_configured" }, 503);
   }
   if (existing?.provider_checkout_url && existing.expires_at && Date.parse(existing.expires_at) > Date.now()) {
