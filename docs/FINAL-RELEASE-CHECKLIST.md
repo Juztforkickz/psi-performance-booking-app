@@ -2,6 +2,10 @@
 
 Status: controlled QA, 14 September 2026. Payments are deliberately last.
 
+The current ordered owner checklist is
+[LAUNCH-FINALISATION-CHECKLIST-2026-09-14.md](LAUNCH-FINALISATION-CHECKLIST-2026-09-14.md).
+This file retains the detailed technical gates and historical evidence.
+
 Legal-entity direction confirmed by the owner: PSI PERFORMANCE PTY LTD owns and
 publishes the apps and supplies Performance+ digital subscriptions. The owner's
 sole-trader business, publicly identified as PSI Performance, remains the
