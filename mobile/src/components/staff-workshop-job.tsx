@@ -50,8 +50,8 @@ export function StaffWorkshopJob({ booking, vehicle }: { booking: BookingRequest
       <Text style={styles.kicker}>Workshop PC & Xero</Text>
       {loading ? <Text style={styles.muted}>Loading the confirmed PSI job…</Text> : job ? <>
         <Text selectable style={styles.reference}>{job.reference}</Text>
-        <Text style={styles.muted}>Use this exact reference in Xero. Every photo and PDF in its verified PC folder is linked to this customer, vehicle and booking.</Text>
-        {Platform.OS === 'web' ? <PrimaryButton label="Download PC folder file" variant="outline" onPress={downloadManifest} /> : <Text style={styles.muted}>Open the staff portal on the workshop PC to download the folder file.</Text>}
+        <Text style={styles.muted}>Use this exact reference in Xero. The workshop PC automatically creates the verified folder after confirmation and links every photo and PDF to this customer, vehicle and booking.</Text>
+        {Platform.OS === 'web' ? <PrimaryButton label="Download PC folder file · fallback" variant="outline" onPress={downloadManifest} /> : <Text style={styles.muted}>The workshop PC normally creates this folder automatically. Its web portal can still download a fallback folder file.</Text>}
       </> : <Text accessibilityRole="alert" style={styles.error}>{message || 'No workshop job was found. Refresh after the booking is confirmed.'}</Text>}
       {message && job ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
     </View>

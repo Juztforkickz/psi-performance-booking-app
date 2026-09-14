@@ -15,6 +15,7 @@ New-Item -ItemType Directory -Force -Path $InstallRoot, $UploadRoot | Out-Null
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'psi_uploads.py') -Destination $InstallRoot -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'requirements.txt') -Destination $InstallRoot -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Start-PSIWorkshopUploader.ps1') -Destination $InstallRoot -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Start-PSIWorkshopWatcher.ps1') -Destination $InstallRoot -Force
 
 $Python = (Get-Command python -ErrorAction Stop).Source
 & $Python -m venv (Join-Path $InstallRoot '.venv')
@@ -26,6 +27,7 @@ $VenvPython = Join-Path $InstallRoot '.venv\Scripts\python.exe'
   publishableKey = $PublishableKey
   staffEmail = $StaffEmail.Trim().ToLowerInvariant()
   uploadRoot = [System.IO.Path]::GetFullPath($UploadRoot)
+  manifestInbox = [Environment]::GetFolderPath('UserProfile') + '\Downloads'
 } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $InstallRoot 'config.json') -Encoding utf8
 
 $Desktop = [Environment]::GetFolderPath('Desktop')
@@ -37,5 +39,13 @@ $Shortcut.WorkingDirectory = $InstallRoot
 $Shortcut.Description = 'Add verified PSI jobs and upload workshop files'
 $Shortcut.Save()
 
+$Startup = [Environment]::GetFolderPath('Startup')
+$StartupShortcut = $Shell.CreateShortcut((Join-Path $Startup 'PSI Workshop Automatic Uploads.lnk'))
+$StartupShortcut.TargetPath = (Get-Command powershell.exe).Source
+$StartupShortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + (Join-Path $InstallRoot 'Start-PSIWorkshopWatcher.ps1') + '"'
+$StartupShortcut.WorkingDirectory = $InstallRoot
+$StartupShortcut.Description = 'Automatically sync verified PSI jobs and workshop files'
+$StartupShortcut.Save()
+
 Write-Host 'PSI Workshop Uploads is installed for this Windows user.'
-Write-Host 'Use the desktop shortcut. Login still requires the PSI email code and authenticator.'
+Write-Host 'Use the desktop shortcut once to sign in. The protected session then starts automatic uploads with Windows.'

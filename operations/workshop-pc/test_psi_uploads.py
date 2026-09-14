@@ -6,7 +6,11 @@ import tempfile
 import time
 import unittest
 from PIL import Image
-from psi_uploads import Connection, RequestFailure, create_job_folder, ensure_object, manifest_for, prepare_file, process_job
+from psi_uploads import (
+    Connection, RequestFailure, SessionStore, create_job_folder, create_manual_job,
+    ensure_object, import_manifest_inbox, manifest_for, prepare_file, process_job,
+    sync_job_folders,
+)
 
 
 class WorkshopImporterTests(unittest.TestCase):
@@ -149,6 +153,73 @@ class WorkshopImporterTests(unittest.TestCase):
         with self.assertRaises(RequestFailure):
             ensure_object(denied, 'verified/path', b'photo', 'image/jpeg')
         self.assertEqual(denied.uploads, [])
+
+    @unittest.skipUnless(os.name == 'nt', 'Windows DPAPI is required')
+    def test_remembered_session_is_encrypted_and_round_trips_for_windows_user(self):
+        path = self.folder / 'session.dpapi'
+        store = SessionStore(path)
+        store.save('refresh-token-test-value')
+        self.assertNotIn(b'refresh-token-test-value', path.read_bytes())
+        self.assertEqual(store.load(), 'refresh-token-test-value')
+        store.clear()
+        self.assertFalse(path.exists())
+
+    def test_recent_server_jobs_create_idempotent_verified_folders(self):
+        job = {
+            'id': self.manifest['job_id'], 'customer_id': self.manifest['customer_id'],
+            'vehicle_id': self.manifest['vehicle_id'], 'reference': self.manifest['reference'],
+            'title': 'Service', 'job_date': self.manifest['job_date'],
+        }
+        class FakeConnection:
+            url = 'https://test.supabase.co'
+            def call(inner, path, *args, **kwargs):
+                if path.startswith('/rest/v1/workshop_jobs'):
+                    return [job]
+                return [{'id': self.manifest['vehicle_id'], 'customer_id': self.manifest['customer_id'],
+                         'registration': self.manifest['registration'], 'archived_at': None}]
+        root = self.folder / 'uploads'
+        root.mkdir()
+        first, errors = sync_job_folders(root, FakeConnection())
+        second, repeated_errors = sync_job_folders(root, FakeConnection())
+        self.assertEqual(errors + repeated_errors, [])
+        self.assertEqual(first, second)
+        self.assertTrue((first[0] / 'dyno').is_dir())
+
+    def test_phone_job_uses_existing_vehicle_and_staff_identity(self):
+        class FakeConnection:
+            url = 'https://test.supabase.co'
+            user_id = 'a4000000-0000-4000-8000-000000000001'
+            posted = None
+            verified_jobs = {}
+            def call(inner, path, method='GET', data=None, **kwargs):
+                if path.startswith('/rest/v1/customer_vehicles?select=id'):
+                    return [{'id': self.manifest['vehicle_id'], 'customer_id': self.manifest['customer_id'],
+                             'registration': 'ABC123', 'year': 2020, 'make': 'Ford', 'model': 'Mustang',
+                             'archived_at': None}]
+                if path.startswith('/rest/v1/customer_profiles'):
+                    return [{'user_id': self.manifest['customer_id'], 'first_name': 'Test', 'last_name': 'Customer',
+                             'email': 'customer@example.invalid'}]
+                if method == 'POST':
+                    inner.posted = data
+                    return [{**data, 'id': self.manifest['job_id']}]
+                return [{'id': self.manifest['vehicle_id'], 'customer_id': self.manifest['customer_id'],
+                         'registration': 'ABC123', 'archived_at': None}]
+        answers = iter(('abc 123', '1', '2026-09-15', 'service', 'Phone service'))
+        connection = FakeConnection()
+        root = self.folder / 'phone'
+        folder = create_manual_job(root, connection, lambda _prompt: next(answers))
+        self.assertEqual(connection.posted['created_by'], connection.user_id)
+        self.assertEqual(connection.posted['title'], 'Phone service')
+        self.assertTrue(connection.posted['reference'].startswith('PSI-PHONE-20260915-'))
+        self.assertTrue((folder / 'psi-job.json').is_file())
+
+    def test_manifest_inbox_ignores_unrelated_json(self):
+        inbox = self.folder / 'downloads'
+        inbox.mkdir()
+        (inbox / 'settings.json').write_text('{"theme":"dark"}')
+        root = self.folder / 'inbox-uploads'
+        root.mkdir()
+        self.assertEqual(import_manifest_inbox(root, inbox, object()), [])
 
 
 if __name__ == '__main__':

@@ -16,8 +16,12 @@ test('confirmed app bookings create one exact workshop job and PC manifest workf
   assert.match(migration, /'PSI-' \|\| upper\(replace\(new\.id::text, '-', ''\)\)/u);
   assert.match(migration, /on conflict \(booking_request_id\) do nothing/u);
   assert.match(bookingTools, /Use this exact reference in Xero/u);
-  assert.match(bookingTools, /Download PC folder file/u);
+  assert.match(bookingTools, /automatically creates the verified folder/u);
+  assert.match(bookingTools, /Download PC folder file · fallback/u);
   assert.match(uploader, /def create_job_folder/u);
+  assert.match(uploader, /def sync_job_folders/u);
+  assert.match(uploader, /def create_manual_job/u);
+  assert.match(uploader, /class SessionStore/u);
   for (const folder of ['before', 'progress', 'after', 'dyno', 'invoices', 'documents']) {
     assert.match(uploader, new RegExp(`'${folder}'`, 'u'));
   }
