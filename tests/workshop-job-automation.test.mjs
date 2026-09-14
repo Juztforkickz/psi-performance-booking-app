@@ -56,3 +56,34 @@ test('owners can explicitly keep non-app customer invoices in Xero only', async 
   assert.match(review, /Keep in Xero only/u);
   assert.match(review, /It will not appear in an app customer’s vault/u);
 });
+
+test('phone and walk-in jobs can wait safely for a later app-account transfer', async () => {
+  const [migration, indexMigration, uploader, review, guide] = await Promise.all([
+    read('../supabase/migrations/20260914061154_workshop_only_customers.sql'),
+    read('../supabase/migrations/20260914062740_index_workshop_claims.sql'),
+    read('../operations/workshop-pc/psi_uploads.py'),
+    read('../mobile/src/components/staff-workshop-customers.tsx'),
+    read('../operations/workshop-pc/README.md'),
+  ]);
+
+  assert.match(migration, /create table public\.workshop_contacts/u);
+  assert.match(migration, /create table public\.workshop_vehicles/u);
+  assert.match(migration, /create or replace function public\.create_workshop_only_job/u);
+  assert.match(migration, /create or replace function public\.claim_workshop_contact/u);
+  assert.match(migration, /security invoker/u);
+  assert.match(migration, /lower\(btrim\(contact\.email\)\) = lower\(btrim\(customer\.email\)\)/u);
+  assert.match(migration, /if not exact_email and not \(exact_name and exact_registration\)/u);
+  assert.match(migration, /upper\(btrim\(app_vehicle\.registration\)\) = upper\(btrim\(workshop_vehicle\.registration\)\)/u);
+  assert.match(migration, /enable row level security/u);
+  assert.match(indexMigration, /workshop_contacts_claimed_by_idx/u);
+  assert.match(indexMigration, /workshop_jobs_workshop_vehicle_contact_idx/u);
+
+  assert.match(uploader, /'schema': 2, 'owner_type': 'workshop'/u);
+  assert.match(uploader, /waiting_for_customer_account/u);
+  assert.match(uploader, /create_workshop_only_job/u);
+  assert.match(review, /owner review required/u);
+  assert.match(review, /Review & transfer/u);
+  assert.match(review, /exact email match or an exact name plus registration match/u);
+  assert.match(guide, /without creating an app login or sending an invitation/u);
+  assert.match(guide, /Similarity alone never transfers records automatically/u);
+});

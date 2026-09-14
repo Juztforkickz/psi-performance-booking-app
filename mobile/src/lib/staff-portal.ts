@@ -9,6 +9,8 @@ import type {
   CustomerVehicleRow,
   StaffMemberRow,
   VehicleFileRow,
+  WorkshopContactRow,
+  WorkshopVehicleRow,
 } from '@/lib/database.types';
 import { dispatchBookingIntegrationNotifications } from '@/lib/booking-integrations';
 import { parseAccountDeletionError } from '@/lib/deletion-errors';
@@ -56,6 +58,8 @@ export type StaffPortalSnapshot = {
   integrationJobs: BookingIntegrationJobRow[];
   vehicleFiles: VehicleFileRow[];
   vehicles: CustomerVehicleRow[];
+  workshopContacts: WorkshopContactRow[];
+  workshopVehicles: WorkshopVehicleRow[];
 };
 
 export type CustomerInvitationResult = {
@@ -127,7 +131,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     };
   }
 
-  const [customersResult, deletionCustomersResult, vehiclesResult, bookingsResult, integrationJobsResult, auditEventsResult, vehicleFilesResult, accountDeletionRequestsResult, invitationsResult] = await Promise.all([
+  const [customersResult, deletionCustomersResult, vehiclesResult, bookingsResult, integrationJobsResult, auditEventsResult, vehicleFilesResult, accountDeletionRequestsResult, invitationsResult, workshopContactsResult, workshopVehiclesResult] = await Promise.all([
     supabase.from('customer_profiles').select('*').eq('account_state', 'active').order('last_name').order('first_name'),
     supabase.from('customer_profiles').select('*').order('last_name').order('first_name'),
     supabase.from('customer_vehicles').select('*').is('archived_at', null).order('updated_at', { ascending: false }),
@@ -137,6 +141,8 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     supabase.from('vehicle_files').select('*').eq('file_kind', 'vehicle_photo').is('archived_at', null).order('created_at', { ascending: false }).limit(100),
     supabase.from('account_deletion_requests').select('*').order('requested_at', { ascending: true }),
     supabase.from('customer_invitations').select('*').order('invited_at', { ascending: false }).limit(100),
+    supabase.from('workshop_contacts').select('*').order('created_at', { ascending: false }).limit(200),
+    supabase.from('workshop_vehicles').select('*').order('created_at', { ascending: false }).limit(500),
   ]);
   const firstError = customersResult.error
     ?? deletionCustomersResult.error
@@ -146,7 +152,9 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     ?? auditEventsResult.error
     ?? vehicleFilesResult.error
     ?? accountDeletionRequestsResult.error
-    ?? invitationsResult.error;
+    ?? invitationsResult.error
+    ?? workshopContactsResult.error
+    ?? workshopVehiclesResult.error;
   if (firstError) throw firstError;
 
   return {
@@ -163,8 +171,22 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
       invitations: invitationsResult.data ?? [],
       vehicleFiles: vehicleFilesResult.data ?? [],
       vehicles: vehiclesResult.data ?? [],
+      workshopContacts: workshopContactsResult.data ?? [],
+      workshopVehicles: workshopVehiclesResult.data ?? [],
     },
   };
+}
+
+export async function claimWorkshopContact(workshopContactId: string, customerId: string) {
+  const access = await loadStaffMfaSecurityAccess();
+  if (access.kind !== 'ready' || access.staff.role !== 'owner') throw new Error('STAFF_OWNER_AAL2_REQUIRED');
+  const { data, error } = await getSupabaseClient().rpc('claim_workshop_contact', {
+    p_customer_id: customerId,
+    p_workshop_contact_id: workshopContactId,
+  });
+  if (error) throw error;
+  if (!data || data.claimed !== true) throw new Error('WORKSHOP_CLAIM_RESPONSE_INVALID');
+  return data;
 }
 
 export async function completeCustomerAccountDeletion(input: {

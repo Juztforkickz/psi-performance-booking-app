@@ -69,6 +69,20 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(next(iter(second.values()))['status'], 'prepared')
         self.assertEqual(len(list((self.folder / '.psi-prepared' / 'before').glob('*.jpg'))), 2)
 
+    def test_workshop_only_files_wait_for_an_owner_approved_account_claim(self):
+        workshop_manifest = {
+            'schema': 2, 'owner_type': 'workshop', 'project_ref': 'test',
+            'job_id': self.manifest['job_id'],
+            'workshop_contact_id': 'a4400000-0000-4000-8000-000000000001',
+            'workshop_vehicle_id': 'a4500000-0000-4000-8000-000000000001',
+            'registration': 'ABC123', 'reference': 'PSI-PHONE-TEST', 'job_date': '2026-09-08',
+        }
+        (self.folder / 'psi-job.json').write_text(json.dumps(workshop_manifest))
+        self.image()
+        result = process_job(self.folder)
+        self.assertEqual(next(iter(result.values()))['status'], 'waiting_for_customer_account')
+        self.assertTrue((self.folder / '.psi-prepared' / 'before').is_dir())
+
     def test_dyno_image_requires_review(self):
         self.image('dyno')
         result = process_job(self.folder)
@@ -104,6 +118,23 @@ class WorkshopImporterTests(unittest.TestCase):
         source.write_text(json.dumps(changed))
         with self.assertRaisesRegex(ValueError, 'different PSI job'):
             create_job_folder(root, source)
+
+    def test_claimed_workshop_folder_upgrades_to_app_manifest(self):
+        source = self.folder / 'downloaded.json'
+        workshop_manifest = {
+            'schema': 2, 'owner_type': 'workshop', 'project_ref': 'test',
+            'job_id': self.manifest['job_id'],
+            'workshop_contact_id': 'a4400000-0000-4000-8000-000000000001',
+            'workshop_vehicle_id': 'a4500000-0000-4000-8000-000000000001',
+            'registration': self.manifest['registration'], 'reference': self.manifest['reference'],
+            'job_date': self.manifest['job_date'],
+        }
+        source.write_text(json.dumps(workshop_manifest))
+        root = self.folder / 'claimed-uploads'
+        folder = create_job_folder(root, source)
+        source.write_text(json.dumps(self.manifest))
+        self.assertEqual(create_job_folder(root, source), folder)
+        self.assertEqual(json.loads((folder / 'psi-job.json').read_text()), self.manifest)
 
     def test_mismatched_server_owner_environment_and_date_rejected(self):
         manifest = self.manifest
@@ -220,6 +251,8 @@ class WorkshopImporterTests(unittest.TestCase):
             def call(inner, path, *args, **kwargs):
                 if path.startswith('/rest/v1/workshop_jobs'):
                     return [job]
+                if path.startswith('/rest/v1/workshop_vehicles'):
+                    return []
                 return [{'id': self.manifest['vehicle_id'], 'customer_id': self.manifest['customer_id'],
                          'registration': self.manifest['registration'], 'archived_at': None}]
         root = self.folder / 'uploads'
@@ -244,6 +277,8 @@ class WorkshopImporterTests(unittest.TestCase):
                 if path.startswith('/rest/v1/customer_profiles'):
                     return [{'user_id': self.manifest['customer_id'], 'first_name': 'Test', 'last_name': 'Customer',
                              'email': 'customer@example.invalid'}]
+                if path.startswith('/rest/v1/workshop_vehicles'):
+                    return []
                 if method == 'POST':
                     inner.posted = data
                     return [{**data, 'id': self.manifest['job_id']}]
@@ -257,6 +292,40 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(connection.posted['title'], 'Phone service')
         self.assertTrue(connection.posted['reference'].startswith('PSI-PHONE-20260915-'))
         self.assertTrue((folder / 'psi-job.json').is_file())
+
+    def test_phone_job_can_create_workshop_only_customer_without_an_account(self):
+        workshop_contact_id = 'a4400000-0000-4000-8000-000000000001'
+        workshop_vehicle_id = 'a4500000-0000-4000-8000-000000000001'
+        class FakeConnection:
+            url = 'https://test.supabase.co'
+            user_id = 'a4000000-0000-4000-8000-000000000001'
+            rpc_payload = None
+            verified_jobs = {}
+            def call(inner, path, method='GET', data=None, **kwargs):
+                if path.startswith('/rest/v1/customer_vehicles') or path.startswith('/rest/v1/workshop_vehicles'):
+                    return []
+                if path == '/rest/v1/rpc/create_workshop_only_job' and method == 'POST':
+                    inner.rpc_payload = data
+                    return [{
+                        'id': self.manifest['job_id'], 'customer_id': None, 'vehicle_id': None,
+                        'workshop_contact_id': workshop_contact_id, 'workshop_vehicle_id': workshop_vehicle_id,
+                        'reference': 'PSI-PHONE-20260915-1234ABCD', 'title': data['p_title'],
+                        'job_date': data['p_job_date'],
+                    }]
+                raise AssertionError(path)
+        answers = iter((
+            '2fc 2bj', 'yes', 'Phone Customer', '0400 000 000', 'phone@example.com',
+            '2018', 'Toyota', '86', '2026-09-15', 'dyno', 'Phone dyno booking',
+        ))
+        connection = FakeConnection()
+        root = self.folder / 'workshop-only'
+        folder = create_manual_job(root, connection, lambda _prompt: next(answers))
+        self.assertEqual(connection.rpc_payload['p_display_name'], 'Phone Customer')
+        self.assertEqual(connection.rpc_payload['p_registration'], '2FC2BJ')
+        manifest = json.loads((folder / 'psi-job.json').read_text())
+        self.assertEqual(manifest['schema'], 2)
+        self.assertEqual(manifest['owner_type'], 'workshop')
+        self.assertEqual(manifest['workshop_contact_id'], workshop_contact_id)
 
     def test_manifest_inbox_ignores_unrelated_json(self):
         inbox = self.folder / 'downloads'

@@ -165,6 +165,8 @@ export const STAFF_PORTAL_PREVIEW_SNAPSHOT: StaffPortalSnapshot = {
   vehicles,
   bookings,
   vehicleFiles: [],
+  workshopContacts: [],
+  workshopVehicles: [],
   deletionCustomers: [...customers, deletionCustomer],
   accountDeletionRequests: [{
     user_id: deletionCustomer.user_id,

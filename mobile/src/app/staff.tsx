@@ -12,6 +12,7 @@ import { StaffBookingReview } from '@/components/staff-booking-review';
 import { StaffEventsManager } from '@/components/staff-events-manager';
 import { StaffServiceCompletion } from '@/components/staff-service-completion';
 import { StaffWorkshopJob } from '@/components/staff-workshop-job';
+import { StaffWorkshopCustomers } from '@/components/staff-workshop-customers';
 import { colors, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
@@ -412,6 +413,7 @@ export function StaffWorkspace({
   const activeBookings = snapshot.bookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
   const archivedBookings = snapshot.bookings.filter((booking) => ['cancelled', 'completed'].includes(booking.state));
   const waitingIntegrationJobs = snapshot.integrationJobs.filter((job) => ['blocked_configuration', 'failed', 'pending', 'processing'].includes(job.status));
+  const activeWorkshopContacts = snapshot.workshopContacts.filter(contact => contact.status === 'active');
   const completedIntegrationJobs = snapshot.integrationJobs.filter((job) => ['cancelled', 'succeeded'].includes(job.status));
   const auditPeriods = useMemo(() => historyPeriods(snapshot.auditEvents.map((event) => event.occurred_at)), [snapshot.auditEvents]);
   const integrationPeriods = useMemo(() => historyPeriods(completedIntegrationJobs.map((job) => job.completed_at ?? job.created_at)), [completedIntegrationJobs]);
@@ -597,6 +599,7 @@ export function StaffWorkspace({
           <PortalAlertSummary customerLabel={customerAlertLabel} customerCount={notifications.customerUnreadCount} onPress={() => navigate('alerts')} statusLabel={previewMode ? 'Sample workshop and account updates' : Platform.OS === 'web' ? 'Workshop and account updates' : notifications.pushStatus === 'ready' ? 'Device registered' : 'Set up alerts on this phone'} staffCount={notifications.staffUnreadCount} />
           <PrimaryButton label="Add vehicle record" onPress={() => navigate('records')} />
           <WorkspaceLink title="Find customer or vehicle" detail="Search name, email or registration" icon="search-outline" onPress={() => navigate('customers')} />
+          {activeWorkshopContacts.length ? <WorkspaceLink title="Workshop-only customers" detail={`${activeWorkshopContacts.length} phone or walk-in customer${activeWorkshopContacts.length === 1 ? '' : 's'} awaiting an account match`} icon="git-merge-outline" onPress={() => navigate('workshop_customers')} /> : null}
           {waitingIntegrationJobs.length || (role === 'owner' && pendingDeletions.length) ? <>
             <Text style={styles.groupLabel}>Needs attention</Text>
             {waitingIntegrationJobs.length ? <WorkspaceLink title="Email & Calendar" detail={`${waitingIntegrationJobs.length} deliveries to check`} icon="mail-outline" onPress={() => navigate('connections', { tool: 'calendar' })} /> : null}
@@ -737,6 +740,7 @@ export function StaffWorkspace({
             {role === 'owner' ? <>
             <Text style={styles.groupLabel}>Manage accounts</Text>
             <WorkspaceLink title="Invite customer" icon="person-add-outline" onPress={() => navigate('invitations')} />
+            <WorkspaceLink title="Workshop-only customers" detail={`${activeWorkshopContacts.length} awaiting account matching`} icon="git-merge-outline" onPress={() => navigate('workshop_customers')} />
             <WorkspaceLink title="Account requests" detail={`${pendingDeletions.length} awaiting review`} icon="person-remove-outline" onPress={() => navigate('deletion')} />
             </> : null}
           </>}
@@ -747,6 +751,7 @@ export function StaffWorkspace({
           {!recordHasSteps ? <WorkspaceLink title="Imports & drafts" icon="file-tray-outline" onPress={() => navigate('imports')} /> : null}
         </> : null}
         {section === 'imports' ? <StaffVaultReview owner={role === 'owner'} previewMode={previewMode} snapshot={snapshot} /> : null}
+        {section === 'workshop_customers' ? <StaffWorkshopCustomers contacts={snapshot.workshopContacts} customerVehicles={snapshot.vehicles} customers={snapshot.customers} onRefresh={onRefresh} owner={role === 'owner'} workshopVehicles={snapshot.workshopVehicles} /> : null}
         {section === 'access' ? role === 'owner' ? <StaffPerformanceAccess previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} /> : <EmptyState>Owner access is required.</EmptyState> : null}
         {section === 'invitations' ? role === 'owner' ? <>
                   {role === 'owner' ? (

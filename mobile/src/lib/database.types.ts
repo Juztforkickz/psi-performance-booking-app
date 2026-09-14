@@ -206,6 +206,86 @@ export type Database = {
         };
         Relationships: [];
       };
+      workshop_contacts: {
+        Row: {
+          claimed_at: string | null;
+          claimed_by: string | null;
+          claimed_customer_id: string | null;
+          created_at: string;
+          created_by: string;
+          display_name: string;
+          email: string | null;
+          id: string;
+          mobile: string | null;
+          status: 'active' | 'archived' | 'claimed';
+          updated_at: string;
+        };
+        Insert: {
+          claimed_at?: string | null;
+          claimed_by?: string | null;
+          claimed_customer_id?: string | null;
+          created_at?: string;
+          created_by: string;
+          display_name: string;
+          email?: string | null;
+          id?: string;
+          mobile?: string | null;
+          status?: 'active' | 'archived' | 'claimed';
+          updated_at?: string;
+        };
+        Update: {
+          claimed_at?: string | null;
+          claimed_by?: string | null;
+          claimed_customer_id?: string | null;
+          display_name?: string;
+          email?: string | null;
+          mobile?: string | null;
+          status?: 'active' | 'archived' | 'claimed';
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      workshop_vehicles: {
+        Row: {
+          claimed_vehicle_id: string | null;
+          created_at: string;
+          created_by: string;
+          id: string;
+          make: string;
+          model: string;
+          registration: string;
+          status: 'active' | 'archived' | 'claimed';
+          updated_at: string;
+          vin_last_four: string | null;
+          workshop_contact_id: string;
+          year: number;
+        };
+        Insert: {
+          claimed_vehicle_id?: string | null;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          make: string;
+          model: string;
+          registration: string;
+          status?: 'active' | 'archived' | 'claimed';
+          updated_at?: string;
+          vin_last_four?: string | null;
+          workshop_contact_id: string;
+          year: number;
+        };
+        Update: {
+          claimed_vehicle_id?: string | null;
+          make?: string;
+          model?: string;
+          registration?: string;
+          status?: 'active' | 'archived' | 'claimed';
+          updated_at?: string;
+          vin_last_four?: string | null;
+          year?: number;
+        };
+        Relationships: [];
+      };
       customer_invitations: {
         Row: {
           accepted_at: string | null;
@@ -744,7 +824,12 @@ export type Database = {
         Relationships: [];
       };
     };
-    Functions: Record<never, never>;
+    Functions: {
+      claim_workshop_contact: {
+        Args: { p_customer_id: string; p_workshop_contact_id: string };
+        Returns: Record<string, unknown>;
+      };
+    };
     Enums: Record<never, never>;
     CompositeTypes: Record<never, never>;
   };
@@ -758,6 +843,8 @@ export type BookingIntegrationJobRow = Database['public']['Tables']['booking_int
 export type BookingPaymentAttemptRow = Database['public']['Tables']['booking_payment_attempts']['Row'];
 export type BookingPaymentEventRow = Database['public']['Tables']['booking_payment_events']['Row'];
 export type CustomerVehicleRow = Database['public']['Tables']['customer_vehicles']['Row'];
+export type WorkshopContactRow = Database['public']['Tables']['workshop_contacts']['Row'];
+export type WorkshopVehicleRow = Database['public']['Tables']['workshop_vehicles']['Row'];
 export type BookingRequestRow = Database['public']['Tables']['booking_requests']['Row'];
 export type DynoRecordRow = Database['public']['Tables']['dyno_records']['Row'];
 export type InvoiceRow = Database['public']['Tables']['invoices']['Row'];

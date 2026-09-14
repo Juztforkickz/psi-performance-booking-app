@@ -197,10 +197,16 @@ class Connection:
 
 def manifest_for(folder, connection=None):
     manifest = json.loads((folder / 'psi-job.json').read_text(encoding='utf-8-sig'))
-    for field in ('job_id', 'customer_id', 'vehicle_id'):
+    schema = manifest.get('schema')
+    identity_fields = ('job_id', 'customer_id', 'vehicle_id') if schema == 1 else ('job_id', 'workshop_contact_id', 'workshop_vehicle_id')
+    if schema not in (1, 2):
+        raise ValueError('Unsupported PSI job manifest')
+    for field in identity_fields:
         uuid.UUID(manifest[field])
-    if manifest.get('schema') != 1 or not manifest.get('reference') or not manifest.get('registration'):
+    if not manifest.get('reference') or not manifest.get('registration'):
         raise ValueError('Incomplete PSI job manifest')
+    if schema == 2 and manifest.get('owner_type') != 'workshop':
+        raise ValueError('Incomplete workshop-only PSI job manifest')
     date.fromisoformat(manifest['job_date'])
     if connection:
         if manifest.get('project_ref') != urllib.parse.urlparse(connection.url).hostname.split('.')[0]:
@@ -208,11 +214,17 @@ def manifest_for(folder, connection=None):
         if getattr(connection, 'verified_jobs', {}).get(manifest['job_id']) == manifest:
             return manifest
         jobs = connection.call('/rest/v1/workshop_jobs?select=*&id=eq.' + manifest['job_id'])
-        if len(jobs) != 1 or any(jobs[0][f] != manifest[f] for f in ('customer_id', 'vehicle_id', 'reference', 'job_date')):
+        job_fields = ('customer_id', 'vehicle_id', 'reference', 'job_date') if schema == 1 else ('workshop_contact_id', 'workshop_vehicle_id', 'reference', 'job_date')
+        if len(jobs) != 1 or any(jobs[0][field] != manifest[field] for field in job_fields):
             raise ValueError('Job, customer or vehicle does not match the server')
-        vehicles = connection.call('/rest/v1/customer_vehicles?select=registration,customer_id,archived_at&id=eq.' + manifest['vehicle_id'])
-        if len(vehicles) != 1 or vehicles[0]['registration'] != manifest['registration'] or vehicles[0]['archived_at'] or vehicles[0]['customer_id'] != manifest['customer_id']:
-            raise ValueError('Vehicle identity changed; PSI must review the folder')
+        if schema == 1:
+            vehicles = connection.call('/rest/v1/customer_vehicles?select=registration,customer_id,archived_at&id=eq.' + manifest['vehicle_id'])
+            if len(vehicles) != 1 or vehicles[0]['registration'] != manifest['registration'] or vehicles[0]['archived_at'] or vehicles[0]['customer_id'] != manifest['customer_id']:
+                raise ValueError('Vehicle identity changed; PSI must review the folder')
+        else:
+            vehicles = connection.call('/rest/v1/workshop_vehicles?select=registration,workshop_contact_id,status&id=eq.' + manifest['workshop_vehicle_id'])
+            if len(vehicles) != 1 or vehicles[0]['registration'] != manifest['registration'] or vehicles[0]['status'] != 'active' or vehicles[0]['workshop_contact_id'] != manifest['workshop_contact_id']:
+                raise ValueError('Workshop-only vehicle identity changed; PSI must review the folder')
     return manifest
 
 def create_folder_from_manifest(root, manifest):
@@ -226,7 +238,13 @@ def create_folder_from_manifest(root, manifest):
     if destination.exists():
         existing = json.loads(destination.read_text(encoding='utf-8-sig'))
         if existing != manifest:
-            raise ValueError('This folder already contains a different PSI job manifest')
+            claimed_upgrade = (
+                existing.get('schema') == 2 and manifest.get('schema') == 1
+                and all(existing.get(field) == manifest.get(field) for field in ('job_id', 'reference', 'registration', 'job_date'))
+            )
+            if not claimed_upgrade:
+                raise ValueError('This folder already contains a different PSI job manifest')
+            atomic_json(destination, manifest)
     else:
         atomic_json(destination, manifest)
     for category in CATEGORIES:
@@ -249,39 +267,55 @@ def create_job_folder(root, manifest_path, connection=None):
 
 
 def manifest_from_job(connection, job, vehicle=None):
-    if vehicle is None:
-        vehicles = connection.call(
-            '/rest/v1/customer_vehicles?select=id,customer_id,registration,archived_at&id=eq.' + job['vehicle_id']
-        )
-        vehicle = vehicles[0] if len(vehicles) == 1 else None
-    if not vehicle or vehicle['archived_at'] or vehicle['customer_id'] != job['customer_id']:
-        raise ValueError('The workshop job vehicle is unavailable')
-    return {
-        'schema': 1,
-        'project_ref': urllib.parse.urlparse(connection.url).hostname.split('.')[0],
-        'job_id': job['id'],
-        'customer_id': job['customer_id'],
-        'vehicle_id': job['vehicle_id'],
-        'registration': vehicle['registration'],
-        'reference': job['reference'],
-        'job_date': job['job_date'],
-    }
+    project_ref = urllib.parse.urlparse(connection.url).hostname.split('.')[0]
+    if job.get('customer_id') and job.get('vehicle_id'):
+        if vehicle is None:
+            vehicles = connection.call(
+                '/rest/v1/customer_vehicles?select=id,customer_id,registration,archived_at&id=eq.' + job['vehicle_id']
+            )
+            vehicle = vehicles[0] if len(vehicles) == 1 else None
+        if not vehicle or vehicle['archived_at'] or vehicle['customer_id'] != job['customer_id']:
+            raise ValueError('The workshop job vehicle is unavailable')
+        return {
+            'schema': 1, 'project_ref': project_ref, 'job_id': job['id'],
+            'customer_id': job['customer_id'], 'vehicle_id': job['vehicle_id'],
+            'registration': vehicle['registration'], 'reference': job['reference'], 'job_date': job['job_date'],
+        }
+    if job.get('workshop_contact_id') and job.get('workshop_vehicle_id'):
+        if vehicle is None:
+            vehicles = connection.call(
+                '/rest/v1/workshop_vehicles?select=id,workshop_contact_id,registration,status&id=eq.' + job['workshop_vehicle_id']
+            )
+            vehicle = vehicles[0] if len(vehicles) == 1 else None
+        if not vehicle or vehicle['status'] != 'active' or vehicle['workshop_contact_id'] != job['workshop_contact_id']:
+            raise ValueError('The workshop-only job vehicle is unavailable')
+        return {
+            'schema': 2, 'owner_type': 'workshop', 'project_ref': project_ref, 'job_id': job['id'],
+            'workshop_contact_id': job['workshop_contact_id'], 'workshop_vehicle_id': job['workshop_vehicle_id'],
+            'registration': vehicle['registration'], 'reference': job['reference'], 'job_date': job['job_date'],
+        }
+    raise ValueError('The workshop job has no valid owner mode')
 
 
 def sync_job_folders(root, connection, days_back=30):
     """Create local folders for recent/future confirmed and manual workshop jobs."""
     earliest = (date.today() - timedelta(days=days_back)).isoformat()
-    path = ('/rest/v1/workshop_jobs?select=id,customer_id,vehicle_id,reference,title,job_date'
+    path = ('/rest/v1/workshop_jobs?select=id,customer_id,vehicle_id,workshop_contact_id,workshop_vehicle_id,reference,title,job_date'
             '&job_date=gte.' + earliest + '&order=job_date.asc&limit=500')
     vehicles = connection.call(
         '/rest/v1/customer_vehicles?select=id,customer_id,registration,archived_at&archived_at=is.null&limit=2000'
     )
     vehicles_by_id = {vehicle['id']: vehicle for vehicle in vehicles}
+    workshop_vehicles = connection.call(
+        '/rest/v1/workshop_vehicles?select=id,workshop_contact_id,registration,status&status=eq.active&limit=2000'
+    )
+    workshop_vehicles_by_id = {vehicle['id']: vehicle for vehicle in workshop_vehicles}
     connection.verified_jobs = {}
     created, errors = [], []
     for job in connection.call(path):
         try:
-            manifest = manifest_from_job(connection, job, vehicles_by_id.get(job['vehicle_id']))
+            vehicle = vehicles_by_id.get(job.get('vehicle_id')) if job.get('vehicle_id') else workshop_vehicles_by_id.get(job.get('workshop_vehicle_id'))
+            manifest = manifest_from_job(connection, job, vehicle)
             connection.verified_jobs[job['id']] = manifest
             folder = create_folder_from_manifest(root, manifest)
             created.append(folder)
@@ -307,8 +341,49 @@ def import_manifest_inbox(root, inbox, connection):
     return imported
 
 
+def _manual_job_details(input_fn, registration):
+    job_date = input_fn(f'Job date [{date.today().isoformat()}]: ').strip() or date.today().isoformat()
+    date.fromisoformat(job_date)
+    kind = input_fn('Job type (service/dyno) [service]: ').strip().lower() or 'service'
+    if kind not in ('service', 'dyno'):
+        raise ValueError('Job type must be service or dyno')
+    default_title = ('Dyno tuning' if kind == 'dyno' else 'Service') + ' · ' + registration
+    title = input_fn(f'Job description [{default_title}]: ').strip() or default_title
+    if len(title.encode('utf-8')) > 180:
+        raise ValueError('Job description is too long')
+    return job_date, title
+
+
+def _new_workshop_customer(input_fn, registration):
+    if input_fn('No existing vehicle matches. Create a workshop-only customer and vehicle? [y/N]: ').strip().lower() not in ('y', 'yes'):
+        raise ValueError('No workshop job was created')
+    display_name = input_fn('Customer name: ').strip()
+    mobile = input_fn('Customer mobile (optional if email supplied): ').strip()
+    email = input_fn('Customer email (optional if mobile supplied): ').strip().lower()
+    if not display_name or (not mobile and not email):
+        raise ValueError('Enter the customer name and at least a mobile or email')
+    if email and not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+        raise ValueError('Enter a valid customer email or leave it blank')
+    year_text = input_fn('Vehicle year: ').strip()
+    if not year_text.isdigit() or not 1900 <= int(year_text) <= 2200:
+        raise ValueError('Enter a valid four-digit vehicle year')
+    make = input_fn('Vehicle make: ').strip()
+    model = input_fn('Vehicle model: ').strip()
+    if not make or not model:
+        raise ValueError('Enter the vehicle make and model')
+    return {
+        'p_display_name': display_name,
+        'p_email': email or None,
+        'p_mobile': mobile or None,
+        'p_registration': registration,
+        'p_year': int(year_text),
+        'p_make': make,
+        'p_model': model,
+    }
+
+
 def create_manual_job(root, connection, input_fn=input):
-    """Create an AAL2 staff-authorized workshop job for an existing app vehicle."""
+    """Create an AAL2 staff-authorized phone/walk-in job with or without an app account."""
     registration = re.sub(r'\s+', '', input_fn('Vehicle registration: ').upper())
     if not registration:
         raise ValueError('Enter the vehicle registration')
@@ -316,8 +391,6 @@ def create_manual_job(root, connection, input_fn=input):
         '/rest/v1/customer_vehicles?select=id,customer_id,registration,year,make,model,archived_at'
         '&archived_at=is.null&registration=eq.' + urllib.parse.quote(registration, safe='')
     )
-    if not vehicles:
-        raise ValueError('No active app vehicle matches that registration. Add or invite the customer in the PSI portal first.')
     choices = []
     for vehicle in vehicles:
         customers = connection.call(
@@ -326,33 +399,57 @@ def create_manual_job(root, connection, input_fn=input):
         if customers:
             customer = customers[0]
             name = ' '.join(filter(None, (customer.get('first_name'), customer.get('last_name')))).strip() or customer['email']
-            choices.append((vehicle, name))
-    if not choices:
-        raise ValueError('The matching vehicle owner is unavailable')
-    for index, (vehicle, name) in enumerate(choices, 1):
-        print(f'{index}. {vehicle["year"]} {vehicle["make"]} {vehicle["model"]} · {name}')
-    selected = int(input_fn('Choose vehicle: ') or '1')
-    if selected < 1 or selected > len(choices):
-        raise ValueError('Choose one of the listed vehicles')
-    vehicle, _ = choices[selected - 1]
-    job_date = input_fn(f'Job date [{date.today().isoformat()}]: ').strip() or date.today().isoformat()
-    date.fromisoformat(job_date)
-    kind = input_fn('Job type (service/dyno) [service]: ').strip().lower() or 'service'
-    if kind not in ('service', 'dyno'):
-        raise ValueError('Job type must be service or dyno')
-    default_title = ('Dyno tuning' if kind == 'dyno' else 'Service') + ' · ' + vehicle['registration']
-    title = input_fn(f'Job description [{default_title}]: ').strip() or default_title
-    if len(title.encode('utf-8')) > 180:
-        raise ValueError('Job description is too long')
-    reference = 'PSI-PHONE-' + job_date.replace('-', '') + '-' + uuid.uuid4().hex[:8].upper()
-    job = connection.call('/rest/v1/workshop_jobs', 'POST', {
-        'customer_id': vehicle['customer_id'],
-        'vehicle_id': vehicle['id'],
-        'reference': reference,
-        'title': title,
-        'job_date': job_date,
-        'created_by': connection.user_id,
-    }, headers={'Prefer': 'return=representation'})[0]
+            choices.append(('app', vehicle, name))
+    workshop_vehicles = connection.call(
+        '/rest/v1/workshop_vehicles?select=id,workshop_contact_id,registration,year,make,model,status'
+        '&status=eq.active&registration=eq.' + urllib.parse.quote(registration, safe='')
+    )
+    for vehicle in workshop_vehicles:
+        contacts = connection.call(
+            '/rest/v1/workshop_contacts?select=id,display_name,email,mobile,status&id=eq.' + vehicle['workshop_contact_id']
+        )
+        if contacts and contacts[0]['status'] == 'active':
+            choices.append(('workshop', vehicle, contacts[0]['display_name']))
+
+    selected_choice = None
+    if choices:
+        for index, (owner_type, vehicle, name) in enumerate(choices, 1):
+            label = 'App customer' if owner_type == 'app' else 'Workshop-only customer'
+            print(f'{index}. {vehicle["year"]} {vehicle["make"]} {vehicle["model"]} · {name} · {label}')
+        print(f'{len(choices) + 1}. Create a new workshop-only customer and vehicle')
+        selected = int(input_fn('Choose vehicle: ') or '1')
+        if selected < 1 or selected > len(choices) + 1:
+            raise ValueError('Choose one of the listed vehicles')
+        if selected <= len(choices):
+            selected_choice = choices[selected - 1]
+
+    if selected_choice and selected_choice[0] == 'app':
+        _, vehicle, _ = selected_choice
+        job_date, title = _manual_job_details(input_fn, vehicle['registration'])
+        reference = 'PSI-PHONE-' + job_date.replace('-', '') + '-' + uuid.uuid4().hex[:8].upper()
+        job = connection.call('/rest/v1/workshop_jobs', 'POST', {
+            'customer_id': vehicle['customer_id'], 'vehicle_id': vehicle['id'],
+            'reference': reference, 'title': title, 'job_date': job_date,
+            'created_by': connection.user_id,
+        }, headers={'Prefer': 'return=representation'})[0]
+    else:
+        existing_vehicle = selected_choice[1] if selected_choice else None
+        customer = {
+            'p_display_name': None, 'p_email': None, 'p_mobile': None,
+            'p_registration': None, 'p_year': None, 'p_make': None, 'p_model': None,
+        } if existing_vehicle else _new_workshop_customer(input_fn, registration)
+        vehicle_registration = existing_vehicle['registration'] if existing_vehicle else registration
+        job_date, title = _manual_job_details(input_fn, vehicle_registration)
+        payload = {
+            'p_existing_workshop_vehicle_id': existing_vehicle['id'] if existing_vehicle else None,
+            **customer, 'p_title': title, 'p_job_date': job_date,
+        }
+        job = connection.call('/rest/v1/rpc/create_workshop_only_job', 'POST', payload)[0]
+        vehicle = existing_vehicle or {
+            'id': job['workshop_vehicle_id'], 'workshop_contact_id': job['workshop_contact_id'],
+            'registration': registration, 'status': 'active',
+        }
+
     manifest = manifest_from_job(connection, job, vehicle)
     connection.verified_jobs[job['id']] = manifest
     return create_folder_from_manifest(root, manifest)
@@ -372,6 +469,7 @@ def ensure_object(connection, path, content, mime):
 
 def process_job(folder, connection=None):
     manifest = manifest_for(folder, connection)
+    workshop_only = manifest.get('schema') == 2 and manifest.get('owner_type') == 'workshop'
     state_path = folder / '.psi-upload-status.json'
     state = json.loads(state_path.read_text()) if state_path.exists() else {}
     for category, (kind, phase) in CATEGORIES.items():
@@ -396,13 +494,18 @@ def process_job(folder, connection=None):
                 source_key = f'pc:{manifest["job_id"]}:{category}:{digest}'
                 if state.get(relative, {}).get('key') == source_key and state[relative]['status'] == 'uploaded':
                     continue
-                if not connection:
+                if not connection or workshop_only:
                     out = folder / '.psi-prepared' / category
                     out.mkdir(parents=True, exist_ok=True)
                     (out / (digest + ('.pdf' if mime == 'application/pdf' else '.jpg'))).write_bytes(content)
                     if thumb:
                         (out / (digest + '-thumb.jpg')).write_bytes(thumb)
-                    state[relative] = {'key': source_key, 'status': 'prepared', 'bytes': len(content), 'thumbnail_bytes': len(thumb or b'')}
+                    state[relative] = {
+                        'key': source_key,
+                        'status': 'waiting_for_customer_account' if workshop_only else 'prepared',
+                        'bytes': len(content),
+                        'thumbnail_bytes': len(thumb or b''),
+                    }
                 else:
                     existing = connection.call('/rest/v1/vault_records?select=*&source_reference=eq.' + urllib.parse.quote(source_key, safe=''))
                     if existing and existing[0]['published_at']:
@@ -449,7 +552,7 @@ def main():
     parser.add_argument('--prepare-only', action='store_true')
     parser.add_argument('--watch', action='store_true')
     parser.add_argument('--add-job', metavar='MANIFEST', help='Create verified job folders from a portal-downloaded manifest')
-    parser.add_argument('--manual-job', action='store_true', help='Create a phone/walk-in job for an existing app vehicle')
+    parser.add_argument('--manual-job', action='store_true', help='Create a phone/walk-in job with or without an app account')
     parser.add_argument('--manifest-inbox', help='Automatically import valid PSI job JSON files from this folder')
     parser.add_argument('--session-file', help='DPAPI-protected remembered staff session file')
     parser.add_argument('--forget-session', action='store_true')

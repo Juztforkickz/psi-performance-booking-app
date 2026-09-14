@@ -14,6 +14,7 @@ export const STAFF_SECTIONS = {
   invitations: { title: 'Customer invitations', description: 'Approve customer access and review invitations.', tab: 'customers' },
   deletion: { title: 'Account deletion requests', description: 'Review customer requests for account removal.', tab: 'customers' },
   access: { title: 'Customer access', description: 'Review customer access to the PSI app.', tab: 'customers' },
+  workshop_customers: { title: 'Workshop-only customers', description: 'Review phone and walk-in customers and transfer verified history.', tab: 'customers' },
   imports: { title: 'Record imports', description: 'Review the available workshop record import tools.', tab: 'records' },
 } as const satisfies Record<string, { title: string; description: string; tab: StaffTab }>;
 
