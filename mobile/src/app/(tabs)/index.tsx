@@ -498,7 +498,7 @@ export default function CustomerHomeScreen() {
               { borderColor: theme.frame, backgroundColor: activeTheme === 'dark' ? colors.silver : theme.surfaceRaised },
             ]}
           >
-            <View style={styles.qrImageFrame}>
+            <View style={[styles.qrImageFrame, compact && styles.qrImageFrameCompact]}>
               <Image
                 accessibilityIgnoresInvertColors
                 accessibilityLabel="Scan to save PSI contact"
@@ -507,10 +507,10 @@ export default function CustomerHomeScreen() {
                 style={styles.qrImage}
               />
             </View>
-            <View style={styles.qrCopy}>
-              <Text style={styles.qrKicker}>Quick contact</Text>
-              <Text style={[styles.qrTitle, { color: activeTheme === 'dark' ? colors.ink : theme.text }]}>Scan to save PSI contact</Text>
-              <Text style={styles.qrDescription}>
+            <View style={[styles.qrCopy, compact && styles.qrCopyCompact]}>
+              <Text style={[styles.qrKicker, compact && styles.qrTextCompact]}>Quick contact</Text>
+              <Text style={[styles.qrTitle, compact && styles.qrTitleCompact, { color: activeTheme === 'dark' ? colors.ink : theme.text }]}>Scan to save PSI contact</Text>
+              <Text style={[styles.qrDescription, compact && styles.qrDescriptionCompact]}>
                 Phone, email, workshop address and website in one scan.
               </Text>
             </View>
@@ -841,13 +841,18 @@ const styles = StyleSheet.create({
   contactIconCanvas: { width: 22, height: 22, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   contactActionText: { color: colors.white, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   qrCard: { ...mobileFrame, flexDirection: 'row', alignItems: 'center', gap: spacing.md, overflow: 'hidden', backgroundColor: colors.silver, padding: spacing.md },
-  qrCardCompact: { alignItems: 'stretch', flexDirection: 'column' },
+  qrCardCompact: { alignItems: 'center', flexDirection: 'column', gap: spacing.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.xl },
   qrImageFrame: { width: 118, aspectRatio: 1, flexShrink: 0, overflow: 'hidden', backgroundColor: colors.white },
+  qrImageFrameCompact: { width: 132 },
   qrImage: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
   qrCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
+  qrCopyCompact: { alignItems: 'center', flex: 0, width: '100%' },
   qrKicker: { color: '#155D78', fontSize: 9, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
+  qrTextCompact: { textAlign: 'center' },
   qrTitle: { color: colors.ink, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
+  qrTitleCompact: { fontSize: 16, lineHeight: 20, maxWidth: 270, textAlign: 'center' },
   qrDescription: { color: '#555D61', fontSize: 10, lineHeight: 16 },
+  qrDescriptionCompact: { fontSize: 11, lineHeight: 17, maxWidth: 280, textAlign: 'center' },
   footer: { minHeight: 64, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line },
   footerText: { color: colors.muted, fontSize: 10 },
   footerLinkTarget: { minHeight: 44, justifyContent: 'center' },
