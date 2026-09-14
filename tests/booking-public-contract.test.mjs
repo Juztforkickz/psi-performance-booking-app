@@ -894,6 +894,16 @@ test("keeps approval-first clients and the mobile dashboard preview safe", async
   assert.match(mobileGateway, /booking-requests/u);
   assert.match(mobileGateway, /pending_staff_review/u);
 
+  assert.match(mobileBooking, /function restoreCurrentAccountContact\(/u);
+  assert.match(
+    mobileBooking,
+    /setForm\(restoreCurrentAccountContact\(draft\.form, bookingAccountEmail, bookingAccountProfile\)\)/u,
+  );
+  assert.match(
+    mobileBooking,
+    /setForm\(restoreCurrentAccountContact\(draftConflict\.form, bookingAccountEmail, bookingAccountProfile\)\)/u,
+  );
+
   assert.match(mobileUi, /accessibilityRole="radio"[\s\S]{0,80}accessibilityState=\{\{ checked: selected \}\}/u);
   assert.match(mobileGarage, /accessibilityRole="radio"[\s\S]{0,100}accessibilityState=\{\{ checked: selected \}\}/u);
   assert.match(mobileBooking, /accessibilityRole="radio"[\s\S]{0,80}accessibilityState=\{\{ checked: active \}\}/u);

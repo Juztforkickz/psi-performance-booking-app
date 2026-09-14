@@ -68,7 +68,8 @@ test('public Pages preview keeps real account activation explicitly disabled', (
   assert.match(pagesWorkflow, /EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED:\s*['"]false['"]/u);
   assert.match(supabaseClient, /requestedRegistrationActivation/u);
   assert.match(supabaseClient, /requestedAuthActivation\s*&&\s*requestedRegistrationActivation/u);
-  assert.match(authStorage, /Platform\.OS === 'web' \? webMemoryStorage/u);
+  assert.match(authStorage, /Platform\.OS === 'web' \? webSessionStorage/u);
+  assert.match(authStorage, /window\.sessionStorage/u);
   assert.doesNotMatch(authStorage, /window\.localStorage|AsyncStorage/u);
 });
 

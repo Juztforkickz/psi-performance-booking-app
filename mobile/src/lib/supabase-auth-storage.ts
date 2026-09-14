@@ -73,19 +73,31 @@ const nativeSecureStorage: AuthStorage = {
   },
 };
 
-const webMemoryStorage: AuthStorage = {
+const webSessionStorage: AuthStorage = {
   async getItem(key) {
-    return memoryStorage.get(key) ?? null;
+    try {
+      return window.sessionStorage.getItem(key);
+    } catch {
+      return memoryStorage.get(key) ?? null;
+    }
   },
   async removeItem(key) {
-    memoryStorage.delete(key);
+    try {
+      window.sessionStorage.removeItem(key);
+    } catch {
+      memoryStorage.delete(key);
+    }
   },
   async setItem(key, value) {
-    memoryStorage.set(key, value);
+    try {
+      window.sessionStorage.setItem(key, value);
+    } catch {
+      memoryStorage.set(key, value);
+    }
   },
 };
 
-// Native sessions use OS-protected storage. The Expo web preview intentionally
-// keeps sessions in memory so refresh/close signs the user out without writing
-// an authentication token to unprotected persistent app or browser storage.
-export const supabaseAuthStorage = Platform.OS === 'web' ? webMemoryStorage : nativeSecureStorage;
+// Native sessions use OS-protected storage. Authenticated web sessions use the
+// current tab only: refreshes and direct navigation remain signed in, while
+// closing the tab clears the session instead of leaving a long-lived token.
+export const supabaseAuthStorage = Platform.OS === 'web' ? webSessionStorage : nativeSecureStorage;

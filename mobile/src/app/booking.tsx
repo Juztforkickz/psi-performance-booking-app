@@ -213,6 +213,21 @@ export default function BookingScreen() {
   );
 }
 
+function restoreCurrentAccountContact(
+  form: BookingFormState,
+  email: string | null,
+  profile: CustomerProfileRow | null,
+) {
+  if (!email && !profile) return form;
+  return {
+    ...form,
+    email: email?.trim() || profile?.email?.trim() || form.email,
+    firstName: profile?.first_name?.trim() || form.firstName,
+    lastName: profile?.last_name?.trim() || form.lastName,
+    mobile: profile?.mobile?.trim() || form.mobile,
+  };
+}
+
 function accountVehicleToPreview(vehicle: CustomerVehicleRow | undefined): PreviewVehicle | null {
   if (!vehicle) return null;
   return {
@@ -337,7 +352,7 @@ function BookingScreenContent({
           setDraftConflictError('');
           setDraftStatus('');
         } else if (draft) {
-          setForm(draft.form);
+          setForm(restoreCurrentAccountContact(draft.form, bookingAccountEmail, bookingAccountProfile));
           setDraftStatus(`Draft restored from this device · expires ${formatAustralianDate(draft.expiresAt)}`);
         } else {
           setForm(blankForm);
@@ -393,7 +408,7 @@ function BookingScreenContent({
 
   const resumeConflictingDraft = () => {
     if (!draftConflict) return;
-    setForm(draftConflict.form);
+    setForm(restoreCurrentAccountContact(draftConflict.form, bookingAccountEmail, bookingAccountProfile));
     setDraftStatus(`Draft restored from this device · expires ${formatAustralianDate(draftConflict.expiresAt)}`);
     setDraftConflictError('');
     setDraftConflict(null);
