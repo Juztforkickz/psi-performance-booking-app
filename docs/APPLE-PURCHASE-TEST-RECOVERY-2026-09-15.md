@@ -65,8 +65,14 @@ testers repeatedly as an assumed fix. No tester was changed in this recovery.
 - At the recovery check on 15 September, that customer had no verified
   `performance_subscriptions` record. An unlock or completed purchase is not claimed.
 - The subscription sync and webhook functions are ACTIVE at version 3 and the
-  isolated database allows sandbox entitlements. Current Edge Function secret
-  values and the customer's RevenueCat receipt remain unverified by these reads.
+  isolated database allows sandbox entitlements.
+- At 12:58 UTC, an authenticated call to `sync-performance-subscription` completed
+  successfully against RevenueCat and persisted the customer's inactive state.
+  It returned `verified: true, status: expired`, with the no-entitlement fallback
+  expiry of 1970-01-01 and no renewal. This proves the current server credential,
+  provider request and database sync work. It does not establish a past purchase
+  or successful acceptance of an active sandbox receipt. No native purchase was
+  initiated by this server check, and no premium access was granted.
 - The available App Store Connect browser session was signed out. No Apple tester
   password was recovered or changed, and no iPhone sign-in was completed remotely.
 
@@ -85,6 +91,11 @@ testers repeatedly as an assumed fix. No tester was changed in this recovery.
 - Validation: 34 focused purchase, entitlement and legal-screen tests; mobile
   TypeScript; targeted ESLint; isolated iOS export. Deployment evidence is saved
   with the local release output. Device acceptance remains pending.
+- Published source: `8ba542916baa9669a82660da5fcc86e628bc4056`.
+- Independently verified OTA group: `ae1cf549-6dce-4c81-bd85-0be1cc552c21`;
+  iOS update: `01a0a524-f05b-7644-b6a8-bf28397ae81c`.
+- Release export and provider-check evidence:
+  `output/release-2026-09-15-testflight-native-checkout/` (ignored local artifacts).
 
 ## Primary sources
 
