@@ -19,9 +19,12 @@ testers repeatedly as an assumed fix. No tester was changed in this recovery.
 ## App correction
 
 - Only the isolated iOS purchase-test configuration can tolerate foreign product
-  metadata, and only after a fresh native `getStorefront()` confirms Australia.
-- An unavailable or different country prevents the test checkout. Missing currency
-  metadata still prevents checkout. Live/Android purchases still require AUD.
+  metadata. It opens Apple's own purchase confirmation for the selected product.
+- The subsequent audit found that requiring `getStorefront()` to confirm Australia
+  could itself prevent the native sheet from opening. The installed SDK forwards
+  Apple's reported country unchanged; a fresh call does not prove it is accurate.
+  Country lookup is therefore no longer a prerequisite for test pricing or checkout.
+  Missing currency still prevents checkout. Live/Android purchases still require AUD.
 - The exact monthly/annual product identifiers and server entitlement verification
   are retained. Failed verification directs the user to Restore, never another
   purchase. Sandbox receipts still cannot grant production entitlement.
@@ -30,7 +33,8 @@ testers repeatedly as an assumed fix. No tester was changed in this recovery.
   relabelled as AUD. The action says to check the selected price with Apple.
 - The tester must confirm AUD and the expected amount in Apple's own purchase
   sheet. The app cannot force that sheet's currency or establish success locally.
-- Price retrieval refreshes on return to the app and through Retry store prices.
+- Price retrieval is requested on return to the app and through Retry store prices.
+  RevenueCat can serve cached offerings; this is not a forced StoreKit cache reset.
 - TestFlight instructions explain that an ordinary Australian Media & Purchases
   account can be used; a separate sandbox account is optional for extra controls.
 
@@ -46,8 +50,25 @@ testers repeatedly as an assumed fix. No tester was changed in this recovery.
 4. Verify the transaction, server entitlement, premium files, sign-out/sign-in
    persistence and Restore against that same PSI customer. Do not mark these
    checks complete without device and server evidence.
-5. If native storefront detection still fails, capture the exact displayed error
-   and iOS version. Do not repeatedly reset accounts or remove country checks.
+5. If Apple still requests the failing sandbox credentials or does not show the
+   expected AUD confirmation, cancel and capture that exact screen. The native
+   Apple Account authentication cannot be completed remotely from this workspace.
+   Do not recreate testers or change the primary Apple Account as an assumed fix.
+
+## Account evidence
+
+- The isolated project's confirmed PSI review customer is `psiappreview@gmail.com`.
+  This is the in-app login, separate from the Apple sandbox tester and mailbox.
+- A fresh password sign-in using its existing encrypted credential succeeded.
+  Both owned demo vehicles returned a Free vault overview through the same RPC
+  used by the app. Only the temporary audit session was signed out afterward.
+- At the recovery check on 15 September, that customer had no verified
+  `performance_subscriptions` record. An unlock or completed purchase is not claimed.
+- The subscription sync and webhook functions are ACTIVE at version 3 and the
+  isolated database allows sandbox entitlements. Current Edge Function secret
+  values and the customer's RevenueCat receipt remain unverified by these reads.
+- The available App Store Connect browser session was signed out. No Apple tester
+  password was recovered or changed, and no iPhone sign-in was completed remotely.
 
 ## Release and rollback boundaries
 
@@ -55,11 +76,13 @@ testers repeatedly as an assumed fix. No tester was changed in this recovery.
 - Runtime: `1.0.0-performance-purchase-test-1`.
 - Pre-change source: `b44288ed60c7992ba77ae055ceadf705ff53eed9`.
 - Previous OTA group: `e0555779-d465-4228-8625-c4f53da67435`.
+- Country-check correction checkpoint: `c62517619b53e779dc3fb761e3ff4b767bcf6a6e`;
+  corresponding OTA group: `5f86179b-5f6c-4f16-bb5f-5b2569136e40`.
 - Changes cover the purchase helper, Performance+ screen, test-only terms wording,
-  and 16 checkout behavior tests. There is no backend/schema/configuration change.
+  and 14 checkout behavior tests. There is no backend/schema/configuration change.
 - Restore source with a forward revert if requested. The previous compatible OTA
   remains the release rollback target; no destructive reset is required.
-- Validation: 36 focused purchase, entitlement and legal-screen tests; mobile
+- Validation: 34 focused purchase, entitlement and legal-screen tests; mobile
   TypeScript; targeted ESLint; isolated iOS export. Deployment evidence is saved
   with the local release output. Device acceptance remains pending.
 

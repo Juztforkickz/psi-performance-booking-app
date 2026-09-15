@@ -15,7 +15,7 @@ export type PerformancePlusStorePrice = {
   currencyCode: string;
 };
 export type PerformancePlusStorePrices = Record<'monthly' | 'annual', PerformancePlusStorePrice> & {
-  appleTestStorefrontCountryCode?: string | null;
+  applePurchaseTest?: true;
 };
 
 function storefrontConfiguration(): { key: string; name: SubscriptionStorefront; managementUrl: string } | null {
@@ -75,13 +75,8 @@ function isolatedApplePurchaseTest() {
   return Platform.OS === 'ios' && REVIEW_ENVIRONMENT.enabled && subscriptionPurchaseTestMode();
 }
 
-async function appleStorefrontCountry(sdk: Awaited<ReturnType<typeof sdkFor>>) {
-  try { return (await sdk.getStorefront())?.countryCode?.trim().toUpperCase() || null; }
-  catch { return null; }
-}
-
 export async function loadPerformancePlusStorePrices(userId: string): Promise<PerformancePlusStorePrices> {
-  const { sdk, monthly, annual } = await performancePlusPackages(userId);
+  const { monthly, annual } = await performancePlusPackages(userId);
   const toPrice = (item: typeof monthly): PerformancePlusStorePrice => ({
     productId: item.product.identifier,
     value: Number(item.product.price),
@@ -90,7 +85,7 @@ export async function loadPerformancePlusStorePrices(userId: string): Promise<Pe
   });
   return {
     monthly: toPrice(monthly), annual: toPrice(annual),
-    ...(isolatedApplePurchaseTest() ? { appleTestStorefrontCountryCode: await appleStorefrontCountry(sdk) } : {}),
+    ...(isolatedApplePurchaseTest() ? { applePurchaseTest: true as const } : {}),
   };
 }
 export async function verifyWithServer() {
@@ -101,17 +96,12 @@ export async function purchasePerformancePlus(userId: string, period: 'monthly' 
   const { sdk, monthly, annual } = await performancePlusPackages(userId);
   const selected = period === 'monthly' ? monthly : annual;
   const storefront = subscriptionStorefrontName() ?? 'your app store';
-  // TestFlight can return foreign product metadata for an Australian account.
-  // Only the isolated Apple test build may hand this mismatch to native checkout,
-  // and only after checking the actual account storefront afresh.
+  // TestFlight can report inconsistent prices and storefronts. Only the isolated
+  // Apple test build may pass non-AUD metadata to Apple's native confirmation.
+  // A reported storefront must not prevent this test flow from reaching Apple.
   // https://www.revenuecat.com/docs/test-and-launch/sandbox/apple-app-store#currency
   const currency = selected.product.currencyCode?.trim().toUpperCase();
-  if (isolatedApplePurchaseTest()) {
-    const country = await appleStorefrontCountry(sdk);
-    if (country !== 'AUS' && country !== 'AU') {
-      throw new Error('Apple has not confirmed an Australian App Store account. Check Settings > your name > Media & Purchases > View Account > Country/Region, then return and retry. No purchase has been started.');
-    }
-  } else if (currency !== 'AUD') {
+  if (!isolatedApplePurchaseTest() && currency !== 'AUD') {
     throw new Error(`${storefront} has not confirmed an AUD price. No purchase has been started.`);
   }
   if (!currency) throw new Error(`${storefront} has not returned the price currency yet. Please retry. No purchase has been started.`);

@@ -18,8 +18,8 @@ function checkout({
   storefront = { countryCode: 'AUS' }, purchaseError = null, verificationError = null, verified = true,
 } = {}) {
   const calls = [];
-  const state = { storefront, storefrontError: null };
   const userId = 'psi-test-customer';
+  const state = { storefront, storefrontError: null, authUserId: userId, authError: null };
   const makePackage = (identifier, productId) => ({
     identifier,
     product: { identifier: productId, price: 1, priceString: 'Store-formatted price', currencyCode },
@@ -42,7 +42,7 @@ function checkout({
     },
   };
   const client = {
-    auth: { getUser: async () => ({ data: { user: { id: userId } }, error: null }) },
+    auth: { getUser: async () => ({ data: { user: state.authUserId ? { id: state.authUserId } : null }, error: state.authError }) },
     functions: { invoke: async (name, options) => {
       calls.push({ type: 'verify', name, options });
       return { data: { verified }, error: verificationError };
@@ -139,38 +139,40 @@ test('Android foreign-currency checkout stays blocked in live and isolated test 
   }
 });
 
-test('isolated Apple testing permits foreign metadata only with the Australian storefront and server verification', async () => {
+test('isolated Apple testing sends foreign metadata to native checkout and verifies with the server', async () => {
   for (const countryCode of ['AUS', ' au ']) {
     const fixture = checkout({ ...isolatedApple, currencyCode: 'USD', storefront: { countryCode } });
     await fixture.purchase('annual');
-    assert.equal(storefrontReads(fixture).length, 1);
+    assert.equal(storefrontReads(fixture).length, 0);
     assertPurchasedAndVerified(fixture, fixture.annual);
   }
 });
 
-test('isolated Apple foreign metadata is blocked for other or unavailable storefronts', async () => {
+test('unreliable native storefronts cannot block isolated Apple price loading or checkout', async () => {
   for (const storefront of [{ countryCode: 'USA' }, { countryCode: '' }, {}, null]) {
     const fixture = checkout({ ...isolatedApple, currencyCode: 'USD', storefront });
-    await assert.rejects(fixture.purchase(), /Australian App Store account/);
-    assert.equal(storefrontReads(fixture).length, 1);
-    assertNotPurchased(fixture);
+    assert.equal((await fixture.load()).applePurchaseTest, true);
+    await fixture.purchase();
+    assert.equal(storefrontReads(fixture).length, 0);
+    assertPurchasedAndVerified(fixture, fixture.monthly);
   }
   const fixture = checkout({ ...isolatedApple, currencyCode: 'USD' });
   fixture.state.storefrontError = new Error('Storefront unavailable');
-  await assert.rejects(fixture.purchase(), /Australian App Store account/);
-  assert.equal(storefrontReads(fixture).length, 1);
-  assertNotPurchased(fixture);
+  assert.equal((await fixture.load()).applePurchaseTest, true);
+  await fixture.purchase();
+  assert.equal(storefrontReads(fixture).length, 0);
+  assertPurchasedAndVerified(fixture, fixture.monthly);
 });
 
-test('isolated Apple AUD checkout also requires a freshly confirmed Australian storefront', async () => {
+test('isolated Apple AUD checkout does not require storefront diagnostics', async () => {
   const fixture = checkout({ ...isolatedApple });
   fixture.state.storefront = null;
-  await assert.rejects(fixture.purchase(), /Australian App Store account/);
-  assert.equal(storefrontReads(fixture).length, 1);
-  assertNotPurchased(fixture);
+  await fixture.purchase();
+  assert.equal(storefrontReads(fixture).length, 0);
+  assertPurchasedAndVerified(fixture, fixture.monthly);
 });
 
-test('an Australian storefront cannot authorize isolated Apple checkout with missing currency', async () => {
+test('isolated Apple checkout still rejects missing currency metadata', async () => {
   for (const currencyCode of [undefined, null, '', '   ']) {
     const fixture = checkout(isolatedApple);
     fixture.monthly.product.currencyCode = currencyCode;
@@ -179,20 +181,21 @@ test('an Australian storefront cannot authorize isolated Apple checkout with mis
   }
 });
 
-test('price loading exposes Apple test storefront metadata only in the isolated iOS build', async () => {
+test('price loading exposes the Apple purchase-test marker only in the isolated iOS build', async () => {
   for (const options of [
     {}, { purchaseTest: true, appleReview: true },
     { platform: 'android', review: true, purchaseTest: true, googleReview: true },
   ]) {
     const fixture = checkout(options);
     const prices = await fixture.load();
-    assert.equal(Object.hasOwn(prices, 'appleTestStorefrontCountryCode'), false);
+    assert.equal(Object.hasOwn(prices, 'applePurchaseTest'), false);
     assert.equal(storefrontReads(fixture).length, 0);
     assertNotPurchased(fixture);
   }
   const fixture = checkout({ ...isolatedApple, currencyCode: 'USD' });
   const prices = await fixture.load();
-  assert.equal(prices.appleTestStorefrontCountryCode, 'AUS');
+  assert.equal(prices.applePurchaseTest, true);
+  assert.equal(storefrontReads(fixture).length, 0);
   assert.equal(prices.monthly.productId, 'psi_performance_plus_monthly');
   assert.equal(prices.annual.productId, 'psi_performance_plus_annual');
   assert.equal(prices.monthly.currencyCode, 'USD', 'Store metadata must not be relabelled as AUD');
@@ -200,31 +203,14 @@ test('price loading exposes Apple test storefront metadata only in the isolated 
   assertNotPurchased(fixture);
 });
 
-test('isolated Apple price loading tolerates unavailable storefront without inventing an Australian account', async () => {
-  const fixture = checkout(isolatedApple);
-  fixture.state.storefrontError = new Error('Storefront unavailable');
-  const prices = await fixture.load();
-  assert.equal(prices.appleTestStorefrontCountryCode, null);
-  assert.equal(prices.monthly.currencyCode, 'AUD');
-  assertNotPurchased(fixture);
-});
-
-test('checkout rechecks the storefront after loading prices and blocks a later non-Australian account', async () => {
-  const fixture = checkout({ ...isolatedApple, currencyCode: 'USD' });
-  assert.equal((await fixture.load()).appleTestStorefrontCountryCode, 'AUS');
-  fixture.state.storefront = { countryCode: 'USA' };
-  await assert.rejects(fixture.purchase(), /Australian App Store account/);
-  assert.equal(storefrontReads(fixture).length, 2);
-  assertNotPurchased(fixture);
-});
-
-test('checkout uses a newly available Australian storefront instead of stale price-load state', async () => {
-  const fixture = checkout({ ...isolatedApple, currencyCode: 'USD', storefront: { countryCode: 'USA' } });
-  assert.equal((await fixture.load()).appleTestStorefrontCountryCode, 'USA');
-  fixture.state.storefront = { countryCode: 'AUS' };
-  await fixture.purchase();
-  assert.equal(storefrontReads(fixture).length, 2);
-  assertPurchasedAndVerified(fixture, fixture.monthly);
+test('isolated Apple testing still requires a verified matching PSI account', async () => {
+  for (const auth of [{ authUserId: null }, { authUserId: 'another-customer' }, { authError: new Error('Authentication failed') }]) {
+    const fixture = checkout({ ...isolatedApple, currencyCode: 'USD' });
+    Object.assign(fixture.state, auth);
+    await assert.rejects(fixture.purchase(), /Sign into your PSI account/);
+    assertNotPurchased(fixture);
+    assert.equal(fixture.calls.length, 0, 'Unauthenticated checkout must not configure or call the native SDK');
+  }
 });
 
 test('wrong monthly or annual product IDs block checkout even in isolated Apple testing', async () => {
@@ -236,16 +222,20 @@ test('wrong monthly or annual product IDs block checkout even in isolated Apple 
 });
 
 test('native user cancellation reports cancellation without invoking server verification', async () => {
-  const fixture = checkout({ purchaseError: { userCancelled: true } });
-  await assert.rejects(fixture.purchase(), /Purchase cancelled/);
-  assert.equal(purchases(fixture).length, 1);
-  assert.equal(verifications(fixture).length, 0);
+  for (const mode of [{}, { ...isolatedApple, currencyCode: 'USD', storefront: null }]) {
+    const fixture = checkout({ ...mode, purchaseError: { userCancelled: true } });
+    await assert.rejects(fixture.purchase(), /Purchase cancelled/);
+    assert.equal(purchases(fixture).length, 1);
+    assert.equal(verifications(fixture).length, 0);
+  }
 });
 
 test('failed server verification never retries the native purchase and directs the customer to Restore', async () => {
-  for (const options of [{ verified: false }, { verificationError: new Error('Verification unavailable') }]) {
-    const fixture = checkout(options);
-    await assert.rejects(fixture.purchase(), /Restore purchases; do not purchase again/);
-    assertPurchasedAndVerified(fixture, fixture.monthly);
+  for (const mode of [{}, { ...isolatedApple, currencyCode: 'USD', storefront: null }]) {
+    for (const options of [{ verified: false }, { verificationError: new Error('Verification unavailable') }]) {
+      const fixture = checkout({ ...mode, ...options });
+      await assert.rejects(fixture.purchase(), /Restore purchases; do not purchase again/);
+      assertPurchasedAndVerified(fixture, fixture.monthly);
+    }
   }
 });

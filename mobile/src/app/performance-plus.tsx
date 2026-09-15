@@ -132,7 +132,7 @@ export default function PerformancePlusScreen() {
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Purchase could not be completed. Please try again.'); }
     finally { setBusy(false); }
   };
-  const appleTestPrices = !!storePrices && 'appleTestStorefrontCountryCode' in storePrices;
+  const appleTestPrices = storePrices?.applePurchaseTest === true;
   const audStorePrices = !!storePrices && storePrices.monthly.currencyCode === 'AUD' && storePrices.annual.currencyCode === 'AUD';
   const testPriceMismatch = appleTestPrices && !audStorePrices;
   const monthlyPrice = testPriceMismatch ? aud(PERFORMANCE_PRICING.monthly) : storePriceLabel(storePrices?.monthly, PERFORMANCE_PRICING.monthly);
