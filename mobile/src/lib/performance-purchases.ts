@@ -55,10 +55,12 @@ export async function verifyWithServer() {
 export async function purchasePerformancePlus(userId: string, period: 'monthly' | 'annual') {
   const sdk = await sdkFor(userId);
   const offerings = await sdk.getOfferings();
-  const offering = offerings.all.performance_plus;
-  const selected = period === 'monthly' ? offering?.monthly : offering?.annual;
+  const offering = offerings.all.performance_plus ?? (offerings.current?.identifier === 'performance_plus' ? offerings.current : null);
+  const packageIdentifier = period === 'monthly' ? '$rc_monthly' : '$rc_annual';
+  const selected = (period === 'monthly' ? offering?.monthly : offering?.annual)
+    ?? offering?.availablePackages.find(item => item.identifier === packageIdentifier);
   const storefront = subscriptionStorefrontName() ?? 'your app store';
-  if (!selected) throw new Error(`This subscription is not available from ${storefront} yet. Please try again later.`);
+  if (!selected) throw new Error(`${storefront} has not returned the ${period} Performance+ product yet. No purchase was started. Please try again after PSI confirms the store product is ready.`);
   // Never display a hard-coded price then charge a different storefront price.
   const expected = PERFORMANCE_PRICING[period] / 100;
   if (selected.product.currencyCode !== 'AUD' || Math.abs(selected.product.price - expected) > .001) {

@@ -63,11 +63,11 @@ export default function PerformancePlusScreen() {
   const [state, setState] = useState<{ key: string; overview: VaultOverview } | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<'monthly' | 'annual'>('annual');
   const [revision, setRevision] = useState(0);
   const key = `${auth.user?.id ?? 'preview'}:${vehicle?.id}`;
   const overview = demo ? { plan: 'free' as const, counts: { invoice: 7, media: 3, dyno: 2, service: 4, document: 2, modification: 3 }, expires_at: null, is_permanent: false } : state?.key === key ? state.overview : null;
   const focusedCount = focusedKind && overview ? overview.counts[focusedKind] ?? 0 : 0;
-  useEffect(() => setShowAll(!focusedKind), [focusedKind]);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 15000);
     const sub = AppState.addEventListener('change', value => { if (value === 'active') setRevision(v => v + 1); });
@@ -84,10 +84,11 @@ export default function PerformancePlusScreen() {
   const entitlementReady = demo || !!overview;
   const storefront = subscriptionStorefrontName();
   const managementUrl = subscriptionManagementUrl();
+  const purchasesAvailable = subscriptionPurchasesAvailable();
   const refresh = async () => {
     if (busy) return;
     setBusy(true);
-    try { if (!permanentPlus && subscriptionPurchasesAvailable() && auth.user) await verifyWithServer(); setMessage(''); }
+    try { if (!permanentPlus && purchasesAvailable && auth.user) await verifyWithServer(); setMessage(''); }
     catch { setMessage('Your subscription status could not be verified right now. Your last verified access remains in effect until its expiry.'); }
     finally { setRevision(v => v + 1); setBusy(false); }
   };
@@ -158,18 +159,19 @@ export default function PerformancePlusScreen() {
     </> : null}
     {!activePlus && entitlementReady ? <View style={s.pricing}><Text style={s.pricingEyebrow}>UNLOCK YOUR COMPLETE VEHICLE STORY</Text><Text style={s.section}>Choose Performance+</Text><Text style={s.copy}>One subscription covers every vehicle in your PSI account.</Text>
       <View style={[s.priceGrid, singleColumn && s.priceGridStacked]}>
-        <View style={s.priceOption}><Text style={s.priceLabel}>MONTHLY</Text><Text style={s.price}>{aud(PERFORMANCE_PRICING.monthly)}</Text><Text style={s.priceMeta}>per month</Text></View>
-        <View style={[s.priceOption, s.bestValue]}><Text style={s.bestValueLabel}>BEST VALUE</Text><Text style={s.priceLabel}>ANNUAL</Text><Text style={s.price}>{aud(PERFORMANCE_PRICING.annual)}</Text><Text style={s.priceMeta}>per year · save {aud(PERFORMANCE_PRICING.monthly * 12 - PERFORMANCE_PRICING.annual)}</Text></View>
+        <Pressable accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'monthly', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('monthly'); setMessage(''); }} style={({ pressed }) => [s.priceOption, selectedPeriod === 'monthly' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><Text style={s.priceLabel}>MONTHLY</Text><Ionicons name={selectedPeriod === 'monthly' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{aud(PERFORMANCE_PRICING.monthly)}</Text><Text style={s.priceMeta}>per month</Text></Pressable>
+        <Pressable accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'annual', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('annual'); setMessage(''); }} style={({ pressed }) => [s.priceOption, s.bestValue, selectedPeriod === 'annual' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><View style={s.priceChoiceLabels}><Text style={s.bestValueLabel}>BEST VALUE</Text><Text style={s.priceLabel}>ANNUAL</Text></View><Ionicons name={selectedPeriod === 'annual' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{aud(PERFORMANCE_PRICING.annual)}</Text><Text style={s.priceMeta}>per year · save {aud(PERFORMANCE_PRICING.monthly * 12 - PERFORMANCE_PRICING.annual)}</Text></Pressable>
       </View>
-      <PrimaryButton disabled={busy || !subscriptionPurchasesAvailable()} label="Unlock annually" onPress={() => void subscribe('annual')} />
-      <PrimaryButton disabled={busy || !subscriptionPurchasesAvailable()} label="Choose monthly" onPress={() => void subscribe('monthly')} variant="outline" />
-      {!subscriptionPurchasesAvailable() ? <Text style={s.muted}>{demo ? 'Preview only · no payment will be taken.' : 'Purchases are not open in this beta yet. PSI can grant complimentary beta access.'}</Text> : null}
+      <Text style={s.selectionHelp}>Select monthly or annual above, then continue. Apple shows a final confirmation before any sandbox purchase.</Text>
+      <PrimaryButton disabled={!purchasesAvailable} loading={busy} label={`Continue with ${selectedPeriod} · ${aud(PERFORMANCE_PRICING[selectedPeriod])}`} onPress={() => void subscribe(selectedPeriod)} />
+      {!purchasesAvailable ? <Text style={s.muted}>{demo ? 'Preview only · no payment will be taken.' : 'Purchases are not open in this beta yet. PSI can grant complimentary beta access.'}</Text> : null}
+      {message ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
       <Text style={s.muted}>Subscriptions renew automatically unless cancelled before renewal. Cancellation keeps your records safe and locks premium access after the paid period ends.</Text>
     </View> : null}
-    {entitlementReady && !permanentPlus ? <PrimaryButton disabled={busy || !subscriptionPurchasesAvailable()} label="Restore purchases" onPress={() => void subscribe('restore')} variant="outline" /> : null}
+    {entitlementReady && !permanentPlus ? <PrimaryButton disabled={!purchasesAvailable} loading={busy} label="Restore purchases" onPress={() => void subscribe('restore')} variant="outline" /> : null}
     {entitlementReady && !permanentPlus && storefront && managementUrl ? <PrimaryButton label={`Manage ${storefront} subscription`} variant="outline" onPress={() => void Linking.openURL(managementUrl).catch(() => setMessage(`Open ${storefront} on your device and choose Subscriptions.`))} /> : null}
     <PrimaryButton disabled={busy} label={permanentPlus ? 'Refresh access status' : 'Refresh subscription status'} onPress={() => void refresh()} variant="outline" />
-    {message ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
+    {message && (activePlus || !entitlementReady) ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
     <View style={s.free}><Text style={s.section}>Always part of PSI Free</Text><Text style={s.copy}>Your profile and garage, profile and vehicle photos, enquiries, every booking option, kilometre recording, service dates, maintenance reminders, notifications and contacting PSI. Add your own notes for PSI in Reports for free. Original invoices are still emailed normally. Performance+ unlocks detailed workshop records, recommendations, dyno results and the file archive.</Text></View>
     <View style={[s.row, s.legalLinks]}><Pressable accessibilityRole="link" onPress={() => router.push('/privacy')}><Text style={s.link}>Privacy</Text></Pressable><Pressable accessibilityRole="link" onPress={() => router.push('/subscription-terms')}><Text style={s.link}>Subscription terms</Text></Pressable></View>
   </ScrollView></SafeAreaView>;
@@ -228,11 +230,15 @@ export const s = StyleSheet.create({
   priceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   priceGridStacked: { flexDirection: 'column' },
   priceOption: { flex: 1, minWidth: 140, borderColor: colors.line, borderWidth: 1, padding: 15, gap: 4 },
+  priceOptionSelected: { borderColor: colors.accent, backgroundColor: colors.inkSoft, borderWidth: 2 },
   bestValue: { borderColor: colors.accent },
+  priceChoiceHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
+  priceChoiceLabels: { alignItems: 'flex-start', gap: 5 },
   bestValueLabel: { alignSelf: 'flex-start', color: colors.ink, backgroundColor: colors.accent, paddingHorizontal: 7, paddingVertical: 4, fontSize: 8, fontWeight: '900', letterSpacing: .7 },
   priceLabel: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
   price: { color: colors.white, fontSize: 25, fontWeight: '900' },
   priceMeta: { color: colors.muted, fontSize: 11, lineHeight: 16 },
+  selectionHelp: { color: colors.silver, fontSize: 13, lineHeight: 20 },
   notice: { color: colors.accent, fontSize: 15, lineHeight: 23 },
   free: { borderTopWidth: 1, borderColor: colors.line, paddingTop: 22, gap: 12 },
   legalLinks: { flexWrap: 'wrap' },
