@@ -14,7 +14,9 @@ export type PerformancePlusStorePrice = {
   priceString: string;
   currencyCode: string;
 };
-export type PerformancePlusStorePrices = Record<'monthly' | 'annual', PerformancePlusStorePrice>;
+export type PerformancePlusStorePrices = Record<'monthly' | 'annual', PerformancePlusStorePrice> & {
+  appleTestStorefrontCountryCode?: string | null;
+};
 
 function storefrontConfiguration(): { key: string; name: SubscriptionStorefront; managementUrl: string } | null {
   if (Platform.OS === 'ios') return { key: appleKey, name: 'Apple', managementUrl: 'https://apps.apple.com/account/subscriptions' };
@@ -69,15 +71,27 @@ async function performancePlusPackages(userId: string) {
   return { sdk, monthly, annual };
 }
 
+function isolatedApplePurchaseTest() {
+  return Platform.OS === 'ios' && REVIEW_ENVIRONMENT.enabled && subscriptionPurchaseTestMode();
+}
+
+async function appleStorefrontCountry(sdk: Awaited<ReturnType<typeof sdkFor>>) {
+  try { return (await sdk.getStorefront())?.countryCode?.trim().toUpperCase() || null; }
+  catch { return null; }
+}
+
 export async function loadPerformancePlusStorePrices(userId: string): Promise<PerformancePlusStorePrices> {
-  const { monthly, annual } = await performancePlusPackages(userId);
+  const { sdk, monthly, annual } = await performancePlusPackages(userId);
   const toPrice = (item: typeof monthly): PerformancePlusStorePrice => ({
     productId: item.product.identifier,
     value: Number(item.product.price),
     priceString: item.product.priceString,
     currencyCode: item.product.currencyCode?.trim().toUpperCase() ?? '',
   });
-  return { monthly: toPrice(monthly), annual: toPrice(annual) };
+  return {
+    monthly: toPrice(monthly), annual: toPrice(annual),
+    ...(isolatedApplePurchaseTest() ? { appleTestStorefrontCountryCode: await appleStorefrontCountry(sdk) } : {}),
+  };
 }
 export async function verifyWithServer() {
   const { data, error } = await getSupabaseClient().functions.invoke('sync-performance-subscription', { body: {} });
@@ -87,10 +101,20 @@ export async function purchasePerformancePlus(userId: string, period: 'monthly' 
   const { sdk, monthly, annual } = await performancePlusPackages(userId);
   const selected = period === 'monthly' ? monthly : annual;
   const storefront = subscriptionStorefrontName() ?? 'your app store';
-  // The store owns localized subscription pricing. Verify the PSI product and
-  // Australian storefront, then let the native confirmation show the final charge.
+  // TestFlight can return foreign product metadata for an Australian account.
+  // Only the isolated Apple test build may hand this mismatch to native checkout,
+  // and only after checking the actual account storefront afresh.
+  // https://www.revenuecat.com/docs/test-and-launch/sandbox/apple-app-store#currency
   const currency = selected.product.currencyCode?.trim().toUpperCase();
-  if (currency && currency !== 'AUD') throw new Error(`${storefront} returned a non-AUD price. No purchase has been started.`);
+  if (isolatedApplePurchaseTest()) {
+    const country = await appleStorefrontCountry(sdk);
+    if (country !== 'AUS' && country !== 'AU') {
+      throw new Error('Apple has not confirmed an Australian App Store account. Check Settings > your name > Media & Purchases > View Account > Country/Region, then return and retry. No purchase has been started.');
+    }
+  } else if (currency !== 'AUD') {
+    throw new Error(`${storefront} has not confirmed an AUD price. No purchase has been started.`);
+  }
+  if (!currency) throw new Error(`${storefront} has not returned the price currency yet. Please retry. No purchase has been started.`);
   try { await sdk.purchasePackage(selected); }
   catch (error) { if ((error as { userCancelled?: boolean }).userCancelled) throw new Error('Purchase cancelled. You can keep using PSI Free.'); throw error; }
   await verifyWithServer();

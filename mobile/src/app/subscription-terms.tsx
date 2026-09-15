@@ -14,7 +14,7 @@ export default function SubscriptionTerms() {
   const purchaseNotice = !subscriptionPurchasesAvailable()
     ? 'Paid subscriptions are unavailable in this build. You can continue using PSI Free.'
     : REVIEW_ENVIRONMENT.enabled || subscriptionPurchaseTestMode()
-      ? `Sandbox purchase testing is enabled in this build. Use your ${storefront === 'Google Play' ? 'Google Play license tester' : 'Apple sandbox test account'} to test subscriptions and restore purchases.`
+      ? `Sandbox purchase testing is enabled in this build. ${storefront === 'Google Play' ? 'Use your Google Play license tester to test subscriptions and restore purchases.' : 'In TestFlight, use your normal Australian Media & Purchases account. A separate Apple sandbox test account is optional for additional testing controls. TestFlight purchases do not charge real money.'}`
       : `Choose a plan on the Performance+ page. ${provider} confirms product availability and the charge before you purchase.`;
   return <SafeAreaView style={s.screen}><ScrollView contentContainerStyle={s.content}>
     <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={s.link}>‹ Back</Text></Pressable>

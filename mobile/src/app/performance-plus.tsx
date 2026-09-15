@@ -43,8 +43,8 @@ const REPORT_UNLOCKS: Record<ReportKind, { icon: keyof typeof Ionicons.glyphMap;
 
 function storePriceLabel(price: PerformancePlusStorePrice | undefined, fallbackCents: number) {
   if (!price) return aud(fallbackCents);
-  const formatted = price.priceString || new Intl.NumberFormat('en-AU', { style: 'currency', currency: price.currencyCode || 'AUD' }).format(price.value);
-  return price.currencyCode && !formatted.toUpperCase().includes(price.currencyCode) ? `${formatted} ${price.currencyCode}` : formatted;
+  if (price.currencyCode !== 'AUD') return 'AUD price unavailable';
+  return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', currencyDisplay: 'code' }).format(price.value);
 }
 
 export default function PerformancePlusScreen() {
@@ -105,7 +105,7 @@ export default function PerformancePlusScreen() {
       .then(prices => { if (active) setStorePriceState({ key: storePriceKey, prices, message: '' }); })
       .catch(() => { if (active) setStorePriceState({ key: storePriceKey, prices: null, message: `${storefront ?? 'The app store'} pricing could not be loaded. Please try again shortly.` }); });
     return () => { active = false; };
-  }, [activePlus, auth.user, purchasesAvailable, storePriceKey, storefront]);
+  }, [activePlus, auth.user, purchasesAvailable, storePriceKey, storefront, revision]);
   const refresh = async () => {
     if (busy) return;
     setBusy(true);
@@ -132,24 +132,30 @@ export default function PerformancePlusScreen() {
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Purchase could not be completed. Please try again.'); }
     finally { setBusy(false); }
   };
-  const monthlyPrice = storePriceLabel(storePrices?.monthly, PERFORMANCE_PRICING.monthly);
-  const annualPrice = storePriceLabel(storePrices?.annual, PERFORMANCE_PRICING.annual);
+  const appleTestPrices = !!storePrices && 'appleTestStorefrontCountryCode' in storePrices;
+  const audStorePrices = !!storePrices && storePrices.monthly.currencyCode === 'AUD' && storePrices.annual.currencyCode === 'AUD';
+  const testPriceMismatch = appleTestPrices && !audStorePrices;
+  const monthlyPrice = testPriceMismatch ? aud(PERFORMANCE_PRICING.monthly) : storePriceLabel(storePrices?.monthly, PERFORMANCE_PRICING.monthly);
+  const annualPrice = testPriceMismatch ? aud(PERFORMANCE_PRICING.annual) : storePriceLabel(storePrices?.annual, PERFORMANCE_PRICING.annual);
   const selectedPrice = selectedPeriod === 'monthly' ? monthlyPrice : annualPrice;
-  const dynamicSavings = storePrices && storePrices.monthly.currencyCode === storePrices.annual.currencyCode
+  const dynamicSavings = audStorePrices && storePrices
     ? storePrices.monthly.value * 12 - storePrices.annual.value
     : null;
   const annualSavings = dynamicSavings != null && dynamicSavings > 0
-    ? new Intl.NumberFormat('en-AU', { style: 'currency', currency: storePrices?.annual.currencyCode || 'AUD' }).format(dynamicSavings)
+    ? new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', currencyDisplay: 'code' }).format(dynamicSavings)
     : aud(PERFORMANCE_PRICING.monthly * 12 - PERFORMANCE_PRICING.annual);
-  const purchaseReady = purchasesAvailable && !!storePrices && !storePricesLoading;
+  const purchaseReady = purchasesAvailable && !!storePrices && !storePricesLoading && (audStorePrices || appleTestPrices);
   const pricingPanel = !activePlus && entitlementReady ? <View style={s.pricing}>
     <Text style={s.pricingEyebrow}>UNLOCK YOUR COMPLETE VEHICLE STORY</Text><Text style={s.section}>Choose Performance+</Text><Text style={s.copy}>One subscription covers every vehicle in your PSI account.</Text>
     <View style={[s.priceGrid, singleColumn && s.priceGridStacked]}>
       <Pressable accessibilityLabel={`${monthlyPrice} monthly`} accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'monthly', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('monthly'); setMessage(''); }} style={({ pressed }) => [s.priceOption, singleColumn && s.priceOptionStacked, selectedPeriod === 'monthly' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><Text style={s.priceLabel}>MONTHLY</Text><Ionicons name={selectedPeriod === 'monthly' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{storePricesLoading ? 'Checking Apple…' : monthlyPrice}</Text><Text style={s.priceMeta}>per month</Text></Pressable>
       <Pressable accessibilityLabel={`${annualPrice} annual, best value`} accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'annual', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('annual'); setMessage(''); }} style={({ pressed }) => [s.priceOption, singleColumn && s.priceOptionStacked, s.bestValue, selectedPeriod === 'annual' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><View style={s.priceChoiceLabels}><Text style={s.bestValueLabel}>BEST VALUE</Text><Text style={s.priceLabel}>ANNUAL</Text></View><Ionicons name={selectedPeriod === 'annual' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{storePricesLoading ? 'Checking Apple…' : annualPrice}</Text><Text style={s.priceMeta}>per year · save {annualSavings}</Text></Pressable>
     </View>
-    <Text style={s.selectionHelp}>Select monthly or annual above, then continue. Apple shows the final price before any sandbox purchase.</Text>
-    <PrimaryButton disabled={!purchaseReady} loading={busy || storePricesLoading} label={storePricesLoading ? 'Checking Apple prices' : `Unlock ${selectedPeriod} · ${selectedPrice}`} onPress={() => void subscribe(selectedPeriod)} />
+    {testPriceMismatch ? <Text accessibilityRole="alert" style={s.notice}>Australian reference prices shown. Apple returned inconsistent test pricing. Continue to check Apple’s confirmation and approve only if it shows AUD and the expected amount.</Text> : null}
+    <Text style={s.selectionHelp}>{appleTestPrices ? 'TestFlight purchases use Apple\u2019s sandbox. You can use your normal Australian Media & Purchases account; a separate sandbox login is optional.' : 'Select monthly or annual above, then continue. Your app store shows the final price before purchase.'}</Text>
+    <PrimaryButton disabled={!purchaseReady} loading={busy || storePricesLoading} label={storePricesLoading ? 'Checking Apple prices' : testPriceMismatch ? `Check ${selectedPeriod} price with Apple` : `Unlock ${selectedPeriod} · ${selectedPrice}`} onPress={() => void subscribe(selectedPeriod)} />
+    {!storePricesLoading && storePrices && !audStorePrices && !appleTestPrices ? <Text accessibilityRole="alert" style={s.notice}>An AUD price is unavailable. Check your app store account country, then retry.</Text> : null}
+    {purchasesAvailable && auth.user && !activePlus ? <PrimaryButton label="Retry store prices" variant="outline" disabled={busy || storePricesLoading} onPress={() => { setStorePriceState(null); setRevision(v => v + 1); }} /> : null}
     {!purchasesAvailable ? <Text style={s.muted}>{demo ? 'Preview only · no payment will be taken.' : 'Purchases are not open in this beta yet. PSI can grant complimentary beta access.'}</Text> : null}
     {storePricesMessage ? <Text accessibilityRole="alert" style={s.notice}>{storePricesMessage}</Text> : null}
     {message ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
