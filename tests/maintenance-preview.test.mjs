@@ -29,7 +29,8 @@ test('Garage exposes the customer odometer and PSI-only service scheduling field
 test('Vehicle Reports shows the customer odometer without personal service labels', async () => {
   const reports = await readFile(reportsPath, 'utf8');
 
-  assert.match(reports, /vehicleMaintenance\[selectedVehicle\.id\]/u);
+  assert.match(reports, /getAccountReportVehicles/u);
+  assert.match(reports, /Customer odometer/u);
   assert.doesNotMatch(reports, /Personal reminder · not a PSI record/u);
   assert.doesNotMatch(reports, /Personal next check-in/u);
   assert.doesNotMatch(reports, /AsyncStorage|localStorage|EXPO_PUBLIC_API_BASE_URL/u);

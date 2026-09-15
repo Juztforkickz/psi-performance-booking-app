@@ -115,9 +115,8 @@ test("keeps the current web hero responsive and the mobile dashboard artwork con
   assert.match(styles, /\.website-hero::before\s*{[^}]*background:[\s\S]*linear-gradient/s);
   assert.match(styles, /@media \(max-width: 760px\)[\s\S]*\.website-hero\s*{[^}]*min-height:\s*610px[^}]*background-image:\s*url\("\/psi-hero-mobile\.jpg"\)/s);
   assert.match(page, /<section className="website-hero"/u);
-  assert.match(mobilePage, /accessibilityLabel="PSI Performance Holden GTSR and Porsche outside the workshop"[\s\S]*resizeMode="contain"[\s\S]*source=\{require\('\.\.\/\.\.\/\.\.\/assets\/images\/psi-gtsr-porsche-clean\.jpg'\)\}/s);
-  assert.match(mobilePage, /source=\{require\('\.\.\/\.\.\/\.\.\/assets\/images\/psi-gtsr-porsche-clean\.jpg'\)\}[\s\S]*source=\{require\('\.\.\/\.\.\/\.\.\/assets\/images\/psi-logo\.png'\)\}[\s\S]*style=\{styles\.standardShedLogo\}/s);
-  assert.match(mobilePage, /standardImageFrame:\s*\{[^}]*aspectRatio:\s*1746 \/ 901[^}]*overflow:\s*'hidden'/s);
+  assert.match(mobilePage, /accessibilityLabel="PSI Performance Plus app launch artwork"[\s\S]*resizeMode="contain"[\s\S]*source=\{require\('\.\.\/\.\.\/\.\.\/assets\/images\/psi-app-arrived-hero\.webp'\)\}/s);
+  assert.match(mobilePage, /standardImageFrame:\s*\{[^}]*aspectRatio:[^}]*overflow:\s*'hidden'/s);
   assert.doesNotMatch(mobilePage, /testimonial|storyCardWidth|snapToInterval/iu);
 });
 

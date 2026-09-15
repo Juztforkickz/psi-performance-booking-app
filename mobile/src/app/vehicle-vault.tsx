@@ -6,7 +6,7 @@ import { PrimaryButton } from '@/components/ui';
 import { PrivateVaultThumbnail } from '@/components/private-vault-thumbnail';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
-import { loadVaultAssets, loadVaultOverview, loadVaultRecords, VAULT_KINDS, VAULT_LABELS, type VaultAsset, type VaultKind, type VaultRecord } from '@/lib/performance-plus';
+import { loadVaultAssets, loadVaultOverview, loadVaultRecords, REPORT_KINDS, REPORT_LABELS, type VaultAsset, type ReportKind, type VaultRecord } from '@/lib/performance-plus';
 import { getSupabaseClient } from '@/lib/supabase';
 import { s } from './performance-plus';
 
@@ -22,7 +22,7 @@ export default function VehicleVault() {
   const router = useRouter();
   const auth = useCustomerAuth();
   const { vehicleId = '', kind } = useLocalSearchParams<{ vehicleId?: string; kind?: string }>();
-  const filter = VAULT_KINDS.includes(kind as VaultKind) ? kind as VaultKind : null;
+  const filter = REPORT_KINDS.includes(kind as ReportKind) ? kind as ReportKind : null;
   const demo = !CUSTOMER_AUTH.enabled;
   const key = `${auth.user?.id}:${vehicleId}`;
   const [loaded, setLoaded] = useState<{ key: string; records: VaultRecord[]; locked: boolean; expiresAt: string | null } | null>(null);
@@ -73,17 +73,18 @@ export default function VehicleVault() {
     } catch { setError('This private file is unavailable. Check your subscription status and try again.'); }
   };
   return <SafeAreaView style={s.screen}><ScrollView contentContainerStyle={s.content}>
-    <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={s.link}>‹ Back to your vault</Text></Pressable>
-    <Text style={s.eyebrow}>PSI PERFORMANCE+</Text><Text style={s.title}>{filter ? VAULT_LABELS[filter] : 'Your vehicle history'}</Text>
+    <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={s.link}>‹ Back to reports</Text></Pressable>
+    <Text style={s.eyebrow}>PSI PERFORMANCE+</Text><Text style={s.title}>{filter ? REPORT_LABELS[filter] : 'Your vehicle history'}</Text>
     <Text style={s.copy}>{demo ? 'Sample history · fictional records for exploring Performance+.' : 'Your PSI workshop record, organised by date. Private to your account.'}</Text>
-    {locked ? <View style={s.pricing}><Text style={s.pricingEyebrow}>CURRENT PLAN · PSI FREE</Text><Text style={s.section}>Performance+ files locked</Text><Text style={s.copy}>Workshop photos, invoice copies, dyno files, supporting documents, downloads and the detailed archive require Performance+. Your profile, garage, vehicle photo, bookings, service dates, work summaries, recommendations, notifications and reminders remain available. Xero invoices are still emailed normally.</Text><PrimaryButton label="Compare Free and Performance+" onPress={() => router.replace({ pathname: '/performance-plus', params: { vehicleId } })} /></View> : null}
+    {locked ? <View style={s.pricing}><Text style={s.pricingEyebrow}>CURRENT PLAN · PSI FREE</Text><Text style={s.section}>Performance+ records locked</Text><Text style={s.copy}>Repair history, recommendations, dyno results, invoices, photos and files require Performance+. Your vehicle details, service dates, kilometres, bookings, reminders and customer notes stay free. Original invoices are still emailed normally.</Text><PrimaryButton label="Explore Performance+" onPress={() => router.replace({ pathname: '/performance-plus', params: { vehicleId } })} /></View> : null}
     {!demo && !loaded && !error && auth.status === 'signed_in' ? <ActivityIndicator /> : null}
     {!demo && auth.status !== 'signed_in' ? <PrimaryButton label="Sign in to your account" onPress={() => router.push('/account')} /> : null}
     {records.filter(record => !filter || record.kind === filter).map(record => <View key={record.id} style={[s.pricing, { borderLeftWidth: 3, borderLeftColor: '#65CFF8' }]}>
-      <Text style={s.eyebrow}>{new Date(`${record.occurred_on}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}</Text>
+      <Text style={s.eyebrow}>{new Date(`${record.occurred_on.slice(0, 10)}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}</Text>
+      <Text style={s.muted}>{record.source === 'customer_entry' ? 'Customer-supplied · unverified' : 'PSI workshop record · read-only'}</Text>
       <Text style={s.section}>{record.title}</Text><Text style={s.copy}>{record.notes}</Text>
       {record.power_kw ? <Text style={s.copy}>{Math.round(record.power_kw * 1.34102209)} HP at hubs{record.torque_nm ? ` · ${record.torque_nm} Nm at hubs` : ''}</Text> : null}
-      <PrimaryButton label={record.kind === 'media' ? 'Open workshop gallery' : record.kind === 'dyno' ? 'Open dyno PDF' : 'View attached files'} variant="outline" onPress={() => void openRecord(record)} />
+      {!record.id.startsWith('repair:') && !record.id.startsWith('recommendation:') ? <PrimaryButton label={record.kind === 'media' ? 'Open workshop gallery' : record.kind === 'dyno' ? 'Open dyno files' : 'View attached files'} variant="outline" onPress={() => void openRecord(record)} /> : null}
     </View>)}
     {!locked && loaded?.key === key && !records.length ? <Text style={s.copy}>Your archive is ready. Records appear here when PSI publishes workshop work for this vehicle.</Text> : null}
     {!locked && auth.status === 'signed_in' && opened?.key === key ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>{opened.assets.map(asset => asset.mime_type.startsWith('image/') ? <PrivateVaultThumbnail key={asset.id} asset={asset} onOpen={() => void openAsset(asset)} /> : <PrimaryButton key={asset.id} label={`PDF · ${asset.caption || 'Workshop file'}`} onPress={() => void openAsset(asset)} variant="outline" />)}</View> : null}

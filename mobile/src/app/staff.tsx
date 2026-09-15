@@ -718,7 +718,7 @@ export function StaffWorkspace({
                       <View style={styles.flex}>
                         <Text style={styles.vehicleTitle}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
                         <Text style={styles.cardMeta}>{vehicle.registration}{vehicle.is_primary ? ' · Primary vehicle' : ''}</Text>
-                        <Pressable accessibilityRole="button" onPress={() => navigate('records', { customerId: selectedLookupCustomer.user_id, vehicleId: vehicle.id })} style={styles.inlineAction}><Text style={styles.inlineActionText}>Add vehicle record →</Text></Pressable>
+                        <Pressable accessibilityRole="button" onPress={() => navigate('records', { customerId: selectedLookupCustomer.user_id, vehicleId: vehicle.id })} style={styles.inlineAction}><Text style={styles.inlineActionText}>Vehicle records & customer notes →</Text></Pressable>
                       </View>
                     </View>
                   ))}

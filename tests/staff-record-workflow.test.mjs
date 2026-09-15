@@ -53,6 +53,7 @@ function mountComponent(filename, exportName, props, moduleOverrides = {}) {
     '@/components/staff-scroll-select': { StaffScrollSelect: 'Select' },
     '@/components/staff-record-publisher': { StaffRecordPublisher: 'LegacyPublisher' },
     '@/components/staff-vault-publisher': { StaffVaultPublisher: 'VaultPublisher' },
+    '@/components/staff-vehicle-history': { StaffVehicleHistory: 'StaffVehicleHistory' },
     '@/constants/brand': { colors: {}, spacing: { sm: 8, md: 16, lg: 24 } },
     '@/lib/australian-date': { todayAustralianDate: () => '09/09/2026', australianDateToIso: () => '2026-09-09', isoDateToAustralian: () => '09/09/2026' },
     '@/lib/booking': { isEligibleBookingDate: () => true },

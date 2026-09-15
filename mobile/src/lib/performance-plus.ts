@@ -4,9 +4,16 @@ import { getSupabaseClient } from '@/lib/supabase';
 export const PERFORMANCE_PRICING = Object.freeze({ monthly: 999, annual: 9900, currency: 'AUD' });
 export const VAULT_KINDS = ['invoice', 'media', 'dyno', 'service', 'document', 'modification'] as const;
 export type VaultKind = typeof VAULT_KINDS[number];
+export type ReportKind = VaultKind | 'recommendation';
+export const REPORT_KINDS: ReportKind[] = ['service', 'recommendation', 'dyno', 'invoice', 'media', 'modification', 'document'];
+export const REPORT_LABELS: Record<ReportKind, string> = {
+  service: 'Service & repair history', recommendation: 'Recommended work',
+  dyno: 'Dyno results & graphs', invoice: 'Invoice archive', media: 'Workshop photos',
+  modification: 'Modifications & build history', document: 'Reports & documents',
+};
 export const VAULT_LABELS: Record<VaultKind, string> = { invoice: 'Invoice Vault', media: 'Workshop Photos', dyno: 'Dyno File Vault', service: 'Detailed Service Archive', document: 'Documents', modification: 'Build History' };
 export type VaultRecord = {
-  id: string; customer_id: string; vehicle_id: string; job_id: string; kind: VaultKind;
+  id: string; customer_id: string; vehicle_id: string; job_id: string; kind: ReportKind;
   title: string; notes: string; occurred_on: string; power_kw: number | null; torque_nm: number | null;
   run_stage: 'before' | 'after' | 'baseline' | null; amount_cents: number | null; currency: string;
   published_at: string | null; created_at: string; created_by: string | null; source: string; source_reference: string | null;
@@ -23,7 +30,7 @@ export type ServiceCompletionCandidate = {
   suggested_completed_date: string; suggested_summary: string; state: 'pending' | 'completed';
   created_at: string; updated_at: string;
 };
-export type VaultOverview = { plan: 'free' | 'performance_plus'; counts: Partial<Record<VaultKind, number>>; expires_at: string | null; is_permanent: boolean };
+export type VaultOverview = { plan: 'free' | 'performance_plus'; counts: Partial<Record<ReportKind, number>>; expires_at: string | null; is_permanent: boolean };
 type Table<T> = { Row: T; Insert: Partial<T>; Update: Partial<T>; Relationships: [] };
 type VaultDatabase = { public: { Tables: {
   vault_records: Table<VaultRecord>; vault_assets: Table<VaultAsset>; workshop_jobs: Table<WorkshopJob>;
@@ -52,10 +59,60 @@ export async function loadVaultRecords(vehicleId: string) {
   if (error) throw error;
   const legacy = await getSupabaseClient().from('invoices').select('*').eq('vehicle_id', vehicleId).is('archived_at', null).order('invoice_date', { ascending: false }).limit(200);
   if (legacy.error) throw legacy.error;
-  const invoices: VaultRecord[] = (legacy.data ?? []).map(i => ({ id: `legacy:${i.id}`, customer_id: i.customer_id, vehicle_id: i.vehicle_id, job_id: '', kind: 'invoice', title: i.invoice_number, notes: i.summary, occurred_on: i.invoice_date, power_kw: null, torque_nm: null, run_stage: null, amount_cents: i.amount_cents, currency: i.currency, published_at: i.created_at, created_at: i.created_at, created_by: i.created_by, source: 'legacy', source_reference: i.id }));
-  return [...data ?? [], ...invoices].sort((a, b) => b.occurred_on.localeCompare(a.occurred_on));
+  const invoices: VaultRecord[] = (legacy.data ?? []).map(i => ({ id: `legacy:${i.id}`, customer_id: i.customer_id, vehicle_id: i.vehicle_id, job_id: '', kind: 'invoice', title: i.invoice_number, notes: i.summary, occurred_on: i.invoice_date, power_kw: null, torque_nm: null, run_stage: null, amount_cents: i.amount_cents, currency: i.currency, published_at: i.created_at, created_at: i.created_at, created_by: i.created_by, source: i.record_source, source_reference: i.id }));
+  const client = getSupabaseClient();
+  const [dyno, repairs, recommendations, documents] = await Promise.all([
+    client.from('dyno_records').select('*').eq('vehicle_id', vehicleId).is('archived_at', null).order('tested_at', { ascending: false }),
+    client.from('repair_records').select('*').eq('vehicle_id', vehicleId).is('archived_at', null).order('repair_date', { ascending: false }),
+    client.from('recommended_work').select('*').eq('vehicle_id', vehicleId).is('archived_at', null).order('created_at', { ascending: false }),
+    client.from('vehicle_files').select('*').eq('vehicle_id', vehicleId).eq('file_kind', 'repair_document').is('archived_at', null).order('created_at', { ascending: false }),
+  ]);
+  if (dyno.error || repairs.error || recommendations.error || documents.error) throw dyno.error ?? repairs.error ?? recommendations.error ?? documents.error;
+  const base = { job_id: '', power_kw: null, torque_nm: null, run_stage: null, amount_cents: null, currency: 'AUD', source_reference: null };
+  const results: VaultRecord[] = (dyno.data ?? []).map(d => ({
+    ...base, id: 'dyno:' + d.id, customer_id: d.customer_id, vehicle_id: d.vehicle_id, kind: 'dyno',
+    title: 'Hub dyno', notes: [d.fuel, d.notes].filter(Boolean).join(' · '), occurred_on: d.tested_at,
+    power_kw: d.power_kw_at_hubs, torque_nm: d.torque_nm_at_hubs, published_at: d.created_at,
+    created_at: d.created_at, created_by: d.created_by, source: d.record_source,
+  }));
+  const history: VaultRecord[] = (repairs.data ?? []).map(r => ({
+    ...base, id: 'repair:' + r.id, customer_id: r.customer_id, vehicle_id: r.vehicle_id, kind: 'service',
+    title: r.title, notes: [r.odometer_km == null ? null : r.odometer_km.toLocaleString('en-AU') + ' km', r.notes].filter(Boolean).join(' · '),
+    occurred_on: r.repair_date, published_at: r.created_at, created_at: r.created_at, created_by: r.created_by, source: r.record_source,
+  }));
+  const future: VaultRecord[] = (recommendations.data ?? []).map(r => ({
+    ...base, id: 'recommendation:' + r.id, customer_id: r.customer_id, vehicle_id: r.vehicle_id, kind: 'recommendation',
+    title: r.title, notes: [r.status.replaceAll('_', ' '), r.timing, r.notes].filter(Boolean).join(' · '),
+    occurred_on: r.created_at.slice(0, 10), published_at: r.created_at, created_at: r.created_at,
+    created_by: r.created_by, source: r.record_source,
+  }));
+  const supportingFiles: VaultRecord[] = (documents.data ?? []).map(f => ({
+    ...base, id: 'document:' + f.id, customer_id: f.customer_id, vehicle_id: f.vehicle_id, kind: 'document',
+    title: 'Vehicle document', notes: 'Previously uploaded vehicle paperwork.', occurred_on: f.created_at.slice(0, 10),
+    published_at: f.created_at, created_at: f.created_at, created_by: f.created_by, source: f.record_source,
+  }));
+  return [...data ?? [], ...invoices, ...results, ...history, ...future, ...supportingFiles].sort((a, b) => b.occurred_on.localeCompare(a.occurred_on));
 }
 export async function loadVaultAssets(recordId: string) {
+  if (recordId.startsWith('document:')) {
+    const { data: f, error } = await getSupabaseClient().from('vehicle_files').select('*')
+      .eq('id', recordId.slice(9)).eq('file_kind', 'repair_document').is('archived_at', null).maybeSingle();
+    if (error) throw error;
+    return f ? [{ id: 'legacy:' + f.id, record_id: recordId, customer_id: f.customer_id,
+      vehicle_id: f.vehicle_id, object_path: f.object_path, thumbnail_path: null, mime_type: f.mime_type,
+      size_bytes: f.file_size_bytes, sha256: '', caption: 'Vehicle document', phase: null, ready: true,
+      created_at: f.created_at, created_by: f.created_by }] as VaultAsset[] : [];
+  }
+  if (recordId.startsWith('repair:') || recordId.startsWith('recommendation:')) return [];
+  if (recordId.startsWith('dyno:')) {
+    const { data, error } = await getSupabaseClient().from('vehicle_files').select('*')
+      .eq('dyno_record_id', recordId.slice(5)).is('archived_at', null);
+    if (error) throw error;
+    return (data ?? []).map(f => ({ id: 'legacy:' + f.id, record_id: recordId, customer_id: f.customer_id,
+      vehicle_id: f.vehicle_id, object_path: f.object_path, thumbnail_path: null, mime_type: f.mime_type,
+      size_bytes: f.file_size_bytes, sha256: '', caption: 'Dyno graph', phase: null, ready: true,
+      created_at: f.created_at, created_by: f.created_by })) as VaultAsset[];
+  }
   if (recordId.startsWith('legacy:')) {
     const { data, error } = await getSupabaseClient().from('vehicle_files').select('*').eq('invoice_id', recordId.slice(7)).is('archived_at', null);
     if (error) throw error;

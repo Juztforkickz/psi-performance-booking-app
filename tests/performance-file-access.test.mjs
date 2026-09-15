@@ -14,7 +14,7 @@ test('Performance+ protects vehicle documents while PSI Free keeps profile photo
   assert.match(migration, /on storage\.objects as restrictive for insert to authenticated[\s\S]*?bucket_id <> 'vehicle-documents'[\s\S]*?private\.has_performance_plus\(\)/u);
 });
 
-test('Vehicle Reports keeps information free and gates only file attachments', async () => {
+test('Vehicle Reports advertises locked categories without fetching their contents', async () => {
   const [reports, plus, vault, terms] = await Promise.all([
     read('../mobile/src/app/vehicle-reports.tsx'),
     read('../mobile/src/app/performance-plus.tsx'),
@@ -22,15 +22,14 @@ test('Vehicle Reports keeps information free and gates only file attachments', a
     read('../mobile/src/app/subscription-terms.tsx'),
   ]);
 
-  assert.match(reports, /loadVaultOverview\(selectedVehicle\.id\)/u);
-  assert.match(reports, /performanceOverview\?\.plan === 'performance_plus'/u);
-  assert.match(reports, /Vehicle details, service dates, work summaries and PSI recommendations stay available with PSI Free/u);
-  assert.match(reports, /performanceFilesUnlocked \? <AttachmentPicker/u);
-  assert.match(reports, /Dyno graph images/u);
-  assert.match(reports, /Invoice images and PDFs/u);
-  assert.match(reports, /Xero still emails the original invoice/u);
+  assert.match(reports, /loadVaultOverview\(vehicleId\)/u);
+  assert.match(reports, /overview\?\.plan === 'performance_plus'/u);
+  assert.match(reports, /Vehicle details, dates, kilometres, reminders, bookings and your notes stay free/u);
+  assert.match(reports, /lock-closed-outline/u);
+  assert.doesNotMatch(reports, /loadVaultRecords|loadCustomerVehicleReports/u);
+  assert.match(reports, /Your original invoice is still emailed/u);
   assert.match(plus, /profile and vehicle photos, enquiries, every booking option/u);
   assert.match(plus, /invoice copies, dyno files, supporting documents, downloads/u);
-  assert.match(vault, /Performance\+ files locked/u);
+  assert.match(vault, /Performance\+ records locked/u);
   assert.match(terms, /Xero invoices continue to be delivered by email/u);
 });

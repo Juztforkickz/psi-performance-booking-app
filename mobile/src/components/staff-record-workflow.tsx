@@ -6,6 +6,7 @@ import { PrimaryButton } from '@/components/ui';
 import { StaffRecordPublisher, type StaffRecordType } from '@/components/staff-record-publisher';
 import { StaffVaultPublisher } from '@/components/staff-vault-publisher';
 import { StaffScrollSelect } from '@/components/staff-scroll-select';
+import { StaffVehicleHistory } from '@/components/staff-vehicle-history';
 import { colors, spacing } from '@/constants/brand';
 import type { VaultKind } from '@/lib/performance-plus';
 import type { StaffPortalSnapshot } from '@/lib/staff-portal';
@@ -48,6 +49,7 @@ export function StaffRecordWorkflow({ snapshot, customerId: shortcutCustomerId, 
   const [customerId, setCustomerId] = useState(() => snapshot.customers.some(customer => customer.user_id === shortcutCustomerId) ? shortcutCustomerId! : '');
   const [vehicleId, setVehicleId] = useState(() => snapshot.vehicles.some(vehicle => vehicle.id === shortcutVehicleId && vehicle.customer_id === customerId) ? shortcutVehicleId! : '');
   const [identityChosen, setIdentityChosen] = useState(Boolean(customerId && vehicleId));
+  const [viewingHistory, setViewingHistory] = useState(false);
   const [category, setCategory] = useState<Category | null>(null);
   const [destination, setDestination] = useState<Destination | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -71,7 +73,7 @@ export function StaffRecordWorkflow({ snapshot, customerId: shortcutCustomerId, 
   };
   const applyStep = useCallback((action: 'back' | 'identity') => {
     if (busy) return;
-    if (action === 'identity') { setDestination(null); setCategory(null); setIdentityChosen(false); }
+    if (action === 'identity') { setDestination(null); setCategory(null); setIdentityChosen(false); setViewingHistory(false); }
     else if (destination && category && formats[category]) setDestination(null);
     else { setDestination(null); setCategory(null); }
     dirtyChanged(false);
@@ -83,9 +85,9 @@ export function StaffRecordWorkflow({ snapshot, customerId: shortcutCustomerId, 
     else applyStep(action);
   }, [busy, dirty, applyStep]);
   useEffect(() => {
-    onBackHandlerChange?.(identityReady ? () => requestStep(category ? 'back' : 'identity') : null);
+    onBackHandlerChange?.(identityReady ? () => viewingHistory ? setViewingHistory(false) : requestStep(category ? 'back' : 'identity') : null);
     return () => onBackHandlerChange?.(null);
-  }, [onBackHandlerChange, identityReady, category, requestStep]);
+  }, [onBackHandlerChange, identityReady, category, requestStep, viewingHistory]);
   const selectedTitle = destination && category
     ? formats[category]?.find(option => option.destination.legacy === destination.legacy && option.destination.vault === destination.vault)?.title ?? categories.find(option => option.id === category)?.title
     : categories.find(option => option.id === category)?.title;
@@ -115,7 +117,10 @@ export function StaffRecordWorkflow({ snapshot, customerId: shortcutCustomerId, 
       </Pressable> : null}
       <Text style={styles.title}>{selectedTitle}</Text>
     </View> : <Text style={styles.muted}>Add to this vehicle</Text>}
-    {!category ? categories.map(option => <Row key={option.id} icon={option.icon} title={option.title} onPress={() => chooseCategory(option.id)} />) : null}
+    {!category ? <PrimaryButton label={viewingHistory ? 'Back to record actions' : 'View records & customer notes'} variant="outline" onPress={() => setViewingHistory(value => !value)} /> : null}
+    {!category && viewingHistory ? <StaffVehicleHistory key={customerId + ':' + vehicleId} vehicleId={vehicleId} previewMode={previewMode} /> : null}
+    {!category && !viewingHistory ? <Text style={styles.title}>Publish a PSI record</Text> : null}
+    {!category && !viewingHistory ? categories.map(option => <Row key={option.id} icon={option.icon} title={option.title} onPress={() => chooseCategory(option.id)} />) : null}
     {category && !destination ? formats[category]?.map(option => <Row key={option.title} title={option.title} description={option.description} icon="document-text-outline" onPress={() => setDestination(option.destination)} />) : null}
     {destination?.legacy ? <StaffRecordPublisher key={`legacy:${destination.legacy}:${customerId}:${vehicleId}`} compact fixedIdentity fixedType={destination.legacy} initialCustomerId={customerId} initialVehicleId={vehicleId} onBusyChange={busyChanged} onDirtyChange={dirtyChanged} previewMode={previewMode} snapshot={snapshot} /> : null}
     {destination?.vault ? <StaffVaultPublisher key={`vault:${destination.vault}:${customerId}:${vehicleId}`} compact fixedIdentity fixedKind={destination.vault} initialCustomerId={customerId} initialVehicleId={vehicleId} onBusyChange={busyChanged} onDirtyChange={dirtyChanged} previewMode={previewMode} snapshot={snapshot} /> : null}

@@ -4,24 +4,17 @@ import test from 'node:test';
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 
-test('signed-in report forms publish private account records and refresh the list', async () => {
-  const [screen, publisher] = await Promise.all([
+test('Reports keeps free notes separate from the paid workshop archive', async () => {
+  const [screen, notes] = await Promise.all([
     read('../mobile/src/app/vehicle-reports.tsx'),
-    read('../mobile/src/lib/customer-report-publishing.ts'),
+    read('../mobile/src/lib/customer-vehicle-notes.ts'),
   ]);
-
-  for (const fn of ['saveCustomerDyno', 'saveCustomerRepair', 'saveCustomerRecommendation', 'saveCustomerInvoice']) {
-    assert.match(screen, new RegExp(`await ${fn}\\(`, 'u'));
-    assert.match(publisher, new RegExp(`export async function ${fn}\\(`, 'u'));
-  }
-  assert.match(screen, /await onRefreshReports\?\.\(\)/u);
-  assert.match(screen, /saved and locked/u);
-  assert.doesNotMatch(screen, /<PerformanceVaultCard/u);
-  assert.match(screen, /Back to vehicle reports/u);
-  assert.match(publisher, /PRIVATE_DOCUMENT_BUCKET = 'vehicle-documents'/u);
-  assert.match(publisher, /MAX_CUSTOMER_ATTACHMENT_BYTES = 8 \* 1024 \* 1024/u);
-  assert.match(publisher, /record_source: 'customer_entry'/u);
-  assert.match(publisher, /upsert: false/u);
+  assert.match(screen, /CustomerVehicleNotes/u);
+  assert.doesNotMatch(screen, /saveCustomerDyno|saveCustomerRepair|saveCustomerRecommendation|saveCustomerInvoice/u);
+  assert.doesNotMatch(screen, /loadCustomerVehicleReports|PREVIEW_DYNO_RECORDS/u);
+  assert.match(notes, /auth\.getUser\(\)/u);
+  assert.match(notes, /customer_id: auth\.user\.id/u);
+  assert.match(notes, /customer_vehicle_notes/u);
 });
 
 test('report migration keeps customer history append-only and separates PSI invoices', async () => {

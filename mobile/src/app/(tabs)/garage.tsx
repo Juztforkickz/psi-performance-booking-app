@@ -496,9 +496,10 @@ function GarageContent({
           <Text style={styles.maintenanceExpiry}>{secureVehicles ? 'Odometer updates save to your account.' : 'Demo odometer changes clear when the app closes.'}</Text>
         </View>
 
-        {dynoFirst ? <DynoResultCard accountConnected={Boolean(secureVehicles)} key={`dyno-first-${selectedVehicle.id}`} onOpenReports={() => router.push({ pathname: '/vehicle-reports', params: { vehicleId: selectedVehicle.id } })} results={dynoResults} vehicleLabel={vehicleLabel} /> : null}
+        {secureVehicles ? <View style={styles.dynoCard}><Text style={styles.bodyCopy}>Dyno results and graphs are in your Performance+ reports.</Text><PrimaryButton label="Open vehicle reports" onPress={() => router.push({ pathname: '/vehicle-reports', params: { vehicleId: selectedVehicle.id } })} variant="outline" /></View> : null}
+        {!secureVehicles && dynoFirst ? <DynoResultCard accountConnected={false} key={`dyno-first-${selectedVehicle.id}`} onOpenReports={() => router.push({ pathname: '/vehicle-reports', params: { vehicleId: selectedVehicle.id } })} results={dynoResults} vehicleLabel={vehicleLabel} /> : null}
 
-        {!dynoFirst ? <DynoResultCard accountConnected={Boolean(secureVehicles)} key={`dyno-${selectedVehicle.id}`} onOpenReports={() => router.push({ pathname: '/vehicle-reports', params: { vehicleId: selectedVehicle.id } })} results={dynoResults} vehicleLabel={vehicleLabel} /> : null}
+        {!secureVehicles && !dynoFirst ? <DynoResultCard accountConnected={false} key={`dyno-${selectedVehicle.id}`} onOpenReports={() => router.push({ pathname: '/vehicle-reports', params: { vehicleId: selectedVehicle.id } })} results={dynoResults} vehicleLabel={vehicleLabel} /> : null}
 
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>Plan & Build</Text>
