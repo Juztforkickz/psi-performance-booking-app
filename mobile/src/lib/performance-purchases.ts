@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { getSupabaseClient } from '@/lib/supabase';
@@ -112,4 +112,15 @@ export async function purchasePerformancePlus(userId: string, period: 'monthly' 
 export async function restorePerformancePlus(userId: string) {
   await (await sdkFor(userId)).restorePurchases();
   await verifyWithServer();
+}
+
+export async function managePerformancePlusSubscription(userId: string) {
+  const sdk = await sdkFor(userId);
+  if (Platform.OS === 'ios') {
+    await sdk.showManageSubscriptions();
+    return;
+  }
+  const managementUrl = storefrontConfiguration()?.managementUrl;
+  if (!managementUrl) throw new Error('Subscription management is unavailable on this device.');
+  await Linking.openURL(managementUrl);
 }

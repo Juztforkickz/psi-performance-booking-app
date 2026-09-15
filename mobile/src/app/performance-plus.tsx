@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StaffScrollSelect } from '@/components/staff-scroll-select';
 import { PrimaryButton } from '@/components/ui';
 import { colors } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -10,8 +11,8 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
-import { aud, loadVaultOverview, PERFORMANCE_PRICING, REPORT_KINDS, REPORT_LABELS, VAULT_KINDS, VAULT_LABELS, type ReportKind, type VaultOverview } from '@/lib/performance-plus';
-import { loadPerformancePlusStorePrices, purchasePerformancePlus, restorePerformancePlus, subscriptionManagementUrl, subscriptionPurchasesAvailable, subscriptionStorefrontName, verifyWithServer, type PerformancePlusStorePrice, type PerformancePlusStorePrices } from '@/lib/performance-purchases';
+import { aud, loadVaultOverview, PERFORMANCE_PRICING, REPORT_KINDS, REPORT_LABELS, VAULT_LABELS, type ReportKind, type VaultOverview } from '@/lib/performance-plus';
+import { loadPerformancePlusStorePrices, managePerformancePlusSubscription, purchasePerformancePlus, restorePerformancePlus, subscriptionPurchasesAvailable, subscriptionStorefrontName, verifyWithServer, type PerformancePlusStorePrice, type PerformancePlusStorePrices } from '@/lib/performance-purchases';
 
 const VAULT_DESCRIPTIONS = {
   invoice: 'Your in-app invoice and receipt PDF archive. Xero invoices are still emailed to every customer.',
@@ -20,6 +21,7 @@ const VAULT_DESCRIPTIONS = {
   service: 'Detailed PSI service files organised around each workshop visit.',
   document: 'Supporting reports, paperwork and private vehicle documents.',
   modification: 'A lasting file archive for each build milestone.',
+  recommendation: 'PSI recommended work, its priority and the best time to complete it.',
 } as const;
 
 const VAULT_ICONS = {
@@ -29,7 +31,13 @@ const VAULT_ICONS = {
   service: 'construct-outline',
   document: 'documents-outline',
   modification: 'build-outline',
+  recommendation: 'alert-circle-outline',
 } as const;
+
+const PERFORMANCE_LABELS: Record<ReportKind, string> = {
+  ...VAULT_LABELS,
+  recommendation: REPORT_LABELS.recommendation,
+};
 
 const REPORT_UNLOCKS: Record<ReportKind, { icon: keyof typeof Ionicons.glyphMap; benefits: string[] }> = {
   service: { icon: 'construct-outline', benefits: ['Read detailed PSI service and repair history.', 'Keep workshop findings organised by visit.', 'Open supporting files attached to the work.'] },
@@ -74,7 +82,7 @@ export default function PerformancePlusScreen() {
   const [storePriceState, setStorePriceState] = useState<{ key: string; prices: PerformancePlusStorePrices | null; message: string } | null>(null);
   const [revision, setRevision] = useState(0);
   const key = `${auth.user?.id ?? 'preview'}:${vehicle?.id}`;
-  const overview = demo ? { plan: 'free' as const, counts: { invoice: 7, media: 3, dyno: 2, service: 4, document: 2, modification: 3 }, expires_at: null, is_permanent: false } : state?.key === key ? state.overview : null;
+  const overview = demo ? { plan: 'free' as const, counts: { invoice: 7, media: 3, dyno: 2, service: 4, recommendation: 1, document: 2, modification: 3 }, expires_at: null, is_permanent: false } : state?.key === key ? state.overview : null;
   const focusedCount = focusedKind && overview ? overview.counts[focusedKind] ?? 0 : 0;
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 15000);
@@ -91,7 +99,6 @@ export default function PerformancePlusScreen() {
   const permanentPlus = activePlus && overview?.is_permanent;
   const entitlementReady = demo || !!overview;
   const storefront = subscriptionStorefrontName();
-  const managementUrl = subscriptionManagementUrl();
   const purchasesAvailable = subscriptionPurchasesAvailable();
   const storePriceKey = `${auth.user?.id ?? 'none'}:${storefront ?? 'none'}`;
   const currentStorePriceState = storePriceState?.key === storePriceKey ? storePriceState : null;
@@ -125,12 +132,33 @@ export default function PerformancePlusScreen() {
         setMessage('Performance+ is permanently included with this PSI owner account. No purchase is required.');
         return;
       }
-      if (period === 'restore') await restorePerformancePlus(auth.user.id);
-      else await purchasePerformancePlus(auth.user.id, period);
+      if (period === 'restore') {
+        await restorePerformancePlus(auth.user.id);
+        const restoredOverview = await loadVaultOverview(vehicleId);
+        setState({ key, overview: restoredOverview });
+        setMessage(restoredOverview.plan === 'performance_plus'
+          ? 'Restore completed. Apple confirmed your purchase and Performance+ access is active.'
+          : 'Restore completed, but Apple did not return an active Performance+ subscription for this PSI account.');
+        setRevision(v => v + 1);
+        return;
+      }
+      await purchasePerformancePlus(auth.user.id, period);
       setRevision(v => v + 1);
       setMessage('Purchase checked. Your verified subscription status is being refreshed.');
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Purchase could not be completed. Please try again.'); }
     finally { setBusy(false); }
+  };
+  const manageSubscription = async () => {
+    if (busy || !auth.user) return;
+    setBusy(true); setMessage('');
+    try {
+      await managePerformancePlusSubscription(auth.user.id);
+      await verifyWithServer();
+      setMessage('Apple subscription management closed. Your verified access status has been refreshed.');
+      setRevision(v => v + 1);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Apple subscription management could not be opened.');
+    } finally { setBusy(false); }
   };
   const appleTestPrices = storePrices?.applePurchaseTest === true;
   const audStorePrices = !!storePrices && storePrices.monthly.currencyCode === 'AUD' && storePrices.annual.currencyCode === 'AUD';
@@ -194,25 +222,25 @@ export default function PerformancePlusScreen() {
     {permanentPlus ? <Text style={s.muted}>Permanent complimentary PSI owner access · A$0 · no renewal or expiry.</Text> : null}
     {activePlus && overview?.expires_at ? <Text style={s.muted}>Access through {new Date(overview.expires_at).toLocaleDateString('en-AU')}. Turning off renewal retains access until expiry.</Text> : null}
     <Text style={s.section}>Your vehicle vault</Text>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.choices}>{vehicles.map(v => <Pressable accessibilityRole="button" accessibilityState={{ selected: v.id === vehicle?.id }} key={v.id} onPress={() => { setSelected(v.id); setMessage(''); }} style={[s.choice, v.id === vehicle?.id && s.chosen]}><Text style={s.choiceText}>{v.make} {v.model}</Text></Pressable>)}</ScrollView>
+    {vehicles.length > 1 ? <StaffScrollSelect label="Select vehicle" value={vehicle?.id ?? ''} options={vehicles.map(v => ({ value: v.id, label: `${v.year} ${v.make} ${v.model}`, sublabel: v.registration || 'Registration not recorded' }))} onChange={value => { setSelected(value); setMessage(''); }} /> : null}
     {demo ? <Text style={s.muted}>Demo records · explore a sample vault without making a purchase.</Text> : null}
     {!demo && !overview && vehicle && !message ? <ActivityIndicator color={colors.accent} /> : null}
     {entitlementReady ? <View style={s.accessGuide}>
       <View style={s.accessGuideRow}><View style={s.freeAccessBadge}><Text style={s.freeAccessBadgeText}>PSI FREE</Text></View><Text style={s.accessGuideCopy}>Profile, garage, vehicle photo, bookings, reminders, notifications, service dates, kilometres and your notes for PSI.</Text></View>
       <View style={s.accessGuideRow}><View style={s.plusAccessBadge}><Text style={s.plusAccessBadgeText}>PERFORMANCE+</Text></View><Text style={s.accessGuideCopy}>Workshop photos, invoice copies, dyno files, supporting documents, downloads and the complete organised archive.</Text></View>
     </View> : null}
-    <View onLayout={event => setVaultGridWidth(event.nativeEvent.layout.width)} style={s.grid}>{VAULT_KINDS.map(kind => <Pressable accessibilityRole="button" key={kind} onPress={() => { if (demo || activePlus) router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle?.id ?? '', kind } }); else setMessage('Choose Performance+ below to unlock your private vehicle archive. Your free PSI features remain available.'); }} style={({ pressed }) => [s.vault, singleColumn && s.vaultFullWidth, pressed && s.pressed]}>
+    <View onLayout={event => setVaultGridWidth(event.nativeEvent.layout.width)} style={s.grid}>{REPORT_KINDS.map(kind => <Pressable accessibilityRole="button" key={kind} onPress={() => { if (demo || activePlus) router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle?.id ?? '', kind } }); else setMessage('Choose Performance+ below to unlock your private vehicle archive. Your free PSI features remain available.'); }} style={({ pressed }) => [s.vault, singleColumn && s.vaultFullWidth, pressed && s.pressed]}>
       <View style={s.row}><View style={s.vaultIcon}><Ionicons name={VAULT_ICONS[kind]} color={colors.accent} size={24} /></View>{activePlus || demo ? <Ionicons name="arrow-forward" color={colors.accent} size={18} /> : <View style={s.lockBadge}><Ionicons name="lock-closed" color={colors.accent} size={12} /><Text style={s.lockBadgeText}>PLUS ONLY</Text></View>}</View>
-      <View style={s.vaultCopy}><Text style={s.vaultTitle}>{VAULT_LABELS[kind]}</Text><Text style={s.recordCount}>{overview ? activePlus || demo ? `${overview.counts[kind] ?? 0} PSI records available` : `${overview.counts[kind] ?? 0} premium PSI records · locked` : 'Your private PSI records'}</Text><Text style={s.vaultDescription}>{VAULT_DESCRIPTIONS[kind]}</Text></View>
+      <View style={s.vaultCopy}><Text style={s.vaultTitle}>{PERFORMANCE_LABELS[kind]}</Text><Text style={s.recordCount}>{overview ? activePlus || demo ? `${overview.counts[kind] ?? 0} PSI records available` : `${overview.counts[kind] ?? 0} premium PSI records · locked` : 'Your private PSI records'}</Text><Text style={s.vaultDescription}>{VAULT_DESCRIPTIONS[kind]}</Text></View>
       <View style={s.vaultAction}><Text style={s.vaultActionText}>{activePlus || demo ? 'Open vault' : 'Unlock with Performance+'}</Text><Ionicons name="chevron-forward" color={colors.accent} size={15} /></View>
     </Pressable>)}</View>
     {vehicle ? <PrimaryButton label={demo ? 'Explore sample vehicle history' : 'Open vehicle history'} onPress={() => router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle.id } })} variant="outline" /> : null}
     </> : null}
     {!openedFromHome ? pricingPanel : null}
+    {message && (activePlus || !entitlementReady) ? <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
     {entitlementReady && !permanentPlus ? <PrimaryButton disabled={!purchasesAvailable} loading={busy} label="Restore purchases" onPress={() => void subscribe('restore')} variant="outline" /> : null}
-    {entitlementReady && !permanentPlus && storefront && managementUrl ? <PrimaryButton label={`Manage ${storefront} subscription`} variant="outline" onPress={() => void Linking.openURL(managementUrl).catch(() => setMessage(`Open ${storefront} on your device and choose Subscriptions.`))} /> : null}
+    {entitlementReady && !permanentPlus && storefront ? <PrimaryButton disabled={!purchasesAvailable} label={`Manage ${storefront} subscription`} variant="outline" onPress={() => void manageSubscription()} /> : null}
     <PrimaryButton disabled={busy} label={permanentPlus ? 'Refresh access status' : 'Refresh subscription status'} onPress={() => void refresh()} variant="outline" />
-    {message && (activePlus || !entitlementReady) ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
     <View style={s.free}><Text style={s.section}>Always part of PSI Free</Text><Text style={s.copy}>Your profile and garage, profile and vehicle photos, enquiries, every booking option, kilometre recording, service dates, maintenance reminders, notifications and contacting PSI. Add your own notes for PSI in Reports for free. Original invoices are still emailed normally. Performance+ unlocks detailed workshop records, recommendations, dyno results and the file archive.</Text></View>
     <View style={[s.row, s.legalLinks]}><Pressable accessibilityRole="link" onPress={() => router.push('/privacy')}><Text style={s.link}>Privacy</Text></Pressable><Pressable accessibilityRole="link" onPress={() => router.push('/subscription-terms')}><Text style={s.link}>Subscription terms</Text></Pressable></View>
   </ScrollView></SafeAreaView>;

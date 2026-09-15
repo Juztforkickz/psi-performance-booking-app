@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, Image, Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, AppState, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { PrivateVaultThumbnail } from '@/components/private-vault-thumbnail';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
@@ -20,6 +20,7 @@ const examples = [
 ] as VaultRecord[];
 export default function VehicleVault() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const auth = useCustomerAuth();
   const { vehicleId = '', kind } = useLocalSearchParams<{ vehicleId?: string; kind?: string }>();
   const filter = REPORT_KINDS.includes(kind as ReportKind) ? kind as ReportKind : null;
@@ -90,5 +91,12 @@ export default function VehicleVault() {
     {!locked && auth.status === 'signed_in' && opened?.key === key ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>{opened.assets.map(asset => asset.mime_type.startsWith('image/') ? <PrivateVaultThumbnail key={asset.id} asset={asset} onOpen={() => void openAsset(asset)} /> : <PrimaryButton key={asset.id} label={`PDF · ${asset.caption || 'Workshop file'}`} onPress={() => void openAsset(asset)} variant="outline" />)}</View> : null}
     {error ? <Text accessibilityRole="alert" style={s.notice}>{error}</Text> : null}
     <PrimaryButton label="Refresh records" variant="outline" onPress={() => { setError(''); setRevision(v => v + 1); }} />
-  </ScrollView><Modal animationType="fade" presentationStyle="overFullScreen" visible={!locked && image?.key === key && (!CUSTOMER_AUTH.enabled || auth.status === 'signed_in')} onRequestClose={() => setImage(null)}><SafeAreaView accessibilityViewIsModal style={[s.screen, { backgroundColor: '#050505', padding: 16, gap: 14 }]}><Pressable accessibilityLabel="Back to vehicle record" accessibilityRole="button" onPress={() => setImage(null)} style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#65CFF8', backgroundColor: '#050505', paddingHorizontal: 16 }}><Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '900', textTransform: 'uppercase' }}>‹ Back to vehicle record</Text></Pressable>{image?.key === key ? <Image accessibilityLabel="Private vehicle record attachment" source={{ uri: image.url }} resizeMode="contain" style={{ flex: 1, width: '100%', backgroundColor: '#050505' }} /> : null}<PrimaryButton label="Close photo" onPress={() => setImage(null)} /></SafeAreaView></Modal></SafeAreaView>;
+  </ScrollView><Modal animationType="fade" presentationStyle="overFullScreen" visible={!locked && image?.key === key && (!CUSTOMER_AUTH.enabled || auth.status === 'signed_in')} onRequestClose={() => setImage(null)}><View accessibilityViewIsModal style={[viewerStyles.screen, { paddingTop: Math.max(insets.top + 10, Platform.OS === 'ios' ? 54 : 18), paddingBottom: Math.max(insets.bottom, 16) }]}><Pressable accessibilityLabel="Back to vehicle record" accessibilityRole="button" onPress={() => setImage(null)} style={viewerStyles.back}><Text style={viewerStyles.backText}>‹ Back to vehicle record</Text></Pressable>{image?.key === key ? <Image accessibilityLabel="Private vehicle record attachment" source={{ uri: image.url }} resizeMode="contain" style={viewerStyles.image} /> : null}<PrimaryButton label="Close photo" onPress={() => setImage(null)} /></View></Modal></SafeAreaView>;
 }
+
+const viewerStyles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: '#050505', paddingHorizontal: 16, gap: 10 },
+  back: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#65CFF8', backgroundColor: '#050505', paddingHorizontal: 14 },
+  backText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
+  image: { flex: 1, width: '100%', alignSelf: 'center', backgroundColor: '#050505' },
+});

@@ -40,6 +40,7 @@ function checkout({
       if (purchaseError) throw purchaseError;
       return { customerInfo: { entitlements: { active: { performance_plus: {} } } } };
     },
+    showManageSubscriptions: async () => calls.push({ type: 'manage-native' }),
   };
   const client = {
     auth: { getUser: async () => ({ data: { user: state.authUserId ? { id: state.authUserId } : null }, error: state.authError }) },
@@ -49,7 +50,7 @@ function checkout({
     } },
   };
   const imports = {
-    'react-native': { Platform: { OS: platform } },
+    'react-native': { Platform: { OS: platform }, Linking: { openURL: async (url) => calls.push({ type: 'manage-url', url }) } },
     'react-native-purchases': { __esModule: true, default: sdk },
     '@/lib/customer-auth': { CUSTOMER_AUTH: { enabled: true } },
     '@/lib/review-environment': { REVIEW_ENVIRONMENT: { enabled: review } },
@@ -74,6 +75,7 @@ function checkout({
     calls, state, monthly, annual,
     load: () => api.loadPerformancePlusStorePrices(userId),
     purchase: (period = 'monthly') => api.purchasePerformancePlus(userId, period),
+    manage: () => api.managePerformancePlusSubscription(userId),
   };
 }
 
@@ -100,6 +102,18 @@ test('live AUD checkout selects the requested exact package and verifies with th
     assertPurchasedAndVerified(fixture, fixture[period]);
     assert.equal(storefrontReads(fixture).length, 0);
   }
+});
+
+test('subscription management uses the native Apple sheet and the Google Play subscriptions page', async () => {
+  const apple = checkout();
+  await apple.manage();
+  assert.equal(apple.calls.filter(({ type }) => type === 'manage-native').length, 1);
+  assert.equal(apple.calls.filter(({ type }) => type === 'manage-url').length, 0);
+
+  const google = checkout({ platform: 'android' });
+  await google.manage();
+  assert.equal(google.calls.filter(({ type }) => type === 'manage-native').length, 0);
+  assert.equal(google.calls.find(({ type }) => type === 'manage-url')?.url, 'https://play.google.com/store/account/subscriptions?package=com.psiperformance.booking');
 });
 
 test('live foreign currency is rejected before native checkout', async () => {

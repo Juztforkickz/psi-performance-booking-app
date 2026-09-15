@@ -14,6 +14,16 @@ import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { getAccountReportVehicles } from '@/lib/vehicle-reports-account';
 import { loadVaultOverview, REPORT_KINDS, REPORT_LABELS, type VaultOverview } from '@/lib/performance-plus';
 
+const REPORT_CATEGORY_ICONS = {
+  service: 'construct-outline',
+  recommendation: 'alert-circle-outline',
+  dyno: 'speedometer-outline',
+  invoice: 'receipt-outline',
+  media: 'images-outline',
+  modification: 'car-sport-outline',
+  document: 'documents-outline',
+} as const;
+
 export default function VehicleReportsScreen() {
   const router = useRouter();
   const auth = useCustomerAuth();
@@ -83,7 +93,7 @@ function ReportCategories({ vehicleId }: { vehicleId: string }) {
       disabled={!overview}
       onPress={() => router.push({ pathname: unlocked ? '/vehicle-vault' : '/performance-plus', params: { vehicleId, kind } })}
       style={({ pressed }) => [styles.category, pressed && { opacity: 0.8 }]}>
-      <Ionicons name={unlocked ? 'folder-open-outline' : 'lock-closed-outline'} size={22} color={colors.accent} />
+      <Ionicons name={unlocked ? REPORT_CATEGORY_ICONS[kind] : 'lock-closed-outline'} size={22} color={colors.accent} />
       <View style={styles.categoryCopy}>
         <Text style={styles.categoryTitle}>{REPORT_LABELS[kind]}</Text>
         <Text style={styles.muted}>{overview ? String(overview.counts[kind] ?? 0) + ((overview.counts[kind] ?? 0) === 1 ? ' saved record' : ' saved records') : 'Checking records…'}{unlocked ? '' : ' · Performance+'}</Text>

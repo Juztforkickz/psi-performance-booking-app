@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/ui';
 import { mobileFrame, spacing } from '@/constants/brand';
@@ -9,7 +9,7 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { aud, loadVaultOverview, PERFORMANCE_PRICING, type VaultOverview } from '@/lib/performance-plus';
-import { subscriptionManagementUrl, subscriptionStorefrontName } from '@/lib/performance-purchases';
+import { managePerformancePlusSubscription, subscriptionStorefrontName } from '@/lib/performance-purchases';
 import { useThemePreference } from '@/lib/theme-preference';
 
 const BENEFITS = [
@@ -28,6 +28,8 @@ export function PerformancePlanCard({ hideForPermanent = false }: { hideForPerma
   const [now] = useState(() => Date.now());
   const key = `${auth.user?.id ?? 'preview'}:${vehicleId ?? 'none'}`;
   const [state, setState] = useState<{ key: string; overview: VaultOverview } | null>(null);
+  const [managing, setManaging] = useState(false);
+  const [managementMessage, setManagementMessage] = useState('');
 
   useEffect(() => {
     if (!CUSTOMER_AUTH.enabled || auth.status !== 'signed_in' || !vehicleId) return;
@@ -42,7 +44,13 @@ export function PerformancePlanCard({ hideForPermanent = false }: { hideForPerma
   const loadingOverview = CUSTOMER_AUTH.enabled && auth.status === 'signed_in' && Boolean(vehicleId) && state?.key !== key;
   const openPerformancePlus = () => router.push({ pathname: '/performance-plus', params: vehicleId ? { vehicleId } : {} });
   const storefront = subscriptionStorefrontName();
-  const managementUrl = subscriptionManagementUrl();
+  const manageSubscription = async () => {
+    if (!auth.user || managing) return;
+    setManaging(true); setManagementMessage('');
+    try { await managePerformancePlusSubscription(auth.user.id); }
+    catch { setManagementMessage(`${storefront ?? 'App store'} subscription management could not be opened. Open Performance+ and try again.`); }
+    finally { setManaging(false); }
+  };
 
   if (hideForPermanent && (loadingOverview || permanentPlus)) return null;
 
@@ -71,7 +79,8 @@ export function PerformancePlanCard({ hideForPermanent = false }: { hideForPerma
       {!activePlus ? <View style={styles.benefits}>{BENEFITS.map(benefit => <View key={benefit} style={styles.benefitRow}><Ionicons color={theme.accent} name="checkmark-circle" size={18} /><Text style={[styles.benefit, { color: theme.text }]}>{benefit}</Text></View>)}</View> : null}
 
       <PrimaryButton label={activePlus ? 'Open Performance+' : 'Upgrade to Performance+'} onPress={openPerformancePlus} />
-      {activePlus && !permanentPlus && storefront && managementUrl ? <Pressable accessibilityRole="button" onPress={() => void Linking.openURL(managementUrl)} style={({ pressed }) => [styles.manage, { borderColor: theme.border }, pressed && styles.pressed]}><Text style={[styles.manageText, { color: theme.accent }]}>Manage {storefront} subscription</Text><Ionicons color={theme.accent} name="open-outline" size={18} /></Pressable> : null}
+      {managementMessage ? <Text accessibilityRole="alert" style={[styles.copy, { color: theme.accent }]}>{managementMessage}</Text> : null}
+      {activePlus && !permanentPlus && storefront && auth.user ? <Pressable accessibilityRole="button" accessibilityState={{ busy: managing, disabled: managing }} disabled={managing} onPress={() => void manageSubscription()} style={({ pressed }) => [styles.manage, { borderColor: theme.border }, pressed && styles.pressed]}><Text style={[styles.manageText, { color: theme.accent }]}>{managing ? 'Opening subscription manager…' : `Manage ${storefront} subscription`}</Text><Ionicons color={theme.accent} name="open-outline" size={18} /></Pressable> : null}
       {!permanentPlus ? <Pressable accessibilityRole="button" onPress={openPerformancePlus} style={({ pressed }) => [styles.restore, pressed && styles.pressed]}><Text style={[styles.restoreText, { color: theme.textMuted }]}>{activePlus ? 'View plan and restore purchases' : 'Already subscribed? Restore purchases'}</Text><Ionicons color={theme.textMuted} name="chevron-forward" size={17} /></Pressable> : null}
     </View>
   );
