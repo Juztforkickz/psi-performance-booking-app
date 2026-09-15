@@ -77,3 +77,20 @@ The native subscription purchase/restore transaction itself was not retested:
 browser entitlement testing used a temporary complimentary sandbox grant, not a
 charge or an Apple purchase. Final native appearance remains to be checked on the
 owner's iPhone after its compatible review update arrives.
+
+Checkpoint: 7d34db6, pushed to the review branch. Migration filenames were aligned
+with the sandbox's recorded versions (20260914234417 and 20260914235116) to avoid
+duplicate reapplication through the CLI. The implementation and rollback SQL are
+unchanged by that filename alignment.
+
+Staff attachment opening was also verified visually while the customer was free.
+Both the temporary complimentary entitlement and the labelled test note were
+removed afterwards; the cleanup query confirmed zero remaining test entries.
+
+Published iOS review update:
+- Branch: apple-review.
+- Runtime: 1.0.0-performance-purchase-test-1 (compatible with existing build 10).
+- Update group: 6fa042bd-a370-4e6a-9b0a-f5b3d54b9caf.
+- iOS update: 01a0a261-1202-75fc-9075-fdc30907a7d3.
+- App code checkpoint: 7d34db60d615840a2b75c6a8482a8ca95525144d.
+- No new native build was created. No live/beta channel was updated.
