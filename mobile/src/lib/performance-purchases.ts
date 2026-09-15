@@ -61,10 +61,18 @@ export async function purchasePerformancePlus(userId: string, period: 'monthly' 
     ?? offering?.availablePackages.find(item => item.identifier === packageIdentifier);
   const storefront = subscriptionStorefrontName() ?? 'your app store';
   if (!selected) throw new Error(`${storefront} has not returned the ${period} Performance+ product yet. No purchase was started. Please try again after PSI confirms the store product is ready.`);
-  // Never display a hard-coded price then charge a different storefront price.
+  const expectedProductId = `psi_performance_plus_${period}`;
+  if (selected.product.identifier !== expectedProductId) {
+    throw new Error(`The ${storefront} returned the wrong Performance+ product. No purchase has been started.`);
+  }
+  // Apple can omit or differently format the currency code in a sandbox response.
+  // The product ID and numeric price still prevent the wrong product or amount being used.
   const expected = PERFORMANCE_PRICING[period] / 100;
-  if (selected.product.currencyCode !== 'AUD' || Math.abs(selected.product.price - expected) > .001) {
-    throw new Error(`The ${storefront} price needs checking. No purchase has been started.`);
+  const currency = selected.product.currencyCode?.trim().toUpperCase();
+  const price = Number(selected.product.price);
+  if ((currency && currency !== 'AUD') || (Number.isFinite(price) && Math.abs(price - expected) > .01)) {
+    const returnedPrice = selected.product.priceString || `${price} ${currency || ''}`.trim();
+    throw new Error(`${storefront} returned ${returnedPrice} for the ${period} option instead of ${expected.toFixed(2)} AUD. No purchase has been started.`);
   }
   try { await sdk.purchasePackage(selected); }
   catch (error) { if ((error as { userCancelled?: boolean }).userCancelled) throw new Error('Purchase cancelled. You can keep using PSI Free.'); throw error; }
