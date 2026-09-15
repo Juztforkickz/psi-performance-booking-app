@@ -2,13 +2,19 @@ import { Platform } from 'react-native';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { getSupabaseClient } from '@/lib/supabase';
-import { PERFORMANCE_PRICING } from '@/lib/performance-plus';
 
 const appleKey = process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY?.trim() ?? '';
 const googleKey = process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY?.trim() ?? '';
 let configuredUser: string | null = null;
 
 export type SubscriptionStorefront = 'Apple' | 'Google Play';
+export type PerformancePlusStorePrice = {
+  productId: string;
+  value: number;
+  priceString: string;
+  currencyCode: string;
+};
+export type PerformancePlusStorePrices = Record<'monthly' | 'annual', PerformancePlusStorePrice>;
 
 function storefrontConfiguration(): { key: string; name: SubscriptionStorefront; managementUrl: string } | null {
   if (Platform.OS === 'ios') return { key: appleKey, name: 'Apple', managementUrl: 'https://apps.apple.com/account/subscriptions' };
@@ -48,32 +54,43 @@ async function sdkFor(userId: string) {
   configuredUser = userId;
   return Purchases;
 }
+
+async function performancePlusPackages(userId: string) {
+  const sdk = await sdkFor(userId);
+  const offerings = await sdk.getOfferings();
+  const offering = offerings.all.performance_plus ?? (offerings.current?.identifier === 'performance_plus' ? offerings.current : null);
+  const monthly = offering?.monthly ?? offering?.availablePackages.find(item => item.identifier === '$rc_monthly');
+  const annual = offering?.annual ?? offering?.availablePackages.find(item => item.identifier === '$rc_annual');
+  const storefront = subscriptionStorefrontName() ?? 'your app store';
+  if (!monthly || !annual) throw new Error(`${storefront} has not returned both Performance+ options yet. Please try again shortly.`);
+  if (monthly.product.identifier !== 'psi_performance_plus_monthly' || annual.product.identifier !== 'psi_performance_plus_annual') {
+    throw new Error(`The ${storefront} returned the wrong Performance+ products. No purchase has been started.`);
+  }
+  return { sdk, monthly, annual };
+}
+
+export async function loadPerformancePlusStorePrices(userId: string): Promise<PerformancePlusStorePrices> {
+  const { monthly, annual } = await performancePlusPackages(userId);
+  const toPrice = (item: typeof monthly): PerformancePlusStorePrice => ({
+    productId: item.product.identifier,
+    value: Number(item.product.price),
+    priceString: item.product.priceString,
+    currencyCode: item.product.currencyCode?.trim().toUpperCase() ?? '',
+  });
+  return { monthly: toPrice(monthly), annual: toPrice(annual) };
+}
 export async function verifyWithServer() {
   const { data, error } = await getSupabaseClient().functions.invoke('sync-performance-subscription', { body: {} });
   if (error || !data?.verified) throw new Error('Your purchase needs another status check. Use Restore purchases; do not purchase again.');
 }
 export async function purchasePerformancePlus(userId: string, period: 'monthly' | 'annual') {
-  const sdk = await sdkFor(userId);
-  const offerings = await sdk.getOfferings();
-  const offering = offerings.all.performance_plus ?? (offerings.current?.identifier === 'performance_plus' ? offerings.current : null);
-  const packageIdentifier = period === 'monthly' ? '$rc_monthly' : '$rc_annual';
-  const selected = (period === 'monthly' ? offering?.monthly : offering?.annual)
-    ?? offering?.availablePackages.find(item => item.identifier === packageIdentifier);
+  const { sdk, monthly, annual } = await performancePlusPackages(userId);
+  const selected = period === 'monthly' ? monthly : annual;
   const storefront = subscriptionStorefrontName() ?? 'your app store';
-  if (!selected) throw new Error(`${storefront} has not returned the ${period} Performance+ product yet. No purchase was started. Please try again after PSI confirms the store product is ready.`);
-  const expectedProductId = `psi_performance_plus_${period}`;
-  if (selected.product.identifier !== expectedProductId) {
-    throw new Error(`The ${storefront} returned the wrong Performance+ product. No purchase has been started.`);
-  }
-  // Apple can omit or differently format the currency code in a sandbox response.
-  // The product ID and numeric price still prevent the wrong product or amount being used.
-  const expected = PERFORMANCE_PRICING[period] / 100;
+  // The store owns localized subscription pricing. Verify the PSI product and
+  // Australian storefront, then let the native confirmation show the final charge.
   const currency = selected.product.currencyCode?.trim().toUpperCase();
-  const price = Number(selected.product.price);
-  if ((currency && currency !== 'AUD') || (Number.isFinite(price) && Math.abs(price - expected) > .01)) {
-    const returnedPrice = selected.product.priceString || `${price} ${currency || ''}`.trim();
-    throw new Error(`${storefront} returned ${returnedPrice} for the ${period} option instead of ${expected.toFixed(2)} AUD. No purchase has been started.`);
-  }
+  if (currency && currency !== 'AUD') throw new Error(`${storefront} returned a non-AUD price. No purchase has been started.`);
   try { await sdk.purchasePackage(selected); }
   catch (error) { if ((error as { userCancelled?: boolean }).userCancelled) throw new Error('Purchase cancelled. You can keep using PSI Free.'); throw error; }
   await verifyWithServer();

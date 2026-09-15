@@ -245,7 +245,7 @@ export default function CustomerHomeScreen() {
             image={DASHBOARD_TILES.performancePlus}
             imageStyle={styles.performancePlusTileImage}
             label="Performance+"
-            onPress={() => router.push({ pathname: '/performance-plus', params: homeVehicleId ? { vehicleId: homeVehicleId } : {} })}
+            onPress={() => router.push({ pathname: '/performance-plus', params: homeVehicleId ? { vehicleId: homeVehicleId, entry: 'home' } : { entry: 'home' } })}
           />
         );
     }

@@ -11,7 +11,7 @@ import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { aud, loadVaultOverview, PERFORMANCE_PRICING, REPORT_KINDS, REPORT_LABELS, VAULT_KINDS, VAULT_LABELS, type ReportKind, type VaultOverview } from '@/lib/performance-plus';
-import { purchasePerformancePlus, restorePerformancePlus, subscriptionManagementUrl, subscriptionPurchasesAvailable, subscriptionStorefrontName, verifyWithServer } from '@/lib/performance-purchases';
+import { loadPerformancePlusStorePrices, purchasePerformancePlus, restorePerformancePlus, subscriptionManagementUrl, subscriptionPurchasesAvailable, subscriptionStorefrontName, verifyWithServer, type PerformancePlusStorePrice, type PerformancePlusStorePrices } from '@/lib/performance-purchases';
 
 const VAULT_DESCRIPTIONS = {
   invoice: 'Your in-app invoice and receipt PDF archive. Xero invoices are still emailed to every customer.',
@@ -41,6 +41,12 @@ const REPORT_UNLOCKS: Record<ReportKind, { icon: keyof typeof Ionicons.glyphMap;
   document: { icon: 'documents-outline', benefits: ['Open private reports and paperwork.', 'Keep important documents organised.', 'Download available original files.'] },
 };
 
+function storePriceLabel(price: PerformancePlusStorePrice | undefined, fallbackCents: number) {
+  if (!price) return aud(fallbackCents);
+  const formatted = price.priceString || new Intl.NumberFormat('en-AU', { style: 'currency', currency: price.currencyCode || 'AUD' }).format(price.value);
+  return price.currencyCode && !formatted.toUpperCase().includes(price.currencyCode) ? `${formatted} ${price.currencyCode}` : formatted;
+}
+
 export default function PerformancePlusScreen() {
   const router = useRouter();
   const { fontScale, horizontalPadding, width } = useResponsiveLayout();
@@ -51,8 +57,9 @@ export default function PerformancePlusScreen() {
   const auth = useCustomerAuth();
   const { account } = useCustomerAccount();
   const preview = useCustomerPreview();
-  const { vehicleId: requested, kind: requestedKind } = useLocalSearchParams<{ vehicleId?: string; kind?: string }>();
+  const { vehicleId: requested, kind: requestedKind, entry } = useLocalSearchParams<{ vehicleId?: string; kind?: string; entry?: string }>();
   const focusedKind = REPORT_KINDS.includes(requestedKind as ReportKind) ? requestedKind as ReportKind : null;
+  const openedFromHome = entry === 'home';
   const [showAll, setShowAll] = useState(!focusedKind);
   const demo = !CUSTOMER_AUTH.enabled;
   const vehicles = demo ? preview.vehicles : account?.vehicles ?? [];
@@ -64,6 +71,7 @@ export default function PerformancePlusScreen() {
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<'monthly' | 'annual'>('annual');
+  const [storePriceState, setStorePriceState] = useState<{ key: string; prices: PerformancePlusStorePrices | null; message: string } | null>(null);
   const [revision, setRevision] = useState(0);
   const key = `${auth.user?.id ?? 'preview'}:${vehicle?.id}`;
   const overview = demo ? { plan: 'free' as const, counts: { invoice: 7, media: 3, dyno: 2, service: 4, document: 2, modification: 3 }, expires_at: null, is_permanent: false } : state?.key === key ? state.overview : null;
@@ -85,6 +93,19 @@ export default function PerformancePlusScreen() {
   const storefront = subscriptionStorefrontName();
   const managementUrl = subscriptionManagementUrl();
   const purchasesAvailable = subscriptionPurchasesAvailable();
+  const storePriceKey = `${auth.user?.id ?? 'none'}:${storefront ?? 'none'}`;
+  const currentStorePriceState = storePriceState?.key === storePriceKey ? storePriceState : null;
+  const storePrices = currentStorePriceState?.prices ?? null;
+  const storePricesLoading = purchasesAvailable && !!auth.user && !activePlus && !currentStorePriceState;
+  const storePricesMessage = currentStorePriceState?.message ?? '';
+  useEffect(() => {
+    if (!purchasesAvailable || !auth.user || activePlus) return;
+    let active = true;
+    void loadPerformancePlusStorePrices(auth.user.id)
+      .then(prices => { if (active) setStorePriceState({ key: storePriceKey, prices, message: '' }); })
+      .catch(() => { if (active) setStorePriceState({ key: storePriceKey, prices: null, message: `${storefront ?? 'The app store'} pricing could not be loaded. Please try again shortly.` }); });
+    return () => { active = false; };
+  }, [activePlus, auth.user, purchasesAvailable, storePriceKey, storefront]);
   const refresh = async () => {
     if (busy) return;
     setBusy(true);
@@ -111,8 +132,32 @@ export default function PerformancePlusScreen() {
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Purchase could not be completed. Please try again.'); }
     finally { setBusy(false); }
   };
+  const monthlyPrice = storePriceLabel(storePrices?.monthly, PERFORMANCE_PRICING.monthly);
+  const annualPrice = storePriceLabel(storePrices?.annual, PERFORMANCE_PRICING.annual);
+  const selectedPrice = selectedPeriod === 'monthly' ? monthlyPrice : annualPrice;
+  const dynamicSavings = storePrices && storePrices.monthly.currencyCode === storePrices.annual.currencyCode
+    ? storePrices.monthly.value * 12 - storePrices.annual.value
+    : null;
+  const annualSavings = dynamicSavings != null && dynamicSavings > 0
+    ? new Intl.NumberFormat('en-AU', { style: 'currency', currency: storePrices?.annual.currencyCode || 'AUD' }).format(dynamicSavings)
+    : aud(PERFORMANCE_PRICING.monthly * 12 - PERFORMANCE_PRICING.annual);
+  const purchaseReady = purchasesAvailable && !!storePrices && !storePricesLoading;
+  const pricingPanel = !activePlus && entitlementReady ? <View style={s.pricing}>
+    <Text style={s.pricingEyebrow}>UNLOCK YOUR COMPLETE VEHICLE STORY</Text><Text style={s.section}>Choose Performance+</Text><Text style={s.copy}>One subscription covers every vehicle in your PSI account.</Text>
+    <View style={[s.priceGrid, singleColumn && s.priceGridStacked]}>
+      <Pressable accessibilityLabel={`${monthlyPrice} monthly`} accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'monthly', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('monthly'); setMessage(''); }} style={({ pressed }) => [s.priceOption, singleColumn && s.priceOptionStacked, selectedPeriod === 'monthly' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><Text style={s.priceLabel}>MONTHLY</Text><Ionicons name={selectedPeriod === 'monthly' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{storePricesLoading ? 'Checking Apple…' : monthlyPrice}</Text><Text style={s.priceMeta}>per month</Text></Pressable>
+      <Pressable accessibilityLabel={`${annualPrice} annual, best value`} accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'annual', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('annual'); setMessage(''); }} style={({ pressed }) => [s.priceOption, singleColumn && s.priceOptionStacked, s.bestValue, selectedPeriod === 'annual' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><View style={s.priceChoiceLabels}><Text style={s.bestValueLabel}>BEST VALUE</Text><Text style={s.priceLabel}>ANNUAL</Text></View><Ionicons name={selectedPeriod === 'annual' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{storePricesLoading ? 'Checking Apple…' : annualPrice}</Text><Text style={s.priceMeta}>per year · save {annualSavings}</Text></Pressable>
+    </View>
+    <Text style={s.selectionHelp}>Select monthly or annual above, then continue. Apple shows the final price before any sandbox purchase.</Text>
+    <PrimaryButton disabled={!purchaseReady} loading={busy || storePricesLoading} label={storePricesLoading ? 'Checking Apple prices' : `Unlock ${selectedPeriod} · ${selectedPrice}`} onPress={() => void subscribe(selectedPeriod)} />
+    {!purchasesAvailable ? <Text style={s.muted}>{demo ? 'Preview only · no payment will be taken.' : 'Purchases are not open in this beta yet. PSI can grant complimentary beta access.'}</Text> : null}
+    {storePricesMessage ? <Text accessibilityRole="alert" style={s.notice}>{storePricesMessage}</Text> : null}
+    {message ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
+    <Text style={s.muted}>Prices are supplied by Apple for your storefront. Subscriptions renew automatically unless cancelled before renewal. Cancellation keeps your records safe and locks premium access after the paid period ends.</Text>
+  </View> : null;
   return <SafeAreaView edges={['top', 'left', 'right']} style={s.screen}><ScrollView contentContainerStyle={[s.content, { paddingHorizontal: horizontalPadding }]}>
     <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={s.link}>‹ Back</Text></Pressable>
+    {openedFromHome ? pricingPanel : null}
     {focusedKind && !showAll ? <>
       <View style={s.heading}>
         <Text style={s.eyebrow}>PERFORMANCE+ PRIVATE RECORDS</Text>
@@ -157,17 +202,7 @@ export default function PerformancePlusScreen() {
     </Pressable>)}</View>
     {vehicle ? <PrimaryButton label={demo ? 'Explore sample vehicle history' : 'Open vehicle history'} onPress={() => router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle.id } })} variant="outline" /> : null}
     </> : null}
-    {!activePlus && entitlementReady ? <View style={s.pricing}><Text style={s.pricingEyebrow}>UNLOCK YOUR COMPLETE VEHICLE STORY</Text><Text style={s.section}>Choose Performance+</Text><Text style={s.copy}>One subscription covers every vehicle in your PSI account.</Text>
-      <View style={[s.priceGrid, singleColumn && s.priceGridStacked]}>
-        <Pressable accessibilityLabel={`${aud(PERFORMANCE_PRICING.monthly)} monthly`} accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'monthly', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('monthly'); setMessage(''); }} style={({ pressed }) => [s.priceOption, selectedPeriod === 'monthly' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><Text style={s.priceLabel}>MONTHLY</Text><Ionicons name={selectedPeriod === 'monthly' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{aud(PERFORMANCE_PRICING.monthly)}</Text><Text style={s.priceMeta}>per month</Text></Pressable>
-        <Pressable accessibilityLabel={`${aud(PERFORMANCE_PRICING.annual)} annual, best value`} accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'annual', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('annual'); setMessage(''); }} style={({ pressed }) => [s.priceOption, s.bestValue, selectedPeriod === 'annual' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><View style={s.priceChoiceLabels}><Text style={s.bestValueLabel}>BEST VALUE</Text><Text style={s.priceLabel}>ANNUAL</Text></View><Ionicons name={selectedPeriod === 'annual' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{aud(PERFORMANCE_PRICING.annual)}</Text><Text style={s.priceMeta}>per year · save {aud(PERFORMANCE_PRICING.monthly * 12 - PERFORMANCE_PRICING.annual)}</Text></Pressable>
-      </View>
-      <Text style={s.selectionHelp}>Select monthly or annual above, then continue. Apple shows a final confirmation before any sandbox purchase.</Text>
-      <PrimaryButton disabled={!purchasesAvailable} loading={busy} label={`Unlock ${selectedPeriod} · ${aud(PERFORMANCE_PRICING[selectedPeriod])}`} onPress={() => void subscribe(selectedPeriod)} />
-      {!purchasesAvailable ? <Text style={s.muted}>{demo ? 'Preview only · no payment will be taken.' : 'Purchases are not open in this beta yet. PSI can grant complimentary beta access.'}</Text> : null}
-      {message ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
-      <Text style={s.muted}>Subscriptions renew automatically unless cancelled before renewal. Cancellation keeps your records safe and locks premium access after the paid period ends.</Text>
-    </View> : null}
+    {!openedFromHome ? pricingPanel : null}
     {entitlementReady && !permanentPlus ? <PrimaryButton disabled={!purchasesAvailable} loading={busy} label="Restore purchases" onPress={() => void subscribe('restore')} variant="outline" /> : null}
     {entitlementReady && !permanentPlus && storefront && managementUrl ? <PrimaryButton label={`Manage ${storefront} subscription`} variant="outline" onPress={() => void Linking.openURL(managementUrl).catch(() => setMessage(`Open ${storefront} on your device and choose Subscriptions.`))} /> : null}
     <PrimaryButton disabled={busy} label={permanentPlus ? 'Refresh access status' : 'Refresh subscription status'} onPress={() => void refresh()} variant="outline" />
@@ -230,6 +265,7 @@ export const s = StyleSheet.create({
   priceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   priceGridStacked: { flexDirection: 'column' },
   priceOption: { flex: 1, minWidth: 140, borderColor: colors.line, borderWidth: 1, padding: 15, gap: 4 },
+  priceOptionStacked: { alignSelf: 'stretch', width: '100%' },
   priceOptionSelected: { borderColor: colors.accent, backgroundColor: colors.inkSoft, borderWidth: 2 },
   bestValue: { borderColor: colors.accent },
   priceChoiceHeading: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 },
