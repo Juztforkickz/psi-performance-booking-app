@@ -10,7 +10,7 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
-import { aud, loadVaultOverview, PERFORMANCE_PRICING, VAULT_KINDS, VAULT_LABELS, type VaultOverview } from '@/lib/performance-plus';
+import { aud, loadVaultOverview, PERFORMANCE_PRICING, REPORT_KINDS, REPORT_LABELS, VAULT_KINDS, VAULT_LABELS, type ReportKind, type VaultOverview } from '@/lib/performance-plus';
 import { purchasePerformancePlus, restorePerformancePlus, subscriptionManagementUrl, subscriptionPurchasesAvailable, subscriptionStorefrontName, verifyWithServer } from '@/lib/performance-purchases';
 
 const VAULT_DESCRIPTIONS = {
@@ -31,6 +31,16 @@ const VAULT_ICONS = {
   modification: 'build-outline',
 } as const;
 
+const REPORT_UNLOCKS: Record<ReportKind, { icon: keyof typeof Ionicons.glyphMap; benefits: string[] }> = {
+  service: { icon: 'construct-outline', benefits: ['Read detailed PSI service and repair history.', 'Keep workshop findings organised by visit.', 'Open supporting files attached to the work.'] },
+  recommendation: { icon: 'build-outline', benefits: ['See PSI recommended work and its timing.', 'Keep future repairs with the vehicle history.', 'Review workshop recommendations between bookings.'] },
+  dyno: { icon: 'speedometer-outline', benefits: ['See verified power and torque results.', 'Open Mainline graphs and PDF files.', 'Compare historical dyno results.'] },
+  invoice: { icon: 'receipt-outline', benefits: ['Open saved invoice copies and PDF files.', 'Keep invoices with the correct vehicle.', 'Download archived paperwork when needed.'] },
+  media: { icon: 'images-outline', benefits: ['View before, progress and after photos.', 'Open full-size workshop images.', 'Download available originals.'] },
+  modification: { icon: 'car-sport-outline', benefits: ['Follow modifications and build milestones.', 'Keep supporting photos and documents together.', 'Build a lasting history for the vehicle.'] },
+  document: { icon: 'documents-outline', benefits: ['Open private reports and paperwork.', 'Keep important documents organised.', 'Download available original files.'] },
+};
+
 export default function PerformancePlusScreen() {
   const router = useRouter();
   const { fontScale, horizontalPadding, width } = useResponsiveLayout();
@@ -41,7 +51,9 @@ export default function PerformancePlusScreen() {
   const auth = useCustomerAuth();
   const { account } = useCustomerAccount();
   const preview = useCustomerPreview();
-  const { vehicleId: requested } = useLocalSearchParams<{ vehicleId?: string }>();
+  const { vehicleId: requested, kind: requestedKind } = useLocalSearchParams<{ vehicleId?: string; kind?: string }>();
+  const focusedKind = REPORT_KINDS.includes(requestedKind as ReportKind) ? requestedKind as ReportKind : null;
+  const [showAll, setShowAll] = useState(!focusedKind);
   const demo = !CUSTOMER_AUTH.enabled;
   const vehicles = demo ? preview.vehicles : account?.vehicles ?? [];
   const [selected, setSelected] = useState(requested ?? '');
@@ -54,6 +66,8 @@ export default function PerformancePlusScreen() {
   const [revision, setRevision] = useState(0);
   const key = `${auth.user?.id ?? 'preview'}:${vehicle?.id}`;
   const overview = demo ? { plan: 'free' as const, counts: { invoice: 7, media: 3, dyno: 2, service: 4, document: 2, modification: 3 }, expires_at: null, is_permanent: false } : state?.key === key ? state.overview : null;
+  const focusedCount = focusedKind && overview ? overview.counts[focusedKind] ?? 0 : 0;
+  useEffect(() => setShowAll(!focusedKind), [focusedKind]);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 15000);
     const sub = AppState.addEventListener('change', value => { if (value === 'active') setRevision(v => v + 1); });
@@ -98,6 +112,25 @@ export default function PerformancePlusScreen() {
   };
   return <SafeAreaView edges={['top', 'left', 'right']} style={s.screen}><ScrollView contentContainerStyle={[s.content, { paddingHorizontal: horizontalPadding }]}>
     <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={s.link}>‹ Back</Text></Pressable>
+    {focusedKind && !showAll ? <>
+      <View style={s.heading}>
+        <Text style={s.eyebrow}>PERFORMANCE+ PRIVATE RECORDS</Text>
+        <Text style={s.title}>{REPORT_LABELS[focusedKind].toUpperCase()}</Text>
+        <Text style={s.copy}>This section has PSI records waiting for your selected vehicle. Unlock Performance+ to open the private details and attached files.</Text>
+      </View>
+      <View style={s.focusCard}>
+        <View style={s.row}>
+          <View style={s.vaultIcon}><Ionicons name={REPORT_UNLOCKS[focusedKind].icon} color={colors.accent} size={24} /></View>
+          <View style={s.lockBadge}><Ionicons name="lock-closed" color={colors.accent} size={12} /><Text style={s.lockBadgeText}>PLUS ONLY</Text></View>
+        </View>
+        <Text style={s.focusCount}>{overview ? `${focusedCount} private PSI ${focusedCount === 1 ? 'record' : 'records'} waiting` : 'Checking private PSI records…'}</Text>
+        {REPORT_UNLOCKS[focusedKind].benefits.map(benefit => <View key={benefit} style={s.benefit}><Ionicons name="checkmark-circle" color={colors.accent} size={18} /><Text style={s.benefitText}>{benefit}</Text></View>)}
+        <Text style={s.copy}>One Performance+ subscription unlocks this category and every other Performance+ category across all vehicles in your PSI account.</Text>
+        {activePlus && vehicle ? <PrimaryButton label={`Open ${REPORT_LABELS[focusedKind]}`} onPress={() => router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle.id, kind: focusedKind } })} /> : null}
+      </View>
+      <PrimaryButton label="See everything included with Performance+" variant="outline" onPress={() => setShowAll(true)} />
+    </> : null}
+    {!focusedKind || showAll ? <>
     <View style={s.heading}><Text style={s.eyebrow}>PSI PERFORMANCE+</Text><Text style={s.title}>{'YOUR CAR.\nITS COMPLETE STORY.'}</Text><Text style={s.copy}>Every service. Every build. Every important milestone. Your PSI vehicle record, in one place.</Text></View>
     <View style={s.planCard}>
       <View style={[s.row, s.planRow]}>
@@ -122,6 +155,7 @@ export default function PerformancePlusScreen() {
       <View style={s.vaultAction}><Text style={s.vaultActionText}>{activePlus || demo ? 'Open vault' : 'Unlock with Performance+'}</Text><Ionicons name="chevron-forward" color={colors.accent} size={15} /></View>
     </Pressable>)}</View>
     {vehicle ? <PrimaryButton label={demo ? 'Explore sample vehicle history' : 'Open vehicle history'} onPress={() => router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle.id } })} variant="outline" /> : null}
+    </> : null}
     {!activePlus && entitlementReady ? <View style={s.pricing}><Text style={s.pricingEyebrow}>UNLOCK YOUR COMPLETE VEHICLE STORY</Text><Text style={s.section}>Choose Performance+</Text><Text style={s.copy}>One subscription covers every vehicle in your PSI account.</Text>
       <View style={[s.priceGrid, singleColumn && s.priceGridStacked]}>
         <View style={s.priceOption}><Text style={s.priceLabel}>MONTHLY</Text><Text style={s.price}>{aud(PERFORMANCE_PRICING.monthly)}</Text><Text style={s.priceMeta}>per month</Text></View>
@@ -185,6 +219,10 @@ export const s = StyleSheet.create({
   vaultDescription: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   vaultAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 11 },
   vaultActionText: { flex: 1, color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: .35, textTransform: 'uppercase' },
+  focusCard: { backgroundColor: colors.panel, borderColor: colors.accentDark, borderWidth: 1, borderRadius: 8, padding: 20, gap: 15 },
+  focusCount: { color: colors.accent, fontSize: 17, fontWeight: '900' },
+  benefit: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  benefitText: { flex: 1, color: colors.silver, fontSize: 14, lineHeight: 21 },
   pricing: { backgroundColor: colors.panel, borderColor: colors.line, borderWidth: 1, borderRadius: 8, padding: 20, gap: 16 },
   pricingEyebrow: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.25 },
   priceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },

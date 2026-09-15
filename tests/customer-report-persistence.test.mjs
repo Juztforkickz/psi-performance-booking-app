@@ -5,9 +5,10 @@ import test from 'node:test';
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 
 test('Reports keeps free notes separate from the paid workshop archive', async () => {
-  const [screen, notes] = await Promise.all([
+  const [screen, notes, notesComponent] = await Promise.all([
     read('../mobile/src/app/vehicle-reports.tsx'),
     read('../mobile/src/lib/customer-vehicle-notes.ts'),
+    read('../mobile/src/components/customer-vehicle-notes.tsx'),
   ]);
   assert.match(screen, /CustomerVehicleNotes/u);
   assert.doesNotMatch(screen, /saveCustomerDyno|saveCustomerRepair|saveCustomerRecommendation|saveCustomerInvoice/u);
@@ -15,6 +16,9 @@ test('Reports keeps free notes separate from the paid workshop archive', async (
   assert.match(notes, /auth\.getUser\(\)/u);
   assert.match(notes, /customer_id: auth\.user\.id/u);
   assert.match(notes, /customer_vehicle_notes/u);
+  assert.match(screen, /keyboardDismissMode="on-drag"/u);
+  assert.match(screen, /keyboardShouldPersistTaps="handled"/u);
+  assert.match(notesComponent, /Keyboard\.dismiss\(\)/u);
 });
 
 test('report migration keeps customer history append-only and separates PSI invoices', async () => {

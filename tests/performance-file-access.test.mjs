@@ -28,6 +28,10 @@ test('Vehicle Reports advertises locked categories without fetching their conten
   assert.match(reports, /lock-closed-outline/u);
   assert.doesNotMatch(reports, /loadVaultRecords|loadCustomerVehicleReports/u);
   assert.match(reports, /Your original invoice is still emailed/u);
+  assert.match(reports, /params: \{ vehicleId, kind \}/u);
+  assert.match(plus, /REPORT_UNLOCKS/u);
+  assert.match(plus, /See everything included with Performance\+/u);
+  assert.match(plus, /One Performance\+ subscription unlocks this category and every other Performance\+ category/u);
   assert.match(plus, /profile and vehicle photos, enquiries, every booking option/u);
   assert.match(plus, /invoice copies, dyno files, supporting documents, downloads/u);
   assert.match(vault, /Performance\+ records locked/u);

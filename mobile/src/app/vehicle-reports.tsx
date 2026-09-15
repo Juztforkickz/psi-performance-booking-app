@@ -25,7 +25,7 @@ export default function VehicleReportsScreen() {
   const vehicle = vehicles.find(item => item.id === selected) ?? vehicles.find(item => item.isPrimary) ?? vehicles[0];
   const signedIn = CUSTOMER_AUTH.enabled && auth.status === 'signed_in';
   return <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
-    <ScrollView contentContainerStyle={[styles.content, { paddingHorizontal: horizontalPadding }]}>
+    <ScrollView keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingHorizontal: horizontalPadding }]}>
       <Text style={styles.eyebrow}>YOUR VEHICLE</Text><Text style={styles.title}>Reports</Text>
       {auth.status === 'loading' ? <ActivityIndicator color={colors.accent} /> : !signedIn ? <><Text style={styles.copy}>Sign in to see your vehicle records and add notes for PSI.</Text><PrimaryButton label="Sign in" onPress={() => router.push('/account')} /></>
         : status === 'loading' ? <ActivityIndicator color={colors.accent} />

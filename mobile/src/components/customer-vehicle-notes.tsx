@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Keyboard, StyleSheet, Text, View } from 'react-native';
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors } from '@/constants/brand';
 import { addCustomerVehicleNote, loadCustomerVehicleNotes, type CustomerVehicleNote } from '@/lib/customer-vehicle-notes';
@@ -29,6 +29,7 @@ export function CustomerVehicleNotes({ vehicleId, readOnly = false, previewMode 
       const note = await addCustomerVehicleNote(vehicleId, draft);
       setNotes(previous => [note, ...(previous ?? []).filter(item => item.id !== note.id)]);
       setDraft(''); setMessage('Saved. PSI can now read this note.');
+      Keyboard.dismiss();
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to save. Please try again.'); }
     finally { saving.current = false; setBusy(false); }
   };
