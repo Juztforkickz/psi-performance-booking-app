@@ -67,11 +67,28 @@ runtime 1.0.0-performance-purchase-test-1.
 ## Delivery boundary
 
 The two migrations and open-vault-file version 4 were applied to the isolated
-Apple review project jwikoldibbpxyhbdrsow. The live project
-lslhfrujyuqcavsnugfx is unchanged: automatic approval review rejected the live
-destination pending explicit authorisation. Work is on
-codex/reports-performance-plus-notes so main does not receive an interface that
-depends on unapplied live tables.
+Apple review project jwikoldibbpxyhbdrsow. Following explicit live-rollout approval
+on 15 September, both migrations were also applied to lslhfrujyuqcavsnugfx and
+open-vault-file version 15 was deployed there. The tested branch was then
+fast-forwarded into main at b5eaa79 and pushed. GitHub Pages deployment
+34912436457 completed successfully.
+
+The live migration ledger was aligned to the source/sandbox versions
+20260914234417 and 20260914235116 after application; this avoids reapplying the
+same migrations under different timestamp identifiers. No migration SQL changed.
+
+Live verification confirmed five restrictive SELECT gates, four staff-only INSERT
+gates, notes RLS, the security-invoker free-dates view and restricted note grants.
+A transaction tested customer service-date access, the subscription boundary,
+customer note save/read and AAL2 staff note access. It was rolled back; a separate
+query confirmed no leftover test note. Missing-identity reads returned zero rows.
+Security advisors reported only the existing unrelated findings listed above.
+
+The authenticated web bundle was exported with cache-safe asset names and install
+metadata, deployed to the existing qa-current alias, and verified over HTTPS:
+- Portal: https://psi-performance-qa--qa-current.expo.app/
+- Deployment: https://psi-performance-qa--91ld0myrex.expo.app/
+- Entry bundle: entry-71d54714189d96f700a81cdb08a8fce4.js.
 
 The native subscription purchase/restore transaction itself was not retested:
 browser entitlement testing used a temporary complimentary sandbox grant, not a
@@ -93,4 +110,18 @@ Published iOS review update:
 - Update group: 6fa042bd-a370-4e6a-9b0a-f5b3d54b9caf.
 - iOS update: 01a0a261-1202-75fc-9075-fdc30907a7d3.
 - App code checkpoint: 7d34db60d615840a2b75c6a8482a8ca95525144d.
-- No new native build was created. No live/beta channel was updated.
+- No new native build was created. The review environment remains isolated.
+
+Published live-backend beta update on 15 September:
+- Branch/channel: beta (iOS and Android).
+- Runtime: 1.0.0-beta-performance-plus-1.
+- Update group: 35698adb-95ed-44c5-b784-ef4c2a67e04c.
+- Android update: 01a0a272-4b96-7e88-a6cd-272d558e4267.
+- iOS update: 01a0a272-4b96-7942-acdc-15bd672a1076.
+- Source: b5eaa792f8cf4d09325efe713fa8e9879a7034a2; only this release document
+  changed during publication. No app source changed after export.
+- Previous beta group for OTA rollback: 3f31073c-d2dc-4a42-9547-11bc31fc065e.
+
+The existing beta and Apple review runtimes are unchanged. This rollout does not
+create a new store binary, submit an App Store/Play Store release, open public
+registration, or alter the older production/qa native channels.
