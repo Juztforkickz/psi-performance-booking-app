@@ -146,7 +146,7 @@ export default function CustomerHomeScreen() {
         return (
           <DashboardTile
             accessibilityHint="Opens vehicle selection, photos, results and history"
-            image={garageArtwork.art.thumbnail}
+            image={garageArtwork.art.source}
             label="My Garage"
             onPress={() => router.push('/garage')}
           />

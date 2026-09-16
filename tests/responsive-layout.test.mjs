@@ -134,8 +134,7 @@ test("uses one native responsive contract across every customer screen", async (
   assert.match(home, /prepareBookingVehicleRecord/);
   assert.match(home, /garageAccount\?\.vehicles\.find\(\(vehicle\) => vehicle\.id === pendingBookingVehicle\?\.id\)/);
   assert.match(home, /vehicleDisplayPreferences\.find\(\(preference\) => preference\.vehicle_id === homeVehicleId\)/);
-  assert.match(home, /image=\{garageArtwork\.art\.thumbnail\}/);
-  assert.doesNotMatch(home, /image=\{garageArtwork\.art\.source\}/);
+  assert.match(home, /image=\{garageArtwork\.art\.source\}/);
   assert.doesNotMatch(home, /trustedPartnersTileImage|planBuildTileImage/);
   assert.match(alerts, /adjustsFontSizeToFit[\s\S]*?numberOfLines=\{1\}[\s\S]*?themeModeOptionText/);
   assert.match(alerts, /tile-my-bookings-blue-silver\.jpg/);
