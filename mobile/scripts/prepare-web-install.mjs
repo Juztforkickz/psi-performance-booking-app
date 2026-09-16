@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { copyFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { copyFile, cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -45,6 +45,12 @@ await mkdir(distDirectory, { recursive: true });
 for (const fileName of ['psi-icon-192.png', 'psi-icon-512.png', 'psi-favicon.png']) {
   await copyFile(join(repositoryDirectory, 'public', fileName), join(distDirectory, fileName));
 }
+
+await cp(
+  join(repositoryDirectory, 'public', 'campaign-videos'),
+  join(distDirectory, 'campaign-videos'),
+  { recursive: true },
+);
 
 const manifest = {
   id: `${basePath}/`,
