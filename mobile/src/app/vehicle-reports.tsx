@@ -3,6 +3,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StaffScrollSelect } from '@/components/staff-scroll-select';
 import { PrimaryButton } from '@/components/ui';
 import { CustomerVehicleNotes } from '@/components/customer-vehicle-notes';
 import { colors } from '@/constants/brand';
@@ -42,10 +43,16 @@ export default function VehicleReportsScreen() {
         : !account || error ? <Text accessibilityRole="alert" style={styles.copy}>{error || 'Your account could not be loaded.'}</Text>
         : !vehicle ? <><Text style={styles.copy}>Add a vehicle to start your report archive.</Text><PrimaryButton label="Open My Garage" onPress={() => router.push('/garage')} /></>
         : <>
-          {vehicles.length > 1 ? <ScrollView horizontal contentContainerStyle={styles.choices}>{vehicles.map(item =>
-            <Pressable key={item.id} accessibilityRole="button" accessibilityState={{ selected: item.id === vehicle.id }} onPress={() => setSelected(item.id)} style={[styles.choice, item.id === vehicle.id && styles.selected]}>
-              <Text style={styles.copy}>{item.registration || item.model}</Text>
-            </Pressable>)}</ScrollView> : null}
+          {vehicles.length > 1 ? <StaffScrollSelect
+            label="Select vehicle"
+            value={vehicle.id}
+            options={vehicles.map(item => ({
+              value: item.id,
+              label: `${item.year} ${item.make} ${item.model}`,
+              sublabel: item.registration || 'Registration not recorded',
+            }))}
+            onChange={setSelected}
+          /> : null}
           <View style={styles.vehicle}>
             <Text style={styles.heading}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
             <Text style={styles.copy}>{vehicle.registration || 'Registration not recorded'}</Text>
@@ -117,8 +124,7 @@ const styles = StyleSheet.create({
   copy: { fontSize: 15, lineHeight: 23, color: colors.silver },
   muted: { fontSize: 13, lineHeight: 20, color: colors.muted },
   vehicle: { padding: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, gap: 8 },
-  choices: { gap: 10 }, choice: { padding: 12, borderWidth: 1, borderColor: colors.line },
-  selected: { borderColor: colors.accent }, section: { gap: 14, paddingBottom: 22, borderBottomWidth: 1, borderColor: colors.line },
+  section: { gap: 14, paddingBottom: 22, borderBottomWidth: 1, borderColor: colors.line },
   category: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, minHeight: 78 },
   categoryCopy: { flex: 1, minWidth: 0, gap: 5 },
   categoryTitle: { fontSize: 16, fontWeight: '800', color: colors.white },

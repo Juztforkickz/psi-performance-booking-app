@@ -28,6 +28,8 @@ test('Vehicle Reports advertises locked categories without fetching their conten
   assert.match(reports, /lock-closed-outline/u);
   assert.match(reports, /REPORT_CATEGORY_ICONS\[kind\]/u);
   assert.match(reports, /recommendation: 'alert-circle-outline'/u);
+  assert.match(reports, /<StaffScrollSelect[\s\S]*?label="Select vehicle"/u);
+  assert.doesNotMatch(reports, /<ScrollView horizontal/u);
   assert.doesNotMatch(reports, /loadVaultRecords|loadCustomerVehicleReports/u);
   assert.match(reports, /Your original invoice is still emailed/u);
   assert.match(reports, /params: \{ vehicleId, kind \}/u);
