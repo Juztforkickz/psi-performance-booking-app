@@ -11,7 +11,7 @@ const compiled = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 
-function accountHarness({ review = false, failures = {}, payments = [] } = {}) {
+function accountHarness({ review = false, failures = {}, payments = [], preferences = [] } = {}) {
   const user = { id: 'fixture-customer', email: 'customer@example.invalid' };
   const queries = [];
   const environment = { enabled: review };
@@ -35,7 +35,8 @@ function accountHarness({ review = false, failures = {}, payments = [] } = {}) {
           const data = table === 'customer_profiles' ? { user_id: user.id }
             : table === 'customer_vehicles' ? [{ id: 'fixture-vehicle', customer_id: user.id }]
               : table === 'booking_payment_attempts' ? payments : [];
-          return Promise.resolve({ data: error ? null : data, error, status: error ? 404 : 200 }).then(resolve, reject);
+          const resolvedData = table === 'vehicle_display_preferences' ? preferences : data;
+          return Promise.resolve({ data: error ? null : resolvedData, error, status: error ? 404 : 200 }).then(resolve, reject);
         },
       };
       return chain;
@@ -47,6 +48,7 @@ function accountHarness({ review = false, failures = {}, payments = [] } = {}) {
     require(specifier) {
       if (specifier === '@/lib/supabase') return { getSupabaseClient: () => supabase };
       if (specifier === '@/lib/review-environment') return { REVIEW_ENVIRONMENT: environment };
+      if (specifier === '@/lib/performance-plus') return { vaultClient: () => supabase };
       throw new Error(`Unexpected runtime import: ${specifier}`);
     },
   });
@@ -59,8 +61,17 @@ test('review accounts load real sandbox profile and vehicles without requesting 
   assert.equal(result.profile.user_id, 'fixture-customer');
   assert.equal(result.vehicles[0].id, 'fixture-vehicle');
   assert.equal(result.paymentAttempts.length, 0);
-  assert.equal(app.queries.length, 6);
+  assert.equal(app.queries.length, 7);
   assert.equal(app.queries.some(query => query.table === 'booking_payment_attempts'), false);
+});
+
+test('account artwork preferences load with the initial account snapshot', async () => {
+  const preference = { customer_id: 'fixture-customer', illustration_id: 'holden-commodore-vy', vehicle_id: 'fixture-vehicle' };
+  const app = accountHarness({ preferences: [preference] });
+  const result = await app.load();
+  assert.deepEqual(result.vehicleDisplayPreferences, [preference]);
+  const preferenceQuery = app.queries.find(query => query.table === 'vehicle_display_preferences');
+  assert.deepEqual(preferenceQuery.filters, [['customer_id', 'fixture-customer']]);
 });
 
 test('live mode reads payment attempts scoped to the verified customer', async () => {

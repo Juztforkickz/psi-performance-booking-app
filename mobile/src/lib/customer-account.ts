@@ -11,6 +11,13 @@ import type {
 } from '@/lib/database.types';
 import { getSupabaseClient } from '@/lib/supabase';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
+import { vaultClient } from '@/lib/performance-plus';
+
+export type VehicleDisplayPreference = {
+  customer_id: string;
+  illustration_id: string;
+  vehicle_id: string;
+};
 
 export type CustomerAccountSnapshot = {
   bookings: BookingRequestRow[];
@@ -19,6 +26,7 @@ export type CustomerAccountSnapshot = {
   profile: CustomerProfileRow | null;
   serviceSummaries: VehicleServiceSummaryRow[];
   user: User;
+  vehicleDisplayPreferences: VehicleDisplayPreference[];
   vehicleFiles: VehicleFileRow[];
   vehicles: CustomerVehicleRow[];
 };
@@ -90,6 +98,10 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
       .in('file_kind', ['vehicle_photo', 'dyno_graph'])
       .is('archived_at', null)
       .order('created_at', { ascending: false }),
+    vaultClient()
+      .from('vehicle_display_preferences')
+      .select('*')
+      .eq('customer_id', user.id),
   ]);
 
   let results = await readAccount();
@@ -98,7 +110,7 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
     if (!error && data.session) results = await readAccount();
   }
 
-  const [profileResult, vehiclesResult, serviceSummariesResult, bookingsResult, paymentAttemptsResult, dynoRecordsResult, vehicleFilesResult] = results;
+  const [profileResult, vehiclesResult, serviceSummariesResult, bookingsResult, paymentAttemptsResult, dynoRecordsResult, vehicleFilesResult, vehicleDisplayPreferencesResult] = results;
 
   if (profileResult.error) throw profileResult.error;
   if (vehiclesResult.error) throw vehiclesResult.error;
@@ -107,6 +119,7 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
   if (paymentAttemptsResult.error) throw paymentAttemptsResult.error;
   if (dynoRecordsResult.error) throw dynoRecordsResult.error;
   if (vehicleFilesResult.error) throw vehicleFilesResult.error;
+  if (vehicleDisplayPreferencesResult.error) throw vehicleDisplayPreferencesResult.error;
 
   return {
     bookings: bookingsResult.data ?? [],
@@ -115,6 +128,7 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
     profile: profileResult.data,
     serviceSummaries: serviceSummariesResult.data ?? [],
     user,
+    vehicleDisplayPreferences: vehicleDisplayPreferencesResult.data ?? [],
     vehicleFiles: vehicleFilesResult.data ?? [],
     vehicles: vehiclesResult.data ?? [],
   };

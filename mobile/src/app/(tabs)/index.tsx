@@ -75,7 +75,10 @@ export default function CustomerHomeScreen() {
     ?? garageAccount?.vehicles.find((vehicle) => vehicle.is_primary)
     ?? garageAccount?.vehicles[0];
   const homeVehicleId = selectedAccountVehicle?.id ?? selectedVehicleId;
-  const garageArtwork = useGarageArtwork(homeVehicleId);
+  const homeArtworkId = garageAccount
+    ? garageAccount.vehicleDisplayPreferences.find((preference) => preference.vehicle_id === homeVehicleId)?.illustration_id ?? 'porsche'
+    : undefined;
+  const garageArtwork = useGarageArtwork(homeVehicleId, homeArtworkId);
   const { compact, horizontalPadding, largeText, tablet, width } = useResponsiveLayout();
   const { activeTheme, theme } = useThemePreference();
   const [contactIconFontsLoaded] = useFonts({
@@ -143,7 +146,7 @@ export default function CustomerHomeScreen() {
         return (
           <DashboardTile
             accessibilityHint="Opens vehicle selection, photos, results and history"
-            image={garageArtwork.art.source}
+            image={garageArtwork.art.thumbnail}
             label="My Garage"
             onPress={() => router.push('/garage')}
           />

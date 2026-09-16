@@ -10,25 +10,31 @@ import { GARAGE_ART, garageArtById } from '@/lib/garage-art-assets';
 import { findGarageArtwork, GARAGE_ART_MAKES, type GarageArtVehicle } from '@/lib/garage-art-catalog';
 import { vaultClient } from '@/lib/performance-plus';
 
-const previewChoices: Record<string, string> = {};
+const artworkChoices: Record<string, string> = {};
 let artworkRevision = 0;
 const listeners = new Set<() => void>();
 const subscribe = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; };
 
-export function useGarageArtwork(vehicleId: string) {
+export function useGarageArtwork(vehicleId: string, prefetchedId?: string) {
   const revision = useSyncExternalStore(subscribe, () => artworkRevision, () => 0);
   const auth = useCustomerAuth();
   const key = `${auth.user?.id ?? 'demo'}:${vehicleId}`;
-  const [choice, setChoice] = useState<{ key: string; id: string } | null>(null);
   const [error, setError] = useState('');
   useEffect(() => {
-    if (!CUSTOMER_AUTH.enabled || auth.status !== 'signed_in') return;
+    if (prefetchedId || !CUSTOMER_AUTH.enabled || auth.status !== 'signed_in') return;
     let live = true;
     vaultClient().from('vehicle_display_preferences').select('illustration_id').eq('vehicle_id', vehicleId).maybeSingle()
-      .then(({ data, error }) => { if (live && !error) setChoice({ key, id: data?.illustration_id ?? 'porsche' }); });
+      .then(({ data, error }) => {
+        if (!live || error) return;
+        const id = data?.illustration_id ?? 'porsche';
+        if (artworkChoices[key] === id) return;
+        artworkChoices[key] = id;
+        artworkRevision += 1;
+        listeners.forEach(listener => listener());
+      });
     return () => { live = false; };
-  }, [key, vehicleId, auth.status, revision]);
-  const id = !CUSTOMER_AUTH.enabled ? previewChoices[vehicleId] ?? 'porsche' : choice?.key === key ? choice.id : 'porsche';
+  }, [key, vehicleId, auth.status, prefetchedId, revision]);
+  const id = artworkChoices[key] ?? prefetchedId ?? 'porsche';
   const select = async (id: string): Promise<boolean> => {
     if (!GARAGE_ART.some(art => art.id === id)) return false;
     setError('');
@@ -41,8 +47,8 @@ export function useGarageArtwork(vehicleId: string) {
         setError('The illustration could not be saved. Please try again.');
         return false;
       }
-    } else previewChoices[vehicleId] = id;
-    setChoice({ key, id });
+    }
+    artworkChoices[key] = id;
     artworkRevision += 1;
     listeners.forEach(listener => listener());
     return true;
