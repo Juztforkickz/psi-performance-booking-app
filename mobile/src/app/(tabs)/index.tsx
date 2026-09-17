@@ -154,7 +154,8 @@ export default function CustomerHomeScreen() {
         return (
           <DashboardTile
             accessibilityHint="Opens vehicle selection, photos, results and history"
-            image={garageArtwork.art.source}
+            image={garageArtwork.art.thumbnail}
+            imageStyle={styles.garageTileImage}
             label="My Garage"
             onPress={() => router.push('/garage')}
           />
@@ -826,6 +827,7 @@ const styles = StyleSheet.create({
   tileCellThird: { width: '30%', minWidth: 180 },
   lowerTileImage: { transform: [{ scale: 1.55 }, { translateY: 7 }] },
   lowerRequestedTileImage: { transform: [{ scale: 1.55 }, { translateY: 10 }] },
+  garageTileImage: { transform: [{ scale: 1 }] },
   lowerPlanBuildTileImage: { transform: [{ scale: 1.55 }, { translateY: 3 }] },
   customerCarsTileImage: { transform: [{ scale: 1.42 }, { translateY: 3 }] },
   raiseEventsTileImage: { transform: [{ scale: 1.55 }, { translateY: 3 }] },
