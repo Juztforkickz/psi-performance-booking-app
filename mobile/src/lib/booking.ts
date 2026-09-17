@@ -46,14 +46,14 @@ export const BOOKING_POLICY_VERSION = 'psi-booking-v1';
 export const BOOKING_PURPOSES = {
   service: {
     label: 'Service & Report',
-    priceGuide: 'From $423.50 incl. GST',
+    priceGuide: 'From $423.50 AUD incl. GST',
     priceGuideAmountCents: 42_350,
     depositAmountCents: 10_000,
     eligibleDays: 'Monday–Friday',
   },
   dyno: {
     label: 'Dyno Tuning',
-    priceGuide: 'From $649 incl. GST',
+    priceGuide: 'From $649.00 AUD incl. GST',
     priceGuideAmountCents: 64_900,
     depositAmountCents: 30_000,
     eligibleDays: 'Monday, Wednesday & Thursday',
@@ -149,7 +149,7 @@ export function displayDate(value: string) {
 }
 
 export function displayMoney(amountCents: number, currency = 'AUD') {
-  return new Intl.NumberFormat('en-AU', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amountCents / 100);
+  return `${new Intl.NumberFormat('en-AU', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amountCents / 100)} ${currency}`;
 }
 
 export function maxBookingDate() {

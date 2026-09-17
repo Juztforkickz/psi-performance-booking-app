@@ -368,7 +368,7 @@ function BookingScreenContent({
         if (active) setDraftReadyFor(initialType);
       });
     return () => { active = false; };
-  }, [blankForm, bookingVehicle, initialType]);
+  }, [blankForm, bookingAccountEmail, bookingAccountProfile, bookingVehicle, initialType]);
 
   useEffect(() => {
     if (!initialType || !draftReady || !draftDirty) return;

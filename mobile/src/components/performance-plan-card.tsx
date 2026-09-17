@@ -70,7 +70,7 @@ export function PerformancePlanCard({ hideForPermanent = false }: { hideForPerma
         <Text style={[styles.kicker, { color: theme.textMuted }]}>CURRENT PLAN</Text>
         <Text style={[styles.title, { color: theme.text }]}>{permanentPlus ? 'Performance+ included permanently' : activePlus ? 'Your complete vehicle record is unlocked' : 'Unlock your car’s complete story'}</Text>
         <Text style={[styles.copy, { color: theme.textMuted }]}>{permanentPlus
-          ? 'Complimentary PSI owner access · A$0 AUD · no renewal or expiry.'
+          ? 'Complimentary PSI owner access · $0.00 AUD · no renewal or expiry.'
           : activePlus
             ? 'Open your private invoices, workshop photographs, dyno reports and vehicle history.'
             : `${aud(PERFORMANCE_PRICING.monthly)} monthly or ${aud(PERFORMANCE_PRICING.annual)} annually. One subscription covers every vehicle in your PSI account.`}</Text>

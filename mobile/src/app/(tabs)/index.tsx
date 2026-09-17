@@ -653,12 +653,12 @@ export default function CustomerHomeScreen() {
               </Pressable>
             </View>
             <BookingChoice
-              detail="Service, inspection and a clear vehicle report. From $423.50 including GST."
+              detail="Service, inspection and a clear vehicle report. From $423.50 AUD including GST."
               label="Service & Report"
               onPress={() => openBooking('service')}
             />
             <BookingChoice
-              detail="Hub dyno calibration, testing and measured results. From $649 including GST."
+              detail="Hub dyno calibration, testing and measured results. From $649.00 AUD including GST."
               label="Dyno Tuning"
               onPress={() => openBooking('dyno')}
             />

@@ -21,7 +21,7 @@ signed release build and final owner/legal checks are complete.
 - First Apple release devices: **iPhone only**
 - Price: **Free**
 - Paid digital products/subscriptions: **Optional PSI Performance+ subscription
-  at A$9.99 monthly or A$99 annually**
+  at $9.99 AUD monthly or $99.00 AUD annually**
 - Store subscription proceeds: company App Store/Google Play agreements and
   company tax/accounting identity. A destination bank account does not change
   the contractual supplier. Confirm the final payout account and inter-entity
@@ -150,17 +150,17 @@ signed-build acceptance pass.
 
 **Description:**
 
-Keep your PSI vehicle relationship together in one premium customer workspace.
+Keep your PSI vehicle relationship together in one secure customer workspace.
 
 PSI Performance brings your vehicles, workshop visits, booking requests,
 verified dyno results, invoices, recommended work, customer cars for sale and
-future build planning into one clear experience. Secure email-code access keeps
+future build planning into one place. Secure email-code access keeps
 customer records private, while PSI-published service and dyno history remains
 protected from customer editing. Workshop availability, scope, pricing and
 timing are confirmed by PSI. The free account includes everyday Garage,
 booking, kilometre, reminder and current-result features. Optional PSI
-Performance+ unlocks the complete private vehicle vault for A$9.99 monthly or
-A$99 annually through Apple.
+Performance+ unlocks the complete private vehicle vault for $9.99 AUD monthly or
+$99.00 AUD annually through Apple.
 
 ## Artwork and screenshot readiness
 

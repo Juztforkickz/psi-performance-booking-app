@@ -32,14 +32,13 @@ export const PREVIEW_CUSTOMER_CARS_FOR_SALE: readonly CustomerCarListing[] = [
 ];
 
 export function formatAud(cents: number) {
-  return new Intl.NumberFormat('en-AU', {
+  return `${new Intl.NumberFormat('en-AU', {
     style: 'currency',
     currency: 'AUD',
     maximumFractionDigits: 0,
-  }).format(cents / 100);
+  }).format(cents / 100)} AUD`;
 }
 
 export function formatKilometres(value: number) {
   return `${new Intl.NumberFormat('en-AU').format(value)} km`;
 }
-
