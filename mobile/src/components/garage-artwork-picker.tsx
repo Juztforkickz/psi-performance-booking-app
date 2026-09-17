@@ -8,6 +8,7 @@ import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { GARAGE_ART, garageArtById } from '@/lib/garage-art-assets';
 import { findGarageArtwork, GARAGE_ART_MAKES, type GarageArtVehicle } from '@/lib/garage-art-catalog';
+import { shouldPersistGarageArtwork } from '@/lib/garage-artwork-selection';
 import { vaultClient } from '@/lib/performance-plus';
 
 const artworkChoices: Record<string, string> = {};
@@ -19,6 +20,7 @@ export function useGarageArtwork(vehicleId: string, prefetchedId?: string) {
   const revision = useSyncExternalStore(subscribe, () => artworkRevision, () => 0);
   const auth = useCustomerAuth();
   const key = `${auth.user?.id ?? 'demo'}:${vehicleId}`;
+  const persistToAccount = shouldPersistGarageArtwork(CUSTOMER_AUTH.enabled, auth.status);
   const [error, setError] = useState('');
   useEffect(() => {
     if (prefetchedId || !CUSTOMER_AUTH.enabled || auth.status !== 'signed_in') return;
@@ -38,11 +40,16 @@ export function useGarageArtwork(vehicleId: string, prefetchedId?: string) {
   const select = async (id: string): Promise<boolean> => {
     if (!GARAGE_ART.some(art => art.id === id)) return false;
     setError('');
-    if (CUSTOMER_AUTH.enabled) {
+    if (persistToAccount) {
       if (!auth.user) return false;
       try {
-        const { error } = await vaultClient().from('vehicle_display_preferences').upsert({ vehicle_id: vehicleId, customer_id: auth.user.id, illustration_id: id });
+        const { data, error } = await vaultClient()
+          .from('vehicle_display_preferences')
+          .upsert({ vehicle_id: vehicleId, customer_id: auth.user.id, illustration_id: id }, { onConflict: 'vehicle_id' })
+          .select('vehicle_id,illustration_id')
+          .single();
         if (error) throw error;
+        if (data.vehicle_id !== vehicleId || data.illustration_id !== id) throw new Error('ILLUSTRATION_SAVE_MISMATCH');
       } catch {
         setError('The illustration could not be saved. Please try again.');
         return false;
