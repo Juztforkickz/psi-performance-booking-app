@@ -89,10 +89,18 @@ export default function CustomerHomeScreen() {
   const [shortcutChooserOpen, setShortcutChooserOpen] = useState(false);
   const [weather, setWeather] = useState<WorkshopWeather | null>(null);
   const [weatherError, setWeatherError] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
   const profilePhotoUri = useCustomerProfilePhotoUri();
   const { resetShortcuts, shortcutIds, toggleShortcut } = useHomeShortcutPreferences();
   const threeColumns = tablet && width >= 780 && !largeText;
   const privateAccountMode = SUPABASE_CONNECTION.authEnabled;
+  const currentHour = currentTime.getHours();
+  const greeting = currentHour < 12 ? 'Good morning' : currentHour < 17 ? 'Good afternoon' : 'Good evening';
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
 
   const openBooking = (type: 'service' | 'dyno') => {
     setBookingChooserOpen(false);
@@ -325,7 +333,7 @@ export default function CustomerHomeScreen() {
 
         <View style={styles.intro}>
           <Text style={[styles.eyebrow, { color: activeTheme === 'dark' ? colors.accent : theme.accent }]}>
-            Good afternoon · Your PSI garage
+            {greeting} · Your PSI garage
           </Text>
           <Text maxFontSizeMultiplier={1.8} style={[styles.title, compact && styles.titleCompact, { color: theme.text }]}>Your PSI app.</Text>
           <Text style={[styles.lead, { color: theme.textMuted }]}>Your vehicle, visits, results and next plan in one place.</Text>
