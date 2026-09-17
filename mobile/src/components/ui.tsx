@@ -16,6 +16,8 @@ const FieldLabelContext = createContext<string | undefined>(undefined);
 type UiTone = 'brand' | 'booking' | 'staff';
 const UiToneContext = createContext<UiTone>('brand');
 
+export const BOOKING_INPUT_ACCESSORY_ID = 'psi-booking-input-accessory';
+
 export function UiToneProvider({ children, tone }: PropsWithChildren<{ tone: UiTone }>) {
   return <UiToneContext.Provider value={tone}>{children}</UiToneContext.Provider>;
 }
@@ -129,7 +131,7 @@ export function Field({
   );
 }
 
-export function FormInput({ error, style, accessibilityLabel, onFocus, onBlur, ...props }: TextInputProps & { error?: string }) {
+export function FormInput({ error, style, accessibilityLabel, inputAccessoryViewID, onFocus, onBlur, ...props }: TextInputProps & { error?: string }) {
   const fieldLabel = useContext(FieldLabelContext);
   const tone = useContext(UiToneContext);
   const bookingTone = tone === 'booking';
@@ -140,6 +142,7 @@ export function FormInput({ error, style, accessibilityLabel, onFocus, onBlur, .
     <TextInput
       accessibilityLabel={accessibilityLabel ?? fieldLabel}
       autoCorrect={false}
+      inputAccessoryViewID={inputAccessoryViewID ?? (bookingTone ? BOOKING_INPUT_ACCESSORY_ID : undefined)}
       maxFontSizeMultiplier={2}
       placeholderTextColor={bookingTone ? bookingColors.placeholder : staffTone ? colors.muted : colors.mutedDark}
       selectionColor={bookingTone ? bookingColors.accent : colors.accent}

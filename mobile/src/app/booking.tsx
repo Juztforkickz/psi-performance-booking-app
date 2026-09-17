@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   AppState,
   Image,
+  InputAccessoryView,
+  Keyboard,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -18,7 +20,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ChoiceCard, Eyebrow, Field, FormInput, PrimaryButton, UiToneProvider } from '@/components/ui';
+import { BOOKING_INPUT_ACCESSORY_ID, ChoiceCard, Eyebrow, Field, FormInput, PrimaryButton, UiToneProvider } from '@/components/ui';
 import { MonthCalendarPicker } from '@/components/month-calendar-picker';
 import { bookingColors, colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -430,6 +432,7 @@ function BookingScreenContent({
   };
 
   const leaveBooking = async () => {
+    Keyboard.dismiss();
     if (initialType && draftReady && draftDirty) {
       const operation = draftOperationRef.current
         .catch(() => undefined)
@@ -476,6 +479,7 @@ function BookingScreenContent({
   };
 
   const continueToNextStep = () => {
+    Keyboard.dismiss();
     const nextErrors = validateBookingStep(form, step);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
@@ -484,6 +488,7 @@ function BookingScreenContent({
   };
 
   const goBack = () => {
+    Keyboard.dismiss();
     setErrors({});
     setFormError('');
     setStep((current) => Math.max(1, current - 1));
@@ -491,6 +496,7 @@ function BookingScreenContent({
   };
 
   const submitRequest = async () => {
+    Keyboard.dismiss();
     if (!submissionEnabled || !secureBookingVehicle) {
       setErrorTitle(privateBookingEnabled ? 'Account vehicle required' : 'Public demo');
       setFormError(privateBookingEnabled
@@ -644,6 +650,7 @@ function BookingScreenContent({
       </View>
 
       <Progress step={step} onSelect={(selectedStep) => {
+        Keyboard.dismiss();
         setStep(selectedStep);
         setErrors({});
         setFormError('');
@@ -659,6 +666,7 @@ function BookingScreenContent({
           ]}
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           keyboardShouldPersistTaps="handled"
+          onScrollBeginDrag={Keyboard.dismiss}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.formInner}>
@@ -763,6 +771,21 @@ function BookingScreenContent({
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      {Platform.OS === 'ios' ? (
+        <InputAccessoryView nativeID={BOOKING_INPUT_ACCESSORY_ID}>
+          <View style={styles.keyboardAccessory}>
+            <Pressable
+              accessibilityLabel="Hide keyboard"
+              accessibilityRole="button"
+              hitSlop={10}
+              onPress={Keyboard.dismiss}
+              style={({ pressed }) => [styles.keyboardDone, pressed && styles.pressed]}
+            >
+              <Text style={styles.keyboardDoneText}>Done</Text>
+            </Pressable>
+          </View>
+        </InputAccessoryView>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -2078,6 +2101,9 @@ const styles = StyleSheet.create({
   tuningSectionTitle: { flex: 1, color: colors.white, fontSize: 16, fontWeight: '900', textTransform: 'uppercase' },
   tuningFields: { gap: spacing.lg },
   tuningNotesInput: { minHeight: 104 },
+  keyboardAccessory: { alignItems: 'flex-end', borderTopColor: bookingColors.border, borderTopWidth: 1, backgroundColor: bookingColors.surfaceAlt, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  keyboardDone: { minHeight: 38, justifyContent: 'center', paddingHorizontal: spacing.md },
+  keyboardDoneText: { color: bookingColors.accent, fontSize: 16, fontWeight: '900' },
   tuningSelect: { ...mobileFrame, minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderRadius: 3, backgroundColor: 'transparent', paddingHorizontal: spacing.md },
   tuningSelectError: { borderColor: mobileFrame.borderColor },
   tuningSelectText: { flex: 1, minWidth: 0, color: colors.white, fontSize: 15, fontWeight: '700' },
