@@ -90,14 +90,14 @@ export default function CustomerCarsForSaleScreen() {
         ) : (
           <View style={[styles.empty, { backgroundColor: theme.surface, borderColor: theme.frame }]}>
             <View style={[styles.emptyIcon, { backgroundColor: theme.surfaceRaised }]}><Ionicons color={theme.accent} name="car-sport-outline" size={34} /></View>
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No approved listings right now</Text>
+            <Text maxFontSizeMultiplier={1.3} style={[styles.emptyTitle, { color: theme.text }]}>No approved listings right now</Text>
             <Text style={[styles.emptyCopy, { color: theme.textMuted }]}>New owner-approved customer vehicles will appear here when they become available.</Text>
           </View>
         )}
 
         <View style={[styles.sellerCard, { backgroundColor: theme.surface, borderColor: theme.frame }]}>
           <Text style={[styles.sellerEyebrow, { color: theme.accent }]}>Selling your PSI-worked car?</Text>
-          <Text style={[styles.sellerTitle, { color: theme.text }]}>Ask PSI to review a listing</Text>
+          <Text maxFontSizeMultiplier={1.3} style={[styles.sellerTitle, { color: theme.text }]}>Ask PSI to review a listing</Text>
           <Text style={[styles.sellerCopy, { color: theme.textMuted }]}>Send the vehicle, expected price and current kilometres. PSI will contact you before any details or photos are published.</Text>
           <Pressable accessibilityHint="Opens an email draft to PSI" accessibilityLabel="Ask PSI to list my car" accessibilityRole="button" onPress={requestListing} style={({ pressed }) => [styles.primaryButton, { backgroundColor: theme.accent }, pressed && styles.pressed]}>
             <Ionicons color={colors.ink} name="mail-outline" size={20} />
@@ -171,13 +171,13 @@ const styles = StyleSheet.create({
   highlights: { gap: spacing.xs },
   highlight: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   highlightText: { flex: 1, minWidth: 0, fontSize: 11, lineHeight: 17 },
-  empty: { ...mobileFrame, alignItems: 'center', gap: spacing.sm, padding: spacing.xl },
+  empty: { ...mobileFrame, alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.xl, paddingVertical: spacing.xl + spacing.xs },
   emptyIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
-  emptyTitle: { fontSize: 18, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
+  emptyTitle: { width: '100%', fontSize: 18, fontWeight: '900', lineHeight: 24, textAlign: 'center', textTransform: 'uppercase' },
   emptyCopy: { maxWidth: 430, fontSize: 11, lineHeight: 18, textAlign: 'center' },
   sellerCard: { ...mobileFrame, gap: spacing.sm, padding: spacing.lg },
   sellerEyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
-  sellerTitle: { fontSize: 21, fontWeight: '900', lineHeight: 25, textTransform: 'uppercase' },
+  sellerTitle: { width: '100%', flexShrink: 1, fontSize: 21, fontWeight: '900', lineHeight: 28, textTransform: 'uppercase' },
   sellerCopy: { fontSize: 11, lineHeight: 18 },
   primaryButton: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.md },
   primaryButtonText: { color: colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: .6, textAlign: 'center', textTransform: 'uppercase' },
