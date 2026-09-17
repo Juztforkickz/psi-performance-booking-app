@@ -3,14 +3,24 @@ const LIVE_URL = 'https://lslhfrujyuqcavsnugfx.supabase.co';
 const LIVE_PUBLIC_KEY = 'sb_publishable_B1fbCA2hQegGaE9JDCcp-Q_L2rvyeDN';
 const BETA_CHANNEL = 'beta';
 const BETA_RUNTIME = '1.0.0-beta-performance-plus-1';
+const APP_STORE_RELEASE_CHANNEL = 'app-store-release';
+const APP_STORE_RELEASE_RUNTIME = '1.0.0-app-store-release-1';
+
+function demoRuntimeForChannel(channel) {
+  if (channel === BETA_CHANNEL) return BETA_RUNTIME;
+  if (channel === APP_STORE_RELEASE_CHANNEL) return APP_STORE_RELEASE_RUNTIME;
+  throw new Error('DEMO_BUILD_CONFIGURATION_MISMATCH');
+}
 
 function resolveDemoBuild(input) {
   const flag = input.demo ?? '';
   if (!['', 'false', 'true'].includes(flag)) throw new Error('INVALID_DEMO_MODE_FLAG');
   if (flag !== 'true') return false;
   if (input.review === 'true' || input.url !== LIVE_URL || input.key !== LIVE_PUBLIC_KEY
-      || input.auth !== 'true' || input.booking !== 'true' || input.registration !== 'false'
-      || input.channel !== BETA_CHANNEL) throw new Error('DEMO_BUILD_CONFIGURATION_MISMATCH');
+      || input.auth !== 'true' || input.booking !== 'true' || input.registration !== 'false') {
+    throw new Error('DEMO_BUILD_CONFIGURATION_MISMATCH');
+  }
+  demoRuntimeForChannel(input.channel);
   return true;
 }
 
@@ -30,4 +40,14 @@ function createDemoRuntime(selectable, reviewOnly = false) {
   });
 }
 
-module.exports = { LIVE_URL, LIVE_PUBLIC_KEY, BETA_CHANNEL, BETA_RUNTIME, resolveDemoBuild, createDemoRuntime };
+module.exports = {
+  LIVE_URL,
+  LIVE_PUBLIC_KEY,
+  BETA_CHANNEL,
+  BETA_RUNTIME,
+  APP_STORE_RELEASE_CHANNEL,
+  APP_STORE_RELEASE_RUNTIME,
+  demoRuntimeForChannel,
+  resolveDemoBuild,
+  createDemoRuntime,
+};

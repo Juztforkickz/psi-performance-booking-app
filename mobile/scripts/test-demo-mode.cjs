@@ -3,7 +3,15 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { spawnSync } = require('node:child_process');
 const { resolve } = require('node:path');
-const { createDemoRuntime, resolveDemoBuild, LIVE_URL, LIVE_PUBLIC_KEY, BETA_RUNTIME } = require('../demo-mode.cjs');
+const {
+  createDemoRuntime,
+  resolveDemoBuild,
+  LIVE_URL,
+  LIVE_PUBLIC_KEY,
+  BETA_RUNTIME,
+  APP_STORE_RELEASE_CHANNEL,
+  APP_STORE_RELEASE_RUNTIME,
+} = require('../demo-mode.cjs');
 const valid = { demo: 'true', review: 'false', url: LIVE_URL, key: LIVE_PUBLIC_KEY, auth: 'true', booking: 'true', registration: 'false', channel: 'beta' };
 
 test('existing builds cannot opt in by saved mode alone', () => {
@@ -58,6 +66,28 @@ test('the same build retains PSI identity and has a separate OTA runtime', () =>
   assert.equal(eas.build.beta.channel,'beta');
   for (const profile of ['production','qa','apple-review']) {
     const invalid = spawnSync(process.execPath, ['-e',script], {cwd:resolve(__dirname,'..'),env:{...env,EAS_BUILD_PROFILE:profile},encoding:'utf8'});
+    assert.notEqual(invalid.status,0);
+  }
+});
+test('the App Store release keeps live mode while isolating review purchases', () => {
+  const eas = JSON.parse(readFileSync(resolve(__dirname, '../eas.json'), 'utf8'));
+  const profile = eas.build[APP_STORE_RELEASE_CHANNEL];
+  const env = { ...process.env, ...profile.env, EAS_BUILD_PROFILE: APP_STORE_RELEASE_CHANNEL };
+  const script = "console.log(JSON.stringify(require('./app.config.js')({config:require('./app.json').expo})))";
+  const run = spawnSync(process.execPath, ['-e',script], {cwd:resolve(__dirname,'..'), env, encoding:'utf8'});
+  assert.equal(run.status,0,run.stderr);
+  const config = JSON.parse(run.stdout);
+  assert.equal(config.name,'PSI');
+  assert.equal(config.ios.bundleIdentifier,'com.psiperformance.booking');
+  assert.equal(config.runtimeVersion,APP_STORE_RELEASE_RUNTIME);
+  assert.equal(config.extra.psiDemoModeAvailable,true);
+  assert.equal(profile.channel,APP_STORE_RELEASE_CHANNEL);
+  for (const override of [
+    { EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST: 'false' },
+    { EXPO_PUBLIC_REVENUECAT_APPLE_KEY: '' },
+    { EAS_BUILD_PROFILE: 'beta' },
+  ]) {
+    const invalid = spawnSync(process.execPath, ['-e',script], {cwd:resolve(__dirname,'..'),env:{...env,...override},encoding:'utf8'});
     assert.notEqual(invalid.status,0);
   }
 });

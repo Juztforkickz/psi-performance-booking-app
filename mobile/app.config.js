@@ -1,5 +1,5 @@
 const { resolveReviewEnvironment, resolveGoogleReviewEnvironment, REVIEW_CHANNEL, REVIEW_RUNTIME, GOOGLE_REVIEW_CHANNEL, GOOGLE_REVIEW_RUNTIME } = require('./review-environment.cjs');
-const { resolveDemoBuild, BETA_CHANNEL, BETA_RUNTIME } = require('./demo-mode.cjs');
+const { resolveDemoBuild, demoRuntimeForChannel, BETA_CHANNEL, APP_STORE_RELEASE_CHANNEL } = require('./demo-mode.cjs');
 
 module.exports = ({ config }) => {
   const purchaseTestFlag = process.env.EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST ?? '';
@@ -19,9 +19,13 @@ module.exports = ({ config }) => {
     channel: process.env.EXPO_PUBLIC_PSI_UPDATE_CHANNEL,
   });
   if (demo) {
-    if (purchaseTest) throw new Error('PURCHASE_TEST_REQUIRES_ISOLATED_PROFILE');
-    if (process.env.EAS_BUILD_PROFILE && process.env.EAS_BUILD_PROFILE !== BETA_CHANNEL) throw new Error('DEMO_REQUIRES_BETA_PROFILE');
-    return { ...config, runtimeVersion: BETA_RUNTIME, extra: { ...config.extra, psiDemoModeAvailable: true } };
+    const channel = process.env.EXPO_PUBLIC_PSI_UPDATE_CHANNEL;
+    const appStoreRelease = channel === APP_STORE_RELEASE_CHANNEL;
+    if (purchaseTest !== appStoreRelease) throw new Error(appStoreRelease ? 'APP_STORE_RELEASE_REQUIRES_PURCHASE_REVIEW' : 'PURCHASE_TEST_REQUIRES_ISOLATED_PROFILE');
+    const expectedProfile = appStoreRelease ? APP_STORE_RELEASE_CHANNEL : BETA_CHANNEL;
+    if (process.env.EAS_BUILD_PROFILE && process.env.EAS_BUILD_PROFILE !== expectedProfile) throw new Error('DEMO_REQUIRES_MATCHING_BUILD_PROFILE');
+    if (appStoreRelease && !(process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY ?? '').startsWith('appl_')) throw new Error('APP_STORE_RELEASE_REQUIRES_APPLE_PURCHASE_KEY');
+    return { ...config, runtimeVersion: demoRuntimeForChannel(channel), extra: { ...config.extra, psiDemoModeAvailable: true } };
   }
   if (googleReviewFlag === 'true') {
     const googleReview = resolveGoogleReviewEnvironment({

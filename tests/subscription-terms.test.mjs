@@ -13,7 +13,7 @@ const purchasesSource = await compile('../mobile/src/lib/performance-purchases.t
 const termsSource = await compile('../mobile/src/app/subscription-terms.tsx');
 const privacySource = await compile('../mobile/src/app/privacy.tsx');
 
-function renderLegalScreen(source, { platform = 'ios', auth = true, review = false, key = '', googleKey = '', purchaseTest = false, appleReview = false, googleReview = false } = {}) {
+function renderLegalScreen(source, { platform = 'ios', auth = true, review = false, demoAvailable = false, key = '', googleKey = '', purchaseTest = false, appleReview = false, googleReview = false } = {}) {
   const pricing = { monthly: 999, annual: 9900 };
   const imports = {
     'react-native': { Platform: { OS: platform }, Pressable: 'Pressable', ScrollView: 'ScrollView', Text: 'Text', View: 'View', StyleSheet: { create: (styles) => styles } },
@@ -33,7 +33,7 @@ function renderLegalScreen(source, { platform = 'ios', auth = true, review = fal
     },
     '@/hooks/use-responsive-layout': { useResponsiveLayout: () => ({ horizontalPadding: 22 }) },
     '@/lib/customer-auth': { CUSTOMER_AUTH: { enabled: auth } },
-    '@/lib/review-environment': { REVIEW_ENVIRONMENT: { enabled: review } },
+    '@/lib/review-environment': { DEMO_MODE_AVAILABLE: demoAvailable, REVIEW_ENVIRONMENT: { enabled: review } },
     '@/lib/supabase': { getSupabaseClient() { throw new Error('Rendering terms must not access a backend'); } },
     '@/lib/performance-plus': { PERFORMANCE_PRICING: pricing, aud: (cents) => `A$${(cents / 100).toFixed(2)} AUD` },
   };
@@ -73,6 +73,16 @@ test('isolated iOS purchase-test build shows sandbox instructions', () => {
   assert.match(text, /Sandbox purchase testing is enabled/);
   assert.match(text, /Apple sandbox test account/);
   assert.doesNotMatch(text, /Paid subscriptions are unavailable/);
+});
+
+test('App Store release shows live terms normally and sandbox terms inside review mode', () => {
+  const live = renderTerms({ key: 'appl_fixture', demoAvailable: true, purchaseTest: true });
+  assert.match(live, /Choose a plan on the Performance\+ page/);
+  assert.doesNotMatch(live, /Sandbox purchase testing is enabled/);
+
+  const review = renderTerms({ key: 'appl_fixture', review: true, demoAvailable: true, purchaseTest: true });
+  assert.match(review, /Sandbox purchase testing is enabled/);
+  assert.doesNotMatch(review, /Paid subscriptions are unavailable/);
 });
 
 test('a purchase-test flag alone does not advertise available sandbox purchases', () => {

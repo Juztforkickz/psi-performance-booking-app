@@ -13,7 +13,7 @@ const source = ts.transpileModule(await readFile(new URL('../mobile/src/lib/perf
 const isolatedApple = { review: true, purchaseTest: true, appleReview: true };
 
 function checkout({
-  platform = 'ios', review = false, purchaseTest = false, appleReview = false, googleReview = false,
+  platform = 'ios', review = false, demoAvailable = false, purchaseTest = false, appleReview = false, googleReview = false,
   currencyCode = 'AUD', monthlyId = 'psi_performance_plus_monthly', annualId = 'psi_performance_plus_annual',
   storefront = { countryCode: 'AUS' }, purchaseError = null, verificationError = null, verified = true,
 } = {}) {
@@ -53,7 +53,7 @@ function checkout({
     'react-native': { Platform: { OS: platform }, Linking: { openURL: async (url) => calls.push({ type: 'manage-url', url }) } },
     'react-native-purchases': { __esModule: true, default: sdk },
     '@/lib/customer-auth': { CUSTOMER_AUTH: { enabled: true } },
-    '@/lib/review-environment': { REVIEW_ENVIRONMENT: { enabled: review } },
+    '@/lib/review-environment': { DEMO_MODE_AVAILABLE: demoAvailable, REVIEW_ENVIRONMENT: { enabled: review } },
     '@/lib/supabase': { getSupabaseClient: () => client },
   };
   const api = {};
@@ -160,6 +160,16 @@ test('isolated Apple testing sends foreign metadata to native checkout and verif
     assert.equal(storefrontReads(fixture).length, 0);
     assertPurchasedAndVerified(fixture, fixture.annual);
   }
+});
+
+test('App Store release permits sandbox checkout only after entering its isolated review mode', async () => {
+  const review = checkout({ review: true, demoAvailable: true, purchaseTest: true, currencyCode: 'USD' });
+  await review.purchase('annual');
+  assertPurchasedAndVerified(review, review.annual);
+
+  const live = checkout({ demoAvailable: true, purchaseTest: true, currencyCode: 'USD' });
+  await assert.rejects(live.purchase('annual'), /AUD price/);
+  assertNotPurchased(live);
 });
 
 test('unreliable native storefronts cannot block isolated Apple price loading or checkout', async () => {

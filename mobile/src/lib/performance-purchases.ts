@@ -1,6 +1,6 @@
 import { Linking, Platform } from 'react-native';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
-import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
+import { DEMO_MODE_AVAILABLE, REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { getSupabaseClient } from '@/lib/supabase';
 
 const appleKey = process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY?.trim() ?? '';
@@ -34,7 +34,10 @@ export function subscriptionManagementUrl() {
 
 export function subscriptionPurchaseTestMode() {
   if (process.env.EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST !== 'true') return false;
-  if (Platform.OS === 'ios') return process.env.EXPO_PUBLIC_PSI_APPLE_REVIEW === 'true';
+  if (Platform.OS === 'ios') {
+    return REVIEW_ENVIRONMENT.enabled
+      && (process.env.EXPO_PUBLIC_PSI_APPLE_REVIEW === 'true' || DEMO_MODE_AVAILABLE);
+  }
   if (Platform.OS === 'android') return process.env.EXPO_PUBLIC_PSI_GOOGLE_REVIEW === 'true';
   return false;
 }
