@@ -162,6 +162,14 @@ booking, kilometre, reminder and current-result features. Optional PSI
 Performance+ unlocks the complete private vehicle vault for $9.99 AUD monthly or
 $99.00 AUD annually through Apple.
 
+**Apple App Store description footer (iOS only):**
+
+App Store Connect uses Apple's Standard License Agreement. Append the following
+functional link to the iOS description for subscription review; the Google Play
+description remains unchanged.
+
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
 ## Artwork and screenshot readiness
 
 The `PSI APP` desktop folder already contains:
