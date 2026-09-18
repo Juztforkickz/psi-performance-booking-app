@@ -1,0 +1,11 @@
+{
+  "duration_seconds": 90,
+  "scenes": 18,
+  "type": "source-based animation, not screen recording",
+  "narration": "Microsoft James, en-AU",
+  "resolution": "1080x1920",
+  "fps": 30,
+  "full_decode_passed": true,
+  "bytes": 6835354,
+  "sha256": "8a45a07412c78ef6e291833ad65b24474757d1778cd7ca51061582dd646d72f1"
+}

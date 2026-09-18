@@ -1,0 +1,339 @@
+{
+  "status": "passed",
+  "started_at_utc": "2026-09-18T00:37:32.161905+00:00",
+  "delivery_folder": "public\\campaign-videos\\complete-guide-2026-09-18",
+  "files": [
+    {
+      "name": "PSI-Complete-App-Guide.mp4",
+      "bytes": 24709994,
+      "sha256": "13763d65accc7b12d7b6f390fa483b9d96803b409319e8665019b05fc4d528b6",
+      "full_decode": "passed",
+      "decode_exit_code": 0,
+      "decode_stderr": "",
+      "moov_before_mdat": true,
+      "moov_offset": 32,
+      "mdat_offset": 538715,
+      "top_level_boxes": [
+        {
+          "type": "ftyp",
+          "offset": 0,
+          "size": 32
+        },
+        {
+          "type": "moov",
+          "offset": 32,
+          "size": 538675
+        },
+        {
+          "type": "free",
+          "offset": 538707,
+          "size": 8
+        },
+        {
+          "type": "mdat",
+          "offset": 538715,
+          "size": 24171279
+        }
+      ]
+    },
+    {
+      "name": "PSI-Complete-App-Guide-silent.mp4",
+      "bytes": 14283382,
+      "sha256": "c61645a277567d5d4ce1fef66b515cc8ed8b1175bd51b4e440c6a4a6fc8fc29c",
+      "full_decode": "passed",
+      "decode_exit_code": 0,
+      "decode_stderr": "",
+      "moov_before_mdat": true,
+      "moov_offset": 32,
+      "mdat_offset": 178338,
+      "top_level_boxes": [
+        {
+          "type": "ftyp",
+          "offset": 0,
+          "size": 32
+        },
+        {
+          "type": "moov",
+          "offset": 32,
+          "size": 178298
+        },
+        {
+          "type": "free",
+          "offset": 178330,
+          "size": 8
+        },
+        {
+          "type": "mdat",
+          "offset": 178338,
+          "size": 14105044
+        }
+      ]
+    },
+    {
+      "name": "PSI-Launch-Showcase-90s.mp4",
+      "bytes": 6835354,
+      "sha256": "8a45a07412c78ef6e291833ad65b24474757d1778cd7ca51061582dd646d72f1",
+      "full_decode": "passed",
+      "decode_exit_code": 0,
+      "decode_stderr": "",
+      "moov_before_mdat": true,
+      "moov_offset": 32,
+      "mdat_offset": 98479,
+      "top_level_boxes": [
+        {
+          "type": "ftyp",
+          "offset": 0,
+          "size": 32
+        },
+        {
+          "type": "moov",
+          "offset": 32,
+          "size": 98439
+        },
+        {
+          "type": "free",
+          "offset": 98471,
+          "size": 8
+        },
+        {
+          "type": "mdat",
+          "offset": 98479,
+          "size": 6736875
+        }
+      ]
+    },
+    {
+      "name": "PSI-Launch-Showcase-90s-silent.mp4",
+      "bytes": 4935689,
+      "sha256": "e2ed50eab53122ab227d14b874380179bf282156d641fc753e07597cf3d1106b",
+      "full_decode": "passed",
+      "decode_exit_code": 0,
+      "decode_stderr": "",
+      "moov_before_mdat": true,
+      "moov_offset": 32,
+      "mdat_offset": 32658,
+      "top_level_boxes": [
+        {
+          "type": "ftyp",
+          "offset": 0,
+          "size": 32
+        },
+        {
+          "type": "moov",
+          "offset": 32,
+          "size": 32618
+        },
+        {
+          "type": "free",
+          "offset": 32650,
+          "size": 8
+        },
+        {
+          "type": "mdat",
+          "offset": 32658,
+          "size": 4903031
+        }
+      ]
+    }
+  ],
+  "source_sha256": {
+    "PSI-Complete-App-Guide.mp4": "13763d65accc7b12d7b6f390fa483b9d96803b409319e8665019b05fc4d528b6",
+    "PSI-Complete-App-Guide-poster.jpg": "d512d3ab5bd82847ac6cace02accc04f463b1388c1fe8cf5a43594f6db9da4e5",
+    "PSI-Complete-App-Guide.srt": "d8deb27407d40c0aa8320b86236086314b205bbdf0644e2db5dfc0879f053f16",
+    "PSI-Complete-App-Guide-chapters.json": "7fa0bdcea255fba16428d98ef260e164d404457cf31eaa4753126d26af5a8283",
+    "PSI-Complete-App-Guide-validation.json": "8719c19a7c0a5100ff807bdae3c169428036064fb91b6474c8f2bf084385ac5d",
+    "PSI-Launch-Showcase-90s.mp4": "8a45a07412c78ef6e291833ad65b24474757d1778cd7ca51061582dd646d72f1",
+    "PSI-Launch-Showcase-90s-poster.jpg": "39378e86a4cce1d3a1c5165cab31834af462629e119d24180c54b5a9695ab6be",
+    "PSI-Launch-Showcase-90s.srt": "5cbc1caa41059a3340a43a50df4847cca50e915543d3a2dbba2e3246ace8759f",
+    "PSI-Launch-Showcase-90s-chapters.json": "34af22cbb7c7d8441e2c83ed65beffe1239b9da423ff69decbddc363cf0e8d1e",
+    "PSI-Launch-Showcase-90s-validation.json": "d998968e70354df00f68645a5a036340d02af8f501df40368e61b6ee2bf5edc5"
+  },
+  "html_links": [
+    {
+      "url": "#full-guide-title",
+      "kind": "anchor",
+      "exists": true
+    },
+    {
+      "url": "#short-guide-title",
+      "kind": "anchor",
+      "exists": true
+    },
+    {
+      "url": "#save-iphone",
+      "kind": "anchor",
+      "exists": true
+    },
+    {
+      "url": "PSI-Complete-App-Guide-poster.jpg",
+      "kind": "video.poster",
+      "exists": true
+    },
+    {
+      "url": "PSI-Complete-App-Guide.mp4",
+      "kind": "source.src",
+      "exists": true
+    },
+    {
+      "url": "PSI-Complete-App-Guide.vtt",
+      "kind": "track.src",
+      "exists": true
+    },
+    {
+      "url": "PSI-Complete-App-Guide.mp4",
+      "kind": "a.href",
+      "exists": true
+    },
+    {
+      "url": "PSI-Complete-App-Guide.mp4",
+      "kind": "a.href",
+      "exists": true
+    },
+    {
+      "url": "PSI-Complete-App-Guide-silent.mp4",
+      "kind": "a.href",
+      "exists": true
+    },
+    {
+      "url": "PSI-Complete-App-Guide.mp4",
+      "kind": "a.href",
+      "exists": true
+    },
+    {
+      "url": "PSI-Complete-App-Guide-silent.mp4",
+      "kind": "a.href",
+      "exists": true
+    },
+    {
+      "url": "PSI-Complete-App-Guide.srt",
+      "kind": "a.href",
+      "exists": true
+    },
+    {
+      "url": "PSI-Launch-Showcase-90s-poster.jpg",
+      "kind": "video.poster",
+      "exists": true
+    },
+    {
+      "url": "PSI-Launch-Showcase-90s.mp4",
+      "kind": "source.src",
+      "exists": true
+    },
+    {
+      "url": "PSI-Launch-Showcase-90s.vtt",
+      "kind": "track.src",
+      "exists": true
+    },
+    {
+      "url": "PSI-Launch-Showcase-90s.mp4",
+      "kind": "a.href",
+      "exists": true
+    },
+    {
+      "url": "PSI-Launch-Showcase-90s.mp4",
+      "kind": "a.href",
+      "exists": true
+    },
+    {
+      "url": "PSI-Launch-Showcase-90s-silent.mp4",
+      "kind": "a.href",
+      "exists": true
+    },
+    {
+      "url": "PSI-Launch-Showcase-90s.mp4",
+      "kind": "a.href",
+      "exists": true
+    },
+    {
+      "url": "PSI-Launch-Showcase-90s-silent.mp4",
+      "kind": "a.href",
+      "exists": true
+    },
+    {
+      "url": "PSI-Launch-Showcase-90s.srt",
+      "kind": "a.href",
+      "exists": true
+    }
+  ],
+  "caption_cues": {
+    "PSI-Complete-App-Guide": 93,
+    "PSI-Launch-Showcase-90s": 18
+  },
+  "logical_chapters": [
+    {
+      "label": "Welcome",
+      "start": 0.0,
+      "title": "Your car. Your PSI."
+    },
+    {
+      "label": "Account setup",
+      "start": 14.0,
+      "title": "Start with your email."
+    },
+    {
+      "label": "My Garage",
+      "start": 73.0,
+      "title": "Choose the right vehicle"
+    },
+    {
+      "label": "Home",
+      "start": 85.0,
+      "title": "Start with your shortcuts"
+    },
+    {
+      "label": "Book Ahead & bookings",
+      "start": 160.0,
+      "title": "Choose the work you need"
+    },
+    {
+      "label": "Dyno & build",
+      "start": 267.0,
+      "title": "Tell PSI about your setup"
+    },
+    {
+      "label": "Records & Performance+",
+      "start": 292.0,
+      "title": "Choose your level of access"
+    },
+    {
+      "label": "Settings",
+      "start": 415.0,
+      "title": "Choose the updates you receive"
+    },
+    {
+      "label": "Events & cars for sale",
+      "start": 442.0,
+      "title": "Keep up with PSI events"
+    },
+    {
+      "label": "Account & help",
+      "start": 468.0,
+      "title": "Your account and support"
+    },
+    {
+      "label": "Launching soon",
+      "start": 482.0,
+      "title": "Your PSI garage, connected."
+    }
+  ],
+  "source_copies_match": true,
+  "source_files_unchanged": true,
+  "delivery_sha256": {
+    "index.html": "cc7238a5eb80dea8feda3b3df8b192b7c11fd799b08dbe2e13a14b064693fd5b",
+    "PSI-Complete-App-Guide-chapters.json": "7fa0bdcea255fba16428d98ef260e164d404457cf31eaa4753126d26af5a8283",
+    "PSI-Complete-App-Guide-poster.jpg": "d512d3ab5bd82847ac6cace02accc04f463b1388c1fe8cf5a43594f6db9da4e5",
+    "PSI-Complete-App-Guide-silent.mp4": "c61645a277567d5d4ce1fef66b515cc8ed8b1175bd51b4e440c6a4a6fc8fc29c",
+    "PSI-Complete-App-Guide-validation.json": "8719c19a7c0a5100ff807bdae3c169428036064fb91b6474c8f2bf084385ac5d",
+    "PSI-Complete-App-Guide.mp4": "13763d65accc7b12d7b6f390fa483b9d96803b409319e8665019b05fc4d528b6",
+    "PSI-Complete-App-Guide.srt": "d8deb27407d40c0aa8320b86236086314b205bbdf0644e2db5dfc0879f053f16",
+    "PSI-Complete-App-Guide.vtt": "9c7fe5142ce97114b82ead071c326d7b9bb5289ec6e7030575b18392bfee0ec7",
+    "PSI-Launch-Showcase-90s-chapters.json": "34af22cbb7c7d8441e2c83ed65beffe1239b9da423ff69decbddc363cf0e8d1e",
+    "PSI-Launch-Showcase-90s-poster.jpg": "39378e86a4cce1d3a1c5165cab31834af462629e119d24180c54b5a9695ab6be",
+    "PSI-Launch-Showcase-90s-silent.mp4": "e2ed50eab53122ab227d14b874380179bf282156d641fc753e07597cf3d1106b",
+    "PSI-Launch-Showcase-90s-validation.json": "d998968e70354df00f68645a5a036340d02af8f501df40368e61b6ee2bf5edc5",
+    "PSI-Launch-Showcase-90s.mp4": "8a45a07412c78ef6e291833ad65b24474757d1778cd7ca51061582dd646d72f1",
+    "PSI-Launch-Showcase-90s.srt": "5cbc1caa41059a3340a43a50df4847cca50e915543d3a2dbba2e3246ace8759f",
+    "PSI-Launch-Showcase-90s.vtt": "bf41d017a6d02d8b6367e9baee0793ba5856e2981b1ee1e0584ff4fafcaa46b6"
+  },
+  "finished_at_utc": "2026-09-18T00:38:02.511871+00:00"
+}

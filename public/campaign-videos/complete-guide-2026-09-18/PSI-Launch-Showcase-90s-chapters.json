@@ -1,0 +1,110 @@
+[
+  {
+    "start": 0,
+    "title": "Your car. Your PSI.",
+    "chapter": "WELCOME",
+    "duration": 5
+  },
+  {
+    "start": 5,
+    "title": "Start with your email.",
+    "chapter": "ACCOUNT SETUP",
+    "duration": 5
+  },
+  {
+    "start": 10,
+    "title": "Set up your primary vehicle.",
+    "chapter": "ACCOUNT SETUP",
+    "duration": 5
+  },
+  {
+    "start": 15,
+    "title": "Start with your shortcuts",
+    "chapter": "HOME",
+    "duration": 5
+  },
+  {
+    "start": 20,
+    "title": "Make the Home tile yours",
+    "chapter": "MY GARAGE",
+    "duration": 5
+  },
+  {
+    "start": 25,
+    "title": "Update kilometres in My Garage",
+    "chapter": "MY GARAGE",
+    "duration": 5
+  },
+  {
+    "start": 30,
+    "title": "Describe your goal",
+    "chapter": "BOOK AHEAD",
+    "duration": 5
+  },
+  {
+    "start": 35,
+    "title": "Request a preferred date",
+    "chapter": "BOOK AHEAD",
+    "duration": 5
+  },
+  {
+    "start": 40,
+    "title": "Read and confirm the final details",
+    "chapter": "BOOK AHEAD",
+    "duration": 5
+  },
+  {
+    "start": 45,
+    "title": "A request, ready for PSI review",
+    "chapter": "BOOK AHEAD",
+    "duration": 5
+  },
+  {
+    "start": 50,
+    "title": "Plan the next stage",
+    "chapter": "DYNO & BUILD",
+    "duration": 5
+  },
+  {
+    "start": 55,
+    "title": "Open the right vehicle archive",
+    "chapter": "YOUR RECORDS",
+    "duration": 5
+  },
+  {
+    "start": 60,
+    "title": "Open your saved pictures",
+    "chapter": "YOUR RECORDS",
+    "duration": 5
+  },
+  {
+    "start": 65,
+    "title": "Inspect a saved dyno graph",
+    "chapter": "YOUR RECORDS",
+    "duration": 5
+  },
+  {
+    "start": 70,
+    "title": "Read a saved invoice copy",
+    "chapter": "YOUR RECORDS",
+    "duration": 5
+  },
+  {
+    "start": 75,
+    "title": "Add your own note for PSI",
+    "chapter": "YOUR RECORDS",
+    "duration": 5
+  },
+  {
+    "start": 80,
+    "title": "Choose the updates you receive",
+    "chapter": "Settings & Notifications",
+    "duration": 5
+  },
+  {
+    "start": 85,
+    "title": "Your PSI garage, connected.",
+    "chapter": "READY FOR YOUR NEXT VISIT",
+    "duration": 5
+  }
+]

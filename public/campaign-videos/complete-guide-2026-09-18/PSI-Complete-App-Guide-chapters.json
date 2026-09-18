@@ -1,0 +1,242 @@
+[
+  {
+    "start": 0,
+    "title": "Your car. Your PSI.",
+    "chapter": "WELCOME",
+    "duration": 14
+  },
+  {
+    "start": 14,
+    "title": "Start with your email.",
+    "chapter": "ACCOUNT SETUP",
+    "duration": 13
+  },
+  {
+    "start": 27,
+    "title": "Verify your sign-in code.",
+    "chapter": "ACCOUNT SETUP",
+    "duration": 10
+  },
+  {
+    "start": 37,
+    "title": "Add your contact details.",
+    "chapter": "ACCOUNT SETUP",
+    "duration": 12
+  },
+  {
+    "start": 49,
+    "title": "Set up your primary vehicle.",
+    "chapter": "ACCOUNT SETUP",
+    "duration": 13
+  },
+  {
+    "start": 62,
+    "title": "Your garage starts here.",
+    "chapter": "ACCOUNT SETUP",
+    "duration": 11
+  },
+  {
+    "start": 73,
+    "title": "Choose the right vehicle",
+    "chapter": "MY GARAGE",
+    "duration": 12
+  },
+  {
+    "start": 85,
+    "title": "Start with your shortcuts",
+    "chapter": "HOME",
+    "duration": 15
+  },
+  {
+    "start": 100,
+    "title": "Choose your Home shortcuts",
+    "chapter": "HOME",
+    "duration": 12
+  },
+  {
+    "start": 112,
+    "title": "Make the Home tile yours",
+    "chapter": "MY GARAGE",
+    "duration": 13
+  },
+  {
+    "start": 125,
+    "title": "See the saved illustration",
+    "chapter": "MY GARAGE",
+    "duration": 10
+  },
+  {
+    "start": 135,
+    "title": "Keep your own vehicle photo",
+    "chapter": "MY GARAGE",
+    "duration": 12
+  },
+  {
+    "start": 147,
+    "title": "Update kilometres in My Garage",
+    "chapter": "MY GARAGE",
+    "duration": 13
+  },
+  {
+    "start": 160,
+    "title": "Choose the work you need",
+    "chapter": "BOOK AHEAD",
+    "duration": 13
+  },
+  {
+    "start": 173,
+    "title": "Describe your goal",
+    "chapter": "BOOK AHEAD",
+    "duration": 10
+  },
+  {
+    "start": 183,
+    "title": "Attach the saved vehicle",
+    "chapter": "BOOK AHEAD",
+    "duration": 10
+  },
+  {
+    "start": 193,
+    "title": "Check your contact details",
+    "chapter": "BOOK AHEAD",
+    "duration": 11
+  },
+  {
+    "start": 204,
+    "title": "Request a preferred date",
+    "chapter": "BOOK AHEAD",
+    "duration": 12
+  },
+  {
+    "start": 216,
+    "title": "Review before you submit",
+    "chapter": "BOOK AHEAD",
+    "duration": 12
+  },
+  {
+    "start": 228,
+    "title": "Read and confirm the final details",
+    "chapter": "BOOK AHEAD",
+    "duration": 13
+  },
+  {
+    "start": 241,
+    "title": "A request, ready for PSI review",
+    "chapter": "BOOK AHEAD",
+    "duration": 13
+  },
+  {
+    "start": 254,
+    "title": "Follow the next steps",
+    "chapter": "YOUR BOOKINGS",
+    "duration": 13
+  },
+  {
+    "start": 267,
+    "title": "Tell PSI about your setup",
+    "chapter": "DYNO & BUILD",
+    "duration": 13
+  },
+  {
+    "start": 280,
+    "title": "Plan the next stage",
+    "chapter": "DYNO & BUILD",
+    "duration": 12
+  },
+  {
+    "start": 292,
+    "title": "Choose your level of access",
+    "chapter": "Performance+",
+    "duration": 15
+  },
+  {
+    "start": 307,
+    "title": "Open the right vehicle archive",
+    "chapter": "YOUR RECORDS",
+    "duration": 13
+  },
+  {
+    "start": 320,
+    "title": "Review the workshop history",
+    "chapter": "YOUR RECORDS",
+    "duration": 11
+  },
+  {
+    "start": 331,
+    "title": "See the recommended work",
+    "chapter": "YOUR RECORDS",
+    "duration": 11
+  },
+  {
+    "start": 342,
+    "title": "Keep the build history together",
+    "chapter": "YOUR RECORDS",
+    "duration": 12
+  },
+  {
+    "start": 354,
+    "title": "Add your own note for PSI",
+    "chapter": "YOUR RECORDS",
+    "duration": 12
+  },
+  {
+    "start": 366,
+    "title": "Open your saved pictures",
+    "chapter": "YOUR RECORDS",
+    "duration": 12
+  },
+  {
+    "start": 378,
+    "title": "Inspect a saved dyno graph",
+    "chapter": "YOUR RECORDS",
+    "duration": 12
+  },
+  {
+    "start": 390,
+    "title": "Read a saved invoice copy",
+    "chapter": "YOUR RECORDS",
+    "duration": 13
+  },
+  {
+    "start": 403,
+    "title": "Keep supporting files together",
+    "chapter": "YOUR RECORDS",
+    "duration": 12
+  },
+  {
+    "start": 415,
+    "title": "Choose the updates you receive",
+    "chapter": "Settings & Notifications",
+    "duration": 15
+  },
+  {
+    "start": 430,
+    "title": "Make the app comfortable to use",
+    "chapter": "Theme preference",
+    "duration": 12
+  },
+  {
+    "start": 442,
+    "title": "Keep up with PSI events",
+    "chapter": "PSI Events",
+    "duration": 13
+  },
+  {
+    "start": 455,
+    "title": "Ask PSI about listing your car",
+    "chapter": "Customer Cars for Sale",
+    "duration": 13
+  },
+  {
+    "start": 468,
+    "title": "Your account and support",
+    "chapter": "Account & help",
+    "duration": 14
+  },
+  {
+    "start": 482,
+    "title": "Your PSI garage, connected.",
+    "chapter": "READY FOR YOUR NEXT VISIT",
+    "duration": 14
+  }
+]
