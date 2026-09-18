@@ -1,0 +1,68 @@
+{
+  "type": "animated demonstration, not a screen recording",
+  "duration_seconds": 30,
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "video": "H.264 yuv420p",
+  "audio": "AAC, original synthesised score",
+  "sha256": "bce420e9da458e57b1bb9c89e033a6d7848c7e17648bb7796506094cc3ea33d0",
+  "bytes": 1290356,
+  "full_decode_passed": true,
+  "chapters": [
+    [
+      "intro",
+      3,
+      "Your car. Your PSI.",
+      "Meet PSI Performance Garage."
+    ],
+    [
+      "job",
+      3,
+      "Plan your next workshop visit.",
+      "Describe the work you need."
+    ],
+    [
+      "avatar",
+      3,
+      "Choose your car illustration.",
+      "Browse the silver collection and select."
+    ],
+    [
+      "odo",
+      3,
+      "Keep kilometres current.",
+      "Add a customer odometer reading."
+    ],
+    [
+      "photos",
+      3,
+      "Revisit saved pictures.",
+      "Open the pictures stored with your vehicle."
+    ],
+    [
+      "dyno",
+      3,
+      "Inspect your dyno results.",
+      "Example graph and fictional results."
+    ],
+    [
+      "invoice",
+      3,
+      "Keep invoices close.",
+      "Open the saved copy when you need it."
+    ],
+    [
+      "reminders",
+      3,
+      "Stay ahead of the next visit.",
+      "Choose your service and visit reminders."
+    ],
+    [
+      "outro",
+      6,
+      "Your PSI garage, connected.",
+      "Launching soon \u00b7 follow PSI for release news."
+    ]
+  ]
+}

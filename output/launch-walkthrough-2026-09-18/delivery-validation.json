@@ -1,0 +1,30 @@
+[
+  {
+    "file": "PSI-Animated-Demo-30s-Silent.mp4",
+    "bytes": 760918,
+    "sha256": "30485e95dbea3ff4d07e453a7cdd22f02cf09d835f3b4919be6b8dfb2a12f8c4",
+    "fast_start": true,
+    "full_decode_passed": true
+  },
+  {
+    "file": "PSI-Animated-Demo-30s.mp4",
+    "bytes": 1290356,
+    "sha256": "bce420e9da458e57b1bb9c89e033a6d7848c7e17648bb7796506094cc3ea33d0",
+    "fast_start": true,
+    "full_decode_passed": true
+  },
+  {
+    "file": "PSI-Animated-Full-Walkthrough-Silent.mp4",
+    "bytes": 2019273,
+    "sha256": "6d864ec2cae44a8647ba8ac88722c1f811c56d615498bb041da9c94ef69d941e",
+    "fast_start": true,
+    "full_decode_passed": true
+  },
+  {
+    "file": "PSI-Animated-Full-Walkthrough.mp4",
+    "bytes": 3787725,
+    "sha256": "605e58ec61ea28e8ce0b424cae0d57ce777797758038ffd4fe111d4498535151",
+    "fast_start": true,
+    "full_decode_passed": true
+  }
+]

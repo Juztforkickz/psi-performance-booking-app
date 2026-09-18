@@ -1,0 +1,128 @@
+{
+  "type": "animated demonstration, not a screen recording",
+  "duration_seconds": 100,
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "video": "H.264 yuv420p",
+  "audio": "AAC, original synthesised score",
+  "sha256": "605e58ec61ea28e8ce0b424cae0d57ce777797758038ffd4fe111d4498535151",
+  "bytes": 3787725,
+  "full_decode_passed": true,
+  "chapters": [
+    [
+      "intro",
+      4,
+      "Your car. Your PSI.",
+      "Meet PSI Performance Garage."
+    ],
+    [
+      "home",
+      7,
+      "Everything in one place.",
+      "Your garage, bookings and vehicle story."
+    ],
+    [
+      "job",
+      6,
+      "Plan your next workshop visit.",
+      "Describe the work you need."
+    ],
+    [
+      "vehicle",
+      3,
+      "Choose your saved vehicle.",
+      "Keep the request with the right car."
+    ],
+    [
+      "details",
+      3,
+      "Review your details.",
+      "Fictional customer information shown."
+    ],
+    [
+      "date",
+      4,
+      "Pick a preferred date.",
+      "PSI checks workshop availability."
+    ],
+    [
+      "review",
+      4,
+      "Review your request.",
+      "Scope and dates are confirmed by PSI."
+    ],
+    [
+      "received",
+      4,
+      "Request sent for review.",
+      "Animated example. No real booking made."
+    ],
+    [
+      "garage",
+      4,
+      "Make your garage yours.",
+      "Your vehicle, with your choice of artwork."
+    ],
+    [
+      "avatar",
+      7,
+      "Choose your car illustration.",
+      "Browse the silver collection and select."
+    ],
+    [
+      "newhome",
+      4,
+      "Your new Home tile.",
+      "Artwork changes the tile, not the vehicle record."
+    ],
+    [
+      "odo",
+      8,
+      "Keep kilometres current.",
+      "Add a customer odometer reading."
+    ],
+    [
+      "reports",
+      5,
+      "Open your vehicle story.",
+      "Archive features shown require Performance+."
+    ],
+    [
+      "photos",
+      6,
+      "Revisit saved pictures.",
+      "Open the pictures stored with your vehicle."
+    ],
+    [
+      "dyno",
+      6,
+      "Inspect your dyno results.",
+      "Example graph and fictional results."
+    ],
+    [
+      "invoice",
+      6,
+      "Keep invoices close.",
+      "Open the saved copy when you need it."
+    ],
+    [
+      "file",
+      6,
+      "Find the supporting detail.",
+      "Vehicle documents, together in your archive."
+    ],
+    [
+      "reminders",
+      7,
+      "Stay ahead of the next visit.",
+      "Choose your service and visit reminders."
+    ],
+    [
+      "outro",
+      6,
+      "Your PSI garage, connected.",
+      "Launching soon \u00b7 follow PSI for release news."
+    ]
+  ]
+}

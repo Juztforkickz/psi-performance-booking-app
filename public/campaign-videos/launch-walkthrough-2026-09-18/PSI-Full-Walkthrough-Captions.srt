@@ -1,0 +1,94 @@
+1
+00:00:00,000 --> 00:00:04,000
+Your car. Your PSI.
+Meet PSI Performance Garage.
+
+2
+00:00:04,000 --> 00:00:11,000
+Everything in one place.
+Your garage, bookings and vehicle story.
+
+3
+00:00:11,000 --> 00:00:17,000
+Plan your next workshop visit.
+Describe the work you need.
+
+4
+00:00:17,000 --> 00:00:20,000
+Choose your saved vehicle.
+Keep the request with the right car.
+
+5
+00:00:20,000 --> 00:00:23,000
+Review your details.
+Fictional customer information shown.
+
+6
+00:00:23,000 --> 00:00:27,000
+Pick a preferred date.
+PSI checks workshop availability.
+
+7
+00:00:27,000 --> 00:00:31,000
+Review your request.
+Scope and dates are confirmed by PSI.
+
+8
+00:00:31,000 --> 00:00:35,000
+Request sent for review.
+Animated example. No real booking made.
+
+9
+00:00:35,000 --> 00:00:39,000
+Make your garage yours.
+Your vehicle, with your choice of artwork.
+
+10
+00:00:39,000 --> 00:00:46,000
+Choose your car illustration.
+Browse the silver collection and select.
+
+11
+00:00:46,000 --> 00:00:50,000
+Your new Home tile.
+Artwork changes the tile, not the vehicle record.
+
+12
+00:00:50,000 --> 00:00:58,000
+Keep kilometres current.
+Add a customer odometer reading.
+
+13
+00:00:58,000 --> 00:01:03,000
+Open your vehicle story.
+Archive features shown require Performance+.
+
+14
+00:01:03,000 --> 00:01:09,000
+Revisit saved pictures.
+Open the pictures stored with your vehicle.
+
+15
+00:01:09,000 --> 00:01:15,000
+Inspect your dyno results.
+Example graph and fictional results.
+
+16
+00:01:15,000 --> 00:01:21,000
+Keep invoices close.
+Open the saved copy when you need it.
+
+17
+00:01:21,000 --> 00:01:27,000
+Find the supporting detail.
+Vehicle documents, together in your archive.
+
+18
+00:01:27,000 --> 00:01:34,000
+Stay ahead of the next visit.
+Choose your service and visit reminders.
+
+19
+00:01:34,000 --> 00:01:40,000
+Your PSI garage, connected.
+Launching soon · follow PSI for release news.
