@@ -84,6 +84,8 @@ test('phone and walk-in jobs can wait safely for a later app-account transfer', 
   assert.match(uploader, /create_workshop_only_job/u);
   assert.match(uploader, /PSI_WORKSHOP_ERROR_LOG/u);
   assert.match(launcher, /last-error\.log/u);
+  assert.match(launcher, /Local\\PSIWorkshopAutomaticUploader/u);
+  assert.match(launcher, /Enter-PSIUploaderLock/u);
   assert.match(launcher, /finally \{/u);
   assert.match(launcher, /Press Enter to close/u);
   assert.match(review, /owner review required/u);

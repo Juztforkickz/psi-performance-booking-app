@@ -227,25 +227,78 @@ def manifest_for(folder, connection=None):
                 raise ValueError('Workshop-only vehicle identity changed; PSI must review the folder')
     return manifest
 
-def create_folder_from_manifest(root, manifest):
-    label = re.sub(r'[^A-Z0-9._-]+', '-', f'{manifest["reference"]} - {manifest["registration"]}'.upper())
-    label = re.sub(r'-{2,}', '-', label).strip('-._')
+def _safe_folder_part(value, limit):
+    value = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', '-', str(value or ''))
+    value = re.sub(r'\s+', ' ', value).strip(' .-')
+    return value[:limit].rstrip(' .-')
+
+
+def folder_label_for(manifest):
+    customer = _safe_folder_part(manifest.get('customer_name'), 60)
+    vehicle = _safe_folder_part(' '.join(str(value or '') for value in (
+        manifest.get('vehicle_year'), manifest.get('vehicle_make'), manifest.get('vehicle_model')
+    )), 70)
+    registration = _safe_folder_part(manifest.get('registration'), 20)
+    reference = _safe_folder_part(manifest.get('reference'), 70)
+    if customer and vehicle:
+        label = f'{customer} - {vehicle} - {registration} - {reference}'
+    else:
+        label = f'{reference}-{registration}'
+    label = label.upper().strip(' .-')
     if not label:
         raise ValueError('Manifest has no safe job folder label')
-    folder = root / label
-    folder.mkdir(parents=True, exist_ok=True)
-    destination = folder / 'psi-job.json'
-    if destination.exists():
-        existing = json.loads(destination.read_text(encoding='utf-8-sig'))
-        if existing != manifest:
-            claimed_upgrade = (
-                existing.get('schema') == 2 and manifest.get('schema') == 1
-                and all(existing.get(field) == manifest.get(field) for field in ('job_id', 'reference', 'registration', 'job_date'))
-            )
-            if not claimed_upgrade:
-                raise ValueError('This folder already contains a different PSI job manifest')
-            atomic_json(destination, manifest)
+    return label
+
+
+def _manifest_update_allowed(existing, manifest):
+    shared = ('job_id', 'project_ref', 'reference', 'registration', 'job_date')
+    if any(existing.get(field) != manifest.get(field) for field in shared):
+        return False
+    if existing.get('schema') == manifest.get('schema') == 1:
+        return all(existing.get(field) == manifest.get(field) for field in ('customer_id', 'vehicle_id'))
+    if existing.get('schema') == manifest.get('schema') == 2:
+        return all(existing.get(field) == manifest.get(field) for field in ('workshop_contact_id', 'workshop_vehicle_id'))
+    return existing.get('schema') == 2 and manifest.get('schema') == 1
+
+
+def _existing_job_folder(root, job_id):
+    matches = []
+    if root.is_dir():
+        for candidate in root.iterdir():
+            manifest_path = candidate / 'psi-job.json'
+            if candidate.is_symlink() or not candidate.is_dir() or not manifest_path.is_file():
+                continue
+            try:
+                existing = json.loads(manifest_path.read_text(encoding='utf-8-sig'))
+            except (OSError, UnicodeError, json.JSONDecodeError):
+                continue
+            if existing.get('job_id') == job_id:
+                matches.append((candidate, existing))
+    if len(matches) > 1:
+        raise ValueError('More than one local folder has this PSI job ID; PSI review required')
+    return matches[0] if matches else (None, None)
+
+
+def create_folder_from_manifest(root, manifest):
+    root.mkdir(parents=True, exist_ok=True)
+    desired = root / folder_label_for(manifest)
+    folder, existing = _existing_job_folder(root, manifest['job_id'])
+    if folder is None:
+        folder = desired
+        folder.mkdir(exist_ok=True)
+        destination = folder / 'psi-job.json'
+        existing = json.loads(destination.read_text(encoding='utf-8-sig')) if destination.exists() else None
     else:
+        destination = folder / 'psi-job.json'
+    if existing is not None and existing != manifest and not _manifest_update_allowed(existing, manifest):
+        raise ValueError('This folder already contains a different PSI job manifest')
+    if folder != desired:
+        if desired.exists():
+            raise ValueError('The preferred PSI job folder name is already in use')
+        folder.rename(desired)
+        folder = desired
+        destination = folder / 'psi-job.json'
+    if existing != manifest:
         atomic_json(destination, manifest)
     for category in CATEGORIES:
         (folder / category).mkdir(exist_ok=True)
@@ -266,33 +319,48 @@ def create_job_folder(root, manifest_path, connection=None):
     return create_folder_from_manifest(root, manifest)
 
 
-def manifest_from_job(connection, job, vehicle=None):
+def manifest_from_job(connection, job, vehicle=None, customer_name=None):
     project_ref = urllib.parse.urlparse(connection.url).hostname.split('.')[0]
     if job.get('customer_id') and job.get('vehicle_id'):
         if vehicle is None:
             vehicles = connection.call(
-                '/rest/v1/customer_vehicles?select=id,customer_id,registration,archived_at&id=eq.' + job['vehicle_id']
+                '/rest/v1/customer_vehicles?select=id,customer_id,registration,year,make,model,archived_at&id=eq.' + job['vehicle_id']
             )
             vehicle = vehicles[0] if len(vehicles) == 1 else None
         if not vehicle or vehicle['archived_at'] or vehicle['customer_id'] != job['customer_id']:
             raise ValueError('The workshop job vehicle is unavailable')
+        if customer_name is None:
+            customers = connection.call(
+                '/rest/v1/customer_profiles?select=first_name,last_name,email&user_id=eq.' + job['customer_id']
+            )
+            if customers:
+                customer_name = ' '.join(filter(None, (customers[0].get('first_name'), customers[0].get('last_name')))).strip() or customers[0].get('email')
         return {
             'schema': 1, 'project_ref': project_ref, 'job_id': job['id'],
             'customer_id': job['customer_id'], 'vehicle_id': job['vehicle_id'],
             'registration': vehicle['registration'], 'reference': job['reference'], 'job_date': job['job_date'],
+            'customer_name': customer_name, 'vehicle_year': vehicle.get('year'),
+            'vehicle_make': vehicle.get('make'), 'vehicle_model': vehicle.get('model'),
         }
     if job.get('workshop_contact_id') and job.get('workshop_vehicle_id'):
         if vehicle is None:
             vehicles = connection.call(
-                '/rest/v1/workshop_vehicles?select=id,workshop_contact_id,registration,status&id=eq.' + job['workshop_vehicle_id']
+                '/rest/v1/workshop_vehicles?select=id,workshop_contact_id,registration,year,make,model,status&id=eq.' + job['workshop_vehicle_id']
             )
             vehicle = vehicles[0] if len(vehicles) == 1 else None
         if not vehicle or vehicle['status'] != 'active' or vehicle['workshop_contact_id'] != job['workshop_contact_id']:
             raise ValueError('The workshop-only job vehicle is unavailable')
+        if customer_name is None:
+            contacts = connection.call(
+                '/rest/v1/workshop_contacts?select=display_name&id=eq.' + job['workshop_contact_id']
+            )
+            customer_name = contacts[0].get('display_name') if contacts else None
         return {
             'schema': 2, 'owner_type': 'workshop', 'project_ref': project_ref, 'job_id': job['id'],
             'workshop_contact_id': job['workshop_contact_id'], 'workshop_vehicle_id': job['workshop_vehicle_id'],
             'registration': vehicle['registration'], 'reference': job['reference'], 'job_date': job['job_date'],
+            'customer_name': customer_name, 'vehicle_year': vehicle.get('year'),
+            'vehicle_make': vehicle.get('make'), 'vehicle_model': vehicle.get('model'),
         }
     raise ValueError('The workshop job has no valid owner mode')
 
@@ -303,19 +371,31 @@ def sync_job_folders(root, connection, days_back=30):
     path = ('/rest/v1/workshop_jobs?select=id,customer_id,vehicle_id,workshop_contact_id,workshop_vehicle_id,reference,title,job_date'
             '&job_date=gte.' + earliest + '&order=job_date.asc&limit=500')
     vehicles = connection.call(
-        '/rest/v1/customer_vehicles?select=id,customer_id,registration,archived_at&archived_at=is.null&limit=2000'
+        '/rest/v1/customer_vehicles?select=id,customer_id,registration,year,make,model,archived_at&archived_at=is.null&limit=2000'
     )
     vehicles_by_id = {vehicle['id']: vehicle for vehicle in vehicles}
     workshop_vehicles = connection.call(
-        '/rest/v1/workshop_vehicles?select=id,workshop_contact_id,registration,status&status=eq.active&limit=2000'
+        '/rest/v1/workshop_vehicles?select=id,workshop_contact_id,registration,year,make,model,status&status=eq.active&limit=2000'
     )
     workshop_vehicles_by_id = {vehicle['id']: vehicle for vehicle in workshop_vehicles}
+    customers = connection.call(
+        '/rest/v1/customer_profiles?select=user_id,first_name,last_name,email&account_state=eq.active&limit=2000'
+    )
+    customer_names = {
+        customer['user_id']: ' '.join(filter(None, (customer.get('first_name'), customer.get('last_name')))).strip() or customer.get('email')
+        for customer in customers
+    }
+    workshop_contacts = connection.call(
+        '/rest/v1/workshop_contacts?select=id,display_name&status=eq.active&limit=2000'
+    )
+    workshop_names = {contact['id']: contact['display_name'] for contact in workshop_contacts}
     connection.verified_jobs = {}
     created, errors = [], []
     for job in connection.call(path):
         try:
             vehicle = vehicles_by_id.get(job.get('vehicle_id')) if job.get('vehicle_id') else workshop_vehicles_by_id.get(job.get('workshop_vehicle_id'))
-            manifest = manifest_from_job(connection, job, vehicle)
+            customer_name = customer_names.get(job.get('customer_id')) if job.get('customer_id') else workshop_names.get(job.get('workshop_contact_id'))
+            manifest = manifest_from_job(connection, job, vehicle, customer_name)
             connection.verified_jobs[job['id']] = manifest
             folder = create_folder_from_manifest(root, manifest)
             created.append(folder)
@@ -424,7 +504,7 @@ def create_manual_job(root, connection, input_fn=input):
             selected_choice = choices[selected - 1]
 
     if selected_choice and selected_choice[0] == 'app':
-        _, vehicle, _ = selected_choice
+        _, vehicle, customer_name = selected_choice
         job_date, title = _manual_job_details(input_fn, vehicle['registration'])
         reference = 'PSI-PHONE-' + job_date.replace('-', '') + '-' + uuid.uuid4().hex[:8].upper()
         job = connection.call('/rest/v1/workshop_jobs', 'POST', {
@@ -434,6 +514,7 @@ def create_manual_job(root, connection, input_fn=input):
         }, headers={'Prefer': 'return=representation'})[0]
     else:
         existing_vehicle = selected_choice[1] if selected_choice else None
+        customer_name = selected_choice[2] if selected_choice else None
         customer = {
             'p_display_name': None, 'p_email': None, 'p_mobile': None,
             'p_registration': None, 'p_year': None, 'p_make': None, 'p_model': None,
@@ -445,12 +526,14 @@ def create_manual_job(root, connection, input_fn=input):
             **customer, 'p_title': title, 'p_job_date': job_date,
         }
         job = connection.call('/rest/v1/rpc/create_workshop_only_job', 'POST', payload)[0]
+        customer_name = customer_name or customer['p_display_name']
         vehicle = existing_vehicle or {
             'id': job['workshop_vehicle_id'], 'workshop_contact_id': job['workshop_contact_id'],
-            'registration': registration, 'status': 'active',
+            'registration': registration, 'year': customer['p_year'], 'make': customer['p_make'],
+            'model': customer['p_model'], 'status': 'active',
         }
 
-    manifest = manifest_from_job(connection, job, vehicle)
+    manifest = manifest_from_job(connection, job, vehicle, customer_name)
     connection.verified_jobs[job['id']] = manifest
     return create_folder_from_manifest(root, manifest)
 
@@ -625,7 +708,10 @@ def main():
             print('Scan complete. Check each job folder’s .psi-upload-status.json for results.')
             if not args.watch:
                 break
-            time.sleep(30)
+            for _ in range(30):
+                if args.stop_file and Path(args.stop_file).exists():
+                    break
+                time.sleep(1)
     finally:
         if connection and not session_store:
             try: connection.call('/auth/v1/logout?scope=local', 'POST', {})

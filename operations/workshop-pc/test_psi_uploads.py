@@ -9,7 +9,7 @@ from unittest.mock import patch
 from PIL import Image
 from psi_uploads import (
     Connection, RequestFailure, SessionStore, create_job_folder, create_manual_job,
-    ensure_object, import_manifest_inbox, manifest_for, prepare_file, process_job,
+    ensure_object, folder_label_for, import_manifest_inbox, manifest_for, prepare_file, process_job,
     sync_job_folders,
 )
 
@@ -108,6 +108,35 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(json.loads((job / 'psi-job.json').read_text()), self.manifest)
         self.assertEqual(set(path.name for path in job.iterdir() if path.is_dir()), set(('before', 'progress', 'after', 'dyno', 'invoices', 'documents')))
         self.assertEqual(create_job_folder(root, source), job)
+
+    def test_verified_identity_metadata_names_and_renames_the_job_folder(self):
+        source = self.folder / 'downloaded.json'
+        source.write_text(json.dumps(self.manifest))
+        root = self.folder / 'named-uploads'
+        old_folder = create_job_folder(root, source)
+        named = {
+            **self.manifest,
+            'customer_name': 'Tyrone Brown', 'vehicle_year': 2011,
+            'vehicle_make': 'Porsche', 'vehicle_model': 'Cayenne',
+        }
+        source.write_text(json.dumps(named))
+        renamed = create_job_folder(root, source)
+        self.assertEqual(
+            renamed.name,
+            'TYRONE BROWN - 2011 PORSCHE CAYENNE - ABC123 - PSI-TEST',
+        )
+        self.assertFalse(old_folder.exists())
+        self.assertEqual(json.loads((renamed / 'psi-job.json').read_text()), named)
+
+    def test_folder_label_removes_windows_path_characters(self):
+        named = {
+            **self.manifest,
+            'customer_name': 'Customer / Name', 'vehicle_year': 2020,
+            'vehicle_make': 'Ford', 'vehicle_model': 'Ranger: Wildtrak',
+        }
+        label = folder_label_for(named)
+        self.assertNotRegex(label, r'[<>:"/\\|?*]')
+        self.assertIn('CUSTOMER - NAME', label)
 
     def test_manifest_cannot_replace_another_job_folder(self):
         source = self.folder / 'downloaded.json'
@@ -253,14 +282,21 @@ class WorkshopImporterTests(unittest.TestCase):
                     return [job]
                 if path.startswith('/rest/v1/workshop_vehicles'):
                     return []
+                if path.startswith('/rest/v1/workshop_contacts'):
+                    return []
+                if path.startswith('/rest/v1/customer_profiles'):
+                    return [{'user_id': self.manifest['customer_id'], 'first_name': 'Test',
+                             'last_name': 'Customer', 'email': 'customer@example.invalid'}]
                 return [{'id': self.manifest['vehicle_id'], 'customer_id': self.manifest['customer_id'],
-                         'registration': self.manifest['registration'], 'archived_at': None}]
+                         'registration': self.manifest['registration'], 'year': 2020,
+                         'make': 'Ford', 'model': 'Mustang', 'archived_at': None}]
         root = self.folder / 'uploads'
         root.mkdir()
         first, errors = sync_job_folders(root, FakeConnection())
         second, repeated_errors = sync_job_folders(root, FakeConnection())
         self.assertEqual(errors + repeated_errors, [])
         self.assertEqual(first, second)
+        self.assertEqual(first[0].name, 'TEST CUSTOMER - 2020 FORD MUSTANG - ABC123 - PSI-TEST')
         self.assertTrue((first[0] / 'dyno').is_dir())
 
     def test_phone_job_uses_existing_vehicle_and_staff_identity(self):
@@ -292,6 +328,7 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(connection.posted['title'], 'Phone service')
         self.assertTrue(connection.posted['reference'].startswith('PSI-PHONE-20260915-'))
         self.assertTrue((folder / 'psi-job.json').is_file())
+        self.assertTrue(folder.name.startswith('TEST CUSTOMER - 2020 FORD MUSTANG - ABC123 - PSI-PHONE-'))
 
     def test_phone_job_can_create_workshop_only_customer_without_an_account(self):
         workshop_contact_id = 'a4400000-0000-4000-8000-000000000001'
@@ -326,6 +363,10 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(manifest['schema'], 2)
         self.assertEqual(manifest['owner_type'], 'workshop')
         self.assertEqual(manifest['workshop_contact_id'], workshop_contact_id)
+        self.assertEqual(
+            folder.name,
+            'PHONE CUSTOMER - 2018 TOYOTA 86 - 2FC2BJ - PSI-PHONE-20260915-1234ABCD',
+        )
 
     def test_manifest_inbox_ignores_unrelated_json(self):
         inbox = self.folder / 'downloads'

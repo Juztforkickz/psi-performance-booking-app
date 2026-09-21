@@ -28,6 +28,8 @@ For a phone or walk-in job, open the desktop shortcut and choose **Create a phon
 
 Files for a workshop-only customer are prepared and marked `waiting_for_customer_account`; they remain local and private rather than being attached to the wrong identity. If the customer later creates an app account, the owner portal shows strong match candidates based on exact normalized email or the combination of exact normalized name and registration. Matt must review and approve the match. Approval links every workshop-only vehicle and job to the selected app customer, upgrades the existing folder manifest automatically, and allows the next watcher scan to upload the waiting files. Similarity alone never transfers records automatically.
 
+Folder names use the customer, vehicle, registration and unique PSI job reference, for example `TYRONE BROWN - 2011 PORSCHE CAYENNE - 2EW4VQ - PSI-PHONE-20260921-64265D66`. The reference prevents two visits for the same vehicle from colliding. Synchronization safely renames older verified folders to this format by reading their protected job ID.
+
 The resulting layout is:
 
 ```powershell
@@ -38,7 +40,7 @@ python psi_uploads.py --root "C:/PSI Uploads" --add-job "C:/Users/YOU/Downloads/
 
 ```text
 C:/PSI Uploads/
-  PSI-2026-0123 - ABC123/
+  CUSTOMER NAME - 2020 FORD MUSTANG - ABC123 - PSI-2026-0123/
     psi-job.json
     before/
     progress/

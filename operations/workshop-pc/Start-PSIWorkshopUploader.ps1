@@ -3,15 +3,37 @@ $InstallRoot = $PSScriptRoot
 $ErrorLog = Join-Path $InstallRoot 'last-error.log'
 $env:PSI_WORKSHOP_ERROR_LOG = $ErrorLog
 $ExitCode = 0
+$Python = Join-Path $InstallRoot '.venv\Scripts\python.exe'
+$Uploader = Join-Path $InstallRoot 'psi_uploads.py'
+$Watcher = Join-Path $InstallRoot 'Start-PSIWorkshopWatcher.ps1'
+$SessionFile = Join-Path $InstallRoot 'session.dpapi'
+$StopFile = Join-Path $InstallRoot 'watcher.stop'
+$WatcherMutex = $null
+$WatcherLockHeld = $false
+$RestartWatcher = $false
+
+function Enter-PSIUploaderLock {
+  Set-Content -LiteralPath $script:StopFile -Value 'stop' -Encoding ASCII
+  $script:WatcherMutex = New-Object System.Threading.Mutex($false, 'Local\PSIWorkshopAutomaticUploader')
+  for ($Attempt = 0; $Attempt -lt 40 -and -not $script:WatcherLockHeld; $Attempt++) {
+    try {
+      $script:WatcherLockHeld = $script:WatcherMutex.WaitOne(1000)
+    } catch [System.Threading.AbandonedMutexException] {
+      $script:WatcherLockHeld = $true
+    }
+  }
+  if (-not $script:WatcherLockHeld) {
+    $script:WatcherMutex.Dispose()
+    $script:WatcherMutex = $null
+    Remove-Item -LiteralPath $script:StopFile -Force -ErrorAction SilentlyContinue
+    throw 'The automatic watcher did not pause. Wait 30 seconds and try again.'
+  }
+  Remove-Item -LiteralPath $script:StopFile -Force -ErrorAction SilentlyContinue
+}
 
 try {
   Remove-Item -LiteralPath $ErrorLog -Force -ErrorAction SilentlyContinue
   $Config = Get-Content -LiteralPath (Join-Path $InstallRoot 'config.json') -Raw | ConvertFrom-Json
-  $Python = Join-Path $InstallRoot '.venv\Scripts\python.exe'
-  $Uploader = Join-Path $InstallRoot 'psi_uploads.py'
-  $Watcher = Join-Path $InstallRoot 'Start-PSIWorkshopWatcher.ps1'
-  $SessionFile = Join-Path $InstallRoot 'session.dpapi'
-  $StopFile = Join-Path $InstallRoot 'watcher.stop'
 
   Write-Host ''
   Write-Host 'PSI Workshop Uploads'
@@ -23,11 +45,14 @@ try {
   $Choice = Read-Host 'Choose 1, 2, 3, 4 or 5'
 
   if ($Choice -eq '1') {
+    Enter-PSIUploaderLock
+    $RestartWatcher = $true
     & $Python $Uploader --root $Config.uploadRoot --url $Config.projectUrl --key $Config.publishableKey --email $Config.staffEmail --session-file $SessionFile --stop-file $StopFile --manifest-inbox $Config.manifestInbox
     if ($LASTEXITCODE -ne 0) { throw "PSI uploader stopped with error code $LASTEXITCODE." }
-    Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $Watcher)
     Write-Host 'Automatic watching is running in the background and will start with Windows.'
   } elseif ($Choice -eq '2') {
+    Enter-PSIUploaderLock
+    $RestartWatcher = $true
     & $Python $Uploader --root $Config.uploadRoot --url $Config.projectUrl --key $Config.publishableKey --email $Config.staffEmail --session-file $SessionFile --manual-job
     if ($LASTEXITCODE -ne 0) { throw "PSI uploader stopped with error code $LASTEXITCODE." }
   } elseif ($Choice -eq '3') {
@@ -40,9 +65,12 @@ try {
       if ($LASTEXITCODE -ne 0) { throw "PSI uploader stopped with error code $LASTEXITCODE." }
     }
   } elseif ($Choice -eq '4') {
+    Enter-PSIUploaderLock
+    $RestartWatcher = $true
     & $Python $Uploader --root $Config.uploadRoot --url $Config.projectUrl --key $Config.publishableKey --email $Config.staffEmail --session-file $SessionFile --manifest-inbox $Config.manifestInbox
     if ($LASTEXITCODE -ne 0) { throw "PSI uploader stopped with error code $LASTEXITCODE." }
   } elseif ($Choice -eq '5') {
+    Enter-PSIUploaderLock
     & $Python $Uploader --root $Config.uploadRoot --session-file $SessionFile --stop-file $StopFile --forget-session
     if ($LASTEXITCODE -ne 0) { throw "PSI uploader stopped with error code $LASTEXITCODE." }
   } else {
@@ -58,6 +86,18 @@ try {
   }
   Write-Host "Diagnostic log: $ErrorLog"
 } finally {
+  if ($WatcherLockHeld -and $WatcherMutex) {
+    $WatcherMutex.ReleaseMutex()
+    $WatcherLockHeld = $false
+  }
+  if ($WatcherMutex) {
+    $WatcherMutex.Dispose()
+  }
+  if ($RestartWatcher -and (Test-Path -LiteralPath $SessionFile)) {
+    Remove-Item -LiteralPath $StopFile -Force -ErrorAction SilentlyContinue
+    $WatcherArguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $Watcher + '"'
+    Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList $WatcherArguments
+  }
   Remove-Item Env:\PSI_WORKSHOP_ERROR_LOG -ErrorAction SilentlyContinue
   Read-Host 'Press Enter to close'
 }
