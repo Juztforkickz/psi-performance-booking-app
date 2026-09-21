@@ -58,10 +58,11 @@ test('owners can explicitly keep non-app customer invoices in Xero only', async 
 });
 
 test('phone and walk-in jobs can wait safely for a later app-account transfer', async () => {
-  const [migration, indexMigration, uploader, review, guide] = await Promise.all([
+  const [migration, indexMigration, uploader, launcher, review, guide] = await Promise.all([
     read('../supabase/migrations/20260914061154_workshop_only_customers.sql'),
     read('../supabase/migrations/20260914062740_index_workshop_claims.sql'),
     read('../operations/workshop-pc/psi_uploads.py'),
+    read('../operations/workshop-pc/Start-PSIWorkshopUploader.ps1'),
     read('../mobile/src/components/staff-workshop-customers.tsx'),
     read('../operations/workshop-pc/README.md'),
   ]);
@@ -81,6 +82,10 @@ test('phone and walk-in jobs can wait safely for a later app-account transfer', 
   assert.match(uploader, /'schema': 2, 'owner_type': 'workshop'/u);
   assert.match(uploader, /waiting_for_customer_account/u);
   assert.match(uploader, /create_workshop_only_job/u);
+  assert.match(uploader, /PSI_WORKSHOP_ERROR_LOG/u);
+  assert.match(launcher, /last-error\.log/u);
+  assert.match(launcher, /finally \{/u);
+  assert.match(launcher, /Press Enter to close/u);
   assert.match(review, /owner review required/u);
   assert.match(review, /Review & transfer/u);
   assert.match(review, /exact email match or an exact name plus registration match/u);

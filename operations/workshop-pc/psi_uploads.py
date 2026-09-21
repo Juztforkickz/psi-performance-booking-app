@@ -635,5 +635,12 @@ if __name__ == '__main__':
     try:
         raise SystemExit(main() or 0)
     except (RequestFailure, RuntimeError, ValueError, OSError) as error:
-        print('PSI Workshop Uploads: ' + str(error), file=sys.stderr)
+        message = 'PSI Workshop Uploads: ' + str(error)
+        print(message, file=sys.stderr)
+        error_log = os.environ.get('PSI_WORKSHOP_ERROR_LOG')
+        if error_log:
+            try:
+                Path(error_log).write_text(message + '\n', encoding='utf-8')
+            except OSError:
+                pass
         raise SystemExit(1) from None
