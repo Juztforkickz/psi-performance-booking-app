@@ -1,5 +1,6 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { processAccountSignupNotifications } from "./account-signup-notifications.ts";
 
 type JobKind =
   | "notify_psi_request_received"
@@ -629,6 +630,8 @@ Deno.serve(async (request) => {
   if (body.bookingId !== undefined && !isUuid(body.bookingId)) return json({ error: "invalid_booking_id" }, 400);
   const bookingId = body.bookingId ?? null;
   const dueReminderRun = body.action === "process_due_service_reminders";
+  const accountSignupRun = body.action === "process_account_signups";
+  const scheduledRun = dueReminderRun || accountSignupRun;
   const requestedLimit = typeof body.limit === "number" && Number.isFinite(body.limit) ? Math.trunc(body.limit) : 10;
   const limit = Math.min(10, Math.max(1, requestedLimit));
   const admin = createClient(supabaseUrl, serviceRoleKey, {
@@ -636,7 +639,7 @@ Deno.serve(async (request) => {
   });
   const cronToken = request.headers.get("x-psi-cron-token")?.trim() ?? "";
   let isScheduledCron = false;
-  if (dueReminderRun && cronToken) {
+  if (scheduledRun && cronToken) {
     const verified = await admin.rpc("verify_service_reminder_cron_token", { p_token: cronToken });
     isScheduledCron = !verified.error && verified.data === true;
   }
@@ -649,7 +652,7 @@ Deno.serve(async (request) => {
   let isAal2Staff = isInternalServiceCall;
 
   if (isInternalServiceCall) {
-    if (!bookingId && !dueReminderRun) return json({ error: "internal_booking_id_required" }, 400);
+    if (!bookingId && !scheduledRun) return json({ error: "internal_booking_id_required" }, 400);
   } else {
     const userClient = createClient(supabaseUrl, anonKey, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -683,6 +686,15 @@ Deno.serve(async (request) => {
         .eq("customer_id", userData.user.id)
         .maybeSingle();
       if (ownedBookingError || !ownedBooking) return json({ error: "booking_access_denied" }, 403);
+    }
+  }
+
+  if (accountSignupRun) {
+    if (!isInternalServiceCall) return json({ error: "internal_access_required" }, 403);
+    try {
+      return json(await processAccountSignupNotifications(admin, limit));
+    } catch {
+      return json({ error: "signup_notification_worker_unavailable" }, 500);
     }
   }
 

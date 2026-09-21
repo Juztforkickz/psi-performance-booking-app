@@ -23,14 +23,24 @@ server-only service credential and a required booking ID. This narrowly scoped
 path starts the already-queued confirmation email and Calendar jobs immediately
 after Stripe confirms the deposit; it cannot process the unscoped queue.
 
-The scheduled reminder runner invokes this same worker with the server-only
-credential and `action: process_due_service_reminders`. That unscoped internal
+The scheduled reminder runner invokes this same worker with the verified Cron
+token and `action: process_due_service_reminders`. That unscoped internal
 mode is restricted to due `notify_customer_service_due` jobs; it cannot process
 booking decisions, owner email or Calendar work. A completed, consented service
 creates six- and twelve-month jobs from its actual completion date. Each job is
 available at 9:00 am Melbourne time one calendar month before the due date. The
 worker sends the customer email, records the private in-app alert and hands its
 push job to the push worker using the same required booking ID.
+
+The same worker processes `account_signup_notification_jobs` when Cron sends
+`action: process_account_signups` with the verified scheduler token. A job is
+queued only when a signed-in customer completes their name, mobile number and
+first vehicle. The owner email includes those contact and vehicle details and
+the current completed customer-account total; that total is not an App Store
+download count. Existing completed accounts were seeded as a silent baseline,
+so later profile edits cannot send a second signup alert. The job is retried
+with a stable Resend idempotency key, and Cron checks the queue every five
+minutes. Customer sessions cannot invoke this unscoped worker action.
 
 The function is safe to deploy without provider credentials. Affected jobs move
 to `blocked_configuration`; no success is claimed and no customer data is sent.
@@ -46,14 +56,11 @@ app configuration:
 - `GOOGLE_CALENDAR_REFRESH_TOKEN`
 - `PSI_GOOGLE_CALENDAR_ID`
 
-The Supabase Cron schedule calls the function daily at `00:05 UTC` (`10:05
-AEST` or `11:05 AEDT`). Keep the project URL in Vault as
-`psi_service_reminder_project_url` and the service-role credential as
-`psi_service_reminder_service_role`; never put either value in a migration,
-repository file, mobile variable or GitHub Pages setting. The
-schedule is considered active only after a controlled due-job acceptance run
-shows the email job as succeeded and the paired in-app/push job as delivered or
-explicitly cancelled because the customer has no registered device.
+The due-reminder Supabase Cron schedule calls the function daily at `00:05 UTC`
+(`10:05 AEST` or `11:05 AEDT`). The signup schedule runs every five minutes.
+Both use the project URL, gateway anon JWT and a separate verified random Cron
+token stored in Vault. Never put those values in a migration, repository file,
+mobile variable or GitHub Pages setting.
 
 Email calls use the queue dedupe key as Resend's idempotency key. Calendar
 events are all-day workshop records, use a deterministic event ID, inherit the
