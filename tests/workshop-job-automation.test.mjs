@@ -5,10 +5,12 @@ import test from 'node:test';
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 
 test('confirmed app bookings create one exact workshop job and PC manifest workflow', async () => {
-  const [migration, bookingTools, uploader, guide] = await Promise.all([
+  const [migration, bookingTools, uploader, launcher, installer, guide] = await Promise.all([
     read('../supabase/migrations/20260911143000_booking_job_xero_completion.sql'),
     read('../mobile/src/components/staff-workshop-job.tsx'),
     read('../operations/workshop-pc/psi_uploads.py'),
+    read('../operations/workshop-pc/Start-PSIWorkshopUploader.ps1'),
+    read('../operations/workshop-pc/Install-PSIWorkshopUploader.ps1'),
     read('../operations/workshop-pc/README.md'),
   ]);
   assert.match(migration, /after insert or update of state on public\.booking_requests/u);
@@ -27,6 +29,10 @@ test('confirmed app bookings create one exact workshop job and PC manifest workf
   }
   assert.match(uploader, /LEGACY_PHOTO_CATEGORIES = \('before', 'progress', 'after'\)/u);
   assert.match(guide, /Save a Mainline result as PDF into the job's `dyno` folder/u);
+  assert.match(launcher, /PSIWorkshopWindow/u);
+  assert.match(launcher, /SetWindowPos/u);
+  assert.match(installer, /PSI Workshop Menu\.lnk/u);
+  assert.match(guide, /opens the workshop menu in the centre of the screen/u);
 });
 
 test('Xero imports assist service completion without closing the booking', async () => {

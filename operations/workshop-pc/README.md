@@ -12,7 +12,7 @@ For the intended workshop PC, copy this whole folder to that computer and run th
 .\Install-PSIWorkshopUploader.ps1 -ProjectUrl "https://PROJECT.supabase.co" -PublishableKey "PUBLISHABLE_KEY" -StaffEmail "YOUR_STAFF_EMAIL"
 ```
 
-It creates the upload root and a **PSI Workshop Uploads** desktop shortcut for the signed-in Windows user. It also creates a hidden Windows Startup shortcut. The saved configuration contains only the public project address, publishable key, staff email, upload path and Downloads inbox path. Customer records and privileged keys are not stored in it.
+It creates the upload root and a **PSI Workshop Uploads** desktop shortcut for the signed-in Windows user. It also creates two Windows Startup shortcuts: one runs automatic watching in the background, and the other opens the workshop menu in the centre of the screen. Closing the menu does not stop automatic watching. The saved configuration contains only the public project address, publishable key, staff email, upload path and Downloads inbox path. Customer records and privileged keys are not stored in it.
 
 Open the desktop shortcut once, choose **Sign in and start automatic watching**, and enter the PSI email code and authenticator code. Only the rotating refresh token is remembered; Windows DPAPI encrypts it for this Windows account. The watcher then starts hidden at Windows sign-in, refreshes the session, checks that it is still AAL2 and active staff, and scans every 30 seconds. Revoking the session, disabling the staff account or changing security settings makes it fail closed and require sign-in again.
 

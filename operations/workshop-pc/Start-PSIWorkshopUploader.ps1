@@ -12,6 +12,37 @@ $WatcherMutex = $null
 $WatcherLockHeld = $false
 $RestartWatcher = $false
 
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+public static class PSIWorkshopWindow {
+  [StructLayout(LayoutKind.Sequential)]
+  public struct RECT { public int Left, Top, Right, Bottom; }
+
+  [DllImport("kernel32.dll")]
+  private static extern IntPtr GetConsoleWindow();
+  [DllImport("user32.dll")]
+  private static extern bool GetWindowRect(IntPtr handle, out RECT rectangle);
+  [DllImport("user32.dll")]
+  private static extern int GetSystemMetrics(int index);
+  [DllImport("user32.dll")]
+  private static extern bool SetWindowPos(IntPtr handle, IntPtr insertAfter, int x, int y, int width, int height, uint flags);
+
+  public static void Center() {
+    IntPtr handle = GetConsoleWindow();
+    RECT rectangle;
+    if (handle == IntPtr.Zero || !GetWindowRect(handle, out rectangle)) return;
+    int width = rectangle.Right - rectangle.Left;
+    int height = rectangle.Bottom - rectangle.Top;
+    int x = Math.Max(0, (GetSystemMetrics(0) - width) / 2);
+    int y = Math.Max(0, (GetSystemMetrics(1) - height) / 2);
+    SetWindowPos(handle, IntPtr.Zero, x, y, 0, 0, 0x0015);
+  }
+}
+'@
+[PSIWorkshopWindow]::Center()
+
 function Enter-PSIUploaderLock {
   Set-Content -LiteralPath $script:StopFile -Value 'stop' -Encoding ASCII
   $script:WatcherMutex = New-Object System.Threading.Mutex($false, 'Local\PSIWorkshopAutomaticUploader')

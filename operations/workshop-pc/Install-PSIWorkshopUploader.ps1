@@ -47,5 +47,12 @@ $StartupShortcut.WorkingDirectory = $InstallRoot
 $StartupShortcut.Description = 'Automatically sync verified PSI jobs and workshop files'
 $StartupShortcut.Save()
 
+$StartupMenu = $Shell.CreateShortcut((Join-Path $Startup 'PSI Workshop Menu.lnk'))
+$StartupMenu.TargetPath = (Get-Command powershell.exe).Source
+$StartupMenu.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + (Join-Path $InstallRoot 'Start-PSIWorkshopUploader.ps1') + '"'
+$StartupMenu.WorkingDirectory = $InstallRoot
+$StartupMenu.Description = 'Open the centred PSI Workshop Uploads menu at Windows sign-in'
+$StartupMenu.Save()
+
 Write-Host 'PSI Workshop Uploads is installed for this Windows user.'
-Write-Host 'Use the desktop shortcut once to sign in. The protected session then starts automatic uploads with Windows.'
+Write-Host 'Use the desktop shortcut once to sign in. Automatic uploads and the centred workshop menu then start with Windows.'
