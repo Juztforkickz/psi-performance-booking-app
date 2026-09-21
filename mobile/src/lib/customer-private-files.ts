@@ -89,6 +89,28 @@ export async function createCustomerVehiclePhotoSignedUrl(file: VehicleFileRow) 
   return data.signedUrl;
 }
 
+export async function loadLatestCustomerVehiclePhoto(vehicleId: string) {
+  const supabase = getSupabaseClient();
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  const user = userData.user;
+  if (userError || !user) throw userError ?? new Error('CUSTOMER_SESSION_REQUIRED');
+  const { data: file, error } = await supabase
+    .from('vehicle_files')
+    .select('*')
+    .eq('customer_id', user.id)
+    .eq('vehicle_id', vehicleId)
+    .eq('bucket_id', PRIVATE_PHOTO_BUCKET)
+    .eq('file_kind', 'vehicle_photo')
+    .eq('record_source', 'customer_entry')
+    .is('archived_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!file) return null;
+  return { file, signedUrl: await createCustomerVehiclePhotoSignedUrl(file) };
+}
+
 export async function createPrivateVehicleAttachmentSignedUrl(attachment: SecureVehicleAttachment) {
   const supabase = getSupabaseClient();
   const { data: userData, error: userError } = await supabase.auth.getUser();

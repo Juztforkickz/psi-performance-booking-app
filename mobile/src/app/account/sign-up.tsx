@@ -24,8 +24,9 @@ import {
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
-import { createCustomerVehiclePhotoSignedUrl, newestCustomerVehiclePhoto, removeCustomerVehiclePhoto, uploadCustomerVehiclePhoto } from '@/lib/customer-private-files';
+import { loadLatestCustomerVehiclePhoto, removeCustomerVehiclePhoto, uploadCustomerVehiclePhoto } from '@/lib/customer-private-files';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
+import type { VehicleFileRow } from '@/lib/database.types';
 import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 
 type AccountDraft = {
@@ -99,10 +100,9 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
   const [notice, setNotice] = useState('');
   const [vehiclePhoto, setVehiclePhoto] = useState<LocalVehiclePhoto | null>(null);
   const [savedVehiclePhoto, setSavedVehiclePhoto] = useState<LocalVehiclePhoto | null>(null);
+  const [savedPhotoFile, setSavedPhotoFile] = useState<VehicleFileRow | null>(null);
   const [removeSavedPhoto, setRemoveSavedPhoto] = useState(false);
-  const existingPhotoFile = initialVehicle
-    ? newestCustomerVehiclePhoto(initialAccount?.vehicleFiles ?? [], initialVehicle.id)
-    : null;
+  const primaryVehicleId = initialVehicle?.id ?? null;
   const [saving, setSaving] = useState(false);
   const vehiclePhotoRef = useRef(vehiclePhoto);
   const photoTransferredRef = useRef(false);
@@ -112,23 +112,25 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
   }, [vehiclePhoto]);
 
   useEffect(() => {
-    if (!existingPhotoFile) return;
+    if (!primaryVehicleId || !CUSTOMER_AUTH.enabled) return;
     let active = true;
-    createCustomerVehiclePhotoSignedUrl(existingPhotoFile)
-      .then((uri) => {
-        if (active) setSavedVehiclePhoto({
-          fileSize: existingPhotoFile.file_size_bytes,
+    loadLatestCustomerVehiclePhoto(primaryVehicleId)
+      .then((result) => {
+        if (!active) return;
+        setSavedPhotoFile(result?.file ?? null);
+        setSavedVehiclePhoto(result ? {
+          fileSize: result.file.file_size_bytes,
           height: 0,
-          mimeType: existingPhotoFile.mime_type,
-          uri,
+          mimeType: result.file.mime_type,
+          uri: result.signedUrl,
           width: 0,
-        });
+        } : null);
       })
       .catch(() => {
         if (active) setNotice('Your saved photo could not be opened. You can still choose a new one.');
       });
     return () => { active = false; };
-  }, [existingPhotoFile]);
+  }, [primaryVehicleId]);
 
   useEffect(() => () => {
     if (!photoTransferredRef.current) releaseLocalVehiclePhoto(vehiclePhotoRef.current);
@@ -196,6 +198,7 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
           try {
             const result = await uploadCustomerVehiclePhoto(savedVehicle.id, vehiclePhoto);
             setSavedVehiclePhoto({ ...vehiclePhoto, uri: result.signedUrl });
+            setSavedPhotoFile(result.file);
             setRemoveSavedPhoto(false);
             setVehiclePhoto(null);
             releaseLocalVehiclePhoto(vehiclePhoto);
@@ -205,10 +208,11 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
           } catch {
             photoNotice = ' Your profile and vehicle were saved, but the selected photo was not uploaded. Choose a JPEG, PNG or WebP image under 8 MB and try again.';
           }
-        } else if (removeSavedPhoto && existingPhotoFile) {
+        } else if (removeSavedPhoto && savedPhotoFile) {
           try {
-            await removeCustomerVehiclePhoto(existingPhotoFile);
+            await removeCustomerVehiclePhoto(savedPhotoFile);
             setSavedVehiclePhoto(null);
+            setSavedPhotoFile(null);
             setRemoveSavedPhoto(false);
             photoNotice = ' Your customer-added vehicle photo was removed.';
           } catch {
@@ -353,7 +357,7 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
                 const previousWasTransferred = photoTransferredRef.current;
                 photoTransferredRef.current = false;
                 vehiclePhotoRef.current = photo;
-                setRemoveSavedPhoto(!photo && Boolean(existingPhotoFile || savedVehiclePhoto));
+                setRemoveSavedPhoto(!photo && Boolean(savedPhotoFile || savedVehiclePhoto));
                 setVehiclePhoto((current) => {
                   if (!previousWasTransferred && current?.uri !== photo?.uri) {
                     releaseLocalVehiclePhoto(current);

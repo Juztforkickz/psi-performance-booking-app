@@ -258,7 +258,7 @@ export function VehiclePhotoPicker({
         <Text maxFontSizeMultiplier={2} style={styles.noticeTitle}>{storageMode === 'private_account' ? 'Private photo' : 'Demo photo'}</Text>
         <Text maxFontSizeMultiplier={2} style={styles.noticeCopy}>
           {storageMode === 'private_account'
-            ? 'Saved to your PSI account. Only you and authorised PSI staff can view it.'
+            ? value ? 'Saved to your PSI account. Only you and authorised PSI staff can view it.' : 'Choose a photo and save your account details. Only you and authorised PSI staff can view it.'
             : 'This photo is not uploaded and clears when the demo closes.'}
         </Text>
       </View>

@@ -582,7 +582,7 @@ function GarageContent({
           {secureVehicles && !selectedVehicle.isPrimary ? (
             confirmRemoveVehicle ? (
               <View style={styles.maintenanceForm}>
-                <Text style={styles.bodyCopy}>Remove {vehicleLabel} from your garage? This keeps any PSI records. Vehicles with saved activity must be handled by PSI.</Text>
+                <Text style={styles.bodyCopy}>Remove {vehicleLabel} from your garage? Its PSI history and files are kept, but the car will no longer appear in your active garage. An open booking must be resolved first.</Text>
                 <PrimaryButton label="Confirm remove vehicle" loading={vehicleActionSaving} onPress={() => void removeVehicle()} />
                 <PrimaryButton label="Keep vehicle" onPress={() => setConfirmRemoveVehicle(false)} variant="outline" />
               </View>
