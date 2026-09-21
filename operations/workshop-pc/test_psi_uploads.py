@@ -1,4 +1,5 @@
 import io
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -30,7 +31,7 @@ class WorkshopImporterTests(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def image(self, category='before'):
+    def image(self, category='photos'):
         folder = self.folder / category
         folder.mkdir(exist_ok=True)
         path = folder / 'car.jpg'
@@ -67,7 +68,7 @@ class WorkshopImporterTests(unittest.TestCase):
         second = process_job(self.folder)
         self.assertEqual(first, second)
         self.assertEqual(next(iter(second.values()))['status'], 'prepared')
-        self.assertEqual(len(list((self.folder / '.psi-prepared' / 'before').glob('*.jpg'))), 2)
+        self.assertEqual(len(list((self.folder / '.psi-prepared' / 'photos').glob('*.jpg'))), 2)
 
     def test_workshop_only_files_wait_for_an_owner_approved_account_claim(self):
         workshop_manifest = {
@@ -81,7 +82,7 @@ class WorkshopImporterTests(unittest.TestCase):
         self.image()
         result = process_job(self.folder)
         self.assertEqual(next(iter(result.values()))['status'], 'waiting_for_customer_account')
-        self.assertTrue((self.folder / '.psi-prepared' / 'before').is_dir())
+        self.assertTrue((self.folder / '.psi-prepared' / 'photos').is_dir())
 
     def test_dyno_image_requires_review(self):
         self.image('dyno')
@@ -106,8 +107,34 @@ class WorkshopImporterTests(unittest.TestCase):
         job = create_job_folder(root, source)
         self.assertEqual(job.name, 'PSI-TEST-ABC123')
         self.assertEqual(json.loads((job / 'psi-job.json').read_text()), self.manifest)
-        self.assertEqual(set(path.name for path in job.iterdir() if path.is_dir()), set(('before', 'progress', 'after', 'dyno', 'invoices', 'documents')))
+        self.assertEqual(set(path.name for path in job.iterdir() if path.is_dir()), set(('photos', 'dyno', 'invoices', 'documents')))
         self.assertEqual(create_job_folder(root, source), job)
+
+    def test_legacy_photo_folders_consolidate_without_duplicates_or_reupload(self):
+        source = self.folder / 'downloaded.json'
+        source.write_text(json.dumps(self.manifest))
+        root = self.folder / 'uploads'
+        legacy = root / 'PSI-TEST-ABC123'
+        (legacy / 'before').mkdir(parents=True)
+        (legacy / 'after').mkdir()
+        (legacy / 'psi-job.json').write_text(json.dumps(self.manifest))
+        before = legacy / 'before' / 'car.jpg'
+        after = legacy / 'after' / 'car.jpg'
+        before.write_bytes(b'before')
+        after.write_bytes(b'after')
+        digest = hashlib.sha256(before.read_bytes()).hexdigest()
+        (legacy / '.psi-upload-status.json').write_text(json.dumps({
+            'before\\car.jpg': {'key': f'pc:{self.manifest["job_id"]}:before:{digest}', 'status': 'uploaded'},
+        }))
+
+        job = create_job_folder(root, source)
+
+        self.assertFalse((job / 'before').exists())
+        self.assertFalse((job / 'after').exists())
+        self.assertEqual((job / 'photos' / 'car.jpg').read_bytes(), b'before')
+        self.assertEqual((job / 'photos' / 'after - car.jpg').read_bytes(), b'after')
+        state = json.loads((job / '.psi-upload-status.json').read_text())
+        self.assertEqual(state['photos\\car.jpg']['status'], 'uploaded')
 
     def test_verified_identity_metadata_names_and_renames_the_job_folder(self):
         source = self.folder / 'downloaded.json'

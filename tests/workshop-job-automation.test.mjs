@@ -22,9 +22,10 @@ test('confirmed app bookings create one exact workshop job and PC manifest workf
   assert.match(uploader, /def sync_job_folders/u);
   assert.match(uploader, /def create_manual_job/u);
   assert.match(uploader, /class SessionStore/u);
-  for (const folder of ['before', 'progress', 'after', 'dyno', 'invoices', 'documents']) {
+  for (const folder of ['photos', 'dyno', 'invoices', 'documents']) {
     assert.match(uploader, new RegExp(`'${folder}'`, 'u'));
   }
+  assert.match(uploader, /LEGACY_PHOTO_CATEGORIES = \('before', 'progress', 'after'\)/u);
   assert.match(guide, /Save a Mainline result as PDF into the job's `dyno` folder/u);
 });
 

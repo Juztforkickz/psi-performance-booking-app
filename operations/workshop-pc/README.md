@@ -42,9 +42,7 @@ python psi_uploads.py --root "C:/PSI Uploads" --add-job "C:/Users/YOU/Downloads/
 C:/PSI Uploads/
   CUSTOMER NAME - 2020 FORD MUSTANG - ABC123 - PSI-2026-0123/
     psi-job.json
-    before/
-    progress/
-    after/
+    photos/
     dyno/          (PDF only)
     invoices/      (PDF only)
     documents/
@@ -70,7 +68,7 @@ Add `--watch`, `--session-file` and `--manifest-inbox` to match the installed au
 - JPEG, PNG, WebP and TIFF photographs are oriented correctly and resized to at most 1600 pixels on the longest edge; JPEG quality 82. Thumbnails use a maximum 360-pixel edge and quality 72. EXIF/GPS is removed. HEIC and video are not supported by this initial tool: export JPEG first.
 - PDF originals stay byte-for-byte intact. Save a Mainline result as PDF into the job's `dyno` folder; it uploads to that vehicle's Dyno Vault. There is no assumed Mainline API or automatic numerical extraction, so enter verified HP/Nm in the portal when needed.
 - Originals remain untouched. Local `.psi-prepared` files are safe previews; `.psi-upload-status.json` reports prepared, uploaded, or needs_review. Neither is cloud backup.
-- Identical prepared content within the same job and category is deduplicated by SHA-256 and a server unique source reference. A before and an after folder can deliberately retain the same image. Re-encoded variants are different content.
+- Put all job photographs in `photos`; staff do not need to sort them into before, progress or after phases. Older verified job folders are consolidated automatically without overwriting same-named files. Identical prepared content within the same job and category is deduplicated by SHA-256 and a server unique source reference. Re-encoded variants are different content.
 - Files must stop changing for at least five seconds. Symlinked folders/files are ignored. Maximum source 40 MB; maximum uploaded object 20 MB. Oversized/invalid files require review.
 - Each successful file is a dated record associated with the verified workshop job. Publication waits for that file and thumbnail to finish. A partially failed job can have other completed records published; this is not whole-folder atomic publication.
 - An interrupted upload stays unpublished and resumes on the next scan. Existing objects must match the prepared bytes exactly; only missing objects are uploaded, then the completed record is published. Changed or uncertain contents require PSI review and are never overwritten. Fully uploaded files are skipped on subsequent scans. Drafts created by manual portal uploads still need administrator review rather than this PC resume path.

@@ -24,7 +24,8 @@ from datetime import date, timedelta
 import re
 from PIL import Image, ImageOps
 
-CATEGORIES = {'before': ('media', 'before'), 'progress': ('media', 'progress'), 'after': ('media', 'after'), 'dyno': ('dyno', None), 'invoices': ('invoice', None), 'documents': ('document', None)}
+CATEGORIES = {'photos': ('media', None), 'dyno': ('dyno', None), 'invoices': ('invoice', None), 'documents': ('document', None)}
+LEGACY_PHOTO_CATEGORIES = ('before', 'progress', 'after')
 
 
 class SessionStore:
@@ -279,6 +280,54 @@ def _existing_job_folder(root, job_id):
     return matches[0] if matches else (None, None)
 
 
+def _available_photo_destination(photos, phase, name):
+    destination = photos / name
+    if not destination.exists():
+        return destination
+    destination = photos / f'{phase} - {name}'
+    if not destination.exists():
+        return destination
+    stem, suffix = Path(name).stem, Path(name).suffix
+    number = 2
+    while True:
+        destination = photos / f'{phase} - {stem} ({number}){suffix}'
+        if not destination.exists():
+            return destination
+        number += 1
+
+
+def consolidate_photo_folders(folder):
+    """Move legacy phase folders into one simple photos folder without overwriting."""
+    photos = folder / 'photos'
+    photos.mkdir(exist_ok=True)
+    state_path = folder / '.psi-upload-status.json'
+    try:
+        state = json.loads(state_path.read_text(encoding='utf-8')) if state_path.exists() else {}
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        state = {}
+    state_changed = False
+    for phase in LEGACY_PHOTO_CATEGORIES:
+        legacy = folder / phase
+        if not legacy.is_dir() or legacy.is_symlink():
+            continue
+        for source in sorted(legacy.iterdir()):
+            if not source.is_file() or source.is_symlink():
+                continue
+            destination = _available_photo_destination(photos, phase, source.name)
+            old_relative = str(source.relative_to(folder))
+            source.rename(destination)
+            new_relative = str(destination.relative_to(folder))
+            if old_relative in state:
+                state[new_relative] = state.pop(old_relative)
+                state_changed = True
+        try:
+            legacy.rmdir()
+        except OSError:
+            pass
+    if state_changed:
+        atomic_json(state_path, state)
+
+
 def create_folder_from_manifest(root, manifest):
     root.mkdir(parents=True, exist_ok=True)
     desired = root / folder_label_for(manifest)
@@ -302,6 +351,7 @@ def create_folder_from_manifest(root, manifest):
         atomic_json(destination, manifest)
     for category in CATEGORIES:
         (folder / category).mkdir(exist_ok=True)
+    consolidate_photo_folders(folder)
     return folder
 
 
@@ -575,7 +625,8 @@ def process_job(folder, connection=None):
                     raise ValueError('Dyno and invoice folders accept PDF files only')
                 digest = hashlib.sha256(content).hexdigest()
                 source_key = f'pc:{manifest["job_id"]}:{category}:{digest}'
-                if state.get(relative, {}).get('key') == source_key and state[relative]['status'] == 'uploaded':
+                prior = state.get(relative, {})
+                if (prior.get('key') == source_key or str(prior.get('key', '')).endswith(':' + digest)) and prior.get('status') == 'uploaded':
                     continue
                 if not connection or workshop_only:
                     out = folder / '.psi-prepared' / category
