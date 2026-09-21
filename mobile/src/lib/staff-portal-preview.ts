@@ -163,6 +163,12 @@ const deletionCustomer = {
 export const STAFF_PORTAL_PREVIEW_SNAPSHOT: StaffPortalSnapshot = {
   customers,
   vehicles,
+  archivedVehicles: [{
+    ...vehicle(0, 2012, 'Ford', 'Falcon', 'DEMOOLD', 146000),
+    id: 'preview-archived-vehicle',
+    is_primary: false,
+    archived_at: sampleTime,
+  }],
   bookings,
   vehicleFiles: [],
   workshopContacts: [],

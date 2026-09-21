@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { StaffRecordWorkflow } from '@/components/staff-record-workflow';
+import { StaffVehicleHistory } from '@/components/staff-vehicle-history';
 import { StaffPerformanceAccess, StaffVaultReview } from '@/components/staff-vault-publisher';
 import { StaffXeroConnection } from '@/components/staff-xero-connection';
 import { StaffBookingReview } from '@/components/staff-booking-review';
@@ -386,6 +387,7 @@ export function StaffWorkspace({
   const [requestedAlertPage, setAlertPage] = useState(0);
   const [customerSearch, setCustomerSearch] = useState('');
   const [customerPage, setCustomerPage] = useState(0);
+  const [expandedArchivedVehicleId, setExpandedArchivedVehicleId] = useState<string | null>(null);
   const [invitationSearch, setInvitationSearch] = useState('');
   const [invitationPage, setInvitationPage] = useState(0);
   const [deletionFilter, setDeletionFilter] = useState<'pending' | 'history'>('pending');
@@ -433,13 +435,19 @@ export function StaffWorkspace({
     snapshot.vehicles.forEach((vehicle) => grouped.set(vehicle.customer_id, [...(grouped.get(vehicle.customer_id) ?? []), vehicle]));
     return grouped;
   }, [snapshot.vehicles]);
+  const archivedVehiclesByCustomer = useMemo(() => {
+    const grouped = new Map<string, StaffPortalSnapshot['archivedVehicles']>();
+    snapshot.archivedVehicles.forEach((vehicle) => grouped.set(vehicle.customer_id, [...(grouped.get(vehicle.customer_id) ?? []), vehicle]));
+    return grouped;
+  }, [snapshot.archivedVehicles]);
   const lookupCustomerOptions = useMemo(() => snapshot.customers
     .slice()
     .sort((left, right) => customerName(left).localeCompare(customerName(right), 'en-AU'))
     .map((customer) => ({ label: customerName(customer), sublabel: customer.email, value: customer.user_id })), [snapshot.customers]);
-  const filteredCustomerOptions = lookupCustomerOptions.filter(option => matchesSearch(`${option.label} ${option.sublabel} ${(vehiclesByCustomer.get(option.value) ?? []).map(v => `${v.registration} ${v.make} ${v.model}`).join(' ')}`, customerSearch));
+  const filteredCustomerOptions = lookupCustomerOptions.filter(option => matchesSearch(`${option.label} ${option.sublabel} ${[...(vehiclesByCustomer.get(option.value) ?? []), ...(archivedVehiclesByCustomer.get(option.value) ?? [])].map(v => `${v.registration} ${v.make} ${v.model}`).join(' ')}`, customerSearch));
   const selectedLookupCustomer = section === 'customers' ? snapshot.customers.find(customer => customer.user_id === paramValue(params.customerId)) : undefined;
   const selectedLookupVehicles = selectedLookupCustomer ? vehiclesByCustomer.get(selectedLookupCustomer.user_id) ?? [] : [];
+  const selectedArchivedVehicles = selectedLookupCustomer ? archivedVehiclesByCustomer.get(selectedLookupCustomer.user_id) ?? [] : [];
   const waitingBookings = activeBookings.filter(b => b.state === 'pending_staff_review');
   const workshopAlerts = notifications.events.filter(event => !event.read_at && event.deep_link === '/staff');
   const customerAlerts = notifications.events.filter(event => !event.read_at && event.deep_link !== '/staff');
@@ -451,7 +459,7 @@ export function StaffWorkspace({
   const bookingDetailsOpen = Boolean(selectedBooking && expandedBookingDetailsId === selectedBooking.id);
   const filteredBookings = (bookingFilter === 'history' ? archivedBookings : bookingFilter === 'review' ? waitingBookings : activeBookings).filter(booking => {
     const customer = snapshot.customers.find(c => c.user_id === booking.customer_id);
-    const vehicle = snapshot.vehicles.find(v => v.id === booking.vehicle_id);
+    const vehicle = [...snapshot.vehicles, ...snapshot.archivedVehicles].find(v => v.id === booking.vehicle_id);
     return matchesSearch(`${customerName(customer)} ${customer?.email ?? ''} ${vehicle?.registration ?? ''} ${vehicle?.make ?? ''} ${vehicle?.model ?? ''}`, bookingSearch);
   });
   const visibleBookings = filteredBookings.slice(bookingPage * 8, bookingPage * 8 + 8);
@@ -636,7 +644,7 @@ export function StaffWorkspace({
         {section === 'bookings' ? selectedBooking ? <>
           <View accessibilityRole="tablist" accessibilityLabel="Booking detail view" style={styles.filterRow}>{(['enquiry', 'actions'] as const).map(panel => <Pressable key={panel} accessibilityRole="tab" accessibilityState={{ selected: bookingPanel === panel }} onPress={() => confirmLeaving(() => setBookingPanel(panel))} style={[styles.filterButton, styles.detailTab, bookingPanel === panel && styles.filterSelected]}><Text style={[styles.filterText, { textAlign: 'center' }]}>{panel === 'enquiry' ? 'Enquiry & contact' : 'Workshop actions'}</Text></Pressable>)}</View>
           {[selectedBooking].map((booking) => {
-          const vehicle = snapshot.vehicles.find((item) => item.id === booking.vehicle_id);
+          const vehicle = [...snapshot.vehicles, ...snapshot.archivedVehicles].find((item) => item.id === booking.vehicle_id);
           const customer = snapshot.customers.find((item) => item.user_id === booking.customer_id);
           return (
             <View key={booking.id} style={styles.card}>
@@ -692,7 +700,7 @@ export function StaffWorkspace({
           <Text style={styles.cardCopy}>{filteredBookings.length} booking{filteredBookings.length === 1 ? '' : 's'}{bookingFilter === 'review' ? ' awaiting review' : bookingFilter === 'history' ? ' in history' : ''}</Text>
           {visibleBookings.length ? visibleBookings.map(booking => {
             const customer = snapshot.customers.find(c => c.user_id === booking.customer_id);
-            const vehicle = snapshot.vehicles.find(v => v.id === booking.vehicle_id);
+            const vehicle = [...snapshot.vehicles, ...snapshot.archivedVehicles].find(v => v.id === booking.vehicle_id);
             return <WorkspaceLink key={booking.id} title={customerName(customer)} detail={[vehicle ? `${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle unavailable', booking.approved_date ? formatDate(booking.approved_date) : booking.preferred_date ? formatDate(booking.preferred_date) : 'Flexible date', BOOKING_STATUS_LABELS[booking.state]].join(' · ')} icon={booking.booking_type === 'dyno' ? 'speedometer-outline' : 'car-sport-outline'} onPress={() => navigate('bookings', { bookingId: booking.id })} />;
           }) : <EmptyState>No bookings match this view.</EmptyState>}
           <Pagination page={bookingPage} total={filteredBookings.length} onChange={setBookingPage} />
@@ -726,6 +734,25 @@ export function StaffWorkspace({
                     </View>
                   ))}
                 </View>
+                {selectedArchivedVehicles.length ? <>
+                  <Text style={styles.groupLabel}>Archived vehicles · {selectedArchivedVehicles.length}</Text>
+                  <Text style={styles.cardCopy}>Removed from the customer’s active garage. Vehicle details and saved PSI history remain available to staff here. These cars cannot be selected for new records or bookings.</Text>
+                  <View style={styles.vehicleList}>
+                    {selectedArchivedVehicles.map((vehicle) => (
+                      <View key={vehicle.id} style={styles.lookupCustomerCard}>
+                        <View style={styles.vehicleRow}>
+                          <Ionicons color={colors.muted} name="car-sport-outline" size={18} />
+                          <View style={styles.flex}>
+                            <Text style={styles.vehicleTitle}>{vehicle.year} {vehicle.make} {vehicle.model}</Text>
+                            <Text selectable style={styles.cardMeta}>{vehicle.registration} · Removed {vehicle.archived_at ? formatAustralianDateTime(vehicle.archived_at) : ''}</Text>
+                          </View>
+                        </View>
+                        <PrimaryButton label={expandedArchivedVehicleId === vehicle.id ? 'Hide retained history' : 'View retained history'} variant="outline" onPress={() => setExpandedArchivedVehicleId(current => current === vehicle.id ? null : vehicle.id)} />
+                        {expandedArchivedVehicleId === vehicle.id ? <StaffVehicleHistory key={vehicle.id} vehicleId={vehicle.id} previewMode={previewMode} /> : null}
+                      </View>
+                    ))}
+                  </View>
+                </> : null}
             {role === 'owner' ? <WorkspaceLink title="Performance+ access" icon="add-circle-outline" onPress={() => navigate('access', { customerId: selectedLookupCustomer.user_id })} /> : null}
           </> : <>
             {paramValue(params.customerId) ? <Text accessibilityRole="alert" style={styles.errorText}>That customer is no longer in the active list. Select a customer below.</Text> : null}
@@ -733,7 +760,8 @@ export function StaffWorkspace({
             <Text style={styles.cardCopy}>{filteredCustomerOptions.length} customer{filteredCustomerOptions.length === 1 ? '' : 's'}</Text>
             {filteredCustomerOptions.slice(customerPage * 8, customerPage * 8 + 8).map(option => {
               const vehicleCount = (vehiclesByCustomer.get(option.value) ?? []).length;
-              return <WorkspaceLink key={option.value} title={option.label} detail={`${option.sublabel} · ${vehicleCount} vehicle${vehicleCount === 1 ? '' : 's'}`} icon="person-outline" onPress={() => navigate('customers', { customerId: option.value })} />;
+              const archivedCount = (archivedVehiclesByCustomer.get(option.value) ?? []).length;
+              return <WorkspaceLink key={option.value} title={option.label} detail={`${option.sublabel} · ${vehicleCount} active${archivedCount ? ` · ${archivedCount} archived` : ''}`} icon="person-outline" onPress={() => navigate('customers', { customerId: option.value })} />;
             })}
             {filteredCustomerOptions.length === 0 ? <EmptyState>No customers match your search.</EmptyState> : null}
             <Pagination page={customerPage} total={filteredCustomerOptions.length} onChange={setCustomerPage} />
