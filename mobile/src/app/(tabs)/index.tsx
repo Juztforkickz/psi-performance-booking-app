@@ -61,6 +61,13 @@ const HOME_TILE_LABELS: Readonly<Record<HomeTileId, string>> = {
   'performance-plus': 'Performance+',
 };
 
+const LARGE_GARAGE_ART_IDS = new Set([
+  'audi-rsq3-f3', 'ram-1500-dt', 'nissan-patrol-y62', 'toyota-landcruiser-300',
+  'tesla-model-y', 'toyota-rav4', 'toyota-hilux', 'toyota-prado-250',
+  'ford-ranger', 'byd-sealion-7', 'chery-tiggo-4-pro', 'geely-ex5',
+  'gwm-haval-jolion', 'zeekr-7x', 'nissan-qashqai-j12', 'jeep-grand-cherokee-wk2',
+]);
+
 const PSI_PROMISES = [
   { index: '01', title: 'Protect', copy: 'Start with the health, safety and reliability of the complete vehicle.' },
   { index: '02', title: 'Build', copy: 'Plan the right upgrades around your goals and how you actually use the car.' },
@@ -69,10 +76,9 @@ const PSI_PROMISES = [
 
 export default function CustomerHomeScreen() {
   const router = useRouter();
-  const { pendingBookingVehicle, prepareBookingVehicle, prepareBookingVehicleRecord, selectedVehicleId } = useCustomerPreview();
+  const { prepareBookingVehicle, prepareBookingVehicleRecord, selectedVehicleId } = useCustomerPreview();
   const { account: garageAccount } = useCustomerAccount();
-  const selectedAccountVehicle = garageAccount?.vehicles.find((vehicle) => vehicle.id === pendingBookingVehicle?.id)
-    ?? garageAccount?.vehicles.find((vehicle) => vehicle.is_primary)
+  const selectedAccountVehicle = garageAccount?.vehicles.find((vehicle) => vehicle.is_primary)
     ?? garageAccount?.vehicles[0];
   const homeVehicleId = selectedAccountVehicle?.id ?? selectedVehicleId;
   const homeArtworkId = garageAccount
@@ -155,7 +161,7 @@ export default function CustomerHomeScreen() {
           <DashboardTile
             accessibilityHint="Opens vehicle selection, photos, results and history"
             image={garageArtwork.art.thumbnail}
-            imageStyle={styles.garageTileImage}
+            imageStyle={LARGE_GARAGE_ART_IDS.has(garageArtwork.art.id) ? styles.largeGarageTileImage : styles.garageTileImage}
             label="My Garage"
             onPress={() => router.push('/garage')}
           />
@@ -828,6 +834,7 @@ const styles = StyleSheet.create({
   lowerTileImage: { transform: [{ scale: 1.55 }, { translateY: 7 }] },
   lowerRequestedTileImage: { transform: [{ scale: 1.55 }, { translateY: 10 }] },
   garageTileImage: { transform: [{ scale: 1 }] },
+  largeGarageTileImage: { transform: [{ scale: 0.86 }] },
   lowerPlanBuildTileImage: { transform: [{ scale: 1.55 }, { translateY: 3 }] },
   customerCarsTileImage: { transform: [{ scale: 1.42 }, { translateY: 3 }] },
   raiseEventsTileImage: { transform: [{ scale: 1.55 }, { translateY: 3 }] },

@@ -825,6 +825,14 @@ export type Database = {
       };
     };
     Functions: {
+      customer_archive_vehicle: {
+        Args: { p_vehicle_id: string };
+        Returns: void;
+      };
+      customer_set_primary_vehicle: {
+        Args: { p_vehicle_id: string };
+        Returns: void;
+      };
       claim_workshop_contact: {
         Args: { p_customer_id: string; p_workshop_contact_id: string };
         Returns: Record<string, unknown>;

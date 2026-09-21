@@ -257,3 +257,17 @@ export async function saveCustomerVehicle(input: CustomerVehicleInput, vehicleId
   if (error) throw error;
   return data;
 }
+
+export async function setCustomerPrimaryVehicle(vehicleId: string) {
+  const supabase = getSupabaseClient();
+  await getVerifiedCustomer();
+  const { error } = await supabase.rpc('customer_set_primary_vehicle', { p_vehicle_id: vehicleId });
+  if (error) throw error;
+}
+
+export async function archiveCustomerVehicle(vehicleId: string) {
+  const supabase = getSupabaseClient();
+  await getVerifiedCustomer();
+  const { error } = await supabase.rpc('customer_archive_vehicle', { p_vehicle_id: vehicleId });
+  if (error) throw error;
+}

@@ -24,7 +24,7 @@ import {
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
-import { uploadCustomerVehiclePhoto } from '@/lib/customer-private-files';
+import { createCustomerVehiclePhotoSignedUrl, newestCustomerVehiclePhoto, removeCustomerVehiclePhoto, uploadCustomerVehiclePhoto } from '@/lib/customer-private-files';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { releaseLocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 
@@ -98,6 +98,11 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
   const [errors, setErrors] = useState<AccountErrors>({});
   const [notice, setNotice] = useState('');
   const [vehiclePhoto, setVehiclePhoto] = useState<LocalVehiclePhoto | null>(null);
+  const [savedVehiclePhoto, setSavedVehiclePhoto] = useState<LocalVehiclePhoto | null>(null);
+  const [removeSavedPhoto, setRemoveSavedPhoto] = useState(false);
+  const existingPhotoFile = initialVehicle
+    ? newestCustomerVehiclePhoto(initialAccount?.vehicleFiles ?? [], initialVehicle.id)
+    : null;
   const [saving, setSaving] = useState(false);
   const vehiclePhotoRef = useRef(vehiclePhoto);
   const photoTransferredRef = useRef(false);
@@ -105,6 +110,25 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
   useEffect(() => {
     vehiclePhotoRef.current = vehiclePhoto;
   }, [vehiclePhoto]);
+
+  useEffect(() => {
+    if (!existingPhotoFile) return;
+    let active = true;
+    createCustomerVehiclePhotoSignedUrl(existingPhotoFile)
+      .then((uri) => {
+        if (active) setSavedVehiclePhoto({
+          fileSize: existingPhotoFile.file_size_bytes,
+          height: 0,
+          mimeType: existingPhotoFile.mime_type,
+          uri,
+          width: 0,
+        });
+      })
+      .catch(() => {
+        if (active) setNotice('Your saved photo could not be opened. You can still choose a new one.');
+      });
+    return () => { active = false; };
+  }, [existingPhotoFile]);
 
   useEffect(() => () => {
     if (!photoTransferredRef.current) releaseLocalVehiclePhoto(vehiclePhotoRef.current);
@@ -168,18 +192,31 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
           setEditingVehicleId(savedVehicle.id);
         }
         let photoNotice = '';
-        if (vehiclePhoto && savedVehicle && canEditVehicle) {
+        if (vehiclePhoto && savedVehicle) {
           try {
             const result = await uploadCustomerVehiclePhoto(savedVehicle.id, vehiclePhoto);
+            setSavedVehiclePhoto({ ...vehiclePhoto, uri: result.signedUrl });
+            setRemoveSavedPhoto(false);
+            setVehiclePhoto(null);
+            releaseLocalVehiclePhoto(vehiclePhoto);
             photoNotice = result.cleanupWarning
               ? ` Your vehicle photo was saved privately. ${result.cleanupWarning}`
               : ' Your vehicle photo was saved privately to your account.';
           } catch {
             photoNotice = ' Your profile and vehicle were saved, but the selected photo was not uploaded. Choose a JPEG, PNG or WebP image under 8 MB and try again.';
           }
+        } else if (removeSavedPhoto && existingPhotoFile) {
+          try {
+            await removeCustomerVehiclePhoto(existingPhotoFile);
+            setSavedVehiclePhoto(null);
+            setRemoveSavedPhoto(false);
+            photoNotice = ' Your customer-added vehicle photo was removed.';
+          } catch {
+            photoNotice = ' The saved photo could not be removed. Please try again.';
+          }
         }
         refreshAccount();
-        setNotice(`${canEditVehicle ? 'Your profile and vehicle details were' : 'Your profile was'} saved to your private PSI account.${canEditVehicle ? '' : ' This PSI-created vehicle remains read-only and was not changed.'}${photoNotice}`);
+        setNotice(`${canEditVehicle ? 'Your profile and vehicle details were' : 'Your profile was'} saved to your private PSI account.${canEditVehicle ? '' : ' PSI-created vehicle details remain read-only; your own photo can still be updated.'}${photoNotice}`);
       } catch {
         setNotice('Your profile could not be saved. Nothing was uploaded. Sign in again and try once more.');
       } finally {
@@ -316,6 +353,7 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
                 const previousWasTransferred = photoTransferredRef.current;
                 photoTransferredRef.current = false;
                 vehiclePhotoRef.current = photo;
+                setRemoveSavedPhoto(!photo && Boolean(existingPhotoFile || savedVehiclePhoto));
                 setVehiclePhoto((current) => {
                   if (!previousWasTransferred && current?.uri !== photo?.uri) {
                     releaseLocalVehiclePhoto(current);
@@ -326,7 +364,7 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
               }}
               saving={saving}
               storageMode={CUSTOMER_AUTH.enabled ? 'private_account' : 'local_preview'}
-              value={vehiclePhoto}
+              value={vehiclePhoto ?? (removeSavedPhoto ? null : savedVehiclePhoto)}
               vehicleLabel={[form.vehicleYear, form.vehicleMake, form.vehicleModel].filter(Boolean).join(' ') || 'your primary vehicle'}
             />
           </View>

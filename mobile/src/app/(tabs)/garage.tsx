@@ -21,7 +21,7 @@ import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAustralianDate } from '@/lib/australian-date';
-import { saveCustomerOdometer } from '@/lib/customer-account';
+import { archiveCustomerVehicle, saveCustomerOdometer, setCustomerPrimaryVehicle } from '@/lib/customer-account';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
@@ -138,6 +138,7 @@ function GarageContent({
   const { section } = useLocalSearchParams<{ section?: string }>();
   const { compact, horizontalPadding, largeText, tablet } = useResponsiveLayout();
   const {
+    clearPendingBookingVehicle,
     prepareBookingVehicle,
     prepareBookingVehicleRecord,
     selectedVehicleId: previewSelectedVehicleId,
@@ -156,6 +157,9 @@ function GarageContent({
   const [vehicleSelectorOpen, setVehicleSelectorOpen] = useState(false);
   const [photoNotice, setPhotoNotice] = useState('');
   const [photoSaving, setPhotoSaving] = useState(false);
+  const [vehicleActionSaving, setVehicleActionSaving] = useState(false);
+  const [vehicleActionNotice, setVehicleActionNotice] = useState('');
+  const [confirmRemoveVehicle, setConfirmRemoveVehicle] = useState(false);
   const selectedVehicleId = secureVehicles ? secureSelectedVehicleId : previewSelectedVehicleId;
 
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0];
@@ -273,11 +277,46 @@ function GarageContent({
     setVehicleSelectorOpen(false);
     setMaintenanceError('');
     setMaintenanceNotice('');
+    setVehicleActionNotice('');
+    setConfirmRemoveVehicle(false);
     if (secureVehicles) {
       setSecureSelectedVehicleId(vehicleId);
-      prepareBookingVehicleRecord(vehicle);
     }
     else selectPreviewVehicle(vehicleId);
+  };
+
+  const makePrimaryVehicle = async () => {
+    if (!secureVehicles || selectedVehicle.isPrimary) return;
+    setVehicleActionSaving(true);
+    setVehicleActionNotice('');
+    try {
+      await setCustomerPrimaryVehicle(selectedVehicle.id);
+      clearPendingBookingVehicle();
+      refreshAccount();
+      setVehicleActionNotice(`${selectedVehicle.make} ${selectedVehicle.model} is now your primary vehicle for your home tile and new bookings.`);
+    } catch {
+      setVehicleActionNotice('The primary vehicle could not be changed. Please try again.');
+    } finally {
+      setVehicleActionSaving(false);
+    }
+  };
+
+  const removeVehicle = async () => {
+    if (!secureVehicles || selectedVehicle.isPrimary) return;
+    setVehicleActionSaving(true);
+    setVehicleActionNotice('');
+    try {
+      await archiveCustomerVehicle(selectedVehicle.id);
+      clearPendingBookingVehicle();
+      setSecureSelectedVehicleId(secureVehicles.find((vehicle) => vehicle.isPrimary)?.id ?? '');
+      setConfirmRemoveVehicle(false);
+      refreshAccount();
+      setVehicleActionNotice('The vehicle was removed from your garage. PSI records were kept.');
+    } catch (error) {
+      setVehicleActionNotice(error instanceof Error ? error.message : 'The vehicle could not be removed. Please try again.');
+    } finally {
+      setVehicleActionSaving(false);
+    }
   };
 
   const heroSource = selectedPhoto ? { uri: selectedPhoto.uri } : artwork.art.source;
@@ -538,7 +577,18 @@ function GarageContent({
         <View style={styles.actions}>
           <PrimaryButton label="Book service for this vehicle" onPress={() => openBookingForVehicle('service')} />
           <PrimaryButton label="Book dyno for this vehicle" onPress={() => openBookingForVehicle('dyno')} variant="outline" />
-          <PrimaryButton label={secureVehicles ? 'Manage primary vehicle' : 'Open demo account setup'} onPress={() => router.push('/account/sign-up')} variant="outline" />
+          {secureVehicles && !selectedVehicle.isPrimary ? <PrimaryButton label="Make this my primary vehicle" loading={vehicleActionSaving} onPress={() => void makePrimaryVehicle()} variant="outline" /> : null}
+          <PrimaryButton label={secureVehicles ? 'Edit account and primary photo' : 'Open demo account setup'} onPress={() => router.push('/account/sign-up')} variant="outline" />
+          {secureVehicles && !selectedVehicle.isPrimary ? (
+            confirmRemoveVehicle ? (
+              <View style={styles.maintenanceForm}>
+                <Text style={styles.bodyCopy}>Remove {vehicleLabel} from your garage? This keeps any PSI records. Vehicles with saved activity must be handled by PSI.</Text>
+                <PrimaryButton label="Confirm remove vehicle" loading={vehicleActionSaving} onPress={() => void removeVehicle()} />
+                <PrimaryButton label="Keep vehicle" onPress={() => setConfirmRemoveVehicle(false)} variant="outline" />
+              </View>
+            ) : <PrimaryButton label="Remove this vehicle" onPress={() => setConfirmRemoveVehicle(true)} variant="outline" />
+          ) : null}
+          {vehicleActionNotice ? <Text accessibilityRole="alert" style={styles.vehiclePhotoNotice}>{vehicleActionNotice}</Text> : null}
         </View>
       </ScrollView>
     </SafeAreaView>
