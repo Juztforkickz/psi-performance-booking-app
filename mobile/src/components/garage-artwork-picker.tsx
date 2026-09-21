@@ -139,7 +139,7 @@ export function GarageArtworkPicker({ selectedId, onSelect, vehicle, hasVehicleP
               </View>}
               ListEmptyComponent={<View style={st.empty}><Ionicons name="car-sport-outline" size={32} color={colors.muted} /><Text style={st.emptyTitle}>No matching illustration yet</Text><Text style={st.copy}>Try a model or generation, or browse all makes. You can also use your own vehicle photo.</Text><Pressable accessibilityRole="button" onPress={() => { setQuery(''); setMake(''); }} style={st.emptyAction}><Text style={st.link}>Show all cars</Text></Pressable></View>}
               renderItem={({ item }) => <Pressable disabled={busy} accessibilityRole="radio" accessibilityLabel={`${item.label}, ${item.generation}`} accessibilityState={{ checked: draftId === item.id, disabled: busy }} onPress={() => { setPickedId(item.id); setSaveError(''); Keyboard.dismiss(); }} style={({ pressed }) => [st.card, { flexBasis: columns === 1 ? '100%' : columns === 2 ? '48.4%' : '32%' }, draftId === item.id && st.cardSelected, pressed && st.pressed]}>
-                <View style={st.frame}><Image source={item.preview} resizeMode={item.previewResizeMode} style={st.artImage} />{draftId === item.id ? <View style={st.check}><Ionicons name="checkmark" size={16} color={colors.ink} /></View> : null}</View>
+                <View style={[st.frame, item.isTallArtwork && st.tallFrame]}><Image source={item.preview} resizeMode={item.previewResizeMode} style={[st.artImage, item.isTallArtwork && st.tallArtImage]} />{draftId === item.id ? <View style={st.check}><Ionicons name="checkmark" size={16} color={colors.ink} /></View> : null}</View>
                 <View style={st.cardCopy}><Text style={st.make}>{item.make}</Text><Text style={st.model}>{item.model}</Text><Text style={st.generation}>{item.generation}</Text></View>
               </Pressable>}
             />
@@ -187,7 +187,9 @@ const st = StyleSheet.create({
   card: { flexGrow: 0, flexShrink: 1, borderWidth: 1, borderColor: colors.line, borderRadius: 8, overflow: 'hidden', backgroundColor: colors.panel },
   cardSelected: { borderColor: colors.accent, backgroundColor: colors.inkSoft },
   frame: { aspectRatio: 16 / 9, backgroundColor: '#080808' },
+  tallFrame: { backgroundColor: '#1d1d1d' },
   artImage: { width: '100%', height: '100%' },
+  tallArtImage: { transform: [{ scale: 0.93 }, { translateY: 4 }] },
   check: { position: 'absolute', right: 8, top: 8, width: 23, height: 23, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent },
   cardCopy: { padding: 10, gap: 4 },
   make: { color: colors.muted, fontSize: 10 },

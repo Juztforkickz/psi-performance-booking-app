@@ -85,11 +85,15 @@ const images: Record<string, { source: ImageSourcePropType; thumbnail: ImageSour
   'jeep-grand-cherokee-wk2': { source: require('../../assets/images/garage-vehicles/jeep-grand-cherokee-wk2.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/jeep-grand-cherokee-wk2.jpg') },
 };
 
-export const GARAGE_ART = GARAGE_ART_CATALOG.map(entry => ({
-  ...entry,
-  label: garageArtLabel(entry),
-  ...images[entry.id],
-  preview: TALL_GARAGE_ART_IDS.has(entry.id) ? images[entry.id].source : images[entry.id].thumbnail,
-  previewResizeMode: TALL_GARAGE_ART_IDS.has(entry.id) ? 'cover' as const : 'contain' as const,
-}));
+export const GARAGE_ART = GARAGE_ART_CATALOG.map(entry => {
+  const isTallArtwork = TALL_GARAGE_ART_IDS.has(entry.id);
+  return {
+    ...entry,
+    label: garageArtLabel(entry),
+    ...images[entry.id],
+    isTallArtwork,
+    preview: isTallArtwork ? images[entry.id].source : images[entry.id].thumbnail,
+    previewResizeMode: isTallArtwork ? 'cover' as const : 'contain' as const,
+  };
+});
 export const garageArtById = (id: string) => GARAGE_ART.find(entry => entry.id === id) ?? GARAGE_ART[0];
