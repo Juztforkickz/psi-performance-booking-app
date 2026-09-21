@@ -1,6 +1,15 @@
 import type { ImageSourcePropType } from 'react-native';
 import { GARAGE_ART_CATALOG, garageArtLabel } from '@/lib/garage-art-catalog';
 
+// These taller vehicles need the uncropped portrait artwork in landscape frames.
+// Their 16:9 thumbnails trim the roof before the UI can resize them.
+const TALL_GARAGE_ART_IDS = new Set([
+  'audi-rsq3-f3', 'ram-1500-dt', 'nissan-patrol-y62', 'toyota-landcruiser-300',
+  'tesla-model-y', 'toyota-rav4', 'toyota-hilux', 'toyota-prado-250',
+  'ford-ranger', 'byd-sealion-7', 'chery-tiggo-4-pro', 'geely-ex5',
+  'gwm-haval-jolion', 'zeekr-7x', 'nissan-qashqai-j12', 'jeep-grand-cherokee-wk2',
+]);
+
 // Static requires keep Metro's native/offline asset resolution intact.
 const images: Record<string, { source: ImageSourcePropType; thumbnail: ImageSourcePropType }> = {
   'porsche': { source: require('../../assets/images/garage-vehicles/porsche.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/porsche.jpg') },
@@ -76,5 +85,11 @@ const images: Record<string, { source: ImageSourcePropType; thumbnail: ImageSour
   'jeep-grand-cherokee-wk2': { source: require('../../assets/images/garage-vehicles/jeep-grand-cherokee-wk2.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/jeep-grand-cherokee-wk2.jpg') },
 };
 
-export const GARAGE_ART = GARAGE_ART_CATALOG.map(entry => ({ ...entry, label: garageArtLabel(entry), ...images[entry.id] }));
+export const GARAGE_ART = GARAGE_ART_CATALOG.map(entry => ({
+  ...entry,
+  label: garageArtLabel(entry),
+  ...images[entry.id],
+  preview: TALL_GARAGE_ART_IDS.has(entry.id) ? images[entry.id].source : images[entry.id].thumbnail,
+  previewResizeMode: TALL_GARAGE_ART_IDS.has(entry.id) ? 'cover' as const : 'contain' as const,
+}));
 export const garageArtById = (id: string) => GARAGE_ART.find(entry => entry.id === id) ?? GARAGE_ART[0];

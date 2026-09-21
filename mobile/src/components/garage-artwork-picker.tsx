@@ -112,7 +112,7 @@ export function GarageArtworkPicker({ selectedId, onSelect, vehicle, hasVehicleP
 
   return <>
     <Pressable accessibilityRole="button" accessibilityLabel={`Change garage artwork. Selected: ${selected.label}, ${selected.generation}`} accessibilityState={{ expanded: open }} onPress={openLibrary} style={({ pressed }) => [st.trigger, pressed && st.pressed]}>
-      <Image source={selected.thumbnail} resizeMode="contain" style={st.triggerImage} />
+      <Image source={selected.preview} resizeMode={selected.previewResizeMode} style={st.triggerImage} />
       <View style={st.grow}><Text style={st.eyebrow}>GARAGE ARTWORK</Text><Text style={st.triggerLabel}>{selected.label} <Text style={st.muted}>· {selected.generation}</Text></Text></View>
       <Ionicons name="chevron-forward" color={colors.accent} size={20} />
     </Pressable>
@@ -139,13 +139,13 @@ export function GarageArtworkPicker({ selectedId, onSelect, vehicle, hasVehicleP
               </View>}
               ListEmptyComponent={<View style={st.empty}><Ionicons name="car-sport-outline" size={32} color={colors.muted} /><Text style={st.emptyTitle}>No matching illustration yet</Text><Text style={st.copy}>Try a model or generation, or browse all makes. You can also use your own vehicle photo.</Text><Pressable accessibilityRole="button" onPress={() => { setQuery(''); setMake(''); }} style={st.emptyAction}><Text style={st.link}>Show all cars</Text></Pressable></View>}
               renderItem={({ item }) => <Pressable disabled={busy} accessibilityRole="radio" accessibilityLabel={`${item.label}, ${item.generation}`} accessibilityState={{ checked: draftId === item.id, disabled: busy }} onPress={() => { setPickedId(item.id); setSaveError(''); Keyboard.dismiss(); }} style={({ pressed }) => [st.card, { flexBasis: columns === 1 ? '100%' : columns === 2 ? '48.4%' : '32%' }, draftId === item.id && st.cardSelected, pressed && st.pressed]}>
-                <View style={st.frame}><Image source={item.thumbnail} resizeMode="contain" style={st.artImage} />{draftId === item.id ? <View style={st.check}><Ionicons name="checkmark" size={16} color={colors.ink} /></View> : null}</View>
+                <View style={st.frame}><Image source={item.preview} resizeMode={item.previewResizeMode} style={st.artImage} />{draftId === item.id ? <View style={st.check}><Ionicons name="checkmark" size={16} color={colors.ink} /></View> : null}</View>
                 <View style={st.cardCopy}><Text style={st.make}>{item.make}</Text><Text style={st.model}>{item.model}</Text><Text style={st.generation}>{item.generation}</Text></View>
               </Pressable>}
             />
 
             {!keyboardOpen && <View style={st.footer}>
-              {!compactFooter && <View style={st.selection}><Image source={draft.thumbnail} resizeMode="contain" style={st.selectionImage} /><View style={st.grow}><Text style={st.eyebrow}>YOUR SELECTION</Text><Text style={st.selectionLabel}>{draft.label} · {draft.generation}</Text></View></View>}
+              {!compactFooter && <View style={st.selection}><Image source={draft.preview} resizeMode={draft.previewResizeMode} style={st.selectionImage} /><View style={st.grow}><Text style={st.eyebrow}>YOUR SELECTION</Text><Text style={st.selectionLabel}>{draft.label} · {draft.generation}</Text></View></View>}
               {hasVehiclePhoto && !compactFooter ? <Text style={st.photoHint}>Your uploaded photo stays on your vehicle profile. This artwork appears on your home tile.</Text> : null}
               {saveError ? <Text accessibilityRole="alert" style={st.error}>{saveError}</Text> : null}
               <PrimaryButton label={busy ? 'Saving…' : draftId === selectedId ? 'Done' : 'Use this illustration'} loading={busy} onPress={() => void save()} />
