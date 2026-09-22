@@ -1,12 +1,13 @@
 # PSI Android native QA checklist
 
-Status: signed internal QA APK prepared; physical-device acceptance remains
-outstanding. The current APK is build
-`ad1827e6-252b-4d23-a402-9e4aaa77f435`, completed on 11 September 2026 from
-checkpoint `3e54292`; it expires on 25 September 2026 Sydney time. It contains
-the current workshop/Xero/reminder checkpoint; Google Play subscriptions remain
-closed until the separate Play app, products and RevenueCat key are configured.
-This checklist begins when a supported Android phone is available.
+Status: a refreshed signed internal Android APK was queued on 22 September 2026
+from checkpoint `f451ca0`, EAS build `c1d100c8-bf21-4233-b979-7f6567b06b2b`,
+version 1.0.0 (2). Confirm its completion and use that APK for the device checks
+below. Its `android-internal` channel uses the live customer backend, permits
+public sign-up and offers the separate fictional demonstration. Google Play
+subscriptions remain unavailable until the Play app, products, RevenueCat
+connection and device purchase tests are complete. The older `qa` APK
+`ad1827e6-252b-4d23-a402-9e4aaa77f435` is not the current acceptance build.
 
 ## Evidence to record
 
@@ -27,6 +28,10 @@ material or private service credentials in this file or an issue.
 - [x] Create and retain the PSI-owned Expo-managed Android keystore.
 - [x] Configure the protected `qa` profile as a directly installable APK with
   customer Auth enabled, booking QA enabled and public registration disabled.
+- [x] Configure the separate `android-internal` APK with public registration,
+  fictional demonstration and Google Play purchases explicitly disabled.
+- [ ] Confirm the new `android-internal` APK builds successfully and install it
+  on a supported Android phone.
 - [x] Configure the production profile for a future Google Play App Bundle on
   the isolated `production` update channel.
 - [x] Prepare the PSI launcher icon, adaptive icon, splash treatment and Google
@@ -41,11 +46,12 @@ material or private service credentials in this file or an issue.
 
 ## Authentication and privacy
 
-- [ ] An approved customer receives and verifies a six-digit email code.
+- [ ] A new public customer receives and verifies a six-digit email code.
 - [ ] Invalid, expired, consumed/replayed and rapid resend attempts fail safely.
 - [ ] Session restoration works after closing/reopening the app; sign-out clears
   private account data from every screen.
-- [ ] Public registration remains unavailable.
+- [ ] A new customer can create a private profile after code verification;
+  fictional demonstration data never enters that customer's account.
 - [ ] Customer A cannot read Customer B's profile, vehicle, booking, photo,
   invoice, dyno or notification data.
 - [ ] Matt's staff portal remains unavailable to customers and requires AAL2
