@@ -467,7 +467,7 @@ export function StaffWorkspace({
   const alertPage = Math.min(requestedAlertPage, Math.max(0, Math.ceil(filteredAlerts.length / 4) - 1));
   const pendingDeletions = snapshot.accountDeletionRequests.filter(request => request.status !== 'completed');
   const filteredDeletions = snapshot.accountDeletionRequests.filter(request => deletionFilter === 'pending' ? request.status !== 'completed' : request.status === 'completed');
-  const selectedBooking = section === 'bookings' ? snapshot.bookings.find(b => b.id === paramValue(params.bookingId)) : undefined;
+  const selectedBooking = section === 'bookings' ? snapshot.bookings.find(b => b.id === paramValue(params.bookingId) && !snapshot.bookingHolding.some(entry => entry.booking_request_id === b.id && new Date(entry.queued_at).getTime() + 30 * 24 * 60 * 60 * 1000 <= holdingClock)) : undefined;
   const bookingDetailsOpen = Boolean(selectedBooking && expandedBookingDetailsId === selectedBooking.id);
   const filteredBookings = (bookingFilter === 'holding' ? holdingBookings : bookingFilter === 'history' ? archivedBookings : bookingFilter === 'review' ? waitingBookings : activeBookings).filter(booking => {
     const customer = snapshot.customers.find(c => c.user_id === booking.customer_id);
