@@ -11,6 +11,8 @@ const {
   BETA_RUNTIME,
   APP_STORE_RELEASE_CHANNEL,
   APP_STORE_RELEASE_RUNTIME,
+  ANDROID_INTERNAL_CHANNEL,
+  ANDROID_INTERNAL_RUNTIME,
 } = require('../demo-mode.cjs');
 const valid = { demo: 'true', review: 'false', url: LIVE_URL, key: LIVE_PUBLIC_KEY, auth: 'true', booking: 'true', registration: 'false', channel: 'beta' };
 
@@ -31,6 +33,31 @@ test('App Store release opens registration only on its own update channel', () =
   assert.equal(resolveDemoBuild({ ...valid, registration: 'true', channel: APP_STORE_RELEASE_CHANNEL }), true);
   assert.throws(() => resolveDemoBuild({ ...valid, channel: APP_STORE_RELEASE_CHANNEL }), /MISMATCH/);
   assert.throws(() => resolveDemoBuild({ ...valid, registration: 'true' }), /MISMATCH/);
+});
+test('Android internal build opens registration and demo while keeping purchases closed', () => {
+  const eas = JSON.parse(readFileSync(resolve(__dirname, '../eas.json'), 'utf8'));
+  const profile = eas.build[ANDROID_INTERNAL_CHANNEL];
+  const env = { ...process.env, ...profile.env, EAS_BUILD_PROFILE: ANDROID_INTERNAL_CHANNEL, EAS_BUILD_PLATFORM: 'android' };
+  const script = "console.log(JSON.stringify(require('./app.config.js')({config:require('./app.json').expo})))";
+  const run = spawnSync(process.execPath, ['-e', script], { cwd: resolve(__dirname, '..'), env, encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  const config = JSON.parse(run.stdout);
+  assert.equal(config.android.package, 'com.psiperformance.booking');
+  assert.equal(config.runtimeVersion, ANDROID_INTERNAL_RUNTIME);
+  assert.equal(config.extra.psiDemoModeAvailable, true);
+  assert.equal(profile.channel, ANDROID_INTERNAL_CHANNEL);
+  assert.equal(profile.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED, 'true');
+  assert.equal(profile.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY, '');
+  assert.equal(resolveDemoBuild({ ...valid, registration: 'true', channel: ANDROID_INTERNAL_CHANNEL }), true);
+  for (const override of [
+    { EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED: 'false' },
+    { EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY: 'goog_unready' },
+    { EAS_BUILD_PLATFORM: 'ios' },
+    { EAS_BUILD_PROFILE: 'app-store-release' },
+  ]) {
+    const invalid = spawnSync(process.execPath, ['-e', script], { cwd: resolve(__dirname, '..'), env: { ...env, ...override }, encoding: 'utf8' });
+    assert.notEqual(invalid.status, 0);
+  }
 });
 test('no backend client may open until the saved environment is loaded', () => {
   const runtime = createDemoRuntime(true);
