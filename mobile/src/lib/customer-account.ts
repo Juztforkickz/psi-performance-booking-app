@@ -121,8 +121,21 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
   if (vehicleFilesResult.error) throw vehicleFilesResult.error;
   if (vehicleDisplayPreferencesResult.error) throw vehicleDisplayPreferencesResult.error;
 
+  // Portal-held test bookings must not appear in Coming up, Past visits, or
+  // payment prompts. The booking rows and linked audit records remain intact.
+  const bookingIds = (bookingsResult.data ?? []).map((booking) => booking.id);
+  const heldBookingIds = new Set<string>();
+  if (!REVIEW_ENVIRONMENT.enabled && bookingIds.length) {
+    const { data, error } = await supabase
+      .from('booking_portal_holding')
+      .select('booking_request_id')
+      .in('booking_request_id', bookingIds);
+    if (error) throw error;
+    data?.forEach((entry) => heldBookingIds.add(entry.booking_request_id));
+  }
+
   return {
-    bookings: bookingsResult.data ?? [],
+    bookings: (bookingsResult.data ?? []).filter((booking) => !heldBookingIds.has(booking.id)),
     paymentAttempts: paymentAttemptsResult.data ?? [],
     dynoRecords: dynoRecordsResult.data ?? [],
     profile: profileResult.data,
