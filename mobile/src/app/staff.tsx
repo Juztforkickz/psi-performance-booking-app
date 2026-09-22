@@ -37,6 +37,7 @@ import {
   inviteCustomer,
   loadStaffVehiclePhotoUrls,
   loadStaffPortalAccess,
+  moveFinishedBookingToPortalHolding,
   processBookingIntegrationJobs,
   type BookingIntegrationRunResult,
   type CustomerInvitationResult,
@@ -366,6 +367,12 @@ export function StaffWorkspace({
   const [recordBusy, setRecordBusy] = useState(false);
   const [bookingDirty, setBookingDirty] = useState(false);
   const [bookingBusy, setBookingBusy] = useState(false);
+  const [holdingBusy, setHoldingBusy] = useState(false);
+  const [holdingClock, setHoldingClock] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setHoldingClock(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
   const [completionDirty, setCompletionDirty] = useState(false);
   const [completionBusy, setCompletionBusy] = useState(false);
   const [eventDirty, setEventDirty] = useState(false);
@@ -377,7 +384,7 @@ export function StaffWorkspace({
   const reportDeletionBusy = useCallback((id: string, value: boolean) => setDeletionActions(previous => previous[id] === value ? previous : { ...previous, [id]: value }), []);
   const [bookingSearch, setBookingSearch] = useState('');
   const requestedBookingView = paramValue(params.view);
-  const bookingFilter = requestedBookingView === 'review' || requestedBookingView === 'history' ? requestedBookingView : 'active';
+  const bookingFilter = requestedBookingView === 'review' || requestedBookingView === 'history' || requestedBookingView === 'holding' ? requestedBookingView : 'active';
   const [bookingPage, setBookingPage] = useState(0);
   const [expandedBookingDetailsId, setExpandedBookingDetailsId] = useState<string | null>(null);
   const [bookingActionId, setBookingActionId] = useState<string | null>(null);
@@ -412,8 +419,13 @@ export function StaffWorkspace({
   const [integrationHistoryOpen, setIntegrationHistoryOpen] = useState(false);
   const [invitationListOpen, setInvitationListOpen] = useState(false);
   const [integrationPeriod, setIntegrationPeriod] = useState('');
-  const activeBookings = snapshot.bookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
-  const archivedBookings = snapshot.bookings.filter((booking) => ['cancelled', 'completed'].includes(booking.state));
+  const holdingByBooking = new Map(snapshot.bookingHolding.map(entry => [entry.booking_request_id, entry]));
+  const holdingBookings = snapshot.bookings.filter(booking => {
+    const entry = holdingByBooking.get(booking.id);
+    return entry && new Date(entry.queued_at).getTime() + 30 * 24 * 60 * 60 * 1000 > holdingClock;
+  });
+  const activeBookings = snapshot.bookings.filter((booking) => !holdingByBooking.has(booking.id) && !['cancelled', 'completed'].includes(booking.state));
+  const archivedBookings = snapshot.bookings.filter((booking) => !holdingByBooking.has(booking.id) && ['cancelled', 'completed'].includes(booking.state));
   const waitingIntegrationJobs = snapshot.integrationJobs.filter((job) => ['blocked_configuration', 'failed', 'pending', 'processing'].includes(job.status));
   const activeWorkshopContacts = snapshot.workshopContacts.filter(contact => contact.status === 'active');
   const completedIntegrationJobs = snapshot.integrationJobs.filter((job) => ['cancelled', 'succeeded'].includes(job.status));
@@ -457,13 +469,13 @@ export function StaffWorkspace({
   const filteredDeletions = snapshot.accountDeletionRequests.filter(request => deletionFilter === 'pending' ? request.status !== 'completed' : request.status === 'completed');
   const selectedBooking = section === 'bookings' ? snapshot.bookings.find(b => b.id === paramValue(params.bookingId)) : undefined;
   const bookingDetailsOpen = Boolean(selectedBooking && expandedBookingDetailsId === selectedBooking.id);
-  const filteredBookings = (bookingFilter === 'history' ? archivedBookings : bookingFilter === 'review' ? waitingBookings : activeBookings).filter(booking => {
+  const filteredBookings = (bookingFilter === 'holding' ? holdingBookings : bookingFilter === 'history' ? archivedBookings : bookingFilter === 'review' ? waitingBookings : activeBookings).filter(booking => {
     const customer = snapshot.customers.find(c => c.user_id === booking.customer_id);
     const vehicle = [...snapshot.vehicles, ...snapshot.archivedVehicles].find(v => v.id === booking.vehicle_id);
     return matchesSearch(`${customerName(customer)} ${customer?.email ?? ''} ${vehicle?.registration ?? ''} ${vehicle?.make ?? ''} ${vehicle?.model ?? ''}`, bookingSearch);
   });
   const visibleBookings = filteredBookings.slice(bookingPage * 8, bookingPage * 8 + 8);
-  const actionBusy = notificationSaving || recordBusy || bookingBusy || completionBusy || eventBusy || invitationBusy || integrationBusy || Object.values(deletionActions).some(Boolean);
+  const actionBusy = notificationSaving || recordBusy || bookingBusy || holdingBusy || completionBusy || eventBusy || invitationBusy || integrationBusy || Object.values(deletionActions).some(Boolean);
   const dirty = recordDirty || bookingDirty || completionDirty || eventDirty || Boolean(invitationEmail.trim()) || Object.values(deletionDrafts).some(Boolean);
   const confirmLeaving = useCallback((action: () => void) => {
     if (actionBusy) {
@@ -485,7 +497,7 @@ export function StaffWorkspace({
       if (resetBookingView) {
         setBookingSearch(''); setBookingPage(0);
       }
-      const nextBookingView = extra.view === 'review' || extra.view === 'history' ? extra.view : 'active';
+      const nextBookingView = extra.view === 'review' || extra.view === 'history' || extra.view === 'holding' ? extra.view : 'active';
       router.setParams({ section: next, bookingId: '', customerId: '', vehicleId: '', tool: '', ...extra, view: next === 'bookings' ? resetBookingView ? nextBookingView : bookingFilter : '' });
     });
   }, [bookingFilter, confirmLeaving, params.bookingId, router, section]);
@@ -655,6 +667,7 @@ export function StaffWorkspace({
               <Text style={styles.cardPrimary}>{customerName(customer)}</Text>
               <Text style={styles.cardCopy}>{vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable'}</Text>
               <Text style={styles.cardMeta}>{booking.approved_date ? `Workshop date ${formatDate(booking.approved_date)}` : booking.preferred_date ? `Requested ${formatDate(booking.preferred_date)}` : 'Flexible date'}</Text>
+              {holdingByBooking.has(booking.id) ? <Text style={styles.cardMeta}>In 30-day folder since {formatAustralianDateTime(holdingByBooking.get(booking.id)!.queued_at)}. Removed from the portal after 30 days; customer and financial history is retained.</Text> : null}
               {bookingPanel === 'enquiry' ? <>
               <View style={styles.contactPanel}>
                 <View style={styles.flex}>
@@ -679,6 +692,29 @@ export function StaffWorkspace({
               <PrimaryButton label="Open workshop actions" onPress={() => setBookingPanel('actions')} />
               </> : <>
               <StaffBookingReview previewMode={previewMode} booking={booking} onRefresh={onRefresh} onDirtyChange={setBookingDirty} onBusyChange={setBookingBusy} />
+              {role === 'owner' && !previewMode && !holdingByBooking.has(booking.id) && ['cancelled', 'completed'].includes(booking.state) ? <PrimaryButton variant="outline" label={holdingBusy ? 'Moving…' : 'Move to 30-day folder'} loading={holdingBusy} onPress={() => {
+                const move = async () => {
+                  setHoldingBusy(true);
+                  setActionNotice('');
+                  try {
+                    await moveFinishedBookingToPortalHolding(booking.id);
+                    router.setParams({ bookingId: '', view: 'holding' });
+                    onRefresh();
+                  } catch {
+                    setActionNotice('Could not move this booking. Please try again.');
+                  } finally {
+                    setHoldingBusy(false);
+                  }
+                };
+                if (Platform.OS === 'web') {
+                  if (window.confirm('Move this finished booking to the 30-day portal folder? Customer and financial history will be retained.')) void move();
+                } else {
+                  Alert.alert('Move booking?', 'Move this finished booking to the 30-day portal folder? Customer and financial history will be retained.', [
+                    { text: 'Keep here', style: 'cancel' },
+                    { text: 'Move', onPress: () => void move() },
+                  ]);
+                }
+              }} /> : null}
               {!previewMode ? <StaffWorkshopJob key={booking.id} booking={booking} vehicle={vehicle} /> : null}
               {previewMode ? booking.state === 'confirmed' ? <PreviewNotice title="Complete service">Record completed work and publish it to this vehicle. Completion is disabled in the design preview.</PreviewNotice> : ['cancelled', 'completed'].includes(booking.state) ? <PreviewNotice title="Archived booking">This visit is kept in the booking history.</PreviewNotice> : null : <StaffServiceCompletion
                 booking={booking}
@@ -695,9 +731,10 @@ export function StaffWorkspace({
 
           <WorkspaceLink title="Add a vehicle record" icon="add-circle-outline" onPress={() => navigate('records', { customerId: selectedBooking.customer_id, vehicleId: selectedBooking.vehicle_id })} />
         </> : <>
-          <View style={styles.filterRow}>{(['active', 'review', 'history'] as const).map(filter => <Pressable key={filter} accessibilityRole="button" accessibilityState={{ selected: bookingFilter === filter }} onPress={() => { router.setParams({ view: filter }); setBookingPage(0); }} style={[styles.filterButton, bookingFilter === filter && styles.filterSelected]}><Text style={styles.filterText}>{filter === 'active' ? 'Active' : filter === 'review' ? 'To review' : 'History'}</Text></Pressable>)}</View>
+          <View style={styles.filterRow}>{(['active', 'review', 'history', 'holding'] as const).map(filter => <Pressable key={filter} accessibilityRole="button" accessibilityState={{ selected: bookingFilter === filter }} onPress={() => { router.setParams({ view: filter }); setBookingPage(0); }} style={[styles.filterButton, bookingFilter === filter && styles.filterSelected]}><Text style={styles.filterText}>{filter === 'active' ? 'Active' : filter === 'review' ? 'To review' : filter === 'history' ? 'History' : '30-day folder'}</Text></Pressable>)}</View>
+          {bookingFilter === 'holding' ? <Text style={styles.cardCopy}>Bookings stay here for 30 days, then leave the portal. Payment, workshop and customer history remains protected.</Text> : null}
           <Field label="Find booking"><FormInput value={bookingSearch} onChangeText={v => { setBookingSearch(v); setBookingPage(0); }} placeholder="Customer, registration or vehicle" /></Field>
-          <Text style={styles.cardCopy}>{filteredBookings.length} booking{filteredBookings.length === 1 ? '' : 's'}{bookingFilter === 'review' ? ' awaiting review' : bookingFilter === 'history' ? ' in history' : ''}</Text>
+          <Text style={styles.cardCopy}>{filteredBookings.length} booking{filteredBookings.length === 1 ? '' : 's'}{bookingFilter === 'review' ? ' awaiting review' : bookingFilter === 'history' ? ' in history' : bookingFilter === 'holding' ? ' awaiting portal removal' : ''}</Text>
           {visibleBookings.length ? visibleBookings.map(booking => {
             const customer = snapshot.customers.find(c => c.user_id === booking.customer_id);
             const vehicle = [...snapshot.vehicles, ...snapshot.archivedVehicles].find(v => v.id === booking.vehicle_id);

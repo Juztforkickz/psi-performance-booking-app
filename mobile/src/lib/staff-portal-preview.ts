@@ -170,6 +170,7 @@ export const STAFF_PORTAL_PREVIEW_SNAPSHOT: StaffPortalSnapshot = {
     archived_at: sampleTime,
   }],
   bookings,
+  bookingHolding: [],
   vehicleFiles: [],
   workshopContacts: [],
   workshopVehicles: [],

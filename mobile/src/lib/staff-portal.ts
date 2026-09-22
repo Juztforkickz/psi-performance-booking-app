@@ -3,6 +3,7 @@ import type {
   AccountDeletionRequestRow,
   AuditEventRow,
   BookingIntegrationJobRow,
+  Database,
   BookingRequestRow,
   CustomerInvitationRow,
   CustomerProfileRow,
@@ -53,6 +54,7 @@ export type StaffPortalSnapshot = {
   archivedVehicles: CustomerVehicleRow[];
   auditEvents: AuditEventRow[];
   bookings: BookingRequestRow[];
+  bookingHolding: Database['public']['Tables']['booking_portal_holding']['Row'][];
   customers: CustomerProfileRow[];
   deletionCustomers: CustomerProfileRow[];
   invitations: CustomerInvitationRow[];
@@ -132,12 +134,13 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     };
   }
 
-  const [customersResult, deletionCustomersResult, vehiclesResult, archivedVehiclesResult, bookingsResult, integrationJobsResult, auditEventsResult, vehicleFilesResult, accountDeletionRequestsResult, invitationsResult, workshopContactsResult, workshopVehiclesResult] = await Promise.all([
+  const [customersResult, deletionCustomersResult, vehiclesResult, archivedVehiclesResult, bookingsResult, bookingHoldingResult, integrationJobsResult, auditEventsResult, vehicleFilesResult, accountDeletionRequestsResult, invitationsResult, workshopContactsResult, workshopVehiclesResult] = await Promise.all([
     supabase.from('customer_profiles').select('*').eq('account_state', 'active').order('last_name').order('first_name'),
     supabase.from('customer_profiles').select('*').order('last_name').order('first_name'),
     supabase.from('customer_vehicles').select('*').is('archived_at', null).order('updated_at', { ascending: false }),
     supabase.from('customer_vehicles').select('*').not('archived_at', 'is', null).order('archived_at', { ascending: false }),
-    supabase.from('booking_requests').select('*').is('archived_at', null).order('created_at', { ascending: false }).limit(50),
+    supabase.from('booking_requests').select('*').is('archived_at', null).order('created_at', { ascending: false }).limit(500),
+    supabase.from('booking_portal_holding').select('*').order('queued_at', { ascending: false }).limit(500),
     supabase.from('booking_integration_jobs').select('*').order('created_at', { ascending: false }).limit(150),
     supabase.from('audit_events').select('*').order('occurred_at', { ascending: false }).limit(250),
     supabase.from('vehicle_files').select('*').eq('file_kind', 'vehicle_photo').is('archived_at', null).order('created_at', { ascending: false }).limit(100),
@@ -151,6 +154,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     ?? vehiclesResult.error
     ?? archivedVehiclesResult.error
     ?? bookingsResult.error
+    ?? bookingHoldingResult.error
     ?? integrationJobsResult.error
     ?? auditEventsResult.error
     ?? vehicleFilesResult.error
@@ -169,6 +173,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
       archivedVehicles: archivedVehiclesResult.data ?? [],
       auditEvents: auditEventsResult.data ?? [],
       bookings: bookingsResult.data ?? [],
+      bookingHolding: bookingHoldingResult.data ?? [],
       customers: customersResult.data ?? [],
       deletionCustomers: deletionCustomersResult.data ?? [],
       integrationJobs: integrationJobsResult.data ?? [],
@@ -179,6 +184,17 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
       workshopVehicles: workshopVehiclesResult.data ?? [],
     },
   };
+}
+
+export async function moveFinishedBookingToPortalHolding(bookingId: string): Promise<void> {
+  const access = await loadStaffMfaSecurityAccess();
+  if (access.kind !== 'ready' || access.staff.role !== 'owner') throw new Error('STAFF_OWNER_AAL2_REQUIRED');
+  const { error } = await getSupabaseClient().from('booking_portal_holding').insert({
+    booking_request_id: bookingId,
+    source: 'owner_removed',
+    queued_by: access.staff.user_id,
+  });
+  if (error) throw error;
 }
 
 export async function claimWorkshopContact(workshopContactId: string, customerId: string) {

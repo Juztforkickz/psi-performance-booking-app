@@ -166,6 +166,22 @@ export type Database = {
         };
         Relationships: [];
       };
+      booking_portal_holding: {
+        Row: {
+          booking_request_id: string;
+          queued_at: string;
+          source: 'cancelled' | 'owner_removed';
+          queued_by: string | null;
+        };
+        Insert: {
+          booking_request_id: string;
+          queued_at?: string;
+          source: 'cancelled' | 'owner_removed';
+          queued_by?: string | null;
+        };
+        Update: Record<never, never>;
+        Relationships: [];
+      };
       customer_profiles: {
         Row: {
           account_state: string;
