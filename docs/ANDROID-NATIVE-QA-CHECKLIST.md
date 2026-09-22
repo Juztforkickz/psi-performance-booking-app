@@ -10,6 +10,15 @@ subscriptions remain unavailable until the Play app, products, RevenueCat
 connection and device purchase tests are complete. The older `qa` APK
 `ad1827e6-252b-4d23-a402-9e4aaa77f435` is not the current acceptance build.
 
+Google Play Console was checked live on 22 September 2026 for the PSI
+Performance organisation account. It shows **Verify your identity: Action
+required** and **Verify your phone numbers: Action required**. Its **Create app**
+control is disabled with the message that account verifications must be
+completed first. Google requests an unedited official document for PSI
+PERFORMANCE PTY LTD; phone verification becomes available after the earlier
+verification tasks are approved. No Google Play app or subscription catalogue
+can be created at this checkpoint.
+
 ## Evidence to record
 
 - source checkpoint commit;
