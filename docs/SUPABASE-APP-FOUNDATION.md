@@ -2,8 +2,10 @@
 
 Status: database and security foundation applied; Resend custom SMTP, both
 six-digit PSI email-code templates, controlled live login and RLS isolation
-tests, and the activation-gated Expo client flow are implemented. Customer
-sign-in and new registration remain deliberately inactive in public builds.
+tests, and the activation-gated Expo client flow are implemented. The public
+iPhone `app-store-release` channel now enables customer email-code sign-in and
+self-registration; the separate beta, review and web gates remain as documented
+below. Production Supabase Auth must also allow new users to sign up.
 
 ## Project
 

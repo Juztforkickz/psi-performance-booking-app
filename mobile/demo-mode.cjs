@@ -17,10 +17,13 @@ function resolveDemoBuild(input) {
   if (!['', 'false', 'true'].includes(flag)) throw new Error('INVALID_DEMO_MODE_FLAG');
   if (flag !== 'true') return false;
   if (input.review === 'true' || input.url !== LIVE_URL || input.key !== LIVE_PUBLIC_KEY
-      || input.auth !== 'true' || input.booking !== 'true' || input.registration !== 'false') {
+      || input.auth !== 'true' || input.booking !== 'true') {
     throw new Error('DEMO_BUILD_CONFIGURATION_MISMATCH');
   }
   demoRuntimeForChannel(input.channel);
+  if (input.registration !== (input.channel === APP_STORE_RELEASE_CHANNEL ? 'true' : 'false')) {
+    throw new Error('DEMO_BUILD_CONFIGURATION_MISMATCH');
+  }
   return true;
 }
 

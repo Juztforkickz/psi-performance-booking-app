@@ -3,8 +3,22 @@
 Status: the existing Cloudflare/D1 web account endpoints remain provider-neutral
 and fail-closed. The separate mobile-app foundation uses Supabase for controlled
 signed builds. Matt can approve individual customer emails from the AAL2 staff
-portal, while public registration remains disabled. See
+portal. The released iPhone app permits public email-code registration and
+private profile creation; the web account endpoints remain disabled. See
 `SUPABASE-APP-FOUNDATION.md` for the app-specific model.
+
+## Public iPhone onboarding (22 September 2026)
+
+The `app-store-release` channel allows any customer to request an email code.
+Supabase creates a new identity for an email that does not exist, and the
+verified customer completes their private contact profile and first vehicle.
+Existing PSI invitations remain valid but are no longer required in this
+channel. Ownership policies scope vehicles, bookings and reports to the
+authenticated customer; no workshop history is claimed by matching a
+registration or email. Customers may choose Performance+ through Apple's
+in-app subscription flow after signing in. The `beta`, `qa`, and review
+channels keep their separate registration settings. Supabase Auth's project
+setting **Allow new users to sign up** must also be enabled for this channel.
 
 ## Approved account model
 
@@ -32,7 +46,7 @@ A customer may then keep one or more vehicles with registration, year, make,
 model and optional VIN. Booking, payment and reminder records stay in their
 existing purpose-specific tables.
 
-## Invite-only onboarding
+## Owner invitation onboarding (still available)
 
 Matt approves one normalized email at a time from the protected staff portal.
 The server-only `invite-customer` function rechecks Matt's owner identity and

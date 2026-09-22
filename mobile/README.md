@@ -1,5 +1,10 @@
 # PSI Performance mobile app
 
+The public iPhone `app-store-release` channel enables email-code self-registration;
+new customers verify their email and complete a private profile and vehicle before
+using account features. Apple subscriptions remain tied to the verified account.
+The `beta`, `qa`, and isolated review channels retain their existing gates.
+
 Current Apple review delivery: [one PSI build with normal and selectable demo
 access](../docs/SAME-BUILD-APPLE-REVIEW.md). Use the `beta` profile for that plan;
 the earlier standalone `apple-review` profile is historical, not the handover build.

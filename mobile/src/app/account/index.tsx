@@ -1,7 +1,7 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProfilePhotoPicker } from '@/components/profile-photo-picker';
@@ -9,7 +9,7 @@ import { AppleReviewSignIn } from '@/components/apple-review-sign-in';
 import { DemoModeControl } from '@/components/demo-mode-control';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
-import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAustralianDate } from '@/lib/australian-date';
 import {
@@ -141,9 +141,13 @@ export default function AccountScreen() {
       await requestPasswordlessEmailCode(email);
       setCodeSent(true);
       setResendSeconds(EMAIL_CODE_RESEND_COOLDOWN_SECONDS);
-      setNotice('If this email belongs to an approved PSI account, a six-digit sign-in code will arrive shortly. Enter it below within 10 minutes.');
+      setNotice(CUSTOMER_AUTH.registrationEnabled
+        ? 'A six-digit sign-in code is on its way. Enter it below within 10 minutes. New customers can complete their profile after verification.'
+        : 'If this email belongs to an approved PSI account, a six-digit sign-in code will arrive shortly. Enter it below within 10 minutes.');
     } catch {
-      setNotice('A sign-in code could not be requested. Customer registration may still be closed, or the email service may be temporarily unavailable.');
+      setNotice(secureReturnTo || CUSTOMER_AUTH.registrationEnabled
+        ? 'We couldn’t send a code. Wait a minute and try again. If it still fails, contact PSI for help.'
+        : 'We couldn’t send a code. New accounts need PSI approval first. If PSI has already approved your email, wait a minute and try again or contact PSI for help.');
     } finally {
       setBusy(false);
     }
@@ -250,6 +254,7 @@ export default function AccountScreen() {
           <Text style={styles.cardCopy}>
             We’ll email you a six-digit sign-in code. No password is required.{secureReturnTo ? ' After verification, you will return to the protected PSI staff workspace.' : ''}
           </Text>
+          {!secureReturnTo ? <Text style={styles.cardCopy}>{CUSTOMER_AUTH.registrationEnabled ? 'New to PSI? Enter your email to create your private account.' : 'New to PSI? Ask the workshop to activate your email before requesting a code.'}</Text> : null}
           <Field error={emailError} label="Email">
             <FormInput
               autoCapitalize="none"
@@ -304,6 +309,15 @@ export default function AccountScreen() {
           ) : (
             <PrimaryButton label={CUSTOMER_AUTH.enabled ? 'Email my sign-in code' : 'Check sign-in readiness'} loading={busy} onPress={() => void beginSignIn()} />
           )}
+          {!secureReturnTo && !CUSTOMER_AUTH.registrationEnabled ? (
+            <Pressable
+              accessibilityRole="link"
+              onPress={() => void Linking.openURL(`${contact.emailUrl}?subject=PSI%20app%20account%20access`)}
+              style={({ pressed }) => [styles.accountAccessLink, pressed && styles.pressed]}
+            >
+              <Text style={styles.accountAccessLinkText}>Email PSI to request account access</Text>
+            </Pressable>
+          ) : null}
         </View> : null}
 
         <Eyebrow>{secureReturnTo ? 'PSI staff access' : 'PSI customer account'}</Eyebrow>
@@ -319,7 +333,9 @@ export default function AccountScreen() {
             <Text style={styles.providerCopy}>
               {secureReturnTo
                 ? 'Use the same six-digit email-code sign in. Only approved PSI staff continue to authenticator verification and the private portal.'
-                : `Use a six-digit email code—no password needed. New customer access is ${CUSTOMER_AUTH.registrationEnabled ? 'available during the current onboarding window' : 'set up by PSI'}.`}
+                : CUSTOMER_AUTH.registrationEnabled
+                  ? 'Use a six-digit email code—no password needed. New customers can create a private profile and add their vehicles after verification.'
+                  : 'Use a six-digit email code—no password needed. New customer access is set up by PSI.'}
             </Text>
             {!secureReturnTo ? (
               <Pressable
@@ -423,7 +439,7 @@ export default function AccountScreen() {
             <Text style={styles.createText}>{account ? accountSetupComplete ? 'Update your contact details and primary vehicle.' : 'Add your name, mobile number and first vehicle to finish setting up your private PSI account.' : CUSTOMER_AUTH.registrationEnabled ? 'Add your details and primary vehicle.' : CUSTOMER_AUTH.enabled ? 'New customer accounts are set up by PSI. Contact us for access.' : 'Explore account setup with demonstration details.'}</Text>
           </View>
           <PrimaryButton
-            label={account ? accountSetupComplete ? 'Edit account details →' : 'Complete my profile →' : CUSTOMER_AUTH.registrationEnabled ? 'Set up approved account →' : CUSTOMER_AUTH.enabled ? 'Contact PSI for account access →' : 'Preview account setup →'}
+            label={account ? accountSetupComplete ? 'Edit account details →' : 'Complete my profile →' : CUSTOMER_AUTH.registrationEnabled ? 'Create my account →' : CUSTOMER_AUTH.enabled ? 'Contact PSI for account access →' : 'Preview account setup →'}
             onPress={() => router.push(account || CUSTOMER_AUTH.registrationEnabled || !CUSTOMER_AUTH.enabled ? '/account/sign-up' : '/support')}
             variant="outline"
           />
@@ -672,6 +688,8 @@ const styles = StyleSheet.create({
   card: { ...mobileFrame, gap: spacing.lg, marginTop: spacing.xl, backgroundColor: colors.panel, padding: spacing.lg },
   cardTitle: { color: colors.white, fontSize: 22, fontWeight: '900', textTransform: 'uppercase' },
   cardCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
+  accountAccessLink: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  accountAccessLinkText: { color: colors.accent, fontSize: 13, fontWeight: '700', textAlign: 'center' },
   notice: { ...mobileFrame, backgroundColor: colors.inkSoft, padding: spacing.md },
   noticeText: { color: colors.silver, fontSize: 12, lineHeight: 19 },
   errorText: { color: colors.danger, fontSize: 12, lineHeight: 19 },

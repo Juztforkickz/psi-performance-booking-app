@@ -27,6 +27,11 @@ test('same-build demo requires exact live configuration and closed registration'
     assert.throws(() => resolveDemoBuild({...valid,...change}));
   }
 });
+test('App Store release opens registration only on its own update channel', () => {
+  assert.equal(resolveDemoBuild({ ...valid, registration: 'true', channel: APP_STORE_RELEASE_CHANNEL }), true);
+  assert.throws(() => resolveDemoBuild({ ...valid, channel: APP_STORE_RELEASE_CHANNEL }), /MISMATCH/);
+  assert.throws(() => resolveDemoBuild({ ...valid, registration: 'true' }), /MISMATCH/);
+});
 test('no backend client may open until the saved environment is loaded', () => {
   const runtime = createDemoRuntime(true);
   assert.equal(runtime.ready, false);
@@ -82,6 +87,8 @@ test('the App Store release keeps live mode while isolating review purchases', (
   assert.equal(config.runtimeVersion,APP_STORE_RELEASE_RUNTIME);
   assert.equal(config.extra.psiDemoModeAvailable,true);
   assert.equal(profile.channel,APP_STORE_RELEASE_CHANNEL);
+  assert.equal(profile.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED, 'true');
+  assert.equal(eas.build.beta.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED, 'false');
   for (const override of [
     { EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST: 'false' },
     { EXPO_PUBLIC_REVENUECAT_APPLE_KEY: '' },
