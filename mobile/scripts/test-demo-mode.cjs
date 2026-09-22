@@ -47,7 +47,7 @@ test('Android internal build opens registration and demo while keeping purchases
   assert.equal(config.extra.psiDemoModeAvailable, true);
   assert.equal(profile.channel, ANDROID_INTERNAL_CHANNEL);
   assert.equal(profile.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED, 'true');
-  assert.equal(profile.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY, '');
+  assert.equal(profile.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY, 'disabled');
   assert.equal(resolveDemoBuild({ ...valid, registration: 'true', channel: ANDROID_INTERNAL_CHANNEL }), true);
   for (const override of [
     { EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED: 'false' },

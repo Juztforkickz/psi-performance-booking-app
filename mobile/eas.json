@@ -118,7 +118,7 @@
         "EXPO_PUBLIC_PSI_GOOGLE_REVIEW": "false",
         "EXPO_PUBLIC_PSI_UPDATE_CHANNEL": "android-internal",
         "EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST": "false",
-        "EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY": "",
+        "EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY": "disabled",
         "EXPO_PUBLIC_SUPABASE_URL": "https://lslhfrujyuqcavsnugfx.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_B1fbCA2hQegGaE9JDCcp-Q_L2rvyeDN",
         "EXPO_PUBLIC_SUPABASE_AUTH_ENABLED": "true",

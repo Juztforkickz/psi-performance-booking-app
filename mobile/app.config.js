@@ -24,7 +24,7 @@ module.exports = ({ config }) => {
     const androidInternal = channel === ANDROID_INTERNAL_CHANNEL;
     if (purchaseTest !== appStoreRelease) throw new Error(appStoreRelease ? 'APP_STORE_RELEASE_REQUIRES_PURCHASE_REVIEW' : 'PURCHASE_TEST_REQUIRES_ISOLATED_PROFILE');
     if (androidInternal && process.env.EAS_BUILD_PLATFORM && process.env.EAS_BUILD_PLATFORM !== 'android') throw new Error('ANDROID_INTERNAL_REQUIRES_ANDROID');
-    if (androidInternal && (process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY ?? '').trim()) throw new Error('ANDROID_INTERNAL_PURCHASES_MUST_BE_CLOSED');
+    if (androidInternal && process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY !== 'disabled') throw new Error('ANDROID_INTERNAL_PURCHASES_MUST_BE_CLOSED');
     const expectedProfile = appStoreRelease ? APP_STORE_RELEASE_CHANNEL : androidInternal ? ANDROID_INTERNAL_CHANNEL : BETA_CHANNEL;
     if (process.env.EAS_BUILD_PROFILE && process.env.EAS_BUILD_PROFILE !== expectedProfile) throw new Error('DEMO_REQUIRES_MATCHING_BUILD_PROFILE');
     if (appStoreRelease && !(process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY ?? '').startsWith('appl_')) throw new Error('APP_STORE_RELEASE_REQUIRES_APPLE_PURCHASE_KEY');
