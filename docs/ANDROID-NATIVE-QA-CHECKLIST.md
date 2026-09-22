@@ -1,9 +1,10 @@
 # PSI Android native QA checklist
 
-Status: a refreshed signed internal Android APK was queued on 22 September 2026
-from checkpoint `f451ca0`, EAS build `c1d100c8-bf21-4233-b979-7f6567b06b2b`,
-version 1.0.0 (2). Confirm its completion and use that APK for the device checks
-below. Its `android-internal` channel uses the live customer backend, permits
+Status: the refreshed signed internal Android APK completed on 22 September
+2026 from checkpoint `f451ca0`, EAS build
+`c1d100c8-bf21-4233-b979-7f6567b06b2b`, version 1.0.0 (2).
+Install it from the [EAS build record](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/c1d100c8-bf21-4233-b979-7f6567b06b2b)
+for the device checks below. Its `android-internal` channel uses the live customer backend, permits
 public sign-up and offers the separate fictional demonstration. Google Play
 subscriptions remain unavailable until the Play app, products, RevenueCat
 connection and device purchase tests are complete. The older `qa` APK
@@ -30,8 +31,8 @@ material or private service credentials in this file or an issue.
   customer Auth enabled, booking QA enabled and public registration disabled.
 - [x] Configure the separate `android-internal` APK with public registration,
   fictional demonstration and Google Play purchases explicitly disabled.
-- [ ] Confirm the new `android-internal` APK builds successfully and install it
-  on a supported Android phone.
+- [x] Confirm the new `android-internal` APK builds successfully.
+- [ ] Install the new APK on a supported Android phone.
 - [x] Configure the production profile for a future Google Play App Bundle on
   the isolated `production` update channel.
 - [x] Prepare the PSI launcher icon, adaptive icon, splash treatment and Google
