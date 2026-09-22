@@ -186,17 +186,6 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
   };
 }
 
-export async function moveFinishedBookingToPortalHolding(bookingId: string): Promise<void> {
-  const access = await loadStaffMfaSecurityAccess();
-  if (access.kind !== 'ready' || access.staff.role !== 'owner') throw new Error('STAFF_OWNER_AAL2_REQUIRED');
-  const { error } = await getSupabaseClient().from('booking_portal_holding').insert({
-    booking_request_id: bookingId,
-    source: 'owner_removed',
-    queued_by: access.staff.user_id,
-  });
-  if (error) throw error;
-}
-
 export async function claimWorkshopContact(workshopContactId: string, customerId: string) {
   const access = await loadStaffMfaSecurityAccess();
   if (access.kind !== 'ready' || access.staff.role !== 'owner') throw new Error('STAFF_OWNER_AAL2_REQUIRED');
