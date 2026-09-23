@@ -46,9 +46,19 @@ for (const fileName of ['psi-icon-192.png', 'psi-icon-512.png', 'psi-favicon.png
   await copyFile(join(repositoryDirectory, 'public', fileName), join(distDirectory, fileName));
 }
 
+for (const fileName of ['ethnocentric.woff2', 'psi-app-icon.png']) {
+  await copyFile(join(repositoryDirectory, 'public', fileName), join(distDirectory, fileName));
+}
+
 await cp(
   join(repositoryDirectory, 'public', 'campaign-videos'),
   join(distDirectory, 'campaign-videos'),
+  { recursive: true },
+);
+
+await cp(
+  join(repositoryDirectory, 'public', 'download'),
+  join(distDirectory, 'download'),
   { recursive: true },
 );
 
