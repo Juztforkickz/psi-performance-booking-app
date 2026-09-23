@@ -274,8 +274,9 @@ export function StaffPerformanceAccess({ onDirtyChange, onBusyChange, previewMod
   }, [onBusyChange, onDirtyChange]);
   return <View style={styles.stack}>
     <Text style={styles.copy}>{previewMode ? 'Preview only · Customer account access cannot be changed here.' : 'Customers create and verify their own PSI account. Completing their account starts their one-time 14-day Performance+ trial without payment or automatic renewal.'}</Text>
-    <Text style={styles.muted}>Use the same email on the workshop record that the customer will use in the app. When the verified email matches, the prepared workshop history and vehicles connect automatically.</Text>
-    <Text style={styles.muted}>Creating a workshop-only contact, inviting an email, or publishing photos and documents does not start the 14-day countdown.</Text>
+    <Text style={styles.muted}>The workshop PC can prepare an account-optional job folder using the customer, vehicle and registration. It keeps the files private and waiting locally.</Text>
+    <Text style={styles.muted}>When the customer completes their own account and vehicle, a matching registration plus either verified email or exact name and mobile links the prepared job automatically. The watcher then uploads the waiting files.</Text>
+    <Text style={styles.muted}>Creating the workshop folder does not start the 14-day countdown.</Text>
   </View>;
 }
 

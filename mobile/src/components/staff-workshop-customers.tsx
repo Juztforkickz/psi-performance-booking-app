@@ -78,7 +78,7 @@ export function StaffWorkshopCustomers({
     <View style={styles.stack}>
       <View style={styles.notice}>
         <Text style={styles.title}>Workshop-only customers</Text>
-        <Text style={styles.copy}>Phone and walk-in jobs can be created without an app login. Files remain private on the workshop PC until an owner reviews and transfers a strong match.</Text>
+        <Text style={styles.copy}>Phone and walk-in jobs can be created without an app login. Exact verified-email and registration matches, or exact name, mobile and registration matches, transfer automatically when the customer completes their own account. Anything left here requires owner review.</Text>
       </View>
       {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
       {activeContacts.map(contact => {
@@ -89,7 +89,7 @@ export function StaffWorkshopCustomers({
             <Text style={styles.title}>{contact.display_name}</Text>
             <Text selectable style={styles.copy}>{contact.email || 'No email'} · {contact.mobile || 'No mobile'}</Text>
             {vehicles.map(vehicle => <Text key={vehicle.id} style={styles.vehicle}>{vehicle.year} {vehicle.make} {vehicle.model} · {vehicle.registration}</Text>)}
-            <Text style={styles.kicker}>{matches.length ? `${matches.length} strong app match${matches.length === 1 ? '' : 'es'} — owner review required` : 'No strong app-account match yet'}</Text>
+            <Text style={styles.kicker}>{matches.length ? `${matches.length} possible app match${matches.length === 1 ? '' : 'es'} — owner review required` : 'No automatic app-account match yet'}</Text>
             {matches.map(match => (
               <View key={match.customer.user_id} style={styles.match}>
                 <View style={styles.flex}>

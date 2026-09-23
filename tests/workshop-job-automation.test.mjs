@@ -64,10 +64,11 @@ test('owners can explicitly keep non-app customer invoices in Xero only', async 
   assert.match(review, /It will not appear in an app customer’s vault/u);
 });
 
-test('phone and walk-in jobs can wait safely for a later app-account transfer', async () => {
-  const [migration, indexMigration, uploader, launcher, review, guide] = await Promise.all([
+test('phone and walk-in jobs wait safely and transfer on a strong customer-created account match', async () => {
+  const [migration, indexMigration, automaticClaim, uploader, launcher, review, guide] = await Promise.all([
     read('../supabase/migrations/20260914061154_workshop_only_customers.sql'),
     read('../supabase/migrations/20260914062740_index_workshop_claims.sql'),
+    read('../supabase/migrations/20260924233000_auto_claim_workshop_jobs_on_customer_vehicle.sql'),
     read('../operations/workshop-pc/psi_uploads.py'),
     read('../operations/workshop-pc/Start-PSIWorkshopUploader.ps1'),
     read('../mobile/src/components/staff-workshop-customers.tsx'),
@@ -85,6 +86,10 @@ test('phone and walk-in jobs can wait safely for a later app-account transfer', 
   assert.match(migration, /enable row level security/u);
   assert.match(indexMigration, /workshop_contacts_claimed_by_idx/u);
   assert.match(indexMigration, /workshop_jobs_workshop_vehicle_contact_idx/u);
+  assert.match(automaticClaim, /auto_claim_workshop_history_after_customer_vehicle_save/u);
+  assert.match(automaticClaim, /normalized_identity_mobile/u);
+  assert.match(automaticClaim, /workshop_contact\.email is not null/u);
+  assert.match(automaticClaim, /app_vehicle\.registration/u);
 
   assert.match(uploader, /'schema': 2, 'owner_type': 'workshop'/u);
   assert.match(uploader, /waiting_for_customer_account/u);
@@ -95,9 +100,10 @@ test('phone and walk-in jobs can wait safely for a later app-account transfer', 
   assert.match(launcher, /Enter-PSIUploaderLock/u);
   assert.match(launcher, /finally \{/u);
   assert.match(launcher, /Press Enter to close/u);
-  assert.match(review, /owner review required/u);
+  assert.match(review, /transfer automatically when the customer completes their own account/u);
   assert.match(review, /Review & transfer/u);
   assert.match(review, /exact email match or an exact name plus registration match/u);
   assert.match(guide, /without creating an app login or sending an invitation/u);
+  assert.match(guide, /automatically links the eligible workshop vehicles and jobs/u);
   assert.match(guide, /Similarity alone never transfers records automatically/u);
 });
