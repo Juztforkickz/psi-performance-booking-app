@@ -20,7 +20,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 import re
 from PIL import Image, ImageOps
 
@@ -471,9 +471,23 @@ def import_manifest_inbox(root, inbox, connection):
     return imported
 
 
+def _parse_job_date(value, today=None):
+    value = value.strip()
+    if not value:
+        return (today or date.today()).isoformat()
+    for format_string in ('%d/%m/%Y', '%d-%m-%Y', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(value, format_string).date().isoformat()
+        except ValueError:
+            pass
+    raise ValueError('Enter the job date as DD/MM/YYYY, DD-MM-YYYY or YYYY-MM-DD')
+
+
 def _manual_job_details(input_fn, registration):
-    job_date = input_fn(f'Job date [{date.today().isoformat()}]: ').strip() or date.today().isoformat()
-    date.fromisoformat(job_date)
+    today = date.today()
+    job_date = _parse_job_date(input_fn(
+        f'Job date [{today.strftime("%d/%m/%Y")}] (past dates allowed): '
+    ), today)
     kind = input_fn('Job type (service/dyno) [service]: ').strip().lower() or 'service'
     if kind not in ('service', 'dyno'):
         raise ValueError('Job type must be service or dyno')

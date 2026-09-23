@@ -2,6 +2,7 @@ import io
 import hashlib
 import json
 import os
+from datetime import date
 from pathlib import Path
 import tempfile
 import time
@@ -9,7 +10,7 @@ import unittest
 from unittest.mock import patch
 from PIL import Image
 from psi_uploads import (
-    Connection, RequestFailure, SessionStore, create_job_folder, create_manual_job,
+    Connection, RequestFailure, SessionStore, _parse_job_date, create_job_folder, create_manual_job,
     ensure_object, folder_label_for, import_manifest_inbox, manifest_for, prepare_file, process_job,
     sync_job_folders,
 )
@@ -347,7 +348,7 @@ class WorkshopImporterTests(unittest.TestCase):
                     return [{**data, 'id': self.manifest['job_id']}]
                 return [{'id': self.manifest['vehicle_id'], 'customer_id': self.manifest['customer_id'],
                          'registration': 'ABC123', 'archived_at': None}]
-        answers = iter(('abc 123', '1', '2026-09-15', 'service', 'Phone service'))
+        answers = iter(('abc 123', '1', '15/09/2026', 'service', 'Phone service'))
         connection = FakeConnection()
         root = self.folder / 'phone'
         folder = create_manual_job(root, connection, lambda _prompt: next(answers))
@@ -356,6 +357,14 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertTrue(connection.posted['reference'].startswith('PSI-PHONE-20260915-'))
         self.assertTrue((folder / 'psi-job.json').is_file())
         self.assertTrue(folder.name.startswith('TEST CUSTOMER - 2020 FORD MUSTANG - ABC123 - PSI-PHONE-'))
+
+    def test_manual_job_date_accepts_australian_iso_and_past_formats(self):
+        self.assertEqual(_parse_job_date('23/09/2026'), '2026-09-23')
+        self.assertEqual(_parse_job_date('23-09-2026'), '2026-09-23')
+        self.assertEqual(_parse_job_date('2026-09-23'), '2026-09-23')
+        self.assertEqual(_parse_job_date('', date(2026, 9, 24)), '2026-09-24')
+        with self.assertRaisesRegex(ValueError, 'DD/MM/YYYY'):
+            _parse_job_date('09/23/2026')
 
     def test_phone_job_can_create_workshop_only_customer_without_an_account(self):
         workshop_contact_id = 'a4400000-0000-4000-8000-000000000001'
