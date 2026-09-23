@@ -41,6 +41,7 @@ export function PerformancePlanCard({ hideForPermanent = false }: { hideForPerma
   const overview = state?.key === key ? state.overview : null;
   const activePlus = overview?.plan === 'performance_plus' && (!overview.expires_at || Date.parse(overview.expires_at) > now);
   const permanentPlus = activePlus && overview?.is_permanent;
+  const trialPlus = activePlus && overview?.is_trial;
   const loadingOverview = CUSTOMER_AUTH.enabled && auth.status === 'signed_in' && Boolean(vehicleId) && state?.key !== key;
   const openPerformancePlus = () => router.push({ pathname: '/performance-plus', params: vehicleId ? { vehicleId } : {} });
   const storefront = subscriptionStorefrontName();
@@ -62,15 +63,17 @@ export function PerformancePlanCard({ hideForPermanent = false }: { hideForPerma
           <Text style={[styles.brand, { color: theme.accent }]}>PSI PERFORMANCE+</Text>
         </View>
         <View style={[styles.status, { backgroundColor: activePlus ? theme.accent : theme.surfaceRaised }]}>
-          <Text style={[styles.statusText, { color: activePlus ? theme.textInverse : theme.text }]}>{activePlus ? 'ACTIVE' : 'PSI FREE'}</Text>
+          <Text style={[styles.statusText, { color: activePlus ? theme.textInverse : theme.text }]}>{trialPlus ? '14-DAY TRIAL' : activePlus ? 'ACTIVE' : 'PSI FREE'}</Text>
         </View>
       </View>
 
       <View style={styles.copyBlock}>
         <Text style={[styles.kicker, { color: theme.textMuted }]}>CURRENT PLAN</Text>
-        <Text style={[styles.title, { color: theme.text }]}>{permanentPlus ? 'Performance+ included permanently' : activePlus ? 'Your complete vehicle record is unlocked' : 'Unlock your car’s complete story'}</Text>
+        <Text style={[styles.title, { color: theme.text }]}>{permanentPlus ? 'Performance+ included permanently' : trialPlus ? 'Your complete vehicle record is unlocked for 14 days' : activePlus ? 'Your complete vehicle record is unlocked' : 'Unlock your car’s complete story'}</Text>
         <Text style={[styles.copy, { color: theme.textMuted }]}>{permanentPlus
           ? 'Complimentary PSI owner access · $0.00 AUD · no renewal or expiry.'
+          : trialPlus
+            ? `Your PSI workshop photos and every Performance+ feature are available until ${overview?.expires_at ? new Date(overview.expires_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }) : 'the trial ends'}. Subscribe to keep everything unlocked.`
           : activePlus
             ? 'Open your private invoices, workshop photographs, dyno reports and vehicle history.'
             : `${aud(PERFORMANCE_PRICING.monthly)} monthly or ${aud(PERFORMANCE_PRICING.annual)} annually. One subscription covers every vehicle in your PSI account.`}</Text>
@@ -80,7 +83,7 @@ export function PerformancePlanCard({ hideForPermanent = false }: { hideForPerma
 
       <PrimaryButton label={activePlus ? 'Open Performance+' : 'Upgrade to Performance+'} onPress={openPerformancePlus} />
       {managementMessage ? <Text accessibilityRole="alert" style={[styles.copy, { color: theme.accent }]}>{managementMessage}</Text> : null}
-      {activePlus && !permanentPlus && storefront && auth.user ? <Pressable accessibilityRole="button" accessibilityState={{ busy: managing, disabled: managing }} disabled={managing} onPress={() => void manageSubscription()} style={({ pressed }) => [styles.manage, { borderColor: theme.border }, pressed && styles.pressed]}><Text style={[styles.manageText, { color: theme.accent }]}>{managing ? 'Opening subscription manager…' : `Manage ${storefront} subscription`}</Text><Ionicons color={theme.accent} name="open-outline" size={18} /></Pressable> : null}
+      {activePlus && !permanentPlus && !trialPlus && storefront && auth.user ? <Pressable accessibilityRole="button" accessibilityState={{ busy: managing, disabled: managing }} disabled={managing} onPress={() => void manageSubscription()} style={({ pressed }) => [styles.manage, { borderColor: theme.border }, pressed && styles.pressed]}><Text style={[styles.manageText, { color: theme.accent }]}>{managing ? 'Opening subscription manager…' : `Manage ${storefront} subscription`}</Text><Ionicons color={theme.accent} name="open-outline" size={18} /></Pressable> : null}
       {!permanentPlus ? <Pressable accessibilityRole="button" onPress={openPerformancePlus} style={({ pressed }) => [styles.restore, pressed && styles.pressed]}><Text style={[styles.restoreText, { color: theme.textMuted }]}>{activePlus ? 'View plan and restore purchases' : 'Already subscribed? Restore purchases'}</Text><Ionicons color={theme.textMuted} name="chevron-forward" size={17} /></Pressable> : null}
     </View>
   );

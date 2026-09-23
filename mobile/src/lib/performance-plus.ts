@@ -30,7 +30,7 @@ export type ServiceCompletionCandidate = {
   suggested_completed_date: string; suggested_summary: string; state: 'pending' | 'completed';
   created_at: string; updated_at: string;
 };
-export type VaultOverview = { plan: 'free' | 'performance_plus'; counts: Partial<Record<ReportKind, number>>; expires_at: string | null; is_permanent: boolean };
+export type VaultOverview = { plan: 'free' | 'performance_plus'; counts: Partial<Record<ReportKind, number>>; expires_at: string | null; is_permanent: boolean; is_trial: boolean; trial_days: number };
 type Table<T> = { Row: T; Insert: Partial<T>; Update: Partial<T>; Relationships: [] };
 type VaultDatabase = { public: { Tables: {
   vault_records: Table<VaultRecord>; vault_assets: Table<VaultAsset>; workshop_jobs: Table<WorkshopJob>;
@@ -41,6 +41,7 @@ type VaultDatabase = { public: { Tables: {
 }; Views: Record<never, never>; Functions: {
   performance_vault_overview: { Args: { p_vehicle_id: string }; Returns: VaultOverview };
   grant_performance_beta: { Args: { p_customer_id: string; p_days: number }; Returns: undefined };
+  start_customer_performance_trial: { Args: { p_customer_id: string }; Returns: { active: boolean; expires_at: string; started: boolean } };
   xero_connection_status: { Args: Record<string, never>; Returns: { tenant_id: string; connected_at: string; updated_at: string }[] };
   xero_connection_candidates: { Args: Record<string, never>; Returns: { tenant_id: string; tenant_name: string }[] };
   confirm_xero_organisation: { Args: { p_tenant_id: string }; Returns: undefined };

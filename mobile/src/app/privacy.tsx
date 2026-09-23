@@ -36,7 +36,7 @@ const SECTIONS = [
   },
   {
     title: 'Performance+ vehicle records',
-    copy: 'PSI may publish private invoice PDFs, workshop photographs, documents and vehicle history linked to your account, vehicle and workshop job. Free accounts can see their own record counts; premium contents require current access. Expiration or cancellation does not delete these records. When store purchases are enabled, Apple or Google Play processes the purchase and RevenueCat verifies subscription transactions linked to your PSI account identifier. Workshop photographs and PDFs are not sent to RevenueCat. These providers may process subscription data outside Australia.',
+    copy: 'PSI may publish private invoice PDFs, workshop photographs, documents and vehicle history linked to your account, vehicle and workshop job. PSI may unlock these records through one complimentary 14-day Performance+ trial when the first workshop photo gallery is published. The trial does not charge or renew. After it ends, premium contents lock but remain stored; PSI Free accounts can still see their own record counts. When store purchases are enabled, Apple or Google Play processes the purchase and RevenueCat verifies subscription transactions linked to your PSI account identifier. Workshop photographs and PDFs are not sent to RevenueCat. These providers may process subscription data outside Australia.',
   },
   {
     title: 'Account deletion',
@@ -79,7 +79,7 @@ export default function PrivacyScreen() {
           </View>
         ))}
         <PrimaryButton label="Request account deletion" onPress={() => router.push('/delete-account')} variant="outline" />
-        <Text style={styles.updated}>LAST UPDATED · 12/09/2026</Text>
+        <Text style={styles.updated}>LAST UPDATED · 24/09/2026</Text>
       </ScrollView>
     </SafeAreaView>
   );

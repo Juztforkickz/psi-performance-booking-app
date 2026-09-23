@@ -86,7 +86,7 @@ export default function PerformancePlusScreen() {
   const [storePriceState, setStorePriceState] = useState<{ key: string; prices: PerformancePlusStorePrices | null; message: string } | null>(null);
   const [revision, setRevision] = useState(0);
   const key = `${auth.user?.id ?? 'preview'}:${vehicle?.id}`;
-  const overview = demo ? { plan: 'free' as const, counts: { invoice: 7, media: 3, dyno: 2, service: 4, recommendation: 1, document: 2, modification: 3 }, expires_at: null, is_permanent: false } : state?.key === key ? state.overview : null;
+  const overview = demo ? { plan: 'free' as const, counts: { invoice: 7, media: 3, dyno: 2, service: 4, recommendation: 1, document: 2, modification: 3 }, expires_at: null, is_permanent: false, is_trial: false, trial_days: 14 } : state?.key === key ? state.overview : null;
   const focusedCount = focusedKind && overview ? overview.counts[focusedKind] ?? 0 : 0;
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 15000);
@@ -101,22 +101,24 @@ export default function PerformancePlusScreen() {
   }, [demo, vehicleId, auth.status, key, revision]);
   const activePlus = overview?.plan === 'performance_plus' && (!overview.expires_at || Date.parse(overview.expires_at) > now);
   const permanentPlus = activePlus && overview?.is_permanent;
+  const trialPlus = activePlus && overview?.is_trial;
+  const paidPlus = activePlus && !trialPlus;
   const entitlementReady = demo || !!overview;
   const storefront = subscriptionStorefrontName();
   const purchasesAvailable = subscriptionPurchasesAvailable();
   const storePriceKey = `${auth.user?.id ?? 'none'}:${storefront ?? 'none'}`;
   const currentStorePriceState = storePriceState?.key === storePriceKey ? storePriceState : null;
   const storePrices = currentStorePriceState?.prices ?? null;
-  const storePricesLoading = purchasesAvailable && !!auth.user && !activePlus && !currentStorePriceState;
+  const storePricesLoading = purchasesAvailable && !!auth.user && !paidPlus && !currentStorePriceState;
   const storePricesMessage = currentStorePriceState?.message ?? '';
   useEffect(() => {
-    if (!purchasesAvailable || !auth.user || activePlus) return;
+    if (!purchasesAvailable || !auth.user || paidPlus) return;
     let active = true;
     void loadPerformancePlusStorePrices(auth.user.id)
       .then(prices => { if (active) setStorePriceState({ key: storePriceKey, prices, message: '' }); })
       .catch(() => { if (active) setStorePriceState({ key: storePriceKey, prices: null, message: `${storefront ?? 'The app store'} pricing could not be loaded. Please try again shortly.` }); });
     return () => { active = false; };
-  }, [activePlus, auth.user, purchasesAvailable, storePriceKey, storefront, revision]);
+  }, [auth.user, paidPlus, purchasesAvailable, storePriceKey, storefront, revision]);
   const refresh = async () => {
     if (busy) return;
     setBusy(true);
@@ -177,8 +179,8 @@ export default function PerformancePlusScreen() {
     ? new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', currencyDisplay: 'code' }).format(dynamicSavings)
     : aud(PERFORMANCE_PRICING.monthly * 12 - PERFORMANCE_PRICING.annual);
   const purchaseReady = purchasesAvailable && !!storePrices && !storePricesLoading && (audStorePrices || appleTestPrices);
-  const pricingPanel = !activePlus && entitlementReady ? <View style={s.pricing}>
-    <Text style={s.pricingEyebrow}>UNLOCK YOUR COMPLETE VEHICLE STORY</Text><Text style={s.section}>Choose Performance+</Text><Text style={s.copy}>One subscription covers every vehicle in your PSI account.</Text>
+  const pricingPanel = (!activePlus || trialPlus) && entitlementReady ? <View style={s.pricing}>
+    <Text style={s.pricingEyebrow}>{trialPlus ? 'KEEP YOUR COMPLETE VEHICLE STORY' : 'UNLOCK YOUR COMPLETE VEHICLE STORY'}</Text><Text style={s.section}>Choose Performance+</Text><Text style={s.copy}>{trialPlus ? 'Your complimentary trial does not renew or charge you. Choose a subscription to keep every photo and record unlocked after the trial.' : 'One subscription covers every vehicle in your PSI account.'}</Text>
     <View style={[s.priceGrid, singleColumn && s.priceGridStacked]}>
       <Pressable accessibilityLabel={`${monthlyPrice} monthly`} accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'monthly', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('monthly'); setMessage(''); }} style={({ pressed }) => [s.priceOption, singleColumn && s.priceOptionStacked, selectedPeriod === 'monthly' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><Text style={s.priceLabel}>MONTHLY</Text><Ionicons name={selectedPeriod === 'monthly' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{storePricesLoading ? 'Checking Apple…' : monthlyPrice}</Text><Text style={s.priceMeta}>per month</Text></Pressable>
       <Pressable accessibilityLabel={`${annualPrice} annual, best value`} accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'annual', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('annual'); setMessage(''); }} style={({ pressed }) => [s.priceOption, singleColumn && s.priceOptionStacked, s.bestValue, selectedPeriod === 'annual' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><View style={s.priceChoiceLabels}><Text style={s.bestValueLabel}>BEST VALUE</Text><Text style={s.priceLabel}>ANNUAL</Text></View><Ionicons name={selectedPeriod === 'annual' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{storePricesLoading ? 'Checking Apple…' : annualPrice}</Text><Text style={s.priceMeta}>per year · save {annualSavings}</Text></Pressable>
@@ -187,7 +189,7 @@ export default function PerformancePlusScreen() {
     <Text style={s.selectionHelp}>{appleTestPrices ? 'TestFlight purchases use Apple\u2019s sandbox. You can use your normal Australian Media & Purchases account; a separate sandbox login is optional.' : 'Select monthly or annual above, then continue. Your app store shows the final price before purchase.'}</Text>
     <PrimaryButton disabled={!purchaseReady} loading={busy || storePricesLoading} label={storePricesLoading ? 'Checking Apple prices' : testPriceMismatch ? `Check ${selectedPeriod} price with Apple` : `Unlock ${selectedPeriod} · ${selectedPrice}`} onPress={() => void subscribe(selectedPeriod)} />
     {!storePricesLoading && storePrices && !audStorePrices && !appleTestPrices ? <Text accessibilityRole="alert" style={s.notice}>An AUD price is unavailable. Check your app store account country, then retry.</Text> : null}
-    {purchasesAvailable && auth.user && !activePlus ? <PrimaryButton label="Retry store prices" variant="outline" disabled={busy || storePricesLoading} onPress={() => { setStorePriceState(null); setRevision(v => v + 1); }} /> : null}
+    {purchasesAvailable && auth.user && !paidPlus ? <PrimaryButton label="Retry store prices" variant="outline" disabled={busy || storePricesLoading} onPress={() => { setStorePriceState(null); setRevision(v => v + 1); }} /> : null}
     {!purchasesAvailable ? <Text style={s.muted}>{demo ? 'Preview only · no payment will be taken.' : 'Purchases are not open in this beta yet. PSI can grant complimentary beta access.'}</Text> : null}
     {storePricesMessage ? <Text accessibilityRole="alert" style={s.notice}>{storePricesMessage}</Text> : null}
     {message ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
@@ -218,20 +220,20 @@ export default function PerformancePlusScreen() {
     <View style={s.heading}><Text style={s.eyebrow}>PSI PERFORMANCE+</Text><Text style={s.title}>{'YOUR CAR.\nITS COMPLETE STORY.'}</Text><Text style={s.copy}>Every service. Every build. Every important milestone. Your PSI vehicle record, in one place.</Text></View>
     <View style={s.planCard}>
       <View style={[s.row, s.planRow]}>
-        <View style={s.planHeading}><Ionicons name={activePlus ? 'shield-checkmark' : 'car-sport-outline'} color={colors.accent} size={22} /><View style={s.planHeadingCopy}><Text style={s.planLabel}>CURRENT PLAN</Text><Text style={s.planName}>{activePlus ? 'PSI Performance+' : 'PSI Free'}</Text></View></View>
-        <View style={[s.badge, activePlus && s.activeBadge]}><Text style={[s.badgeText, activePlus && s.activeBadgeText]}>{activePlus ? 'ACTIVE' : 'FREE'}</Text></View>
+        <View style={s.planHeading}><Ionicons name={activePlus ? 'shield-checkmark' : 'car-sport-outline'} color={colors.accent} size={22} /><View style={s.planHeadingCopy}><Text style={s.planLabel}>CURRENT PLAN</Text><Text style={s.planName}>{trialPlus ? 'PSI Performance+ Trial' : activePlus ? 'PSI Performance+' : 'PSI Free'}</Text></View></View>
+        <View style={[s.badge, activePlus && s.activeBadge]}><Text style={[s.badgeText, activePlus && s.activeBadgeText]}>{trialPlus ? '14-DAY TRIAL' : activePlus ? 'ACTIVE' : 'FREE'}</Text></View>
       </View>
-      <Text style={s.copy}>{activePlus ? 'Your complete private PSI vehicle file is unlocked.' : 'Your everyday PSI account remains free. Upgrade whenever you want the complete workshop record, including photos, invoices and dyno files.'}</Text>
+      <Text style={s.copy}>{trialPlus ? 'Your complete private PSI vehicle file is unlocked during the complimentary trial. No payment has been taken.' : activePlus ? 'Your complete private PSI vehicle file is unlocked.' : 'Your everyday PSI account remains free. Upgrade whenever you want the complete workshop record, including photos, invoices and dyno files.'}</Text>
     </View>
     {permanentPlus ? <Text style={s.muted}>Permanent complimentary PSI owner access · $0.00 AUD · no renewal or expiry.</Text> : null}
-    {activePlus && overview?.expires_at ? <Text style={s.muted}>Access through {new Date(overview.expires_at).toLocaleDateString('en-AU')}. Turning off renewal retains access until expiry.</Text> : null}
+    {activePlus && overview?.expires_at ? <Text style={s.muted}>{trialPlus ? `Complimentary access through ${new Date(overview.expires_at).toLocaleDateString('en-AU')}. The trial ends automatically and does not renew.` : `Access through ${new Date(overview.expires_at).toLocaleDateString('en-AU')}. Turning off renewal retains access until expiry.`}</Text> : null}
     <Text style={s.section}>Your vehicle vault</Text>
     {vehicles.length > 1 ? <StaffScrollSelect label="Select vehicle" value={vehicle?.id ?? ''} options={vehicles.map(v => ({ value: v.id, label: `${v.year} ${v.make} ${v.model}`, sublabel: v.registration || 'Registration not recorded' }))} onChange={value => { setSelected(value); setMessage(''); }} /> : null}
     {demo ? <Text style={s.muted}>Demo records · explore a sample vault without making a purchase.</Text> : null}
     {!demo && !overview && vehicle && !message ? <ActivityIndicator color={colors.accent} /> : null}
     {entitlementReady ? <View style={s.accessGuide}>
       <View style={s.accessGuideRow}><View style={s.freeAccessBadge}><Text style={s.freeAccessBadgeText}>PSI FREE</Text></View><Text style={s.accessGuideCopy}>Profile, garage, vehicle photo, bookings, reminders, notifications, service dates, kilometres and your notes for PSI.</Text></View>
-      <View style={s.accessGuideRow}><View style={s.plusAccessBadge}><Text style={s.plusAccessBadgeText}>PERFORMANCE+</Text></View><Text style={s.accessGuideCopy}>Workshop photos, invoice copies, dyno files, supporting documents, downloads and the complete organised archive.</Text></View>
+      <View style={s.accessGuideRow}><View style={s.plusAccessBadge}><Text style={s.plusAccessBadgeText}>PERFORMANCE+</Text></View><Text style={s.accessGuideCopy}>Workshop photos, invoice copies, dyno files, supporting documents, downloads and the complete organised archive. PSI’s one-time 14-day trial unlocks these without payment before returning to PSI Free.</Text></View>
     </View> : null}
     <View onLayout={event => setVaultGridWidth(event.nativeEvent.layout.width)} style={s.grid}>{REPORT_KINDS.map(kind => <Pressable accessibilityRole="button" key={kind} onPress={() => { if (demo || activePlus) router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle?.id ?? '', kind } }); else setMessage('Choose Performance+ below to unlock your private vehicle archive. Your free PSI features remain available.'); }} style={({ pressed }) => [s.vault, singleColumn && s.vaultFullWidth, pressed && s.pressed]}>
       <View style={s.row}><View style={s.vaultIcon}><Ionicons name={VAULT_ICONS[kind]} color={colors.accent} size={24} /></View>{activePlus || demo ? <Ionicons name="arrow-forward" color={colors.accent} size={18} /> : <View style={s.lockBadge}><Ionicons name="lock-closed" color={colors.accent} size={12} /><Text style={s.lockBadgeText}>PLUS ONLY</Text></View>}</View>
@@ -243,7 +245,7 @@ export default function PerformancePlusScreen() {
     {!openedFromHome ? pricingPanel : null}
     {message && (activePlus || !entitlementReady) ? <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
     {entitlementReady && !permanentPlus ? <PrimaryButton disabled={!purchasesAvailable} loading={busy} label="Restore purchases" onPress={() => void subscribe('restore')} variant="outline" /> : null}
-    {entitlementReady && !permanentPlus && storefront ? <PrimaryButton disabled={!purchasesAvailable} label={`Manage ${storefront} subscription`} variant="outline" onPress={() => void manageSubscription()} /> : null}
+    {entitlementReady && !permanentPlus && !trialPlus && storefront ? <PrimaryButton disabled={!purchasesAvailable} label={`Manage ${storefront} subscription`} variant="outline" onPress={() => void manageSubscription()} /> : null}
     <PrimaryButton disabled={busy} label={permanentPlus ? 'Refresh access status' : 'Refresh subscription status'} onPress={() => void refresh()} variant="outline" />
     <View style={s.free}><Text style={s.section}>Always part of PSI Free</Text><Text style={s.copy}>Your profile and garage, profile and vehicle photos, enquiries, every booking option, kilometre recording, service dates, maintenance reminders, notifications and contacting PSI. Add your own notes for PSI in Reports for free. Original invoices are still emailed normally. Performance+ unlocks detailed workshop records, recommendations, dyno results and the file archive.</Text></View>
     <View style={[s.row, s.legalLinks]}><Pressable accessibilityRole="link" onPress={() => router.push('/privacy')}><Text style={s.link}>Privacy</Text></Pressable><Pressable accessibilityRole="link" onPress={() => router.push('/subscription-terms')}><Text style={s.link}>Subscription terms</Text></Pressable></View>
