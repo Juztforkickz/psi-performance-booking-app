@@ -82,7 +82,7 @@ def create_a4_poster() -> None:
     pdf.drawCentredString(page_width / 2, qr_y - 48, "SCAN TO DOWNLOAD")
     pdf.setFillColor(white)
     pdf.setFont("Helvetica-Bold", 13)
-    pdf.drawCentredString(page_width / 2, qr_y - 76, "14 DAYS OF PERFORMANCE+ WHEN PSI PUBLISHES YOUR FIRST PHOTO GALLERY")
+    pdf.drawCentredString(page_width / 2, qr_y - 76, "14 DAYS OF PERFORMANCE+ WHEN YOU COMPLETE YOUR VERIFIED PSI ACCOUNT")
     pdf.setFillColor(HexColor("#C8CED3"))
     pdf.setFont("Helvetica", 11)
     pdf.drawCentredString(page_width / 2, qr_y - 99, "No payment. No automatic renewal. Keep access with Performance+ after the trial.")

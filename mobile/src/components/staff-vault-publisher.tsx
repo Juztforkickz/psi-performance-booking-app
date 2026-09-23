@@ -263,39 +263,19 @@ function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { dis
   </View>;
 }
 
-export function StaffPerformanceAccess({ snapshot, customerId: initialCustomerId, onDirtyChange, onBusyChange, previewMode = false }: {
+export function StaffPerformanceAccess({ onDirtyChange, onBusyChange, previewMode = false }: {
   snapshot: StaffPortalSnapshot;
   customerId?: string;
   previewMode?: boolean;
 } & ChangeCallbacks) {
-  const [customerId, setCustomerId] = useState(() => snapshot.customers.some(c => c.user_id === initialCustomerId) ? initialCustomerId! : '');
-  const [confirmed, setConfirmed] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
-  useEffect(() => { onDirtyChange?.(confirmed); }, [confirmed, onDirtyChange]);
-  useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
-  const grant = async () => {
-    if (previewMode || busy || !confirmed || !snapshot.customers.some(c => c.user_id === customerId)) return;
-    setBusy(true); setMessage('');
-    try {
-      const { data, error } = await vaultClient().rpc('start_customer_performance_trial', { p_customer_id: customerId });
-      if (error || !data) throw error ?? new Error('TRIAL_RESPONSE_REQUIRED');
-      setConfirmed(false);
-      const deadline = new Date(data.expires_at).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' });
-      setMessage(data.started
-        ? `14-day Performance+ trial started. Access ends ${deadline}. No payment was taken.`
-        : data.active
-          ? `This customer’s one-time trial is already active until ${deadline}.`
-          : `This customer’s one-time trial ended ${deadline} and cannot be restarted.`);
-    } catch { setMessage('Access was not granted. Only the verified PSI owner can grant complimentary access; check the selected customer and your session.'); }
-    finally { setBusy(false); }
-  };
-  return <View pointerEvents={busy ? 'none' : 'auto'} style={styles.stack}>
-    <Text style={styles.muted}>{previewMode ? 'Preview only · Explore the access form. Customer access cannot be changed.' : 'Start a customer’s one-time 14-day Performance+ trial. Publishing their first PSI workshop photo gallery starts it automatically.'}</Text>
-    <StaffScrollSelect label="Customer" value={customerId} options={customerOptions(snapshot)} searchable onChange={id => { if (busy) return; setCustomerId(id); setConfirmed(false); setMessage(''); }} />
-    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: confirmed }} disabled={busy || !customerId} onPress={() => setConfirmed(value => !value)} style={styles.confirm}><Ionicons color={colors.accent} name={confirmed ? 'checkbox' : 'square-outline'} size={25} /><Text style={styles.confirmText}>Start this customer’s one-time 14-day trial. It will not charge or renew.</Text></Pressable>
-    <PrimaryButton disabled={previewMode || !confirmed || !customerId || busy} loading={busy} label={previewMode ? 'Preview only · Start trial' : 'Start 14-day trial'} onPress={() => void grant()} />
-    {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
+  useEffect(() => {
+    onDirtyChange?.(false);
+    onBusyChange?.(false);
+  }, [onBusyChange, onDirtyChange]);
+  return <View style={styles.stack}>
+    <Text style={styles.copy}>{previewMode ? 'Preview only · Customer account access cannot be changed here.' : 'Customers create and verify their own PSI account. Completing their account starts their one-time 14-day Performance+ trial without payment or automatic renewal.'}</Text>
+    <Text style={styles.muted}>Use the same email on the workshop record that the customer will use in the app. When the verified email matches, the prepared workshop history and vehicles connect automatically.</Text>
+    <Text style={styles.muted}>Creating a workshop-only contact, inviting an email, or publishing photos and documents does not start the 14-day countdown.</Text>
   </View>;
 }
 
