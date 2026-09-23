@@ -69,10 +69,11 @@ repository.
   annual base plans, connect Play service credentials to RevenueCat, then test
   purchase, restore, renewal, cancellation, expiry and refund on a license
   tester account.
-- [ ] Upload the unedited PSI PERFORMANCE PTY LTD registration certificate to
-  complete Google Play organisation verification, then complete the unlocked
-  phone verification. Do not use that company document as evidence of the
-  separate sole-trader workshop supplier.
+- [x] Submit organisation identity documents to Google Play. Console confirmed
+  receipt on 24 September 2026; documents remain outside this repository.
+- [ ] Receive Google's identity approval, then verify both the contact and
+  public developer phone numbers. Submission alone is not verification approval.
+  Do not use company evidence for the separate sole-trader workshop supplier.
 - [x] Record current Supabase plan, region and capacity; add a guarded encrypted
   logical-backup procedure for controlled QA.
 - [ ] Upgrade before external onboarding, confirm scheduled backup retention and

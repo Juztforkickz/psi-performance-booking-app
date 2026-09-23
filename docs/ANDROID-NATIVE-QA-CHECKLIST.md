@@ -10,14 +10,17 @@ subscriptions remain unavailable until the Play app, products, RevenueCat
 connection and device purchase tests are complete. The older `qa` APK
 `ad1827e6-252b-4d23-a402-9e4aaa77f435` is not the current acceptance build.
 
-Google Play Console was checked live on 22 September 2026 for the PSI
-Performance organisation account. It shows **Verify your identity: Action
-required** and **Verify your phone numbers: Action required**. Its **Create app**
-control is disabled with the message that account verifications must be
-completed first. Google requests an unedited official document for PSI
-PERFORMANCE PTY LTD; phone verification becomes available after the earlier
-verification tasks are approved. No Google Play app or subscription catalogue
-can be created at this checkpoint.
+Google Play Console was checked live on 24 September 2026 for the PSI
+Performance organisation account. It now shows **Google is verifying your
+identity** and confirms that documents were uploaded. Google says the account
+owner will receive an email when review is complete and that this may take a
+few days. Submission is complete; approval is not yet confirmed.
+**Verify your phone numbers** still shows **Action required**, and **Create
+app** remains disabled until account verifications are complete. Google requires
+verification of both its private contact number and the public developer-profile
+number after identity approval. No Google Play app or subscription catalogue
+can be created at this checkpoint. See `GOOGLE-PLAY-ROLLOUT.md` for the prepared
+continuation sequence. Identity documents must never be stored in this repository.
 
 ## Evidence to record
 
