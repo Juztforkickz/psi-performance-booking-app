@@ -98,6 +98,28 @@ def atomic_json(path, value):
     temporary.write_text(json.dumps(value, indent=2), encoding='utf-8')
     temporary.replace(path)
 
+
+def hide_windows_folder(path):
+    if os.name != 'nt':
+        return
+    try:
+        attributes = ctypes.windll.kernel32.GetFileAttributesW(str(path))
+        if attributes == -1:
+            return
+        hidden = 0x2
+        system = 0x4
+        ctypes.windll.kernel32.SetFileAttributesW(str(path), attributes | hidden | system)
+    except Exception:
+        pass
+
+
+def prepared_folder(folder):
+    path = folder / '.psi-prepared'
+    path.mkdir(exist_ok=True)
+    hide_windows_folder(path)
+    return path
+
+
 def prepare_file(path):
     """Bound size, honour orientation, strip EXIF/GPS, preserve PDF originals."""
     if path.stat().st_size > 40 * 1024 * 1024:
@@ -787,8 +809,9 @@ def _publish_text_record(folder, manifest, connection, state, path, relative, ca
         return
     workshop_only = manifest.get('schema') == 2 and manifest.get('owner_type') == 'workshop'
     if not connection or workshop_only:
-        out = folder / '.psi-prepared' / category
+        out = prepared_folder(folder) / category
         out.mkdir(parents=True, exist_ok=True)
+        hide_windows_folder(folder / '.psi-prepared')
         (out / (digest + '.txt')).write_bytes(raw)
         state[relative] = {
             'key': source_key,
@@ -826,6 +849,8 @@ def process_job(folder, connection=None):
     manifest = manifest_for(folder, connection)
     migrate_category_folders(folder)
     consolidate_photo_folders(folder)
+    if (folder / '.psi-prepared').is_dir():
+        hide_windows_folder(folder / '.psi-prepared')
     workshop_only = manifest.get('schema') == 2 and manifest.get('owner_type') == 'workshop'
     state_path = folder / '.psi-upload-status.json'
     state = json.loads(state_path.read_text()) if state_path.exists() else {}
@@ -862,8 +887,9 @@ def process_job(folder, connection=None):
                 if (prior.get('key') == source_key or str(prior.get('key', '')).endswith(':' + digest)) and prior.get('status') == 'uploaded':
                     continue
                 if not connection or workshop_only:
-                    out = folder / '.psi-prepared' / category
+                    out = prepared_folder(folder) / category
                     out.mkdir(parents=True, exist_ok=True)
+                    hide_windows_folder(folder / '.psi-prepared')
                     (out / (digest + _object_suffix(mime))).write_bytes(content)
                     if thumb:
                         (out / (digest + '-thumb.jpg')).write_bytes(thumb)
