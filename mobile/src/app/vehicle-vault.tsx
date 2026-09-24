@@ -7,7 +7,7 @@ import { PrimaryButton } from '@/components/ui';
 import { PrivateVaultThumbnail } from '@/components/private-vault-thumbnail';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
-import { loadVaultAssets, loadVaultOverview, loadVaultRecords, REPORT_KINDS, REPORT_LABELS, type VaultAsset, type ReportKind, type VaultRecord } from '@/lib/performance-plus';
+import { loadVaultAssets, loadVaultOverview, loadVaultRecords, recordMatchesReportSection, REPORT_KINDS, REPORT_LABELS, type VaultAsset, type ReportKind, type ReportSection, type VaultRecord } from '@/lib/performance-plus';
 import { getSupabaseClient } from '@/lib/supabase';
 import { s } from './performance-plus';
 
@@ -16,8 +16,7 @@ const examples = [
   { id: 'example-photos', kind: 'media', title: 'Workshop gallery · before, progress and after', notes: '14 workshop photographs, organised around this visit.', occurred_on: '2026-08-18' },
   { id: 'example-invoice', kind: 'invoice', title: 'Service invoice', notes: 'The itemised workshop invoice is kept with this visit.', occurred_on: '2026-08-18' },
   { id: 'example-dyno', kind: 'dyno', title: 'Mainline hub dyno · after run', notes: 'Original PDF report and verified power and torque figures.', occurred_on: '2026-08-18', power_kw: 318, torque_nm: 684 },
-  { id: 'example-build', kind: 'modification', title: 'Exhaust and intake upgrade', notes: 'PSI-installed components, workshop notes and supporting paperwork.', occurred_on: '2026-06-12' },
-  { id: 'example-doc', kind: 'document', title: 'Vehicle inspection report', notes: 'Workshop documentation stored privately with the vehicle.', occurred_on: '2026-06-12' },
+  { id: 'example-doc', kind: 'document', title: 'Vehicle documents & DTC report', notes: 'Workshop documents, diagnostic trouble codes and supporting paperwork stored privately with the vehicle.', occurred_on: '2026-06-12' },
 ] as VaultRecord[];
 
 type VaultEntry = { key: string; primary: VaultRecord; records: VaultRecord[] };
@@ -29,14 +28,14 @@ const ATTACHMENT_ICONS = {
 } as const;
 const GROUP_TITLES = {
   media: 'Workshop photos', dyno: 'Dyno results & graphs', invoice: 'Invoice files',
-  modification: 'Modifications & build history', document: 'Reports & documents',
+  modification: 'Documents & DTCs', document: 'Documents & DTCs',
 } as const;
 
-function groupVaultEntries(records: VaultRecord[], filter: ReportKind | null): VaultEntry[] {
+function groupVaultEntries(records: VaultRecord[], filter: ReportSection | null): VaultEntry[] {
   const entries: VaultEntry[] = [];
   const visitGroups = new Map<string, VaultEntry>();
   for (const record of records) {
-    if (filter && record.kind !== filter) continue;
+    if (filter && !recordMatchesReportSection(record.kind, filter)) continue;
     const groupByVisit = record.kind === 'media' || !!record.job_id && ATTACHMENT_KINDS.has(record.kind);
     if (!groupByVisit) {
       entries.push({ key: record.id, primary: record, records: [record] });
@@ -59,7 +58,8 @@ export default function VehicleVault() {
   const insets = useSafeAreaInsets();
   const auth = useCustomerAuth();
   const { vehicleId = '', kind } = useLocalSearchParams<{ vehicleId?: string; kind?: string }>();
-  const filter = REPORT_KINDS.includes(kind as ReportKind) ? kind as ReportKind : null;
+  const requestedSection = kind === 'modification' ? 'document' : kind;
+  const filter = REPORT_KINDS.includes(requestedSection as ReportSection) ? requestedSection as ReportSection : null;
   const demo = !CUSTOMER_AUTH.enabled;
   const key = `${auth.user?.id}:${vehicleId}`;
   const [loaded, setLoaded] = useState<{ key: string; records: VaultRecord[]; locked: boolean; expiresAt: string | null } | null>(null);

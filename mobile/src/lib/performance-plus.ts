@@ -5,13 +5,21 @@ export const PERFORMANCE_PRICING = Object.freeze({ monthly: 999, annual: 9900, c
 export const VAULT_KINDS = ['invoice', 'media', 'dyno', 'service', 'document', 'modification'] as const;
 export type VaultKind = typeof VAULT_KINDS[number];
 export type ReportKind = VaultKind | 'recommendation';
-export const REPORT_KINDS: ReportKind[] = ['service', 'recommendation', 'dyno', 'invoice', 'media', 'modification', 'document'];
-export const REPORT_LABELS: Record<ReportKind, string> = {
-  service: 'Service & repair history', recommendation: 'Recommended work',
-  dyno: 'Dyno results & graphs', invoice: 'Invoice archive', media: 'Workshop photos',
-  modification: 'Modifications & build history', document: 'Reports & documents',
+export type ReportSection = Exclude<ReportKind, 'modification'>;
+export const REPORT_KINDS: ReportSection[] = ['service', 'recommendation', 'dyno', 'invoice', 'media', 'document'];
+export const REPORT_LABELS: Record<ReportSection, string> = {
+  service: 'Service & Repair History', recommendation: 'Recommended Work',
+  dyno: 'Dyno Results & Graphs', invoice: 'Invoices', media: 'Workshop Photos',
+  document: 'Documents & DTCs',
 };
-export const VAULT_LABELS: Record<VaultKind, string> = { invoice: 'Invoice Vault', media: 'Workshop Photos', dyno: 'Dyno File Vault', service: 'Detailed Service Archive', document: 'Documents', modification: 'Build History' };
+export const PUBLISHABLE_VAULT_KINDS: VaultKind[] = ['service', 'dyno', 'invoice', 'media', 'document'];
+export const VAULT_LABELS: Record<VaultKind, string> = { invoice: 'Invoices', media: 'Workshop Photos', dyno: 'Dyno Results & Graphs', service: 'Service & Repair History', document: 'Documents & DTCs', modification: 'Documents & DTCs' };
+export function recordMatchesReportSection(recordKind: ReportKind, section: ReportSection) {
+  return section === 'document' ? recordKind === 'document' || recordKind === 'modification' : recordKind === section;
+}
+export function reportSectionCount(counts: Partial<Record<ReportKind, number>>, section: ReportSection) {
+  return (counts[section] ?? 0) + (section === 'document' ? counts.modification ?? 0 : 0);
+}
 export type VaultRecord = {
   id: string; customer_id: string; vehicle_id: string; job_id: string; kind: ReportKind;
   title: string; notes: string; occurred_on: string; power_kw: number | null; torque_nm: number | null;

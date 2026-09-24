@@ -15,11 +15,14 @@ test('Performance+ protects vehicle documents while PSI Free keeps profile photo
 });
 
 test('Vehicle Reports advertises locked categories without fetching their contents', async () => {
-  const [reports, plus, vault, terms] = await Promise.all([
+  const [reports, plus, vault, terms, definitions, workflow, history] = await Promise.all([
     read('../mobile/src/app/vehicle-reports.tsx'),
     read('../mobile/src/app/performance-plus.tsx'),
     read('../mobile/src/app/vehicle-vault.tsx'),
     read('../mobile/src/app/subscription-terms.tsx'),
+    read('../mobile/src/lib/performance-plus.ts'),
+    read('../mobile/src/components/staff-record-workflow.tsx'),
+    read('../mobile/src/components/staff-vehicle-history.tsx'),
   ]);
 
   assert.match(reports, /loadVaultOverview\(vehicleId\)/u);
@@ -45,4 +48,13 @@ test('Vehicle Reports advertises locked categories without fetching their conten
   assert.match(vault, /Performance\+ records locked/u);
   assert.match(vault, /Math\.max\(insets\.top \+ 10/u);
   assert.match(terms, /Xero invoices continue to be delivered by email/u);
+  assert.match(definitions, /REPORT_KINDS: ReportSection\[\] = \['service', 'recommendation', 'dyno', 'invoice', 'media', 'document'\]/u);
+  for (const label of ['Service & Repair History', 'Recommended Work', 'Dyno Results & Graphs', 'Invoices', 'Workshop Photos', 'Documents & DTCs']) {
+    assert.ok(definitions.includes(label), `Missing customer report label: ${label}`);
+    assert.ok(workflow.includes(label), `Missing staff report label: ${label}`);
+  }
+  assert.match(definitions, /section === 'document' \? recordKind === 'document' \|\| recordKind === 'modification'/u);
+  assert.match(definitions, /section === 'document' \? counts\.modification \?\? 0 : 0/u);
+  assert.match(history, /recordMatchesReportSection\(record\.kind, section\)/u);
+  assert.doesNotMatch(workflow, /Build history|id: 'modification'/u);
 });

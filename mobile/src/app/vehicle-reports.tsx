@@ -13,7 +13,7 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { getAccountReportVehicles } from '@/lib/vehicle-reports-account';
-import { loadVaultOverview, REPORT_KINDS, REPORT_LABELS, type VaultOverview } from '@/lib/performance-plus';
+import { loadVaultOverview, reportSectionCount, REPORT_KINDS, REPORT_LABELS, type VaultOverview } from '@/lib/performance-plus';
 
 const REPORT_CATEGORY_ICONS = {
   service: 'construct-outline',
@@ -21,7 +21,6 @@ const REPORT_CATEGORY_ICONS = {
   dyno: 'speedometer-outline',
   invoice: 'receipt-outline',
   media: 'images-outline',
-  modification: 'car-sport-outline',
   document: 'documents-outline',
 } as const;
 
@@ -104,8 +103,8 @@ function ReportCategories({ vehicleId }: { vehicleId: string }) {
       <View style={styles.categoryCopy}>
         <Text style={styles.categoryTitle}>{REPORT_LABELS[kind]}</Text>
         <Text style={styles.muted}>{overview ? kind === 'media'
-          ? `${overview.counts[kind] ?? 0} workshop ${(overview.counts[kind] ?? 0) === 1 ? 'photo' : 'photos'}`
-          : String(overview.counts[kind] ?? 0) + ((overview.counts[kind] ?? 0) === 1 ? ' saved record' : ' saved records')
+          ? `${reportSectionCount(overview.counts, kind)} workshop ${reportSectionCount(overview.counts, kind) === 1 ? 'photo' : 'photos'}`
+          : String(reportSectionCount(overview.counts, kind)) + (reportSectionCount(overview.counts, kind) === 1 ? ' saved record' : ' saved records')
           : 'Checking records…'}{unlocked ? '' : ' · Performance+'}</Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color={colors.accent} />

@@ -11,7 +11,7 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
-import { aud, loadVaultOverview, PERFORMANCE_PRICING, REPORT_KINDS, REPORT_LABELS, VAULT_LABELS, type ReportKind, type VaultOverview } from '@/lib/performance-plus';
+import { aud, loadVaultOverview, PERFORMANCE_PRICING, reportSectionCount, REPORT_KINDS, REPORT_LABELS, type ReportSection, type VaultOverview } from '@/lib/performance-plus';
 import { loadPerformancePlusStorePrices, managePerformancePlusSubscription, purchasePerformancePlus, restorePerformancePlus, subscriptionPurchasesAvailable, subscriptionStorefrontName, verifyWithServer, type PerformancePlusStorePrice, type PerformancePlusStorePrices } from '@/lib/performance-purchases';
 
 const VAULT_DESCRIPTIONS = {
@@ -20,7 +20,6 @@ const VAULT_DESCRIPTIONS = {
   dyno: 'Mainline PDFs, graph images and historical comparisons.',
   service: 'Detailed PSI service files organised around each workshop visit.',
   document: 'Supporting reports, paperwork and private vehicle documents.',
-  modification: 'A lasting file archive for each build milestone.',
   recommendation: 'PSI recommended work, its priority and the best time to complete it.',
 } as const;
 
@@ -30,23 +29,18 @@ const VAULT_ICONS = {
   dyno: 'speedometer-outline',
   service: 'construct-outline',
   document: 'documents-outline',
-  modification: 'build-outline',
   recommendation: 'alert-circle-outline',
 } as const;
 
-const PERFORMANCE_LABELS: Record<ReportKind, string> = {
-  ...VAULT_LABELS,
-  recommendation: REPORT_LABELS.recommendation,
-};
+const PERFORMANCE_LABELS: Record<ReportSection, string> = REPORT_LABELS;
 
-const REPORT_UNLOCKS: Record<ReportKind, { icon: keyof typeof Ionicons.glyphMap; benefits: string[] }> = {
+const REPORT_UNLOCKS: Record<ReportSection, { icon: keyof typeof Ionicons.glyphMap; benefits: string[] }> = {
   service: { icon: 'construct-outline', benefits: ['Read detailed PSI service and repair history.', 'Keep workshop findings organised by visit.', 'Open supporting files attached to the work.'] },
   recommendation: { icon: 'build-outline', benefits: ['See PSI recommended work and its timing.', 'Keep future repairs with the vehicle history.', 'Review workshop recommendations between bookings.'] },
   dyno: { icon: 'speedometer-outline', benefits: ['See verified power and torque results.', 'Open Mainline graphs and PDF files.', 'Compare historical dyno results.'] },
   invoice: { icon: 'receipt-outline', benefits: ['Open saved invoice copies and PDF files.', 'Keep invoices with the correct vehicle.', 'Download archived paperwork when needed.'] },
   media: { icon: 'images-outline', benefits: ['View before, progress and after photos.', 'Open full-size workshop images.', 'Download available originals.'] },
-  modification: { icon: 'car-sport-outline', benefits: ['Follow modifications and build milestones.', 'Keep supporting photos and documents together.', 'Build a lasting history for the vehicle.'] },
-  document: { icon: 'documents-outline', benefits: ['Open private reports and paperwork.', 'Keep important documents organised.', 'Download available original files.'] },
+  document: { icon: 'documents-outline', benefits: ['Open private reports, DTCs and paperwork.', 'Keep important documents and diagnostic information organised.', 'Download available original files.'] },
 };
 
 function storePriceLabel(price: PerformancePlusStorePrice | undefined, fallbackCents: number) {
@@ -70,7 +64,8 @@ export default function PerformancePlusScreen() {
   const { account } = useCustomerAccount();
   const preview = useCustomerPreview();
   const { vehicleId: requested, kind: requestedKind, entry } = useLocalSearchParams<{ vehicleId?: string; kind?: string; entry?: string }>();
-  const focusedKind = REPORT_KINDS.includes(requestedKind as ReportKind) ? requestedKind as ReportKind : null;
+  const requestedSection = requestedKind === 'modification' ? 'document' : requestedKind;
+  const focusedKind = REPORT_KINDS.includes(requestedSection as ReportSection) ? requestedSection as ReportSection : null;
   const openedFromHome = entry === 'home';
   const [showAll, setShowAll] = useState(!focusedKind);
   const demo = !CUSTOMER_AUTH.enabled;
@@ -87,7 +82,7 @@ export default function PerformancePlusScreen() {
   const [revision, setRevision] = useState(0);
   const key = `${auth.user?.id ?? 'preview'}:${vehicle?.id}`;
   const overview = demo ? { plan: 'free' as const, counts: { invoice: 7, media: 3, dyno: 2, service: 4, recommendation: 1, document: 2, modification: 3 }, expires_at: null, is_permanent: false, is_trial: false, trial_days: 14 } : state?.key === key ? state.overview : null;
-  const focusedCount = focusedKind && overview ? overview.counts[focusedKind] ?? 0 : 0;
+  const focusedCount = focusedKind && overview ? reportSectionCount(overview.counts, focusedKind) : 0;
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 15000);
     const sub = AppState.addEventListener('change', value => { if (value === 'active') setRevision(v => v + 1); });
@@ -237,7 +232,7 @@ export default function PerformancePlusScreen() {
     </View> : null}
     <View onLayout={event => setVaultGridWidth(event.nativeEvent.layout.width)} style={s.grid}>{REPORT_KINDS.map(kind => <Pressable accessibilityRole="button" key={kind} onPress={() => { if (demo || activePlus) router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle?.id ?? '', kind } }); else setMessage('Choose Performance+ below to unlock your private vehicle archive. Your free PSI features remain available.'); }} style={({ pressed }) => [s.vault, singleColumn && s.vaultFullWidth, pressed && s.pressed]}>
       <View style={s.row}><View style={s.vaultIcon}><Ionicons name={VAULT_ICONS[kind]} color={colors.accent} size={24} /></View>{activePlus || demo ? <Ionicons name="arrow-forward" color={colors.accent} size={18} /> : <View style={s.lockBadge}><Ionicons name="lock-closed" color={colors.accent} size={12} /><Text style={s.lockBadgeText}>PLUS ONLY</Text></View>}</View>
-      <View style={s.vaultCopy}><Text style={s.vaultTitle}>{PERFORMANCE_LABELS[kind]}</Text><Text style={s.recordCount}>{overview ? activePlus || demo ? recordCountLabel(overview.counts[kind] ?? 0, 'PSI') : `${overview.counts[kind] ?? 0} premium PSI ${(overview.counts[kind] ?? 0) === 1 ? 'record' : 'records'} · locked` : 'Your private PSI records'}</Text><Text style={s.vaultDescription}>{VAULT_DESCRIPTIONS[kind]}</Text></View>
+      <View style={s.vaultCopy}><Text style={s.vaultTitle}>{PERFORMANCE_LABELS[kind]}</Text><Text style={s.recordCount}>{overview ? activePlus || demo ? recordCountLabel(reportSectionCount(overview.counts, kind), 'PSI') : `${reportSectionCount(overview.counts, kind)} premium PSI ${reportSectionCount(overview.counts, kind) === 1 ? 'record' : 'records'} · locked` : 'Your private PSI records'}</Text><Text style={s.vaultDescription}>{VAULT_DESCRIPTIONS[kind]}</Text></View>
       <View style={s.vaultAction}><Text style={s.vaultActionText}>{activePlus || demo ? 'Open vault' : 'Unlock with Performance+'}</Text><Ionicons name="chevron-forward" color={colors.accent} size={15} /></View>
     </Pressable>)}</View>
     {vehicle ? <PrimaryButton label={demo ? 'Explore sample vehicle history' : 'Open vehicle history'} onPress={() => router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle.id } })} variant="outline" /> : null}

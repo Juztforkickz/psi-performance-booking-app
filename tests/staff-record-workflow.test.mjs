@@ -60,7 +60,7 @@ function mountComponent(filename, exportName, props, moduleOverrides = {}) {
     '@/lib/review-environment': { REVIEW_ENVIRONMENT: { enabled: false } },
     '@/lib/staff-record-publishing': {},
     '@/lib/staff-vault': {},
-    '@/lib/performance-plus': { VAULT_KINDS: ['invoice', 'media', 'dyno', 'service', 'document', 'modification'], VAULT_LABELS: {} },
+    '@/lib/performance-plus': { PUBLISHABLE_VAULT_KINDS: ['service', 'dyno', 'invoice', 'media', 'document'], VAULT_LABELS: {} },
     '@/lib/supabase': { SUPABASE_CONNECTION: {} },
     '@/lib/staff-portal': {},
     '@/hooks/use-staff-discard-confirmation': { useStaffDiscardConfirmation: () => ({ confirmDiscard: action => action(), discardDialog: null }) },
@@ -137,7 +137,7 @@ test('record creation requires an explicit customer and a vehicle belonging to t
   flow.select('Vehicle', 'vehicle-a');
   flow.press('Continue');
   assert.equal(flow.count('Select'), 0);
-  flow.press('Invoice');
+  flow.press('Invoices');
   flow.press('Invoice details & PDF');
   const form = flow.find('LegacyPublisher');
   assert.equal(form.props.initialCustomerId, 'customer-a');
@@ -149,7 +149,7 @@ test('record creation requires an explicit customer and a vehicle belonging to t
 test('booking/customer shortcuts advance only when both customer and vehicle match', () => {
   const valid = workflow({ customerId: 'customer-a', vehicleId: 'vehicle-a' });
   assert.equal(valid.count('Select'), 0);
-  valid.press('Workshop photos');
+  valid.press('Workshop Photos');
   assert.equal(valid.find('VaultPublisher').props.initialVehicleId, 'vehicle-a');
   const mismatch = workflow({ customerId: 'customer-a', vehicleId: 'vehicle-b' });
   assert.equal(mismatch.count('Select'), 2);
@@ -160,7 +160,7 @@ test('booking/customer shortcuts advance only when both customer and vehicle mat
 
 test('changing vehicle protects dirty details and discarding starts a fresh form', () => {
   const flow = workflow({ customerId: 'customer-a', vehicleId: 'vehicle-a' });
-  flow.press('Invoice');
+  flow.press('Invoices');
   flow.press('Invoice details & PDF');
   const original = flow.find('LegacyPublisher');
   original.props.onDirtyChange(true);
@@ -177,7 +177,7 @@ test('changing vehicle protects dirty details and discarding starts a fresh form
   assert.equal(flow.find('Select', node => node.props.label === 'Vehicle').props.value, '');
   flow.select('Vehicle', 'vehicle-b');
   flow.press('Continue');
-  flow.press('Invoice');
+  flow.press('Invoices');
   flow.press('Invoice details & PDF');
   assert.notEqual(flow.find('LegacyPublisher').key, original.key);
   assert.equal(flow.find('LegacyPublisher').props.initialCustomerId, 'customer-b');
@@ -188,7 +188,7 @@ test('registered header/hardware back respects busy publishing and unsaved chang
   let back = null;
   const flow = workflow({ customerId: 'customer-a', vehicleId: 'vehicle-a', onBackHandlerChange: handler => { back = handler; } });
   assert.equal(typeof back, 'function');
-  flow.press('Workshop photos');
+  flow.press('Workshop Photos');
   flow.find('VaultPublisher').props.onDirtyChange(true);
   flow.find('VaultPublisher').props.onBusyChange(true);
   flow.render();
@@ -223,7 +223,7 @@ for (const [filename, exportName, extra] of [
 
 test('preview record workflow passes preview protection to both publishing destinations', () => {
   const flow = workflow({ customerId: 'customer-a', vehicleId: 'vehicle-a', previewMode: true });
-  flow.press('Invoice');
+  flow.press('Invoices');
   flow.press('Invoice details & PDF');
   assert.equal(flow.find('LegacyPublisher').props.previewMode, true);
   flow.press('Options');
@@ -291,19 +291,13 @@ test('preview imports never load protected records, including their mount effect
   assert.equal(operations, 0);
 });
 
-test('preview complimentary access can be selected but cannot be granted', () => {
-  let operations = 0;
+test('preview complimentary access explains customer-controlled trial without a staff grant action', () => {
   const component = mountComponent('staff-vault-publisher.tsx', 'StaffPerformanceAccess', {
     snapshot, customerId: 'customer-a', previewMode: true,
-  }, {
-    '@/lib/performance-plus': { vaultClient: () => { operations++; throw new Error('Preview changed customer access'); } },
   });
   component.render();
-  component.press('Grant complimentary access');
-  const grant = component.find('Button', node => node.props.label === 'Preview only · Grant access');
-  assert.equal(grant.props.disabled, true);
-  grant.props.onPress();
-  assert.equal(operations, 0);
+  assert.equal(component.count('Button'), 0);
+  assert(component.find('Text', node => node.children.join('').includes('Customer account access cannot be changed here.')));
 });
 
 for (const [state, action, label] of [

@@ -4,12 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { CustomerVehicleNotes } from '@/components/customer-vehicle-notes';
 import { colors } from '@/constants/brand';
-import { loadVaultAssets, loadVaultRecords, REPORT_KINDS, REPORT_LABELS, type ReportKind, type VaultRecord } from '@/lib/performance-plus';
+import { loadVaultAssets, loadVaultRecords, recordMatchesReportSection, REPORT_KINDS, REPORT_LABELS, type ReportSection, type VaultRecord } from '@/lib/performance-plus';
 import { getSupabaseClient } from '@/lib/supabase';
 
 // Only mounted inside the MFA-protected staff portal. RLS independently checks staff access.
 export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicleId: string; previewMode?: boolean }) {
-  const [section, setSection] = useState<ReportKind | 'notes' | null>(null);
+  const [section, setSection] = useState<ReportSection | 'notes' | null>(null);
   const [records, setRecords] = useState<VaultRecord[] | null>(null);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
@@ -39,7 +39,7 @@ export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicl
       {section === 'notes' ? <CustomerVehicleNotes key={vehicleId} vehicleId={vehicleId} readOnly previewMode={previewMode} /> : <>
         <Text style={{ color: colors.white, fontSize: 18, fontWeight: '700' }}>{REPORT_LABELS[section]}</Text>
         {previewMode ? <Text style={copy}>Open the signed-in portal to view saved customer records.</Text> : !records && !error ? <ActivityIndicator color={colors.accent} /> : null}
-        {records?.filter(record => record.kind === section).map(record => <View key={record.id} style={{ borderWidth: 1, borderColor: colors.line, padding: 16, gap: 10 }}>
+        {records?.filter(record => recordMatchesReportSection(record.kind, section)).map(record => <View key={record.id} style={{ borderWidth: 1, borderColor: colors.line, padding: 16, gap: 10 }}>
           <Text style={{ color: colors.accent, fontSize: 12, fontWeight: '800' }}>{record.source === 'customer_entry' ? 'CUSTOMER-SUPPLIED · UNVERIFIED' : 'PSI WORKSHOP RECORD · READ-ONLY'}</Text>
           <Text style={{ color: colors.white, fontWeight: '800', fontSize: 17 }}>{record.title}</Text>
           <Text style={copy}>{record.occurred_on.slice(0, 10)}</Text><Text selectable style={copy}>{record.notes}</Text>
@@ -48,7 +48,7 @@ export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicl
             void loadVaultAssets(record.id).then(value => { setFiles(value); setError(value.length ? '' : 'No files attached to this record.'); }).catch(() => setError('Files could not be loaded.'));
           }} />
         </View>)}
-        {records && !records.some(record => record.kind === section) ? <Text style={copy}>No records in this category yet.</Text> : null}
+        {records && !records.some(record => recordMatchesReportSection(record.kind, section)) ? <Text style={copy}>No records in this category yet.</Text> : null}
         {files.map(file => <PrimaryButton key={file.id} label={file.caption || 'Open attachment'} onPress={() => {
           void (async () => {
             const { data, error: accessError } = await getSupabaseClient().functions.invoke('open-vault-file', {

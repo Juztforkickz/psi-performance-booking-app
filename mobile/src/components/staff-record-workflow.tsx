@@ -11,16 +11,15 @@ import { colors, spacing } from '@/constants/brand';
 import type { VaultKind } from '@/lib/performance-plus';
 import type { StaffPortalSnapshot } from '@/lib/staff-portal';
 
-type Category = 'service' | 'recommendation' | 'dyno' | 'invoice' | 'media' | 'document' | 'modification';
+type Category = 'service' | 'recommendation' | 'dyno' | 'invoice' | 'media' | 'document';
 type Destination = { legacy: StaffRecordType; vault?: never } | { vault: VaultKind; legacy?: never };
 const categories: { id: Category; title: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { id: 'service', title: 'Service & repairs', icon: 'construct-outline' },
-  { id: 'recommendation', title: 'Recommended work', icon: 'alert-circle-outline' },
-  { id: 'invoice', title: 'Invoice', icon: 'receipt-outline' },
-  { id: 'media', title: 'Workshop photos', icon: 'images-outline' },
-  { id: 'dyno', title: 'Dyno result', icon: 'speedometer-outline' },
-  { id: 'document', title: 'Documents', icon: 'documents-outline' },
-  { id: 'modification', title: 'Build history', icon: 'hammer-outline' },
+  { id: 'service', title: 'Service & Repair History', icon: 'construct-outline' },
+  { id: 'recommendation', title: 'Recommended Work', icon: 'alert-circle-outline' },
+  { id: 'dyno', title: 'Dyno Results & Graphs', icon: 'speedometer-outline' },
+  { id: 'invoice', title: 'Invoices', icon: 'receipt-outline' },
+  { id: 'media', title: 'Workshop Photos', icon: 'images-outline' },
+  { id: 'document', title: 'Documents & DTCs', icon: 'documents-outline' },
 ];
 const formats: Partial<Record<Category, { title: string; description: string; destination: Destination }[]>> = {
   service: [
@@ -69,7 +68,7 @@ export function StaffRecordWorkflow({ snapshot, customerId: shortcutCustomerId, 
     if (busy || !identityReady) return;
     setCategory(value);
     if (value === 'recommendation') setDestination({ legacy: 'recommendation' });
-    else if (value === 'media' || value === 'document' || value === 'modification') setDestination({ vault: value });
+    else if (value === 'media' || value === 'document') setDestination({ vault: value });
   };
   const applyStep = useCallback((action: 'back' | 'identity') => {
     if (busy) return;
