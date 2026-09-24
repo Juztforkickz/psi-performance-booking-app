@@ -29,6 +29,15 @@ access or Data safety is complete before testing against the final signed build.
 No bundle has been uploaded to Play, and no subscription catalogue or release
 has been published.
 
+A Data safety draft has been saved with the confirmed basics: the app collects
+user data, uses encrypted transport and creates accounts through an email
+address plus one-time code. Google's account-deletion URL was set to the live
+[public PSI deletion page](https://juztforkickz.github.io/psi-performance-booking-app/delete-account),
+which explains both in-app and email requests, the normal 30-day process, and
+data deletion versus lawful retention. Data types and handling details are not
+yet selected or submitted; audit the finished Android binary and SDK/provider
+flows before completing them.
+
 The internal testing track has a saved email list, **PSI owner internal test**,
 containing only `matt@psiperformance.com.au`. A private release draft named
 **PSI Android internal 1.0.0 (3)** has saved `en-AU` notes. It has no bundle and
