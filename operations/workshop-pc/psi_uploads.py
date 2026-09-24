@@ -483,6 +483,26 @@ def _parse_job_date(value, today=None):
     raise ValueError('Enter the job date as DD/MM/YYYY, DD-MM-YYYY or YYYY-MM-DD')
 
 
+def _parse_job_type(value):
+    normalized = re.sub(r'\s+', ' ', value.strip().lower()).replace(' and ', ' & ')
+    choices = {
+        '': ('service', 'Service'),
+        '1': ('service', 'Service'),
+        'service': ('service', 'Service'),
+        '2': ('dyno', 'Dyno tuning'),
+        'dyno': ('dyno', 'Dyno tuning'),
+        '3': ('upgrades_repairs', 'Upgrades & Repairs'),
+        'upgrade': ('upgrades_repairs', 'Upgrades & Repairs'),
+        'upgrades': ('upgrades_repairs', 'Upgrades & Repairs'),
+        'repair': ('upgrades_repairs', 'Upgrades & Repairs'),
+        'repairs': ('upgrades_repairs', 'Upgrades & Repairs'),
+        'upgrades & repairs': ('upgrades_repairs', 'Upgrades & Repairs'),
+    }
+    if normalized not in choices:
+        raise ValueError('Choose job type 1, 2 or 3')
+    return choices[normalized]
+
+
 class _ReturnToMenu(Exception):
     pass
 
@@ -522,10 +542,12 @@ def _manual_job_details(input_fn, registration):
     job_date = _parse_job_date(input_fn(
         f'Job date [{today.strftime("%d/%m/%Y")}] (past dates allowed): '
     ), today)
-    kind = input_fn('Job type (service/dyno) [service]: ').strip().lower() or 'service'
-    if kind not in ('service', 'dyno'):
-        raise ValueError('Job type must be service or dyno')
-    default_title = ('Dyno tuning' if kind == 'dyno' else 'Service') + ' · ' + registration
+    print('Job type:')
+    print('1. Service')
+    print('2. Dyno')
+    print('3. Upgrades & Repairs')
+    _kind, default_job_title = _parse_job_type(input_fn('Choose 1, 2 or 3 [1]: '))
+    default_title = default_job_title + ' · ' + registration
     title = input_fn(f'Job description [{default_title}]: ').strip() or default_title
     if len(title.encode('utf-8')) > 180:
         raise ValueError('Job description is too long')

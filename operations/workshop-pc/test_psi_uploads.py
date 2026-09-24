@@ -10,7 +10,8 @@ import unittest
 from unittest.mock import patch
 from PIL import Image
 from psi_uploads import (
-    Connection, RequestFailure, SessionStore, _ReturnToMenu, _parse_job_date, create_job_folder, create_manual_job,
+    Connection, RequestFailure, SessionStore, _ReturnToMenu, _parse_job_date, _parse_job_type,
+    create_job_folder, create_manual_job,
     ensure_object, folder_label_for, import_manifest_inbox, manifest_for, prepare_file, process_job,
     sync_job_folders,
 )
@@ -365,6 +366,16 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(_parse_job_date('', date(2026, 9, 24)), '2026-09-24')
         with self.assertRaisesRegex(ValueError, 'DD/MM/YYYY'):
             _parse_job_date('09/23/2026')
+
+    def test_manual_job_type_offers_three_numbered_and_word_choices(self):
+        self.assertEqual(_parse_job_type(''), ('service', 'Service'))
+        self.assertEqual(_parse_job_type('1'), ('service', 'Service'))
+        self.assertEqual(_parse_job_type('2'), ('dyno', 'Dyno tuning'))
+        self.assertEqual(_parse_job_type('3'), ('upgrades_repairs', 'Upgrades & Repairs'))
+        self.assertEqual(_parse_job_type('UPGRADE'), ('upgrades_repairs', 'Upgrades & Repairs'))
+        self.assertEqual(_parse_job_type('upgrades and repairs'), ('upgrades_repairs', 'Upgrades & Repairs'))
+        with self.assertRaisesRegex(ValueError, '1, 2 or 3'):
+            _parse_job_type('other')
 
     def test_phone_job_back_revisits_previous_prompt_before_one_write(self):
         class FakeConnection:
