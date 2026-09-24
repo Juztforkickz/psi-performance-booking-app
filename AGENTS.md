@@ -7,6 +7,11 @@
 - Preserve existing approved work unless you explicitly request changes.
 - Keep deployment boundaries and safety constraints intact unless explicitly changed.
 
+## Protected owner account
+- The owner account `matt@psiperformance.com.au` must retain permanent complimentary Performance+ access.
+- Always exclude this account from beta cleanup, TestFlight tester removal, customer transition emails, subscription expiry and Performance+ lockouts.
+- Do not revoke, expire, downgrade or otherwise change this protection unless Matt explicitly authorizes that exact owner-account change.
+
 ## Usage-efficiency rules
 - Use a small/targeted model for minor or narrowly scoped edits.
 - Use **Spark** for small, repetitive, or highly targeted work.
