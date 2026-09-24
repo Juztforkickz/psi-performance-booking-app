@@ -103,7 +103,10 @@ function ReportCategories({ vehicleId }: { vehicleId: string }) {
       <Ionicons name={unlocked ? REPORT_CATEGORY_ICONS[kind] : 'lock-closed-outline'} size={22} color={colors.accent} />
       <View style={styles.categoryCopy}>
         <Text style={styles.categoryTitle}>{REPORT_LABELS[kind]}</Text>
-        <Text style={styles.muted}>{overview ? String(overview.counts[kind] ?? 0) + ((overview.counts[kind] ?? 0) === 1 ? ' saved record' : ' saved records') : 'Checking records…'}{unlocked ? '' : ' · Performance+'}</Text>
+        <Text style={styles.muted}>{overview ? kind === 'media'
+          ? `${overview.counts[kind] ?? 0} workshop ${(overview.counts[kind] ?? 0) === 1 ? 'photo' : 'photos'}`
+          : String(overview.counts[kind] ?? 0) + ((overview.counts[kind] ?? 0) === 1 ? ' saved record' : ' saved records')
+          : 'Checking records…'}{unlocked ? '' : ' · Performance+'}</Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color={colors.accent} />
     </Pressable>)}
