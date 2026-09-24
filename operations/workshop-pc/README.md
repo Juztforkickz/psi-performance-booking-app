@@ -12,7 +12,7 @@ For the intended workshop PC, copy this whole folder to that computer and run th
 .\Install-PSIWorkshopUploader.ps1 -ProjectUrl "https://PROJECT.supabase.co" -PublishableKey "PUBLISHABLE_KEY" -StaffEmail "YOUR_STAFF_EMAIL"
 ```
 
-It creates the upload root and a **PSI Workshop Uploads** desktop shortcut for the signed-in Windows user. It also creates two Windows Startup shortcuts: one runs automatic watching in the background, and the other opens the workshop menu in the centre of the screen. Closing the menu does not stop automatic watching. The saved configuration contains only the public project address, publishable key, staff email, upload path and Downloads inbox path. Customer records and privileged keys are not stored in it.
+It creates the upload root and a **PSI Workshop Uploads** desktop shortcut for the signed-in Windows user. It also creates Windows Startup shortcuts for automatic watching, the centred workshop menu and a bottom-right notification-area sync status icon. Closing the menu does not stop automatic watching. The saved configuration contains only the public project address, publishable key, staff email, upload path and Downloads inbox path. Customer records and privileged keys are not stored in it.
 
 Open the desktop shortcut once, choose **Sign in and start automatic watching**, and enter the PSI email code and authenticator code. Only the rotating refresh token is remembered; Windows DPAPI encrypts it for this Windows account. The watcher then starts hidden at Windows sign-in, refreshes the session, checks that it is still AAL2 and active staff, and scans every 30 seconds. Revoking the session, disabling the staff account or changing security settings makes it fail closed and require sign-in again.
 
@@ -62,7 +62,7 @@ For command-line recovery, upload with the environment's public project URL and 
 python psi_uploads.py --root "C:/PSI Uploads" --url "https://PROJECT.supabase.co" --key "PUBLISHABLE_KEY" --email "YOUR_STAFF_EMAIL"
 ```
 
-Add `--watch`, `--session-file` and `--manifest-inbox` to match the installed automatic mode. The desktop shortcut can remove the remembered session; this also signals a running background watcher to stop on its next scan. A named Windows mutex prevents duplicate automatic watchers.
+Add `--watch`, `--session-file` and `--manifest-inbox` to match the installed automatic mode. The desktop shortcut can remove the remembered session; this also signals a running background watcher to stop on its next scan. The notification-area icon shows whether background sync is running and can open the menu, open the upload folder, restart sync or stop sync. A named Windows mutex prevents duplicate automatic watchers.
 
 ## Behaviour and recovery
 

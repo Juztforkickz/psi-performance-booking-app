@@ -16,6 +16,7 @@ Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'psi_uploads.py') -Destination $
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'requirements.txt') -Destination $InstallRoot -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Start-PSIWorkshopUploader.ps1') -Destination $InstallRoot -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Start-PSIWorkshopWatcher.ps1') -Destination $InstallRoot -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Start-PSIWorkshopTray.ps1') -Destination $InstallRoot -Force
 
 $Python = (Get-Command python -ErrorAction Stop).Source
 & $Python -m venv (Join-Path $InstallRoot '.venv')
@@ -46,6 +47,13 @@ $StartupShortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hi
 $StartupShortcut.WorkingDirectory = $InstallRoot
 $StartupShortcut.Description = 'Automatically sync verified PSI jobs and workshop files'
 $StartupShortcut.Save()
+
+$TrayShortcut = $Shell.CreateShortcut((Join-Path $Startup 'PSI Workshop Sync Status.lnk'))
+$TrayShortcut.TargetPath = (Get-Command powershell.exe).Source
+$TrayShortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + (Join-Path $InstallRoot 'Start-PSIWorkshopTray.ps1') + '"'
+$TrayShortcut.WorkingDirectory = $InstallRoot
+$TrayShortcut.Description = 'Show PSI Workshop Uploads sync status in the notification area'
+$TrayShortcut.Save()
 
 $StartupMenu = $Shell.CreateShortcut((Join-Path $Startup 'PSI Workshop Menu.lnk'))
 $StartupMenu.TargetPath = (Get-Command powershell.exe).Source

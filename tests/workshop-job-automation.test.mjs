@@ -35,7 +35,7 @@ test('confirmed app bookings create one exact workshop job and PC manifest workf
   assert.match(uploader, /Type back at any question/u);
   assert.match(uploader, /Returning to the PSI Workshop Uploads menu/u);
   assert.match(installer, /PSI Workshop Menu\.lnk/u);
-  assert.match(guide, /opens the workshop menu in the centre of the screen/u);
+  assert.match(guide, /bottom-right notification-area sync status icon/u);
 });
 
 test('Xero imports assist service completion without closing the booking', async () => {
