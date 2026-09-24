@@ -34,15 +34,21 @@ user data, uses encrypted transport and creates accounts through an email
 address plus one-time code. Google's account-deletion URL was set to the live
 [public PSI deletion page](https://juztforkickz.github.io/psi-performance-booking-app/delete-account),
 which explains both in-app and email requests, the normal 30-day process, and
-data deletion versus lawful retention. The **unsubmitted partial Data safety
-draft** now selects Name, Email address, User IDs, Phone number, Other personal
+data deletion versus lawful retention. The **unsubmitted Data safety draft**
+selects Name, Email address, User IDs, Phone number, Other personal
 info, Purchase history, Photos, Files and docs, Other user-generated content,
 and Device or other IDs. These reflect account/profile and vehicle fields,
 workshop transactions, uploaded images/documents, customer-entered notes and
-the optional Expo push token. Data usage/handling answers are still incomplete;
-audit the finished Android binary, SDK/provider flows and backend transfers
-before submitting. In particular, check whether app interactions, diagnostics
-or other third-party collection require additional categories. Google says an
+the optional Expo push token. Handling answers for all ten selected types were
+saved as a draft and the resulting Store Listing preview was checked. The
+preview shows required stored account/contact and transaction data, optional
+photos/documents/notes/push identifier, encryption in transit, the deletion
+link and no declared third-party sharing. **Do not submit this preview yet**:
+audit the finished Android binary, SDK/provider flows and backend transfers,
+including whether app interactions, diagnostics, inferred location or
+third-party sharing require different answers. Play also blocks Data safety
+submission until Target audience is complete; that questionnaire is itself
+blocked until the reviewer sign-in details are complete. Google says an
 app active exclusively on the
 [internal testing track](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en-GB)
 is currently exempt from completing this form, but it is required for wider
