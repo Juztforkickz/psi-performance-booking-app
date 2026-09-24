@@ -17,9 +17,12 @@ package `com.psiperformance.booking`. The Play setup dashboard shows 6 of 11
 tasks complete; listing text, icon and feature graphic are saved as drafts.
 The separate `android-play-internal` profile has a successfully finished
 [purchases-disabled App Bundle build](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/a0b3a419-dda5-43eb-aa23-6810bdaa2750)
-for internal testing, version 1.0.0 (3), source `51d80e6`. The Play internal
-track has an owner-only tester list and saved release draft, but no bundle has
-been uploaded or release rolled out. See `GOOGLE-PLAY-ROLLOUT.md` for current
+for internal testing, version 1.0.0 (3), source `51d80e6`. The bundle is now
+uploaded and the Play internal release is active for the owner-only tester list.
+[Join the private test](https://play.google.com/apps/internaltest/4701264059153280916)
+with `matt@psiperformance.com.au`, then install and check version 1.0.0 (3) on
+the physical device. Play currently marks this release **Not reviewed** and may
+show the temporary package name. See `GOOGLE-PLAY-ROLLOUT.md` for current
 gates. Identity documents must never be stored in this repository.
 
 ## Evidence to record
@@ -46,6 +49,9 @@ material or private service credentials in this file or an issue.
 - [x] Prepare the separate `android-play-internal` App Bundle profile with an
   isolated update channel and runtime, public registration and purchases closed.
 - [x] Confirm the new `android-internal` APK builds successfully.
+- [x] Upload version 1.0.0 (3) App Bundle to the owner-only Google Play internal
+  track and confirm Play marks the release available to internal testers.
+- [ ] Opt in and install the Play-delivered version on a supported Android phone.
 - [ ] Install the new APK on a supported Android phone.
 - [x] Configure the production profile for a future Google Play App Bundle on
   the isolated `production` update channel.

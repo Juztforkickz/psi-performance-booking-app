@@ -26,8 +26,8 @@ personal account to get through the app's email-code sign-in; establish a
 pre-existing independent review path before declaring access. Content rating
 requires the account owner to review and accept IARC terms. Do not claim review
 access or Data safety is complete before testing against the final signed build.
-No bundle has been uploaded to Play, and no subscription catalogue or release
-has been published.
+The App Bundle has been uploaded to the private internal track. No production
+release or subscription catalogue has been published.
 
 A Data safety draft has been saved with the confirmed basics: the app collects
 user data, uses encrypted transport and creates accounts through an email
@@ -39,12 +39,25 @@ yet selected or submitted; audit the finished Android binary and SDK/provider
 flows before completing them.
 
 The internal testing track has a saved email list, **PSI owner internal test**,
-containing only `matt@psiperformance.com.au`. A private release draft named
-**PSI Android internal 1.0.0 (3)** has saved `en-AU` notes. It has no bundle and
-has not been rolled out. The isolated EAS App Bundle build finished successfully
+containing only `matt@psiperformance.com.au`. The private release
+**PSI Android internal 1.0.0 (3)** is active and Play Console says it is
+**Available to internal testers**, released on 24 September 2026 at 16:45,
+and marked **Not reviewed**. [Owner opt-in link](https://play.google.com/apps/internaltest/4701264059153280916).
+Until app setup
+and review finish, testers see the temporary name
+`com.psiperformance.booking (unreviewed)`.
+The isolated EAS App Bundle build finished successfully
 on 24 September 2026:
 [build a0b3a419-dda5-43eb-aa23-6810bdaa2750](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/a0b3a419-dda5-43eb-aa23-6810bdaa2750),
 profile `android-play-internal`, version 1.0.0 (3), source commit `51d80e6a1de66f549702f2bb2c94d404612588bb`.
+The uploaded 92,696,504-byte AAB has SHA-256
+`B517743C1EEE37F7F99906B887427C724E4ACBD6A8D967721C7FF94CE9D9FC39`.
+Play identified target SDK 36 and reported one non-blocking warning: no code
+deobfuscation mapping file. Native debug symbols were attached to the bundle.
+
+Play subscriptions are locked until a Google Payments merchant profile is
+created. That onboarding has not been started, and no payment was made.
+The current Android release keeps purchases disabled.
 
 Do not copy identity photographs, registration letters, verification codes,
 service-account keys or review credentials into Git or public artifacts.
@@ -105,10 +118,11 @@ checkpoint does not change the iOS listing or any legal/account settings.
    final release configuration. It uses its own update channel and runtime;
    Android purchases are disabled. Do not change iOS, beta, public-web or
    production update channels.
-4. Upload the verified bundle into the prepared Play internal-test release and
-   inspect Play's warnings before any rollout. The owner-only tester list and
-   release notes are saved; no testing release is live yet.
-5. Create monthly and annual Performance+ base plans at the approved Australian
+4. Install the active owner-only internal release using the opt-in link and
+   complete physical Android acceptance. Confirm the temporary name and that
+   no in-app purchase is offered in this build.
+5. Once the payments profile prerequisite is authorised and completed, create
+   monthly and annual Performance+ base plans at the approved Australian
    prices of **AUD 9.99/month** and **AUD 99.00/year**. Record identifiers from
    the actual catalogue; do not invent server allowlist identifiers in advance.
 6. Connect the Play app to RevenueCat using the required least-privilege access,
