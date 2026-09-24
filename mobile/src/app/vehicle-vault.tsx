@@ -22,21 +22,32 @@ const examples = [
 
 type VaultEntry = { key: string; primary: VaultRecord; records: VaultRecord[] };
 
+const ATTACHMENT_KINDS = new Set<ReportKind>(['media', 'dyno', 'invoice', 'modification', 'document']);
+const ATTACHMENT_ICONS = {
+  media: 'images-outline', dyno: 'speedometer-outline', invoice: 'receipt-outline',
+  modification: 'car-sport-outline', document: 'documents-outline',
+} as const;
+const GROUP_TITLES = {
+  media: 'Workshop photos', dyno: 'Dyno results & graphs', invoice: 'Invoice files',
+  modification: 'Modifications & build history', document: 'Reports & documents',
+} as const;
+
 function groupVaultEntries(records: VaultRecord[], filter: ReportKind | null): VaultEntry[] {
   const entries: VaultEntry[] = [];
-  const mediaGroups = new Map<string, VaultEntry>();
+  const visitGroups = new Map<string, VaultEntry>();
   for (const record of records) {
     if (filter && record.kind !== filter) continue;
-    if (record.kind !== 'media') {
+    const groupByVisit = record.kind === 'media' || !!record.job_id && ATTACHMENT_KINDS.has(record.kind);
+    if (!groupByVisit) {
       entries.push({ key: record.id, primary: record, records: [record] });
       continue;
     }
-    const groupKey = `media:${record.job_id || record.occurred_on || record.id}`;
-    const existing = mediaGroups.get(groupKey);
+    const groupKey = `${record.kind}:${record.job_id || record.occurred_on || record.id}`;
+    const existing = visitGroups.get(groupKey);
     if (existing) existing.records.push(record);
     else {
       const entry = { key: groupKey, primary: record, records: [record] };
-      mediaGroups.set(groupKey, entry);
+      visitGroups.set(groupKey, entry);
       entries.push(entry);
     }
   }
@@ -88,6 +99,7 @@ export default function VehicleVault() {
   const openEntry = async (entry: VaultEntry) => {
     if (demo) { setError('This is a sample record. Actual PDFs and workshop photos appear here when PSI publishes them to your vehicle.'); return; }
     if (opened?.key === entry.key) { setOpened(null); return; }
+    setOpened(null);
     setLoadingEntry(entry.key);
     try {
       const batches = await Promise.all(entry.records.map(record => loadVaultAssets(record.id)));
@@ -117,21 +129,25 @@ export default function VehicleVault() {
     {entries.map(entry => {
       const record = entry.primary;
       const isGallery = record.kind === 'media';
+      const hasAttachments = ATTACHMENT_KINDS.has(record.kind) && !record.id.startsWith('repair:') && !record.id.startsWith('recommendation:');
       const expanded = opened?.key === entry.key;
-      const photoCount = expanded ? opened.assets.filter(asset => asset.mime_type.startsWith('image/')).length : entry.records.length;
-      return <View key={entry.key} style={[isGallery ? galleryStyles.group : s.pricing, { borderLeftWidth: 3, borderLeftColor: '#65CFF8' }]}>
+      const fileCount = expanded ? opened.assets.length : entry.records.length;
+      const displayTitle = entry.records.length > 1 && hasAttachments ? GROUP_TITLES[record.kind as keyof typeof GROUP_TITLES] : isGallery ? 'Workshop photos' : record.title;
+      const fileLabel = isGallery ? `${fileCount} ${fileCount === 1 ? 'photo' : 'photos'} from this workshop visit` : entry.records.length > 1 ? `${fileCount} attached ${fileCount === 1 ? 'file' : 'files'} from this workshop visit` : record.notes;
+      const actionLabel = isGallery ? expanded ? 'Hide photos' : `View all ${fileCount} photos`
+        : expanded ? 'Hide attached files' : record.kind === 'dyno' ? 'View dyno files'
+        : record.kind === 'invoice' ? 'View invoice' : 'View attached files';
+      return <View key={entry.key} style={[archiveStyles.entry, { borderLeftWidth: 3, borderLeftColor: '#65CFF8' }]}>
       <Text style={s.eyebrow}>{new Date(`${record.occurred_on.slice(0, 10)}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}</Text>
       <Text style={s.muted}>{record.source === 'customer_entry' ? 'Customer-supplied · unverified' : 'PSI workshop record · read-only'}</Text>
-      <Text style={s.section}>{isGallery ? 'Workshop photos' : record.title}</Text>
-      {isGallery ? <Text style={s.copy}>{photoCount} {photoCount === 1 ? 'photo' : 'photos'} from this workshop visit</Text> : <Text style={s.copy}>{record.notes}</Text>}
+      <Text style={s.section}>{displayTitle}</Text>
+      {fileLabel ? <Text numberOfLines={expanded ? undefined : 3} style={s.copy}>{fileLabel}</Text> : null}
       {record.power_kw ? <Text style={s.copy}>{Math.round(record.power_kw * 1.34102209)} HP at hubs{record.torque_nm ? ` · ${record.torque_nm} Nm at hubs` : ''}</Text> : null}
-      {!record.id.startsWith('repair:') && !record.id.startsWith('recommendation:') ? isGallery
-        ? <Pressable accessibilityRole="button" accessibilityLabel={`${expanded ? 'Close' : 'Open'} workshop gallery with ${photoCount} photos`} onPress={() => void openEntry(entry)} style={({ pressed }) => [galleryStyles.toggle, pressed && { opacity: .78 }]}>
-          <View style={galleryStyles.toggleCopy}><Ionicons name="images-outline" color="#65CFF8" size={21} /><Text style={galleryStyles.toggleText}>{expanded ? 'Hide photos' : `View all ${photoCount} photos`}</Text></View>
+      {hasAttachments ? <Pressable accessibilityRole="button" accessibilityLabel={actionLabel} onPress={() => void openEntry(entry)} style={({ pressed }) => [archiveStyles.toggle, pressed && { opacity: .78 }]}>
+          <View style={archiveStyles.toggleCopy}><Ionicons name={ATTACHMENT_ICONS[record.kind as keyof typeof ATTACHMENT_ICONS]} color="#65CFF8" size={21} /><Text style={archiveStyles.toggleText}>{actionLabel}</Text></View>
           {loadingEntry === entry.key ? <ActivityIndicator color="#65CFF8" /> : <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} color="#65CFF8" size={20} />}
-        </Pressable>
-        : <PrimaryButton label={record.kind === 'dyno' ? 'Open dyno files' : 'View attached files'} variant="outline" onPress={() => void openEntry(entry)} /> : null}
-      {expanded ? <View style={galleryStyles.thumbnails}>{opened.assets.map(asset => asset.mime_type.startsWith('image/') ? <PrivateVaultThumbnail compact key={asset.id} asset={asset} onOpen={() => void openAsset(asset)} /> : <PrimaryButton key={asset.id} label={`PDF · ${asset.caption || 'Workshop file'}`} onPress={() => void openAsset(asset)} variant="outline" />)}</View> : null}
+        </Pressable> : null}
+      {expanded ? <View style={archiveStyles.attachments}>{opened.assets.map(asset => asset.mime_type.startsWith('image/') ? <PrivateVaultThumbnail compact key={asset.id} asset={asset} onOpen={() => void openAsset(asset)} /> : <Pressable accessibilityRole="button" key={asset.id} onPress={() => void openAsset(asset)} style={({ pressed }) => [archiveStyles.file, pressed && { opacity: .78 }]}><Ionicons name="document-text-outline" color="#65CFF8" size={22} /><View style={archiveStyles.fileCopy}><Text numberOfLines={1} style={archiveStyles.fileName}>{asset.caption || 'Workshop file'}</Text><Text style={archiveStyles.fileAction}>Open private file</Text></View><Ionicons name="open-outline" color="#65CFF8" size={18} /></Pressable>)}</View> : null}
     </View>})}
     {!locked && loaded?.key === key && !records.length ? <Text style={s.copy}>Your archive is ready. Records appear here when PSI publishes workshop work for this vehicle.</Text> : null}
     {error ? <Text accessibilityRole="alert" style={s.notice}>{error}</Text> : null}
@@ -146,10 +162,14 @@ const viewerStyles = StyleSheet.create({
   image: { flex: 1, width: '100%', alignSelf: 'center', backgroundColor: '#050505' },
 });
 
-const galleryStyles = StyleSheet.create({
-  group: { backgroundColor: '#111111', borderColor: '#30343A', borderWidth: 1, borderRadius: 8, padding: 16, gap: 10 },
+const archiveStyles = StyleSheet.create({
+  entry: { backgroundColor: '#111111', borderColor: '#30343A', borderWidth: 1, borderRadius: 8, padding: 16, gap: 10 },
   toggle: { minHeight: 52, borderTopWidth: 1, borderTopColor: '#30343A', paddingTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   toggleCopy: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   toggleText: { color: '#65CFF8', fontSize: 13, fontWeight: '900', textTransform: 'uppercase', letterSpacing: .35 },
-  thumbnails: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },
+  attachments: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },
+  file: { width: '100%', minHeight: 58, borderWidth: 1, borderColor: '#30343A', backgroundColor: '#080808', paddingHorizontal: 13, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  fileCopy: { flex: 1, minWidth: 0, gap: 3 },
+  fileName: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  fileAction: { color: '#65CFF8', fontSize: 11, fontWeight: '700' },
 });
