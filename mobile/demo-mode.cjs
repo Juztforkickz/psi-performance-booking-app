@@ -7,11 +7,14 @@ const APP_STORE_RELEASE_CHANNEL = 'app-store-release';
 const APP_STORE_RELEASE_RUNTIME = '1.0.0-app-store-release-1';
 const ANDROID_INTERNAL_CHANNEL = 'android-internal';
 const ANDROID_INTERNAL_RUNTIME = '1.0.0-android-internal-1';
+const ANDROID_PLAY_INTERNAL_CHANNEL = 'android-play-internal';
+const ANDROID_PLAY_INTERNAL_RUNTIME = '1.0.0-android-play-internal-1';
 
 function demoRuntimeForChannel(channel) {
   if (channel === BETA_CHANNEL) return BETA_RUNTIME;
   if (channel === APP_STORE_RELEASE_CHANNEL) return APP_STORE_RELEASE_RUNTIME;
   if (channel === ANDROID_INTERNAL_CHANNEL) return ANDROID_INTERNAL_RUNTIME;
+  if (channel === ANDROID_PLAY_INTERNAL_CHANNEL) return ANDROID_PLAY_INTERNAL_RUNTIME;
   throw new Error('DEMO_BUILD_CONFIGURATION_MISMATCH');
 }
 
@@ -24,7 +27,7 @@ function resolveDemoBuild(input) {
     throw new Error('DEMO_BUILD_CONFIGURATION_MISMATCH');
   }
   demoRuntimeForChannel(input.channel);
-  if (input.registration !== ([APP_STORE_RELEASE_CHANNEL, ANDROID_INTERNAL_CHANNEL].includes(input.channel) ? 'true' : 'false')) {
+  if (input.registration !== ([APP_STORE_RELEASE_CHANNEL, ANDROID_INTERNAL_CHANNEL, ANDROID_PLAY_INTERNAL_CHANNEL].includes(input.channel) ? 'true' : 'false')) {
     throw new Error('DEMO_BUILD_CONFIGURATION_MISMATCH');
   }
   return true;
@@ -55,6 +58,8 @@ module.exports = {
   APP_STORE_RELEASE_RUNTIME,
   ANDROID_INTERNAL_CHANNEL,
   ANDROID_INTERNAL_RUNTIME,
+  ANDROID_PLAY_INTERNAL_CHANNEL,
+  ANDROID_PLAY_INTERNAL_RUNTIME,
   demoRuntimeForChannel,
   resolveDemoBuild,
   createDemoRuntime,

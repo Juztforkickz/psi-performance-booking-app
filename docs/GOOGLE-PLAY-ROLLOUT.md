@@ -4,15 +4,27 @@ Updated 24 September 2026 from the signed-in PSI Performance Play Console.
 
 ## Current gate
 
-Google confirms receipt of the identity documents and is reviewing them. It
-will email the account owner after review; its displayed estimate is a few days.
-Create app remains disabled. Neither an app record nor Play subscriptions have
-been created. Do not interpret document submission as verification approval.
+Google approved Matt's identity and both developer phone numbers show verified.
+The PSI Performance Garage Play app now exists under Console app ID
+`4974273807519558547`, with Android package `com.psiperformance.booking`.
+Its default language is English (Australia) and download price is free.
 
-After approval, Google requires verification of both the private contact phone
-number and the public developer-profile phone number using an SMS or voice
-code. The app-support phone number is a separate setting. Matt must handle any
-personal authentication, verification codes and account-owner decisions.
+The Play setup dashboard shows **6 of 11 tasks complete**. Saved changes are
+awaiting submission in Publishing overview. The approved PSI App privacy URL is
+`https://psiperformance.com.au/policies/privacy-policy`. Ads, government apps,
+health, financial features, and the Auto & vehicles category with public support
+contacts are complete. The store name, descriptions, 512 × 512 icon and
+1024 × 500 feature graphic are saved as a draft. The feature graphic attached to
+the listing is a 24-bit PNG copy without alpha of the approved design. Final
+Android phone screenshots are still required; the current marketing screenshots
+are drafts pending device acceptance.
+
+Sign-in details, content rating, target audience, Data safety and the completed
+store listing remain. Google blocks the target-audience form until sign-in
+details are complete. Content rating requires the account owner to review and
+accept IARC terms. Do not claim review access or Data safety is complete before
+testing against the final signed build. No Play App Bundle, Play subscription
+catalogue or release has been created.
 
 Do not copy identity photographs, registration letters, verification codes,
 service-account keys or review credentials into Git or public artifacts.
@@ -62,16 +74,17 @@ checkpoint does not change the iOS listing or any legal/account settings.
 
 ## Continuation after Google unlocks the account
 
-1. Verify identity approval and complete both phone verifications. Confirm
-   Create app is enabled before attempting app creation.
-2. Create the free Android app, using the approved name and appropriate English
-   locale. Any new binding agreement requires an account-owner decision.
-3. Populate the draft listing and reconcile support, privacy and external
-   deletion URLs with the current public resources and submitted binary.
-   Complete app-access, ads, audience, content-rating and Data safety forms from
-   actual functionality and SDK behaviour, not solely the historical draft.
-4. Prepare the Play internal-test App Bundle using a reviewed Android-only
-   profile. Do not change iOS, beta, public-web or production update channels.
+1. Confirm an independent passwordless reviewer-access method with a dedicated
+   synthetic customer identity before completing Play sign-in details. Do not
+   share a live staff login, mailbox password or one-time code in this file.
+2. Capture final Android phone screenshots from the accepted native build and
+   complete the default store listing. Answer target audience, content rating
+   and Data safety from actual functionality and SDK behaviour, not solely the
+   historical draft. The account owner must review any binding IARC terms.
+3. Build the Play internal-test App Bundle with the isolated
+   `android-play-internal` EAS profile after validating its Android-only,
+   purchases-disabled configuration. It uses its own update channel and runtime;
+   do not change iOS, beta, public-web or production update channels.
 5. Create monthly and annual Performance+ base plans at the approved Australian
    prices of **AUD 9.99/month** and **AUD 99.00/year**. Record identifiers from
    the actual catalogue; do not invent server allowlist identifiers in advance.
