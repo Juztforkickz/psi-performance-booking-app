@@ -1,5 +1,5 @@
-import io
 import hashlib
+import io
 import json
 import os
 from datetime import date
@@ -70,7 +70,7 @@ class WorkshopImporterTests(unittest.TestCase):
         second = process_job(self.folder)
         self.assertEqual(first, second)
         self.assertEqual(next(iter(second.values()))['status'], 'prepared')
-        self.assertEqual(len(list((self.folder / '.psi-prepared' / 'photos').glob('*.jpg'))), 2)
+        self.assertEqual(len(list((self.folder / '.psi-prepared' / 'Workshop photos').glob('*.jpg'))), 2)
 
     def test_workshop_only_files_wait_for_an_owner_approved_account_claim(self):
         workshop_manifest = {
@@ -84,7 +84,7 @@ class WorkshopImporterTests(unittest.TestCase):
         self.image()
         result = process_job(self.folder)
         self.assertEqual(next(iter(result.values()))['status'], 'waiting_for_customer_account')
-        self.assertTrue((self.folder / '.psi-prepared' / 'photos').is_dir())
+        self.assertTrue((self.folder / '.psi-prepared' / 'Workshop photos').is_dir())
 
     def test_dyno_image_requires_review(self):
         self.image('dyno')
@@ -109,7 +109,10 @@ class WorkshopImporterTests(unittest.TestCase):
         job = create_job_folder(root, source)
         self.assertEqual(job.name, 'PSI-TEST-ABC123')
         self.assertEqual(json.loads((job / 'psi-job.json').read_text()), self.manifest)
-        self.assertEqual(set(path.name for path in job.iterdir() if path.is_dir()), set(('photos', 'dyno', 'invoices', 'documents')))
+        self.assertEqual(set(path.name for path in job.iterdir() if path.is_dir()), set((
+            'Service & repair history', 'Recommended work', 'Dyno results & graphs',
+            'Invoice archive', 'Workshop photos', "Documents + DTC's",
+        )))
         self.assertEqual(create_job_folder(root, source), job)
 
     def test_legacy_photo_folders_consolidate_without_duplicates_or_reupload(self):
@@ -133,10 +136,36 @@ class WorkshopImporterTests(unittest.TestCase):
 
         self.assertFalse((job / 'before').exists())
         self.assertFalse((job / 'after').exists())
-        self.assertEqual((job / 'photos' / 'car.jpg').read_bytes(), b'before')
-        self.assertEqual((job / 'photos' / 'after - car.jpg').read_bytes(), b'after')
+        self.assertEqual((job / 'Workshop photos' / 'car.jpg').read_bytes(), b'before')
+        self.assertEqual((job / 'Workshop photos' / 'after - car.jpg').read_bytes(), b'after')
         state = json.loads((job / '.psi-upload-status.json').read_text())
-        self.assertEqual(state['photos\\car.jpg']['status'], 'uploaded')
+        self.assertEqual(state['Workshop photos\\car.jpg']['status'], 'uploaded')
+
+    def test_legacy_category_folders_migrate_without_duplicates_or_reupload(self):
+        source = self.folder / 'downloaded.json'
+        source.write_text(json.dumps(self.manifest))
+        root = self.folder / 'uploads'
+        legacy = root / 'PSI-TEST-ABC123'
+        (legacy / 'documents').mkdir(parents=True)
+        (legacy / 'invoices').mkdir()
+        (legacy / 'psi-job.json').write_text(json.dumps(self.manifest))
+        document = legacy / 'documents' / 'scan.pdf'
+        invoice = legacy / 'invoices' / 'invoice.pdf'
+        document.write_bytes(b'%PDF-1.7\nDTC\n%%EOF')
+        invoice.write_bytes(b'%PDF-1.7\nInvoice\n%%EOF')
+        digest = hashlib.sha256(document.read_bytes()).hexdigest()
+        (legacy / '.psi-upload-status.json').write_text(json.dumps({
+            'documents\\scan.pdf': {'key': f'pc:{self.manifest["job_id"]}:documents:{digest}', 'status': 'uploaded'},
+        }))
+
+        job = create_job_folder(root, source)
+
+        self.assertFalse((job / 'documents').exists())
+        self.assertFalse((job / 'invoices').exists())
+        self.assertTrue((job / "Documents + DTC's" / 'scan.pdf').is_file())
+        self.assertTrue((job / 'Invoice archive' / 'invoice.pdf').is_file())
+        state = json.loads((job / '.psi-upload-status.json').read_text())
+        self.assertEqual(state["Documents + DTC's\\scan.pdf"]['status'], 'uploaded')
 
     def test_verified_identity_metadata_names_and_renames_the_job_folder(self):
         source = self.folder / 'downloaded.json'
@@ -326,7 +355,7 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(errors + repeated_errors, [])
         self.assertEqual(first, second)
         self.assertEqual(first[0].name, 'TEST CUSTOMER - 2020 FORD MUSTANG - ABC123 - PSI-TEST')
-        self.assertTrue((first[0] / 'dyno').is_dir())
+        self.assertTrue((first[0] / 'Dyno results & graphs').is_dir())
 
     def test_phone_job_uses_existing_vehicle_and_staff_identity(self):
         class FakeConnection:
@@ -374,8 +403,40 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(_parse_job_type('3'), ('upgrades_repairs', 'Upgrades & Repairs'))
         self.assertEqual(_parse_job_type('UPGRADE'), ('upgrades_repairs', 'Upgrades & Repairs'))
         self.assertEqual(_parse_job_type('upgrades and repairs'), ('upgrades_repairs', 'Upgrades & Repairs'))
-        with self.assertRaisesRegex(ValueError, '1, 2 or 3'):
+        self.assertEqual(_parse_job_type('1+2'), ('service+dyno', 'Service + Dyno tuning'))
+        self.assertEqual(
+            _parse_job_type('1 + 2 + 3'),
+            ('service+dyno+upgrades_repairs', 'Service + Dyno tuning + Upgrades & Repairs'),
+        )
+        with self.assertRaisesRegex(ValueError, '1, 2, 3'):
             _parse_job_type('other')
+
+    def test_recommended_work_text_note_creates_one_customer_record(self):
+        (self.folder / 'Recommended work').mkdir()
+        note = self.folder / 'Recommended work' / 'Rear brakes.txt'
+        note.write_text('Inspect rear pads at next service.', encoding='utf-8')
+        os.utime(note, (time.time() - 10, time.time() - 10))
+
+        class FakeConnection:
+            url = 'https://test.supabase.co'
+            user_id = 'a4000000-0000-4000-8000-000000000001'
+            verified_jobs = {self.manifest['job_id']: self.manifest}
+            posts = []
+            def call(inner, path, method='GET', data=None, **kwargs):
+                if path == '/rest/v1/recommended_work' and method == 'POST':
+                    inner.posts.append(data)
+                    return [{**data, 'id': 'a4600000-0000-4000-8000-000000000001'}]
+                raise AssertionError(path)
+
+        connection = FakeConnection()
+        first = process_job(self.folder, connection)
+        second = process_job(self.folder, connection)
+
+        self.assertEqual(len(connection.posts), 1)
+        self.assertEqual(connection.posts[0]['title'], 'Rear brakes')
+        self.assertEqual(connection.posts[0]['status'], 'recommended')
+        self.assertEqual(first, second)
+        self.assertEqual(first['Recommended work\\Rear brakes.txt']['status'], 'uploaded')
 
     def test_phone_job_back_revisits_previous_prompt_before_one_write(self):
         class FakeConnection:

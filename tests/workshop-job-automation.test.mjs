@@ -28,7 +28,7 @@ test('confirmed app bookings create one exact workshop job and PC manifest workf
     assert.match(uploader, new RegExp(`'${folder}'`, 'u'));
   }
   assert.match(uploader, /LEGACY_PHOTO_CATEGORIES = \('before', 'progress', 'after'\)/u);
-  assert.match(guide, /Save a Mainline result as PDF into the job's `dyno` folder/u);
+  assert.match(guide, /Save a Mainline result as PDF into the job's `Dyno results & graphs` folder/u);
   assert.match(launcher, /PSIWorkshopWindow/u);
   assert.match(launcher, /SetWindowPos/u);
   assert.match(launcher, /\$LASTEXITCODE -eq 10/u);

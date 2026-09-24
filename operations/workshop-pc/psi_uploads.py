@@ -24,8 +24,26 @@ from datetime import date, datetime, timedelta
 import re
 from PIL import Image, ImageOps
 
-CATEGORIES = {'photos': ('media', None), 'dyno': ('dyno', None), 'invoices': ('invoice', None), 'documents': ('document', None)}
+CATEGORIES = {
+    'Service & repair history': ('service', None, 'service'),
+    'Recommended work': ('recommendation', None, 'recommendation'),
+    'Dyno results & graphs': ('dyno', None, 'dyno'),
+    'Invoice archive': ('invoice', None, 'invoices'),
+    'Workshop photos': ('media', None, 'photos'),
+    "Documents + DTC's": ('document', None, 'documents'),
+}
+CATEGORY_ALIASES = {
+    'photos': 'Workshop photos',
+    'dyno': 'Dyno results & graphs',
+    'invoices': 'Invoice archive',
+    'documents': "Documents + DTC's",
+    'Reports & documents': "Documents + DTC's",
+}
 LEGACY_PHOTO_CATEGORIES = ('before', 'progress', 'after')
+TEXT_RECORD_CATEGORIES = {
+    'Service & repair history': 'service',
+    'Recommended work': 'recommendation',
+}
 
 
 class SessionStore:
@@ -89,6 +107,11 @@ def prepare_file(path):
         if not raw.startswith(b'%PDF-') or len(raw) > 20 * 1024 * 1024:
             raise ValueError('Invalid or oversized PDF')
         return raw, None, 'application/pdf'
+    if path.suffix.lower() == '.txt':
+        if len(raw) > 256 * 1024:
+            raise ValueError('Text note exceeds 256 KB')
+        raw.decode('utf-8-sig')
+        return raw, None, 'text/plain; charset=utf-8'
     with Image.open(io.BytesIO(raw)) as source:
         source.load()
         im = ImageOps.exif_transpose(source).convert('RGB')
@@ -298,7 +321,7 @@ def _available_photo_destination(photos, phase, name):
 
 def consolidate_photo_folders(folder):
     """Move legacy phase folders into one simple photos folder without overwriting."""
-    photos = folder / 'photos'
+    photos = folder / 'Workshop photos'
     photos.mkdir(exist_ok=True)
     state_path = folder / '.psi-upload-status.json'
     try:
@@ -328,6 +351,50 @@ def consolidate_photo_folders(folder):
         atomic_json(state_path, state)
 
 
+def _available_destination(folder, name):
+    destination = folder / name
+    if not destination.exists():
+        return destination
+    stem, suffix = Path(name).stem, Path(name).suffix
+    number = 2
+    while True:
+        destination = folder / f'{stem} ({number}){suffix}'
+        if not destination.exists():
+            return destination
+        number += 1
+
+
+def migrate_category_folders(folder):
+    state_path = folder / '.psi-upload-status.json'
+    try:
+        state = json.loads(state_path.read_text(encoding='utf-8')) if state_path.exists() else {}
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        state = {}
+    state_changed = False
+    for old_name, new_name in CATEGORY_ALIASES.items():
+        old = folder / old_name
+        new = folder / new_name
+        if not old.is_dir() or old.is_symlink() or old == new:
+            continue
+        new.mkdir(exist_ok=True)
+        for source in sorted(old.iterdir()):
+            if source.is_symlink():
+                continue
+            destination = _available_destination(new, source.name)
+            old_relative = str(source.relative_to(folder))
+            source.rename(destination)
+            new_relative = str(destination.relative_to(folder))
+            if old_relative in state:
+                state[new_relative] = state.pop(old_relative)
+                state_changed = True
+        try:
+            old.rmdir()
+        except OSError:
+            pass
+    if state_changed:
+        atomic_json(state_path, state)
+
+
 def create_folder_from_manifest(root, manifest):
     root.mkdir(parents=True, exist_ok=True)
     desired = root / folder_label_for(manifest)
@@ -351,6 +418,7 @@ def create_folder_from_manifest(root, manifest):
         atomic_json(destination, manifest)
     for category in CATEGORIES:
         (folder / category).mkdir(exist_ok=True)
+    migrate_category_folders(folder)
     consolidate_photo_folders(folder)
     return folder
 
@@ -486,21 +554,32 @@ def _parse_job_date(value, today=None):
 def _parse_job_type(value):
     normalized = re.sub(r'\s+', ' ', value.strip().lower()).replace(' and ', ' & ')
     choices = {
-        '': ('service', 'Service'),
-        '1': ('service', 'Service'),
-        'service': ('service', 'Service'),
-        '2': ('dyno', 'Dyno tuning'),
-        'dyno': ('dyno', 'Dyno tuning'),
-        '3': ('upgrades_repairs', 'Upgrades & Repairs'),
-        'upgrade': ('upgrades_repairs', 'Upgrades & Repairs'),
-        'upgrades': ('upgrades_repairs', 'Upgrades & Repairs'),
-        'repair': ('upgrades_repairs', 'Upgrades & Repairs'),
-        'repairs': ('upgrades_repairs', 'Upgrades & Repairs'),
-        'upgrades & repairs': ('upgrades_repairs', 'Upgrades & Repairs'),
+        '': ('service', 'Service', 1),
+        '1': ('service', 'Service', 1),
+        'service': ('service', 'Service', 1),
+        '2': ('dyno', 'Dyno tuning', 2),
+        'dyno': ('dyno', 'Dyno tuning', 2),
+        '3': ('upgrades_repairs', 'Upgrades & Repairs', 3),
+        'upgrade': ('upgrades_repairs', 'Upgrades & Repairs', 3),
+        'upgrades': ('upgrades_repairs', 'Upgrades & Repairs', 3),
+        'repair': ('upgrades_repairs', 'Upgrades & Repairs', 3),
+        'repairs': ('upgrades_repairs', 'Upgrades & Repairs', 3),
+        'upgrades & repairs': ('upgrades_repairs', 'Upgrades & Repairs', 3),
     }
-    if normalized not in choices:
-        raise ValueError('Choose job type 1, 2 or 3')
-    return choices[normalized]
+    if normalized == '':
+        return 'service', 'Service'
+    parts = [part.strip() for part in normalized.split('+')]
+    if any(not part for part in parts):
+        raise ValueError('Choose job type 1, 2, 3 or combine them with +')
+    selected = []
+    for part in parts:
+        if part not in choices:
+            raise ValueError('Choose job type 1, 2, 3 or combine them with +')
+        selected.append(choices[part])
+    selected = sorted({order: (kind, title, order) for kind, title, order in selected}.values(), key=lambda item: item[2])
+    kind = '+'.join(item[0] for item in selected)
+    title = ' + '.join(item[1] for item in selected)
+    return kind, title
 
 
 class _ReturnToMenu(Exception):
@@ -546,7 +625,7 @@ def _manual_job_details(input_fn, registration):
     print('1. Service')
     print('2. Dyno')
     print('3. Upgrades & Repairs')
-    _kind, default_job_title = _parse_job_type(input_fn('Choose 1, 2 or 3 [1]: '))
+    _kind, default_job_title = _parse_job_type(input_fn('Choose one or more, for example 1+2 [1]: '))
     default_title = default_job_title + ' · ' + registration
     title = input_fn(f'Job description [{default_title}]: ').strip() or default_title
     if len(title.encode('utf-8')) > 180:
@@ -681,20 +760,93 @@ def ensure_object(connection, path, content, mime):
     if hashlib.sha256(existing).digest() != hashlib.sha256(content).digest():
         raise ValueError('An existing private object has different contents; PSI review required')
 
+
+def _text_note(path):
+    raw = path.read_bytes()
+    if len(raw) > 256 * 1024:
+        raise ValueError('Text note exceeds 256 KB')
+    note = raw.decode('utf-8-sig').strip()
+    if not note:
+        raise ValueError('Text note is empty')
+    if len(note) > 10000:
+        raise ValueError('Text note exceeds 10000 characters')
+    return raw, note
+
+
+def _publish_text_record(folder, manifest, connection, state, path, relative, category, category_key, record_type):
+    before = (path.stat().st_size, path.stat().st_mtime_ns)
+    if time.time() - path.stat().st_mtime < 5:
+        return
+    raw, note = _text_note(path)
+    if before != (path.stat().st_size, path.stat().st_mtime_ns):
+        return
+    digest = hashlib.sha256(raw).hexdigest()
+    source_key = f'pc:{manifest["job_id"]}:{category_key}:{digest}'
+    prior = state.get(relative, {})
+    if (prior.get('key') == source_key or str(prior.get('key', '')).endswith(':' + digest)) and prior.get('status') == 'uploaded':
+        return
+    workshop_only = manifest.get('schema') == 2 and manifest.get('owner_type') == 'workshop'
+    if not connection or workshop_only:
+        out = folder / '.psi-prepared' / category
+        out.mkdir(parents=True, exist_ok=True)
+        (out / (digest + '.txt')).write_bytes(raw)
+        state[relative] = {
+            'key': source_key,
+            'status': 'waiting_for_customer_account' if workshop_only else 'prepared',
+            'bytes': len(raw),
+        }
+        return
+    title = path.stem[:180]
+    if record_type == 'service':
+        record = connection.call('/rest/v1/repair_records', 'POST', {
+            'customer_id': manifest['customer_id'], 'vehicle_id': manifest['vehicle_id'],
+            'record_source': 'psi_record', 'title': title, 'repair_date': manifest['job_date'],
+            'odometer_km': None, 'notes': note, 'record_kind': 'repair',
+            'created_by': connection.user_id,
+        }, headers={'Prefer': 'return=representation'})[0]
+    elif record_type == 'recommendation':
+        record = connection.call('/rest/v1/recommended_work', 'POST', {
+            'customer_id': manifest['customer_id'], 'vehicle_id': manifest['vehicle_id'],
+            'record_source': 'psi_record', 'title': title, 'timing': None, 'notes': note,
+            'status': 'recommended', 'created_by': connection.user_id,
+        }, headers={'Prefer': 'return=representation'})[0]
+    else:
+        raise ValueError('Unsupported text record folder')
+    state[relative] = {'key': source_key, 'status': 'uploaded', 'record_id': record['id']}
+
+
+def _object_suffix(mime):
+    if mime == 'application/pdf':
+        return '.pdf'
+    if mime.startswith('image/'):
+        return '.jpg'
+    raise ValueError('Unsupported upload file type')
+
 def process_job(folder, connection=None):
     manifest = manifest_for(folder, connection)
+    migrate_category_folders(folder)
+    consolidate_photo_folders(folder)
     workshop_only = manifest.get('schema') == 2 and manifest.get('owner_type') == 'workshop'
     state_path = folder / '.psi-upload-status.json'
     state = json.loads(state_path.read_text()) if state_path.exists() else {}
-    for category, (kind, phase) in CATEGORIES.items():
+    for category, (kind, phase, category_key) in CATEGORIES.items():
         category_path = folder / category
         if not category_path.is_dir() or category_path.is_symlink():
             continue
         for path in sorted(category_path.iterdir()):
-            if path.is_symlink() or not path.is_file() or path.suffix.lower() not in ('.jpg', '.jpeg', '.png', '.webp', '.pdf', '.tif', '.tiff'):
+            if path.is_symlink() or not path.is_file():
+                continue
+            is_text_record = path.suffix.lower() == '.txt' and category in TEXT_RECORD_CATEGORIES
+            if not is_text_record and path.suffix.lower() not in ('.jpg', '.jpeg', '.png', '.webp', '.pdf', '.tif', '.tiff'):
                 continue
             relative = str(path.relative_to(folder))
             try:
+                if is_text_record:
+                    _publish_text_record(folder, manifest, connection, state, path, relative, category, category_key, TEXT_RECORD_CATEGORIES[category])
+                    atomic_json(state_path, state)
+                    continue
+                if category == 'Recommended work':
+                    raise ValueError('Recommended work accepts .txt notes only')
                 before = (path.stat().st_size, path.stat().st_mtime_ns)
                 # Wait for completed file transfers before processing.
                 if time.time() - path.stat().st_mtime < 5:
@@ -705,14 +857,14 @@ def process_job(folder, connection=None):
                 if kind in ('dyno', 'invoice') and mime != 'application/pdf':
                     raise ValueError('Dyno and invoice folders accept PDF files only')
                 digest = hashlib.sha256(content).hexdigest()
-                source_key = f'pc:{manifest["job_id"]}:{category}:{digest}'
+                source_key = f'pc:{manifest["job_id"]}:{category_key}:{digest}'
                 prior = state.get(relative, {})
                 if (prior.get('key') == source_key or str(prior.get('key', '')).endswith(':' + digest)) and prior.get('status') == 'uploaded':
                     continue
                 if not connection or workshop_only:
                     out = folder / '.psi-prepared' / category
                     out.mkdir(parents=True, exist_ok=True)
-                    (out / (digest + ('.pdf' if mime == 'application/pdf' else '.jpg'))).write_bytes(content)
+                    (out / (digest + _object_suffix(mime))).write_bytes(content)
                     if thumb:
                         (out / (digest + '-thumb.jpg')).write_bytes(thumb)
                     state[relative] = {
@@ -737,7 +889,7 @@ def process_job(folder, connection=None):
                     if not assets:
                         asset_id = str(uuid.uuid4())
                         base = f'{manifest["customer_id"]}/{manifest["vehicle_id"]}/{record["id"]}/{asset_id}'
-                        object_path = base + ('/original.pdf' if mime == 'application/pdf' else '/original.jpg')
+                        object_path = base + ('/original' + _object_suffix(mime))
                         thumb_path = base + '/thumb.jpg' if thumb else None
                         connection.call('/rest/v1/vault_assets', 'POST', {'id': asset_id, 'record_id': record['id'], 'customer_id': manifest['customer_id'], 'vehicle_id': manifest['vehicle_id'], 'object_path': object_path, 'thumbnail_path': thumb_path, 'mime_type': mime, 'size_bytes': len(content), 'sha256': digest, 'caption': path.name[:300], 'phase': phase, 'created_by': connection.user_id})
                         assets = [{'id': asset_id, 'object_path': object_path, 'thumbnail_path': thumb_path,
@@ -745,7 +897,7 @@ def process_job(folder, connection=None):
                     if not assets[0]['ready']:
                         asset = assets[0]
                         base = f'{manifest["customer_id"]}/{manifest["vehicle_id"]}/{record["id"]}/{asset["id"]}'
-                        object_path = base + ('/original.pdf' if mime == 'application/pdf' else '/original.jpg')
+                        object_path = base + ('/original' + _object_suffix(mime))
                         thumb_path = base + '/thumb.jpg' if thumb else None
                         if asset['sha256'] != digest or asset['size_bytes'] != len(content) or asset['object_path'] != object_path or asset['thumbnail_path'] != thumb_path:
                             raise ValueError('Reserved asset does not match this file; PSI review required')

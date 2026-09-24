@@ -24,7 +24,7 @@ If Supabase temporarily rate-limits a new email, the uploader accepts a recent u
 2. Within 30 seconds, the workshop PC reads that staff-authorized job and creates the complete verified folder tree automatically. Jobs from the last 30 days plus future jobs are synchronized idempotently.
 3. If automatic synchronization is unavailable, **Booking details → Workshop actions → Download PC folder file · fallback** still provides a credential-free manifest. The watcher imports valid PSI manifests from Downloads, or staff can choose **Add a downloaded job folder file** from the desktop shortcut.
 
-For a phone or walk-in job, open the desktop shortcut and choose **Create a phone / walk-in job**. Enter the registration and select an existing app or workshop-only vehicle. If there is no match, choose to create a workshop-only customer and enter their name, mobile or email, vehicle year, make and model, date, job type and description. The three job-type choices are **Service**, **Dyno**, and **Upgrades & Repairs**. Type `back` at any question to return to the previous question; typing it at the registration question returns to the main PSI menu without creating anything. Job dates accept Australian `DD/MM/YYYY` or `DD-MM-YYYY` input, as well as `YYYY-MM-DD`; past dates are allowed. The signed-in AAL2 staff account creates the checked standalone workshop job and local folder without creating an app login or sending an invitation.
+For a phone or walk-in job, open the desktop shortcut and choose **Create a phone / walk-in job**. Enter the registration and select an existing app or workshop-only vehicle. If there is no match, choose to create a workshop-only customer and enter their name, mobile or email, vehicle year, make and model, date, job type and description. The three job-type choices are **Service**, **Dyno**, and **Upgrades & Repairs**. Enter one choice such as `1`, or combine choices with `+`, such as `1+2` or `1+2+3`. Type `back` at any question to return to the previous question; typing it at the registration question returns to the main PSI menu without creating anything. Job dates accept Australian `DD/MM/YYYY` or `DD-MM-YYYY` input, as well as `YYYY-MM-DD`; past dates are allowed. The signed-in AAL2 staff account creates the checked standalone workshop job and local folder without creating an app login or sending an invitation.
 
 Files for a workshop-only customer are prepared and marked `waiting_for_customer_account`; they remain local and private rather than being attached to the wrong identity. The customer creates their own app account and enters their vehicle. A matching registration plus either the verified account email, or exact normalized full name and mobile, automatically links the eligible workshop vehicles and jobs. The existing folder manifest upgrades automatically and the next watcher scan uploads the waiting files. Anything without that deterministic match remains in the owner portal for manual review. Similarity alone never transfers records automatically.
 
@@ -42,10 +42,12 @@ python psi_uploads.py --root "C:/PSI Uploads" --add-job "C:/Users/YOU/Downloads/
 C:/PSI Uploads/
   CUSTOMER NAME - 2020 FORD MUSTANG - ABC123 - PSI-2026-0123/
     psi-job.json
-    photos/
-    dyno/          (PDF only)
-    invoices/      (PDF only)
-    documents/
+    Service & repair history/
+    Recommended work/        (.txt notes only)
+    Dyno results & graphs/   (PDF only)
+    Invoice archive/         (PDF only)
+    Workshop photos/
+    Documents + DTC's/
 ```
 
 To inspect local preparation without upload:
@@ -66,9 +68,9 @@ Add `--watch`, `--session-file` and `--manifest-inbox` to match the installed au
 
 - Folder names and filenames are labels. No customer name, partial registration or filename can authorize a match. The portal manifest's project, job, customer, vehicle, registration and date must match live records. A changed registration requires a new verified manifest.
 - JPEG, PNG, WebP and TIFF photographs are oriented correctly and resized to at most 1600 pixels on the longest edge; JPEG quality 82. Thumbnails use a maximum 360-pixel edge and quality 72. EXIF/GPS is removed. HEIC and video are not supported by this initial tool: export JPEG first.
-- PDF originals stay byte-for-byte intact. Save a Mainline result as PDF into the job's `dyno` folder; it uploads to that vehicle's Dyno Vault. There is no assumed Mainline API or automatic numerical extraction, so enter verified HP/Nm in the portal when needed.
+- PDF originals stay byte-for-byte intact. Save a Mainline result as PDF into the job's `Dyno results & graphs` folder; it uploads to that vehicle's Dyno results section. There is no assumed Mainline API or automatic numerical extraction, so enter verified HP/Nm in the portal when needed.
 - Originals remain untouched. Local `.psi-prepared` files are safe previews; `.psi-upload-status.json` reports prepared, uploaded, or needs_review. Neither is cloud backup.
-- Put all job photographs in `photos`; staff do not need to sort them into before, progress or after phases. Older verified job folders are consolidated automatically without overwriting same-named files. Identical prepared content within the same job and category is deduplicated by SHA-256 and a server unique source reference. Re-encoded variants are different content.
+- Put all job photographs in `Workshop photos`; staff do not need to sort them into before, progress or after phases. Put scan reports, DTC exports and supporting paperwork in `Documents + DTC's`. A `.txt` file in `Service & repair history` creates a service/repair note; a `.txt` file in `Recommended work` creates a recommended-work record. Older verified job folders named `photos`, `dyno`, `invoices` or `documents` are migrated automatically without overwriting same-named files. Identical prepared content within the same job and category is deduplicated by SHA-256 and a server unique source reference. Re-encoded variants are different content.
 - Files must stop changing for at least five seconds. Symlinked folders/files are ignored. Maximum source 40 MB; maximum uploaded object 20 MB. Oversized/invalid files require review.
 - Each successful file is a dated record associated with the verified workshop job. Publication waits for that file and thumbnail to finish. A partially failed job can have other completed records published; this is not whole-folder atomic publication.
 - An interrupted upload stays unpublished and resumes on the next scan. Existing objects must match the prepared bytes exactly; only missing objects are uploaded, then the completed record is published. Changed or uncertain contents require PSI review and are never overwritten. Fully uploaded files are skipped on subsequent scans. Drafts created by manual portal uploads still need administrator review rather than this PC resume path.
