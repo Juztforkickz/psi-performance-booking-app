@@ -31,6 +31,9 @@ test('confirmed app bookings create one exact workshop job and PC manifest workf
   assert.match(guide, /Save a Mainline result as PDF into the job's `dyno` folder/u);
   assert.match(launcher, /PSIWorkshopWindow/u);
   assert.match(launcher, /SetWindowPos/u);
+  assert.match(launcher, /\$LASTEXITCODE -eq 10/u);
+  assert.match(uploader, /Type back at any question/u);
+  assert.match(uploader, /Returning to the PSI Workshop Uploads menu/u);
   assert.match(installer, /PSI Workshop Menu\.lnk/u);
   assert.match(guide, /opens the workshop menu in the centre of the screen/u);
 });

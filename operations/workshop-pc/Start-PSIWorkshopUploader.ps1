@@ -66,26 +66,45 @@ try {
   Remove-Item -LiteralPath $ErrorLog -Force -ErrorAction SilentlyContinue
   $Config = Get-Content -LiteralPath (Join-Path $InstallRoot 'config.json') -Raw | ConvertFrom-Json
 
-  Write-Host ''
-  Write-Host 'PSI Workshop Uploads'
-  Write-Host '1. Sign in and start automatic watching'
-  Write-Host '2. Create a phone / walk-in job (account optional)'
-  Write-Host '3. Add a downloaded job folder file (fallback)'
-  Write-Host '4. Upload and sync once'
-  Write-Host '5. Forget the remembered staff sign-in'
-  $Choice = Read-Host 'Choose 1, 2, 3, 4 or 5'
+  $ReturnToMenu = $false
+  do {
+    $ReturnToMenu = $false
+    Write-Host ''
+    Write-Host 'PSI Workshop Uploads'
+    Write-Host '1. Sign in and start automatic watching'
+    Write-Host '2. Create a phone / walk-in job (account optional)'
+    Write-Host '3. Add a downloaded job folder file (fallback)'
+    Write-Host '4. Upload and sync once'
+    Write-Host '5. Forget the remembered staff sign-in'
+    $Choice = Read-Host 'Choose 1, 2, 3, 4 or 5'
 
-  if ($Choice -eq '1') {
+    if ($Choice -eq '1') {
     Enter-PSIUploaderLock
     $RestartWatcher = $true
     & $Python $Uploader --root $Config.uploadRoot --url $Config.projectUrl --key $Config.publishableKey --email $Config.staffEmail --session-file $SessionFile --stop-file $StopFile --manifest-inbox $Config.manifestInbox
     if ($LASTEXITCODE -ne 0) { throw "PSI uploader stopped with error code $LASTEXITCODE." }
     Write-Host 'Automatic watching is running in the background and will start with Windows.'
-  } elseif ($Choice -eq '2') {
-    Enter-PSIUploaderLock
-    $RestartWatcher = $true
-    & $Python $Uploader --root $Config.uploadRoot --url $Config.projectUrl --key $Config.publishableKey --email $Config.staffEmail --session-file $SessionFile --manual-job
-    if ($LASTEXITCODE -ne 0) { throw "PSI uploader stopped with error code $LASTEXITCODE." }
+    } elseif ($Choice -eq '2') {
+      Enter-PSIUploaderLock
+      $RestartWatcher = $true
+      & $Python $Uploader --root $Config.uploadRoot --url $Config.projectUrl --key $Config.publishableKey --email $Config.staffEmail --session-file $SessionFile --manual-job
+      if ($LASTEXITCODE -eq 10) {
+        if ($WatcherLockHeld -and $WatcherMutex) {
+          $WatcherMutex.ReleaseMutex()
+          $WatcherLockHeld = $false
+          $WatcherMutex.Dispose()
+          $WatcherMutex = $null
+        }
+        Remove-Item -LiteralPath $StopFile -Force -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath $SessionFile) {
+          $WatcherArguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $Watcher + '"'
+          Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList $WatcherArguments
+        }
+        $RestartWatcher = $false
+        $ReturnToMenu = $true
+        continue
+      }
+      if ($LASTEXITCODE -ne 0) { throw "PSI uploader stopped with error code $LASTEXITCODE." }
   } elseif ($Choice -eq '3') {
     Add-Type -AssemblyName System.Windows.Forms
     $Picker = New-Object System.Windows.Forms.OpenFileDialog
@@ -104,9 +123,10 @@ try {
     Enter-PSIUploaderLock
     & $Python $Uploader --root $Config.uploadRoot --session-file $SessionFile --stop-file $StopFile --forget-session
     if ($LASTEXITCODE -ne 0) { throw "PSI uploader stopped with error code $LASTEXITCODE." }
-  } else {
-    throw 'Choose 1, 2, 3, 4 or 5.'
-  }
+    } else {
+      throw 'Choose 1, 2, 3, 4 or 5.'
+    }
+  } while ($ReturnToMenu)
 } catch {
   $ExitCode = 1
   $Message = 'PSI Workshop Uploads error: ' + $_.Exception.Message

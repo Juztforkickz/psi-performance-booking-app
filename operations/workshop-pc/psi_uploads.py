@@ -483,6 +483,40 @@ def _parse_job_date(value, today=None):
     raise ValueError('Enter the job date as DD/MM/YYYY, DD-MM-YYYY or YYYY-MM-DD')
 
 
+class _ReturnToMenu(Exception):
+    pass
+
+
+class _RestartManualWizard(Exception):
+    pass
+
+
+class _WizardInput:
+    """Replay confirmed answers so `back` can revisit one prompt without writing data."""
+    def __init__(self, input_fn):
+        self.input_fn = input_fn
+        self.answers = []
+        self.index = 0
+
+    def begin(self):
+        self.index = 0
+
+    def ask(self, prompt):
+        if self.index < len(self.answers):
+            answer = self.answers[self.index]
+            self.index += 1
+            return answer
+        answer = self.input_fn(prompt)
+        if answer.strip().lower() == 'back':
+            if self.index == 0:
+                raise _ReturnToMenu()
+            self.answers = self.answers[:self.index - 1]
+            raise _RestartManualWizard()
+        self.answers.append(answer)
+        self.index += 1
+        return answer
+
+
 def _manual_job_details(input_fn, registration):
     today = date.today()
     job_date = _parse_job_date(input_fn(
@@ -526,8 +560,7 @@ def _new_workshop_customer(input_fn, registration):
     }
 
 
-def create_manual_job(root, connection, input_fn=input):
-    """Create an AAL2 staff-authorized phone/walk-in job with or without an app account."""
+def _create_manual_job_once(root, connection, input_fn):
     registration = re.sub(r'\s+', '', input_fn('Vehicle registration: ').upper())
     if not registration:
         raise ValueError('Enter the vehicle registration')
@@ -600,6 +633,18 @@ def create_manual_job(root, connection, input_fn=input):
     manifest = manifest_from_job(connection, job, vehicle, customer_name)
     connection.verified_jobs[job['id']] = manifest
     return create_folder_from_manifest(root, manifest)
+
+
+def create_manual_job(root, connection, input_fn=input):
+    """Create an AAL2 staff-authorized phone/walk-in job with reversible prompts."""
+    wizard = _WizardInput(input_fn)
+    print('Type back at any question to return to the previous question.')
+    while True:
+        wizard.begin()
+        try:
+            return _create_manual_job_once(root, connection, wizard.ask)
+        except _RestartManualWizard:
+            print('Going back one question...')
 
 def ensure_object(connection, path, content, mime):
     """Resume only when an existing private object's bytes are identical."""
@@ -742,7 +787,11 @@ def main():
             Path(args.stop_file).unlink(missing_ok=True)
     if args.manual_job:
         root.mkdir(parents=True, exist_ok=True)
-        folder = create_manual_job(root, connection)
+        try:
+            folder = create_manual_job(root, connection)
+        except _ReturnToMenu:
+            print('Returning to the PSI Workshop Uploads menu. No job was created.')
+            return 10
         print(f'Created phone/walk-in PSI job: {folder}')
         return
     try:

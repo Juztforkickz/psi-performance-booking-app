@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 from PIL import Image
 from psi_uploads import (
-    Connection, RequestFailure, SessionStore, _parse_job_date, create_job_folder, create_manual_job,
+    Connection, RequestFailure, SessionStore, _ReturnToMenu, _parse_job_date, create_job_folder, create_manual_job,
     ensure_object, folder_label_for, import_manifest_inbox, manifest_for, prepare_file, process_job,
     sync_job_folders,
 )
@@ -365,6 +365,41 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(_parse_job_date('', date(2026, 9, 24)), '2026-09-24')
         with self.assertRaisesRegex(ValueError, 'DD/MM/YYYY'):
             _parse_job_date('09/23/2026')
+
+    def test_phone_job_back_revisits_previous_prompt_before_one_write(self):
+        class FakeConnection:
+            url = 'https://test.supabase.co'
+            user_id = 'a4000000-0000-4000-8000-000000000001'
+            verified_jobs = {}
+            posts = []
+            def call(inner, path, method='GET', data=None, **kwargs):
+                if path.startswith('/rest/v1/customer_vehicles?select=id'):
+                    return [{'id': self.manifest['vehicle_id'], 'customer_id': self.manifest['customer_id'],
+                             'registration': 'ABC123', 'year': 2020, 'make': 'Ford', 'model': 'Mustang',
+                             'archived_at': None}]
+                if path.startswith('/rest/v1/customer_profiles'):
+                    return [{'user_id': self.manifest['customer_id'], 'first_name': 'Test', 'last_name': 'Customer',
+                             'email': 'customer@example.invalid'}]
+                if path.startswith('/rest/v1/workshop_vehicles'):
+                    return []
+                if method == 'POST':
+                    inner.posts.append(data)
+                    return [{**data, 'id': self.manifest['job_id']}]
+                return [{'id': self.manifest['vehicle_id'], 'customer_id': self.manifest['customer_id'],
+                         'registration': 'ABC123', 'archived_at': None}]
+        answers = iter(('abc123', '1', '15/09/2026', 'back', '14/09/2026', 'dyno', 'Corrected job'))
+        connection = FakeConnection()
+        create_manual_job(self.folder / 'back-job', connection, lambda _prompt: next(answers))
+        self.assertEqual(len(connection.posts), 1)
+        self.assertEqual(connection.posts[0]['job_date'], '2026-09-14')
+        self.assertEqual(connection.posts[0]['title'], 'Corrected job')
+
+    def test_back_at_registration_returns_to_menu_without_server_calls(self):
+        class NoCalls:
+            def call(self, *_args, **_kwargs):
+                raise AssertionError('No server call should occur')
+        with self.assertRaises(_ReturnToMenu):
+            create_manual_job(self.folder / 'cancelled-job', NoCalls(), lambda _prompt: 'back')
 
     def test_phone_job_can_create_workshop_only_customer_without_an_account(self):
         workshop_contact_id = 'a4400000-0000-4000-8000-000000000001'
