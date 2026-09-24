@@ -5,7 +5,7 @@ import { getSupabaseClient } from '@/lib/supabase';
 import type { VaultAsset } from '@/lib/performance-plus';
 import { colors } from '@/constants/brand';
 
-export function PrivateVaultThumbnail({ asset, onOpen }: { asset: VaultAsset; onOpen: () => void }) {
+export function PrivateVaultThumbnail({ asset, compact = false, onOpen }: { asset: VaultAsset; compact?: boolean; onOpen: () => void }) {
   const auth = useCustomerAuth();
   const key = `${auth.user?.id}:${asset.id}`;
   const [preview, setPreview] = useState<{ key: string; url: string } | null>(null);
@@ -21,9 +21,9 @@ export function PrivateVaultThumbnail({ asset, onOpen }: { asset: VaultAsset; on
     }).catch(() => {});
     return () => { live = false; clearTimeout(timer); };
   }, [asset.id, asset.thumbnail_path, auth.status, key]);
-  return <Pressable accessibilityRole="button" accessibilityLabel={`Open ${asset.caption || 'workshop photo'}`} onPress={onOpen} style={{ flexBasis: '45%', flexGrow: 1, maxWidth: 360, gap: 8 }}>
-    <View style={{ aspectRatio: 16 / 9, backgroundColor: colors.panel, borderRadius: 6, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Open ${asset.caption || 'workshop photo'}`} onPress={onOpen} style={{ flexBasis: compact ? '29%' : '45%', flexGrow: 1, maxWidth: compact ? 180 : 360, gap: compact ? 4 : 8 }}>
+    <View style={{ aspectRatio: compact ? 1 : 16 / 9, backgroundColor: colors.panel, borderRadius: 6, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
       {preview?.key === key && auth.status === 'signed_in' ? <Image source={{ uri: preview.url }} resizeMode="contain" style={{ width: '100%', height: '100%' }} /> : <Text style={{ color: colors.accent }}>Open private photo</Text>}
-    </View><Text numberOfLines={2} style={{ color: colors.silver }}>{asset.caption || asset.phase || 'Workshop photo'}</Text>
+    </View>{compact ? null : <Text numberOfLines={2} style={{ color: colors.silver }}>{asset.caption || asset.phase || 'Workshop photo'}</Text>}
   </Pressable>;
 }
