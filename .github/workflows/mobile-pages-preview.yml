@@ -69,13 +69,25 @@ jobs:
         working-directory: mobile
         run: node --test scripts/test-review-environment.cjs scripts/test-demo-mode.cjs
 
-      - name: Export Expo web preview
+      - name: Export public PSI customer app
         working-directory: mobile
         env:
           EXPO_PUBLIC_API_BASE_URL: ''
-          EXPO_PUBLIC_SUPABASE_AUTH_ENABLED: 'false'
-          EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED: 'false'
+          EXPO_PUBLIC_PSI_DEMO_MODE_ENABLED: 'true'
+          EXPO_PUBLIC_PSI_APPLE_REVIEW: 'false'
+          EXPO_PUBLIC_PSI_UPDATE_CHANNEL: 'app-store-release'
+          EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST: 'true'
+          EXPO_PUBLIC_REVENUECAT_APPLE_KEY: 'appl_qJcOAgyhLBExQHfYkgStIaOxQGj'
+          EXPO_PUBLIC_SUPABASE_URL: 'https://lslhfrujyuqcavsnugfx.supabase.co'
+          EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_B1fbCA2hQegGaE9JDCcp-Q_L2rvyeDN'
+          EXPO_PUBLIC_SUPABASE_AUTH_ENABLED: 'true'
+          EXPO_PUBLIC_SUPABASE_BOOKING_ENABLED: 'true'
+          EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED: 'true'
         run: pnpm export:web
+
+      - name: Cache-bust exported customer app
+        working-directory: mobile
+        run: pnpm cache-bust:web-export
 
       - name: Add PSI install icon and web app metadata
         working-directory: mobile

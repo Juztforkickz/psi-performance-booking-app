@@ -6,7 +6,7 @@ Prepared 9 September 2026. All amounts in this document are AUD. This extends th
 
 - The customer app is Expo 57 / React Native 0.86 / React 19, using Expo Router. Its real customer and staff backend is Supabase Auth, Postgres, private Storage and Edge Functions.
 - The repository also contains the existing Vinext/React booking website and Cloudflare D1 booking backend. Those are retained. Existing Stripe workshop-deposit work is separate from digital subscriptions.
-- Supabase has the main Sydney project and a separate Apple review sandbox. The public GitHub Pages preview uses fictional local data and disabled real authentication. Existing account, registration and review-environment switches remain in place.
+- Supabase has the main Sydney project and a separate Apple review sandbox. The public GitHub Pages customer app uses production account access and still offers the isolated fictional demonstration. Private QA and store-review account gates remain separate.
 - Existing database areas include customer profiles and vehicles, booking requests/status/payment records, service completions, odometer readings, repair history, recommended work, invoices, dyno records, vehicle-file metadata, staff roles, audit events and notification jobs.
 - Existing private buckets are `vehicle-photos` and `vehicle-documents`. New premium objects belong in the private `performance-vault` bucket.
 - Existing navigation, Home, My Garage, Bookings, Vehicle Reports, Alerts/account areas, and the staff portal are preserved. Staff access already requires an active role and MFA.

@@ -63,9 +63,12 @@ test('customer deletion status is always scoped to the signed-in identity', () =
   assert.match(accountDeletion, /const remaining = await loadOwnAccountDeletionRequest\(userId\)/u);
 });
 
-test('public Pages preview keeps real account activation explicitly disabled', () => {
-  assert.match(pagesWorkflow, /EXPO_PUBLIC_SUPABASE_AUTH_ENABLED:\s*['"]false['"]/u);
-  assert.match(pagesWorkflow, /EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED:\s*['"]false['"]/u);
+test('public Pages customer app enables production account creation with cache-safe updates', () => {
+  assert.match(pagesWorkflow, /EXPO_PUBLIC_PSI_UPDATE_CHANNEL:\s*['"]app-store-release['"]/u);
+  assert.match(pagesWorkflow, /EXPO_PUBLIC_SUPABASE_AUTH_ENABLED:\s*['"]true['"]/u);
+  assert.match(pagesWorkflow, /EXPO_PUBLIC_SUPABASE_BOOKING_ENABLED:\s*['"]true['"]/u);
+  assert.match(pagesWorkflow, /EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED:\s*['"]true['"]/u);
+  assert.match(pagesWorkflow, /pnpm cache-bust:web-export/u);
   assert.match(supabaseClient, /requestedRegistrationActivation/u);
   assert.match(supabaseClient, /requestedAuthActivation\s*&&\s*requestedRegistrationActivation/u);
   assert.match(authStorage, /Platform\.OS === 'web' \? webSessionStorage/u);

@@ -3,9 +3,10 @@
 Status: database and security foundation applied; Resend custom SMTP, both
 six-digit PSI email-code templates, controlled live login and RLS isolation
 tests, and the activation-gated Expo client flow are implemented. The public
-iPhone `app-store-release` channel now enables customer email-code sign-in and
-self-registration; the separate beta, review and web gates remain as documented
-below. Production Supabase Auth must also allow new users to sign up.
+iPhone `app-store-release` channel and public GitHub Pages customer app enable
+customer email-code sign-in and self-registration. The separate beta, private QA
+and store-review gates remain closed as documented below. Production Supabase
+Auth must also allow new users to sign up.
 
 ## Project
 
@@ -14,8 +15,9 @@ below. Production Supabase Auth must also allow new users to sign up.
 - Region: Sydney (`ap-southeast-2`)
 - Current plan: Free
 - Client connection: the Expo app contains the public project URL and public
-  publishable key, but `EXPO_PUBLIC_SUPABASE_AUTH_ENABLED=false` keeps real
-  sign-in fail-closed.
+  publishable key. Each delivery profile must explicitly enable Auth, booking
+  and registration; the public release profiles enable them while private QA
+  and review profiles remain fail-closed for new accounts.
 
 The prior empty `Juztforkickz App` was reused and renamed. There is no second
 Supabase project to maintain or delete.
@@ -28,8 +30,8 @@ There is no password field and PSI does not store customer passwords.
 A customer does **not** need a new code every time the app opens. A valid native
 session is kept in operating-system protected storage. A fresh code is required
 after the customer signs out, the session is revoked or expires, the app is
-reinstalled, or the customer signs in on a new device. The Expo web preview
-keeps any future session in memory only and signs out on refresh/close.
+reinstalled, or the customer signs in on a new device. The public web customer
+app uses tab-scoped session storage, so closing the tab clears its session.
 
 Completed email groundwork:
 
@@ -48,7 +50,8 @@ Completed acceptance checks:
    records, then the test session was signed out.
 3. A rollback-only two-customer test exercised the real deployed RLS policies
    without retaining test identities or records.
-4. New-user registration was independently checked closed after testing.
+4. New-user registration was independently checked closed during private QA,
+   then opened for the public release on 22 September 2026.
 5. Owner-only invite onboarding passed a rollback-only RLS test: customers and
    AAL1 staff cannot read invitation audit rows, authenticated clients cannot
    mutate them, and only an AAL2 owner can list them.
@@ -79,8 +82,8 @@ Remaining private-QA gates:
    additional pilot email only through the AAL2 staff portal, then add the same
    email separately to Apple TestFlight.
 8. The internal EAS `qa` profile sets Auth true, registration false and the
-   booking API empty. The public GitHub Pages preview keeps both Auth and
-   registration false.
+   booking API empty. The public GitHub Pages customer app uses the production
+   `app-store-release` account flags, including public registration.
 9. The app is linked to the owner-controlled Expo project
    `@psi-performance/matt-psi`, and unauthenticated access to its internal
    distribution build pages is disabled.

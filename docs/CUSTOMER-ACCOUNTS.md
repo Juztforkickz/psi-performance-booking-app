@@ -3,13 +3,15 @@
 Status: the existing Cloudflare/D1 web account endpoints remain provider-neutral
 and fail-closed. The separate mobile-app foundation uses Supabase for controlled
 signed builds. Matt can approve individual customer emails from the AAL2 staff
-portal. The released iPhone app permits public email-code registration and
-private profile creation; the web account endpoints remain disabled. See
+portal. The released iPhone app and installable GitHub Pages customer app permit
+public email-code registration and private profile creation; the legacy D1 web
+account endpoints remain disabled. See
 `SUPABASE-APP-FOUNDATION.md` for the app-specific model.
 
-## Public iPhone onboarding (22 September 2026)
+## Public customer onboarding (25 September 2026)
 
-The `app-store-release` channel allows any customer to request an email code.
+The `app-store-release` iPhone channel and public GitHub Pages customer app allow
+any customer to request an email code.
 Supabase creates a new identity for an email that does not exist, and the
 verified customer completes their private contact profile and first vehicle.
 Existing PSI invitations remain valid but are no longer required in this
