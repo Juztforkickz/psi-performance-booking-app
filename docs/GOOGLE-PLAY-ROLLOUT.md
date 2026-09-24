@@ -21,10 +21,21 @@ are drafts pending device acceptance.
 
 Sign-in details, content rating, target audience, Data safety and the completed
 store listing remain. Google blocks the target-audience form until sign-in
-details are complete. Content rating requires the account owner to review and
-accept IARC terms. Do not claim review access or Data safety is complete before
-testing against the final signed build. No Play App Bundle, Play subscription
-catalogue or release has been created.
+details are complete. Google reviewers cannot create a new account or use a
+personal account to get through the app's email-code sign-in; establish a
+pre-existing independent review path before declaring access. Content rating
+requires the account owner to review and accept IARC terms. Do not claim review
+access or Data safety is complete before testing against the final signed build.
+No bundle has been uploaded to Play, and no subscription catalogue or release
+has been published.
+
+The internal testing track has a saved email list, **PSI owner internal test**,
+containing only `matt@psiperformance.com.au`. A private release draft named
+**PSI Android internal 1.0.0 (3)** has saved `en-AU` notes. It has no bundle and
+has not been rolled out. The isolated EAS App Bundle build finished successfully
+on 24 September 2026:
+[build a0b3a419-dda5-43eb-aa23-6810bdaa2750](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/a0b3a419-dda5-43eb-aa23-6810bdaa2750),
+profile `android-play-internal`, version 1.0.0 (3), source commit `51d80e6a1de66f549702f2bb2c94d404612588bb`.
 
 Do not copy identity photographs, registration letters, verification codes,
 service-account keys or review credentials into Git or public artifacts.
@@ -72,7 +83,7 @@ checkpoint does not change the iOS listing or any legal/account settings.
 - Physical Android acceptance remains outstanding in
   `ANDROID-NATIVE-QA-CHECKLIST.md`; an iOS pass does not satisfy it.
 
-## Continuation after Google unlocks the account
+## Remaining rollout steps
 
 1. Confirm an independent passwordless reviewer-access method with a dedicated
    synthetic customer identity before completing Play sign-in details. Do not
@@ -81,10 +92,13 @@ checkpoint does not change the iOS listing or any legal/account settings.
    complete the default store listing. Answer target audience, content rating
    and Data safety from actual functionality and SDK behaviour, not solely the
    historical draft. The account owner must review any binding IARC terms.
-3. Build the Play internal-test App Bundle with the isolated
-   `android-play-internal` EAS profile after validating its Android-only,
-   purchases-disabled configuration. It uses its own update channel and runtime;
-   do not change iOS, beta, public-web or production update channels.
+3. Verify the finished Play internal-test App Bundle linked above against the
+   final release configuration. It uses its own update channel and runtime;
+   Android purchases are disabled. Do not change iOS, beta, public-web or
+   production update channels.
+4. Upload the verified bundle into the prepared Play internal-test release and
+   inspect Play's warnings before any rollout. The owner-only tester list and
+   release notes are saved; no testing release is live yet.
 5. Create monthly and annual Performance+ base plans at the approved Australian
    prices of **AUD 9.99/month** and **AUD 99.00/year**. Record identifiers from
    the actual catalogue; do not invent server allowlist identifiers in advance.

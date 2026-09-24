@@ -15,10 +15,12 @@ Performance organisation account. Identity and both developer phone numbers
 are verified, and the free PSI Performance Garage app has been created under
 package `com.psiperformance.booking`. The Play setup dashboard shows 6 of 11
 tasks complete; listing text, icon and feature graphic are saved as drafts.
-The separate `android-play-internal` profile prepares a purchases-disabled
-App Bundle for internal testing, but no Play App Bundle or subscription catalogue
-has been created. See `GOOGLE-PLAY-ROLLOUT.md` for current gates. Identity
-documents must never be stored in this repository.
+The separate `android-play-internal` profile has a successfully finished
+[purchases-disabled App Bundle build](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/a0b3a419-dda5-43eb-aa23-6810bdaa2750)
+for internal testing, version 1.0.0 (3), source `51d80e6`. The Play internal
+track has an owner-only tester list and saved release draft, but no bundle has
+been uploaded or release rolled out. See `GOOGLE-PLAY-ROLLOUT.md` for current
+gates. Identity documents must never be stored in this repository.
 
 ## Evidence to record
 
