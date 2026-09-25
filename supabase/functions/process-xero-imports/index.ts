@@ -190,8 +190,10 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   if (linkError) throw new Error('xero_customer_link_unavailable');
   const links = linked && typeof linked === 'object' && uuid(linked.customer_id) ? [linked as VerifiedContactLink] : [];
 
-  let jobsQuery = admin.from('workshop_jobs').select('id,reference,customer_id,vehicle_id,booking_request_id').eq('reference', reference);
-  if (queued.job_id) jobsQuery = jobsQuery.eq('id', queued.job_id);
+  let jobsQuery = admin.from('workshop_jobs').select('id,reference,customer_id,vehicle_id,booking_request_id');
+  jobsQuery = queued.job_id
+    ? jobsQuery.eq('id', queued.job_id)
+    : jobsQuery.eq('reference', reference);
   const { data: jobs, error: jobsError } = await jobsQuery.limit(2);
   if (jobsError) throw new Error('xero_job_lookup_failed');
   const vehicleIds = [...new Set((jobs ?? []).map(job => job.vehicle_id).filter(uuid))];
@@ -214,6 +216,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     jobs: jobs ?? [],
     vehicles: vehicles ?? [],
     activeCustomerIds: (activeCustomers ?? []).map(customer => customer.user_id),
+    confirmedJobId: queued.job_id,
   });
   if (matched.status === 'needs_review') {
     await setQueue(admin, queued.id, {

@@ -19,6 +19,16 @@ try {
     --stop-file $StopFile `
     --non-interactive `
     --watch
+
+  $UploaderExitCode = $LASTEXITCODE
+  if (-not (Test-Path -LiteralPath $StopFile)) {
+    $Message = if ($UploaderExitCode -eq 3) {
+      'PSI automatic uploads need a fresh staff sign-in. Open PSI Workshop Uploads and choose Sign in and start automatic watching.'
+    } else {
+      "PSI automatic uploads stopped unexpectedly (exit code $UploaderExitCode). Open PSI Workshop Uploads and restart background sync."
+    }
+    Set-Content -LiteralPath (Join-Path $InstallRoot 'last-error.log') -Value $Message -Encoding UTF8
+  }
 } finally {
   $Mutex.ReleaseMutex()
   $Mutex.Dispose()

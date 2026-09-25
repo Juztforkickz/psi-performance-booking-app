@@ -16,6 +16,7 @@ type Input = {
   tenantId: string; expectedTenantId: string; expectedInvoiceId: string;
   invoice: XeroInvoice; links: VerifiedContactLink[]; jobs: CheckedJob[];
   vehicles: CheckedVehicle[]; activeCustomerIds: string[];
+  confirmedJobId?: string | null;
 };
 const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 const review = (reason: string) => ({ status: 'needs_review' as const, reason });
@@ -40,9 +41,12 @@ export function matchXeroInvoice(input: Input) {
   const link = links[0];
   if (!uuid(link.customer_id) || !uuid(link.verified_by) || !Number.isFinite(Date.parse(link.verified_at))) return review('verified_customer_link_required');
   if (!input.activeCustomerIds.includes(link.customer_id)) return review('customer_account_unavailable');
+  const confirmedJobId = uuid(input.confirmedJobId) ? input.confirmedJobId : null;
   const reference = typeof invoice.Reference === 'string' ? invoice.Reference.trim().toUpperCase() : '';
-  if (!/^[A-Z0-9][A-Z0-9 -]{2,79}$/.test(reference)) return review('exact_job_reference_required');
-  const jobs = input.jobs.filter(j => j.reference === reference);
+  if (!confirmedJobId && !/^[A-Z0-9][A-Z0-9 -]{2,79}$/.test(reference)) return review('exact_job_reference_required');
+  const jobs = confirmedJobId
+    ? input.jobs.filter(j => j.id === confirmedJobId)
+    : input.jobs.filter(j => j.reference === reference);
   if (jobs.length !== 1) return review('exact_job_reference_required');
   const job = jobs[0];
   if (!uuid(job.id) || !uuid(job.vehicle_id) || job.customer_id !== link.customer_id) return review('job_customer_mismatch');

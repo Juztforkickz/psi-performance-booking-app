@@ -49,3 +49,19 @@ test('formatting alone may vary; identifiers never use fuzzy matches', () => {
   value.invoice.Status = 'PAID';
   assert.equal(matchXeroInvoice(value).status, 'eligible');
 });
+test('an owner-confirmed queue job remains eligible when Xero uses the registration as its reference', () => {
+  const value = make();
+  value.invoice.Reference = 'VF BJS98 - REPAIRS';
+  value.confirmedJobId = id(6);
+  assert.deepEqual(matchXeroInvoice(value), {
+    status: 'eligible', customerId: id(4), vehicleId: id(7), jobId: id(6),
+    bookingRequestId: id(10), sourceReference: `${id(1)}:${id(2)}`,
+  });
+});
+test('a confirmed queue job still rejects a different customer', () => {
+  const value = make();
+  value.invoice.Reference = 'VF BJS98 - REPAIRS';
+  value.confirmedJobId = id(6);
+  value.jobs[0].customer_id = id(9);
+  assert.deepEqual(matchXeroInvoice(value), { status: 'needs_review', reason: 'job_customer_mismatch' });
+});
