@@ -57,6 +57,9 @@ test('Xero imports rotate tokens, require an owner-confirmed match and publish o
   assert.match(worker, /requestXeroTokenRefresh/u);
   assert.match(worker, /matchXeroInvoice/u);
   assert.match(worker, /invoice\.Type !== 'ACCREC'[\s\S]*?vault_import_queue'\)\.delete/u);
+  assert.match(worker, /findPublishedWorkshopInvoice/u);
+  assert.match(worker, /Already published by the PSI workshop sync; the Xero copy was not duplicated\./u);
+  assert.match(worker, /findPublishedWorkshopInvoice[\s\S]*?reader\.pdf\(invoiceId\)/u);
   assert.match(worker, /xero_invoice_review/u);
   assert.match(worker, /process-push-notifications/u);
   assert.match(worker, /action: 'process_queue'/u);

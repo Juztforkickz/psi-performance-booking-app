@@ -158,6 +158,46 @@ async function setQueue(admin: SupabaseClient, id: string, values: Record<string
   if (error) throw new Error('xero_queue_update_failed');
 }
 
+async function findPublishedWorkshopInvoice(
+  admin: SupabaseClient,
+  reference: string,
+  invoiceNumber: string,
+  occurredOn: string,
+) {
+  const normalizedReference = ` ${reference.toUpperCase().replace(/[^A-Z0-9]+/gu, ' ').trim()} `;
+  const titles = [`Invoice ${invoiceNumber}`, `Xero invoice ${invoiceNumber}`];
+  const { data: records, error: recordError } = await admin
+    .from('vault_records')
+    .select('id,job_id,customer_id,vehicle_id,occurred_on,published_at')
+    .eq('kind', 'invoice')
+    .in('title', titles)
+    .not('published_at', 'is', null)
+    .limit(3);
+  if (recordError) throw new Error('workshop_invoice_duplicate_lookup_failed');
+  if (!records?.length) return null;
+
+  const vehicleIds = [...new Set(records.map(record => record.vehicle_id).filter(uuid))];
+  const { data: vehicles, error: vehicleError } = await admin
+    .from('customer_vehicles')
+    .select('id,customer_id,registration,archived_at')
+    .in('id', vehicleIds);
+  if (vehicleError) throw new Error('workshop_invoice_vehicle_lookup_failed');
+  const vehicleById = new Map((vehicles ?? []).map(vehicle => [vehicle.id, vehicle]));
+  const matches = records.filter(record => {
+    const vehicle = vehicleById.get(record.vehicle_id);
+    const registration = String(vehicle?.registration ?? '').toUpperCase().replace(/[^A-Z0-9]+/gu, '');
+    return Boolean(
+      vehicle
+      && !vehicle.archived_at
+      && vehicle.customer_id === record.customer_id
+      && registration
+      && normalizedReference.includes(` ${registration} `)
+      && (!record.occurred_on || record.occurred_on === occurredOn)
+    );
+  });
+  return matches.length === 1 ? matches[0] : null;
+}
+
 async function alertOwnerForReview(admin: SupabaseClient, ownerId: string, queued: QueueRow, identifiers: Record<string, unknown>) {
   const invoiceNumber = typeof identifiers.invoiceNumber === 'string' && identifiers.invoiceNumber.trim()
     ? identifiers.invoiceNumber.trim()
@@ -233,6 +273,28 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     return { id: queued.id, status: 'excluded', reason: 'supplier_bill' };
   }
 
+  const invoiceNumber = typeof invoice.InvoiceNumber === 'string' && invoice.InvoiceNumber.trim()
+    ? invoice.InvoiceNumber.trim().slice(0, 120)
+    : invoiceId.slice(0, 8).toUpperCase();
+  const publishedWorkshopInvoice = await findPublishedWorkshopInvoice(
+    admin,
+    reference,
+    invoiceNumber,
+    invoiceDate(invoice),
+  );
+  if (publishedWorkshopInvoice) {
+    await setQueue(admin, queued.id, {
+      status: 'imported',
+      job_id: publishedWorkshopInvoice.job_id,
+      record_id: publishedWorkshopInvoice.id,
+      identifiers: enriched,
+      reason: 'Already published by the PSI workshop sync; the Xero copy was not duplicated.',
+      completed_at: new Date().toISOString(),
+      last_error_code: null,
+    });
+    return { id: queued.id, status: 'imported', recordId: publishedWorkshopInvoice.id, duplicate: true };
+  }
+
   const { data: linked, error: linkError } = uuid(contactId)
     ? await admin.rpc('xero_customer_link_context', { p_tenant_id: tenantId, p_contact_id: contactId })
     : { data: null, error: null };
@@ -289,7 +351,6 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   const pdf = await reader.pdf(invoiceId);
   const sha256 = await hexDigest(pdf);
   const recordId = existing?.id ?? crypto.randomUUID();
-  const invoiceNumber = typeof invoice.InvoiceNumber === 'string' && invoice.InvoiceNumber.trim() ? invoice.InvoiceNumber.trim().slice(0, 120) : invoiceId.slice(0, 8).toUpperCase();
   if (!existing) {
     const { error: recordError } = await admin.from('vault_records').insert({
       id: recordId,
