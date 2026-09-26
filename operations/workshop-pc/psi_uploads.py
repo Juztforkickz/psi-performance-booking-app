@@ -800,29 +800,49 @@ def _text_note(path):
     return raw, note
 
 
+def _unchanged_terminal_source(prior, before, workshop_only):
+    if prior.get('source_size') != before[0] or prior.get('source_mtime_ns') != before[1]:
+        return False
+    if prior.get('status') == 'uploaded':
+        return True
+    return workshop_only and prior.get('status') == 'waiting_for_customer_account'
+
+
+def _source_state(source_key, status, before, **extra):
+    return {
+        'key': source_key,
+        'status': status,
+        'source_size': before[0],
+        'source_mtime_ns': before[1],
+        **extra,
+    }
+
+
 def _publish_text_record(folder, manifest, connection, state, path, relative, category, category_key, record_type):
     before = (path.stat().st_size, path.stat().st_mtime_ns)
     if time.time() - path.stat().st_mtime < 5:
+        return
+    workshop_only = manifest.get('schema') == 2 and manifest.get('owner_type') == 'workshop'
+    prior = state.get(relative, {})
+    if _unchanged_terminal_source(prior, before, workshop_only):
         return
     raw, note = _text_note(path)
     if before != (path.stat().st_size, path.stat().st_mtime_ns):
         return
     digest = hashlib.sha256(raw).hexdigest()
     source_key = f'pc:{manifest["job_id"]}:{category_key}:{digest}'
-    prior = state.get(relative, {})
     if (prior.get('key') == source_key or str(prior.get('key', '')).endswith(':' + digest)) and prior.get('status') == 'uploaded':
+        state[relative] = _source_state(source_key, 'uploaded', before, record_id=prior.get('record_id'))
         return
-    workshop_only = manifest.get('schema') == 2 and manifest.get('owner_type') == 'workshop'
     if not connection or workshop_only:
         out = prepared_folder(folder) / category
         out.mkdir(parents=True, exist_ok=True)
         hide_windows_folder(folder / '.psi-prepared')
         (out / (digest + '.txt')).write_bytes(raw)
-        state[relative] = {
-            'key': source_key,
-            'status': 'waiting_for_customer_account' if workshop_only else 'prepared',
-            'bytes': len(raw),
-        }
+        state[relative] = _source_state(
+            source_key, 'waiting_for_customer_account' if workshop_only else 'prepared', before,
+            bytes=len(raw),
+        )
         return
     title = path.stem[:180]
     if record_type == 'service':
@@ -840,7 +860,7 @@ def _publish_text_record(folder, manifest, connection, state, path, relative, ca
         }, headers={'Prefer': 'return=representation'})[0]
     else:
         raise ValueError('Unsupported text record folder')
-    state[relative] = {'key': source_key, 'status': 'uploaded', 'record_id': record['id']}
+    state[relative] = _source_state(source_key, 'uploaded', before, record_id=record['id'])
 
 
 def _object_suffix(mime):
@@ -881,6 +901,9 @@ def process_job(folder, connection=None):
                 # Wait for completed file transfers before processing.
                 if time.time() - path.stat().st_mtime < 5:
                     continue
+                prior = state.get(relative, {})
+                if _unchanged_terminal_source(prior, before, workshop_only):
+                    continue
                 content, thumb, mime = prepare_file(path)
                 if before != (path.stat().st_size, path.stat().st_mtime_ns):
                     continue
@@ -888,8 +911,8 @@ def process_job(folder, connection=None):
                     raise ValueError('Dyno and invoice folders accept PDF files only')
                 digest = hashlib.sha256(content).hexdigest()
                 source_key = f'pc:{manifest["job_id"]}:{category_key}:{digest}'
-                prior = state.get(relative, {})
                 if (prior.get('key') == source_key or str(prior.get('key', '')).endswith(':' + digest)) and prior.get('status') == 'uploaded':
+                    state[relative] = _source_state(source_key, 'uploaded', before)
                     continue
                 if not connection or workshop_only:
                     out = prepared_folder(folder) / category
@@ -898,16 +921,15 @@ def process_job(folder, connection=None):
                     (out / (digest + _object_suffix(mime))).write_bytes(content)
                     if thumb:
                         (out / (digest + '-thumb.jpg')).write_bytes(thumb)
-                    state[relative] = {
-                        'key': source_key,
-                        'status': 'waiting_for_customer_account' if workshop_only else 'prepared',
-                        'bytes': len(content),
-                        'thumbnail_bytes': len(thumb or b''),
-                    }
+                    state[relative] = _source_state(
+                        source_key, 'waiting_for_customer_account' if workshop_only else 'prepared', before,
+                        bytes=len(content),
+                        thumbnail_bytes=len(thumb or b''),
+                    )
                 else:
                     existing = connection.call('/rest/v1/vault_records?select=*&source_reference=eq.' + urllib.parse.quote(source_key, safe=''))
                     if existing and existing[0]['published_at']:
-                        state[relative] = {'key': source_key, 'status': 'uploaded'}
+                        state[relative] = _source_state(source_key, 'uploaded', before)
                         atomic_json(state_path, state)
                         continue
                     if existing:
@@ -938,7 +960,7 @@ def process_job(folder, connection=None):
                         connection.call('/rest/v1/vault_assets?id=eq.' + asset['id'], 'PATCH', {'ready': True})
                     from datetime import datetime, timezone
                     connection.call('/rest/v1/vault_records?id=eq.' + record['id'], 'PATCH', {'published_at': datetime.now(timezone.utc).isoformat()})
-                    state[relative] = {'key': source_key, 'status': 'uploaded'}
+                    state[relative] = _source_state(source_key, 'uploaded', before)
             except Exception as error:
                 state[relative] = {'status': 'needs_review', 'error': str(error)}
             atomic_json(state_path, state)

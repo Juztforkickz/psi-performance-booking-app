@@ -110,6 +110,40 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(next(iter(result.values()))['status'], 'waiting_for_customer_account')
         self.assertTrue((self.folder / '.psi-prepared' / 'Workshop photos').is_dir())
 
+    def test_all_waiting_categories_are_prepared_once_and_not_retried(self):
+        workshop_manifest = {
+            'schema': 2, 'owner_type': 'workshop', 'project_ref': 'test',
+            'job_id': self.manifest['job_id'],
+            'workshop_contact_id': 'a4400000-0000-4000-8000-000000000001',
+            'workshop_vehicle_id': 'a4500000-0000-4000-8000-000000000001',
+            'registration': 'ABC123', 'reference': 'PSI-PHONE-TEST', 'job_date': '2026-09-08',
+        }
+        (self.folder / 'psi-job.json').write_text(json.dumps(workshop_manifest))
+        fixtures = {
+            'Service & repair history': ('service.txt', b'Full service completed.'),
+            'Recommended work': ('recommendation.txt', b'Replace rear pads.'),
+            'Dyno results & graphs': ('dyno.pdf', b'%PDF-1.7\nDyno\n%%EOF'),
+            'Invoice archive': ('invoice.pdf', b'%PDF-1.7\nInvoice\n%%EOF'),
+            "Documents + DTC's": ('scan.pdf', b'%PDF-1.7\nDTC\n%%EOF'),
+        }
+        for category, (name, content) in fixtures.items():
+            category_folder = self.folder / category
+            category_folder.mkdir()
+            path = category_folder / name
+            path.write_bytes(content)
+            os.utime(path, (time.time() - 10, time.time() - 10))
+        self.image('Workshop photos')
+
+        first = process_job(self.folder)
+        with patch('psi_uploads.prepare_file', wraps=prepare_file) as prepare:
+            second = process_job(self.folder)
+
+        self.assertEqual(len(first), 6)
+        self.assertTrue(all(item['status'] == 'waiting_for_customer_account' for item in first.values()))
+        self.assertEqual(first, second)
+        self.assertEqual(prepare.call_count, 0)
+        self.assertTrue(all('source_size' in item and 'source_mtime_ns' in item for item in second.values()))
+
     def test_dyno_image_requires_review(self):
         self.image('dyno')
         result = process_job(self.folder)
