@@ -6,6 +6,8 @@ $Menu = Join-Path $InstallRoot 'Start-PSIWorkshopUploader.ps1'
 $StopFile = Join-Path $InstallRoot 'watcher.stop'
 $SessionFile = Join-Path $InstallRoot 'session.dpapi'
 $ErrorLog = Join-Path $InstallRoot 'last-error.log'
+$Updater = Join-Path $InstallRoot 'Update-PSIWorkshopUploader.ps1'
+$UpdateStatus = Join-Path $InstallRoot 'update-status.json'
 $TrayMutex = New-Object System.Threading.Mutex($false, 'Local\PSIWorkshopTray')
 $TrayLockHeld = $false
 
@@ -25,6 +27,9 @@ Add-Type -AssemblyName System.Drawing
 $script:Exited = $false
 $script:WatcherProcess = $null
 $script:MenuProcess = $null
+$script:UpdateProcess = $null
+$script:LastUpdateCheck = [DateTime]::MinValue
+$script:UpdateNoticeVersion = ''
 $script:StatusTimer = New-Object System.Windows.Forms.Timer
 $script:StatusTimer.Interval = 10000
 
@@ -101,6 +106,8 @@ $OpenFolderItem = $MenuStrip.Items.Add('Open upload folder')
 $RestartItem = $MenuStrip.Items.Add('Restart background sync')
 $StopItem = $MenuStrip.Items.Add('Stop background sync')
 [void]$MenuStrip.Items.Add('-')
+$UpdateItem = $MenuStrip.Items.Add('Check for workshop app updates')
+[void]$MenuStrip.Items.Add('-')
 $ExitItem = $MenuStrip.Items.Add('Exit tray icon')
 $Tray.ContextMenuStrip = $MenuStrip
 
@@ -124,6 +131,38 @@ function Update-PSITray {
   }
   $Tray.Text = $StatusItem.Text
   $OpenFolderItem.Enabled = $null -ne $config -and (Test-Path -LiteralPath $config.uploadRoot)
+
+  if ($script:UpdateProcess -and $script:UpdateProcess.HasExited) {
+    $script:UpdateProcess.Dispose()
+    $script:UpdateProcess = $null
+  }
+  if (Test-Path -LiteralPath $UpdateStatus) {
+    try {
+      $update = Get-Content -LiteralPath $UpdateStatus -Raw | ConvertFrom-Json
+      if ($update.updateAvailable) {
+        $UpdateItem.Text = 'Install workshop app update ' + $update.remoteVersion
+        $UpdateItem.Enabled = $true
+        if ($script:UpdateNoticeVersion -ne $update.remoteVersion) {
+          $script:UpdateNoticeVersion = $update.remoteVersion
+          $Tray.BalloonTipTitle = 'PSI Workshop update available'
+          $Tray.BalloonTipText = 'Version ' + $update.remoteVersion + ' is ready. Open the PSI tray menu to install it.'
+          $Tray.ShowBalloonTip(7000)
+        }
+      } elseif ($update.checkedAt) {
+        $UpdateItem.Text = 'Workshop app is up to date'
+        $UpdateItem.Enabled = $true
+      }
+    } catch {
+      $UpdateItem.Text = 'Check for workshop app updates'
+      $UpdateItem.Enabled = $true
+    }
+  }
+
+  if ((Get-Date) - $script:LastUpdateCheck -gt [TimeSpan]::FromHours(6) -and -not $script:UpdateProcess -and (Test-Path -LiteralPath $Updater)) {
+    $script:LastUpdateCheck = Get-Date
+    $arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $Updater + '" -CheckOnly'
+    $script:UpdateProcess = Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList $arguments -PassThru
+  }
 }
 
 $OpenMenuItem.add_Click({
@@ -151,6 +190,38 @@ $RestartItem.add_Click({
 $StopItem.add_Click({
   Stop-PSIWatcher
   Update-PSITray
+})
+
+$UpdateItem.add_Click({
+  $update = $null
+  if (Test-Path -LiteralPath $UpdateStatus) {
+    try { $update = Get-Content -LiteralPath $UpdateStatus -Raw | ConvertFrom-Json } catch { $update = $null }
+  }
+  if (-not $update -or -not $update.updateAvailable) {
+    $script:LastUpdateCheck = [DateTime]::MinValue
+    Update-PSITray
+    $Tray.BalloonTipTitle = 'PSI Workshop updates'
+    $Tray.BalloonTipText = 'Checking for an approved workshop app update.'
+    $Tray.ShowBalloonTip(4000)
+    return
+  }
+
+  $answer = [System.Windows.Forms.MessageBox]::Show(
+    'Install PSI Workshop version ' + $update.remoteVersion + '? Background syncing will pause, the current app will be backed up, and syncing will restart automatically.',
+    'Install PSI Workshop update',
+    [System.Windows.Forms.MessageBoxButtons]::YesNo,
+    [System.Windows.Forms.MessageBoxIcon]::Question
+  )
+  if ($answer -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+
+  Stop-PSIWatcher
+  $arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $Updater + '" -Install -NonInteractive'
+  Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments | Out-Null
+  $script:Exited = $true
+  $script:StatusTimer.Stop()
+  $Tray.Visible = $false
+  $Tray.Dispose()
+  [System.Windows.Forms.Application]::Exit()
 })
 
 $ExitItem.add_Click({

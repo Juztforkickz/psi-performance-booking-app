@@ -17,6 +17,8 @@ Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'requirements.txt') -Destination
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Start-PSIWorkshopUploader.ps1') -Destination $InstallRoot -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Start-PSIWorkshopWatcher.ps1') -Destination $InstallRoot -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Start-PSIWorkshopTray.ps1') -Destination $InstallRoot -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Update-PSIWorkshopUploader.ps1') -Destination $InstallRoot -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'workshop-update.json') -Destination $InstallRoot -Force
 
 $Python = (Get-Command python -ErrorAction Stop).Source
 & $Python -m venv (Join-Path $InstallRoot '.venv')
