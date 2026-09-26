@@ -1,0 +1,111 @@
+name: PSI Apple OTA update
+
+on:
+  workflow_dispatch:
+    inputs:
+      signed_device_verified:
+        description: Confirm this exact commit passed signed-device testing before an App Store release
+        required: true
+        default: false
+        type: boolean
+      update_message:
+        description: Short description shown in the Expo update history
+        required: true
+        default: PSI mobile update
+        type: string
+  push:
+    tags:
+      - ota-beta-*
+
+permissions:
+  contents: read
+
+concurrency:
+  group: psi-apple-ota-${{ startsWith(github.ref_name, 'ota-beta-') && 'beta' || 'app-store-release' }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish ${{ startsWith(github.ref_name, 'ota-beta-') && 'beta' || 'App Store' }} OTA
+    runs-on: ubuntu-latest
+    env:
+      OTA_TARGET: ${{ startsWith(github.ref_name, 'ota-beta-') && 'beta' || 'app-store-release' }}
+      OTA_ENVIRONMENT: ${{ startsWith(github.ref_name, 'ota-beta-') && 'development' || 'production' }}
+      OTA_MESSAGE: ${{ inputs.update_message || format('PSI mobile update ({0})', github.ref_name) }}
+    steps:
+      - name: Check release safety gate
+        env:
+          SIGNED_DEVICE_VERIFIED: ${{ inputs.signed_device_verified }}
+        run: |
+          if [ "$OTA_TARGET" = "app-store-release" ]; then
+            if [ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ] || [ "$SIGNED_DEVICE_VERIFIED" != "true" ]; then
+              echo "App Store OTA updates require a manual signed-device verification."
+              exit 1
+            fi
+          fi
+
+      - name: Check out the selected checkpoint
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Confirm the public checkpoint was published to beta
+        if: env.OTA_TARGET == 'app-store-release'
+        shell: bash
+        run: |
+          if ! git tag --points-at "$GITHUB_SHA" --list 'ota-beta-*' | grep -q .; then
+            echo "This exact commit has not been published to beta."
+            exit 1
+          fi
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: mobile/pnpm-lock.yaml
+
+      - name: Install locked dependencies
+        working-directory: mobile
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate mobile app
+        working-directory: mobile
+        run: |
+          pnpm typecheck
+          pnpm lint
+
+      - name: Install the pinned EAS CLI
+        uses: expo/expo-github-action@c7b66a9c327a43a8fa7c0158e7f30d6040d2481e # v8
+        with:
+          eas-version: 16.17.0
+          packager: pnpm
+
+      - name: Publish Apple OTA update
+        working-directory: mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_PUBLIC_PSI_DEMO_MODE_ENABLED: 'true'
+          EXPO_PUBLIC_PSI_APPLE_REVIEW: 'false'
+          EXPO_PUBLIC_PSI_GOOGLE_REVIEW: 'false'
+          EXPO_PUBLIC_PSI_UPDATE_CHANNEL: ${{ env.OTA_TARGET }}
+          EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST: ${{ env.OTA_TARGET == 'app-store-release' && 'true' || 'false' }}
+          EXPO_PUBLIC_REVENUECAT_APPLE_KEY: appl_qJcOAgyhLBExQHfYkgStIaOxQGj
+          EXPO_PUBLIC_SUPABASE_URL: https://lslhfrujyuqcavsnugfx.supabase.co
+          EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_B1fbCA2hQegGaE9JDCcp-Q_L2rvyeDN
+          EXPO_PUBLIC_SUPABASE_AUTH_ENABLED: 'true'
+          EXPO_PUBLIC_SUPABASE_BOOKING_ENABLED: 'true'
+          EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED: ${{ env.OTA_TARGET == 'app-store-release' && 'true' || 'false' }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "The EXPO_TOKEN repository secret has not been configured."
+            exit 1
+          fi
+          eas env:exec "$OTA_ENVIRONMENT" "node scripts/assert-ota-update-config.cjs '$OTA_TARGET'" --non-interactive
+          eas update --channel "$OTA_TARGET" --environment "$OTA_ENVIRONMENT" --platform ios --message "$OTA_MESSAGE" --non-interactive

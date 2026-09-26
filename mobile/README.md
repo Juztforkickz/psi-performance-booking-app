@@ -199,23 +199,25 @@ Production still requires the deployed HTTPS API, payment provider and signed we
 
 ## Over-the-air updates
 
-Native builds use EAS Update with `runtimeVersion` tied to the app version. The
-three build profiles are isolated on separate channels:
+Native builds use EAS Update with an isolated runtime for each release channel.
+The customer-facing Apple channels are:
 
-- `preview` for submission-disabled internal previews;
-- `qa` for signed authenticated device testing; and
-- `production` for a future App Store and Play Store release.
+- `beta` for signed-device acceptance; and
+- `app-store-release` for the public App Store build.
 
-Publish JavaScript, styling and bundled-asset changes to QA first from a clean,
-pushed checkpoint:
+JavaScript, styling and bundled-asset changes are published by
+`.github/workflows/apple-ota-update.yml`. Add an Expo Release Manager robot token
+to the repository's Actions secrets as `EXPO_TOKEN` once. Push an
+`ota-beta-*` tag to publish the exact checkpoint to beta. Only after that exact
+checkpoint passes signed-device acceptance may the workflow be manually run
+against that tagged checkpoint with the verification box checked. Manual runs
+publish only to `app-store-release`. The workflow refuses a public update unless
+the same commit already has an `ota-beta-*` tag. It runs typechecking and linting
+before either update, then verifies the effective Expo environment and runtime
+before publishing. Beta reads the isolated EAS `development` environment; the
+public channel reads `production`.
 
-```bash
-pnpm dlx eas-cli update --channel qa --environment preview --message "Describe the QA update"
-```
-
-Do not publish directly to `production`. After the exact checkpoint has passed
-signed-device acceptance, publish that same clean commit with the production
-environment. Native dependency, permission, app-icon, splash, signing and other
-native configuration changes require a new signed build rather than an OTA
-update. A newly installed build checks its own channel and compatible runtime;
-it cannot receive updates from either of the other channels.
+Native dependency, permission, app-icon, splash, signing and other native
+configuration changes require a new signed build rather than an OTA update. An
+installed build checks its own channel and compatible runtime; it cannot receive
+updates from another channel or runtime.
