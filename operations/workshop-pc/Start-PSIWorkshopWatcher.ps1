@@ -7,6 +7,8 @@ $SessionFile = Join-Path $InstallRoot 'session.dpapi'
 $StopFile = Join-Path $InstallRoot 'watcher.stop'
 $Mutex = New-Object System.Threading.Mutex($false, 'Local\PSIWorkshopAutomaticUploader')
 if (-not $Mutex.WaitOne(0)) { exit 0 }
+$ErrorLog = Join-Path $InstallRoot 'last-error.log'
+Remove-Item -LiteralPath $ErrorLog -Force -ErrorAction SilentlyContinue
 
 try {
   & $Python $Uploader `
@@ -27,7 +29,7 @@ try {
     } else {
       "PSI automatic uploads stopped unexpectedly (exit code $UploaderExitCode). Open PSI Workshop Uploads and restart background sync."
     }
-    Set-Content -LiteralPath (Join-Path $InstallRoot 'last-error.log') -Value $Message -Encoding UTF8
+    Set-Content -LiteralPath $ErrorLog -Value $Message -Encoding UTF8
   }
 } finally {
   $Mutex.ReleaseMutex()
