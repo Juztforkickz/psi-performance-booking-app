@@ -200,10 +200,8 @@ Production still requires the deployed HTTPS API, payment provider and signed we
 ## Over-the-air updates
 
 Native builds use EAS Update with an isolated runtime for each release channel.
-The customer-facing Apple channels are:
-
-- `beta` for signed-device acceptance; and
-- `app-store-release` for the public App Store build.
+The routine customer-facing Apple update channel is `app-store-release` for the
+public App Store build. The automatic workflow does not publish to `beta`.
 
 JavaScript, styling and bundled-asset changes are published by the native EAS
 Workflows in `.eas/workflows/`; no copied Expo token or GitHub Actions secret is
@@ -211,12 +209,11 @@ required. Link the Expo project to `Juztforkickz/psi-performance-booking-app`
 once in the Expo GitHub settings and set its base directory to `mobile`.
 
 After that one-time connection, every app source change under `mobile/src/`
-pushed to `main` is validated and published to the beta channel automatically.
-The same workflow then pauses until a team member confirms that exact beta works
-on a signed iPhone. Approval publishes the unchanged checkpoint to
-`app-store-release`. A newer source change cancels an older pending run so only
-the latest checkpoint can be approved. No token, GitHub secret or release tag
-is required.
+pushed to `main` is validated against the public production configuration. The
+workflow then pauses for explicit owner/team approval in Expo before publishing
+that exact checkpoint directly to `app-store-release`. A newer source change
+cancels an older pending run so only the latest checkpoint can be approved. No
+token, GitHub secret or release tag is required.
 
 Native dependency, permission, app-icon, splash, signing and other native
 configuration changes require a new signed build rather than an OTA update. An

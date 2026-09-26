@@ -23,6 +23,11 @@ import uuid
 from datetime import date, datetime, timedelta
 import re
 from PIL import Image, ImageOps
+from pillow_heif import register_heif_opener
+
+register_heif_opener(thumbnails=False)
+
+IMAGE_SUFFIXES = ('.jpg', '.jpeg', '.png', '.webp', '.tif', '.tiff', '.heic', '.heif')
 
 CATEGORIES = {
     'Service & repair history': ('service', None, 'service'),
@@ -121,7 +126,7 @@ def prepared_folder(folder):
 
 
 def prepare_file(path):
-    """Bound size, honour orientation, strip EXIF/GPS, preserve PDF originals."""
+    """Bound size, honour orientation, strip EXIF/GPS, convert images to JPEG."""
     if path.stat().st_size > 40 * 1024 * 1024:
         raise ValueError('Source exceeds 40 MB')
     raw = path.read_bytes()
@@ -862,7 +867,7 @@ def process_job(folder, connection=None):
             if path.is_symlink() or not path.is_file():
                 continue
             is_text_record = path.suffix.lower() == '.txt' and category in TEXT_RECORD_CATEGORIES
-            if not is_text_record and path.suffix.lower() not in ('.jpg', '.jpeg', '.png', '.webp', '.pdf', '.tif', '.tiff'):
+            if not is_text_record and path.suffix.lower() not in IMAGE_SUFFIXES + ('.pdf',):
                 continue
             relative = str(path.relative_to(folder))
             try:

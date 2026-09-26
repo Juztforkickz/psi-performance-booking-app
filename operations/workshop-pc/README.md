@@ -69,7 +69,7 @@ Add `--watch`, `--session-file` and `--manifest-inbox` to match the installed au
 ## Behaviour and recovery
 
 - Folder names and filenames are labels. No customer name, partial registration or filename can authorize a match. The portal manifest's project, job, customer, vehicle, registration and date must match live records. A changed registration requires a new verified manifest.
-- JPEG, PNG, WebP and TIFF photographs are oriented correctly and resized to at most 1600 pixels on the longest edge; JPEG quality 82. Thumbnails use a maximum 360-pixel edge and quality 72. EXIF/GPS is removed. HEIC and video are not supported by this initial tool: export JPEG first.
+- JPEG, PNG, WebP, TIFF, HEIC and HEIF photographs are oriented correctly, converted to upload-safe JPEG and resized to at most 1600 pixels on the longest edge; JPEG quality 82. Thumbnails use a maximum 360-pixel edge and quality 72. EXIF/GPS is removed. The original workshop file remains untouched. Video is not supported and should not be placed in an upload category.
 - PDF originals stay byte-for-byte intact. Save a Mainline result as PDF into the job's `Dyno results & graphs` folder; it uploads to that vehicle's Dyno results section. There is no assumed Mainline API or automatic numerical extraction, so enter verified HP/Nm in the portal when needed.
 - Originals remain untouched. Local `.psi-prepared` files are safe previews; `.psi-upload-status.json` reports prepared, uploaded, or needs_review. Neither is cloud backup.
 - Put all job photographs in `Workshop photos`; staff do not need to sort them into before, progress or after phases. Put scan reports, DTC exports and supporting paperwork in `Documents + DTC's`. A `.txt` file in `Service & repair history` creates a service/repair note; a `.txt` file in `Recommended work` creates a recommended-work record. Older verified job folders named `photos`, `dyno`, `invoices` or `documents` are migrated automatically without overwriting same-named files. Identical prepared content within the same job and category is deduplicated by SHA-256 and a server unique source reference. Re-encoded variants are different content.
@@ -80,4 +80,4 @@ Add `--watch`, `--session-file` and `--manifest-inbox` to match the installed au
 
 ## Verification
 
-`python -m unittest -v test_psi_uploads.py` tests compression, privacy metadata removal, untouched originals, PDF validation, repeat preparation, incomplete copies, missing manifests, mismatched identities and forbidden destination/keys. These tests do not upload customer data.
+`python -m unittest -v test_psi_uploads.py` tests HEIC conversion, compression, privacy metadata removal, untouched originals, PDF validation, repeat preparation, incomplete copies, missing manifests, mismatched identities and forbidden destination/keys. These tests do not upload customer data.

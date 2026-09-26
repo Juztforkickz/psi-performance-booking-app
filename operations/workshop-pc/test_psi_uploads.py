@@ -9,6 +9,7 @@ import time
 import unittest
 from unittest.mock import patch
 from PIL import Image
+from pillow_heif import from_pillow
 from psi_uploads import (
     Connection, RequestFailure, SessionStore, _ReturnToMenu, _parse_job_date, _parse_job_type,
     create_job_folder, create_manual_job,
@@ -54,6 +55,29 @@ class WorkshopImporterTests(unittest.TestCase):
         with Image.open(io.BytesIO(thumbnail)) as image:
             self.assertLessEqual(max(image.size), 360)
         self.assertEqual(path.read_bytes(), original)
+
+    def test_heic_is_converted_to_jpeg_and_keeps_original(self):
+        folder = self.folder / 'Workshop photos'
+        folder.mkdir(exist_ok=True)
+        path = folder / 'phone-photo.HEIC'
+        from_pillow(Image.new('RGB', (2400, 1600), 'blue')).save(path, quality=90)
+        os.utime(path, (time.time() - 10, time.time() - 10))
+        original = path.read_bytes()
+
+        prepared, thumbnail, mime = prepare_file(path)
+
+        self.assertEqual(mime, 'image/jpeg')
+        with Image.open(io.BytesIO(prepared)) as image:
+            self.assertEqual(image.format, 'JPEG')
+            self.assertLessEqual(max(image.size), 1600)
+        with Image.open(io.BytesIO(thumbnail)) as image:
+            self.assertLessEqual(max(image.size), 360)
+        self.assertEqual(path.read_bytes(), original)
+
+        state = process_job(self.folder)
+        self.assertEqual(state['Workshop photos\\phone-photo.HEIC']['status'], 'prepared')
+        prepared_folder = self.folder / '.psi-prepared' / 'Workshop photos'
+        self.assertEqual(len(list(prepared_folder.glob('*.jpg'))), 2)
 
     def test_pdf_preserved_and_disguised_file_rejected(self):
         path = self.folder / 'dyno.pdf'
