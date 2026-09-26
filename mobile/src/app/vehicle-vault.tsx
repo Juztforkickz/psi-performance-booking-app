@@ -67,6 +67,7 @@ export default function VehicleVault() {
   const [revision, setRevision] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const [opened, setOpened] = useState<{ key: string; assets: VaultAsset[] } | null>(null);
+  const [expandedNote, setExpandedNote] = useState<string | null>(null);
   const [loadingEntry, setLoadingEntry] = useState('');
   const [image, setImage] = useState<{ key: string; url: string } | null>(null);
   useEffect(() => {
@@ -131,6 +132,7 @@ export default function VehicleVault() {
       const isGallery = record.kind === 'media';
       const hasAttachments = ATTACHMENT_KINDS.has(record.kind) && !record.id.startsWith('repair:') && !record.id.startsWith('recommendation:');
       const expanded = opened?.key === entry.key;
+      const noteExpanded = expandedNote === entry.key;
       const fileCount = expanded ? opened.assets.length : entry.records.length;
       const displayTitle = entry.records.length > 1 && hasAttachments ? GROUP_TITLES[record.kind as keyof typeof GROUP_TITLES] : isGallery ? 'Workshop photos' : record.title;
       const fileLabel = isGallery ? `${fileCount} ${fileCount === 1 ? 'photo' : 'photos'} from this workshop visit` : entry.records.length > 1 ? `${fileCount} attached ${fileCount === 1 ? 'file' : 'files'} from this workshop visit` : record.notes;
@@ -141,8 +143,12 @@ export default function VehicleVault() {
       <Text style={s.eyebrow}>{new Date(`${record.occurred_on.slice(0, 10)}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}</Text>
       <Text style={s.muted}>{record.source === 'customer_entry' ? 'Customer-supplied · unverified' : 'PSI workshop record · read-only'}</Text>
       <Text style={s.section}>{displayTitle}</Text>
-      {fileLabel ? <Text numberOfLines={expanded ? undefined : 3} style={s.copy}>{fileLabel}</Text> : null}
+      {fileLabel ? <Text numberOfLines={expanded || noteExpanded ? undefined : 3} style={s.copy}>{fileLabel}</Text> : null}
       {record.power_kw ? <Text style={s.copy}>{Math.round(record.power_kw * 1.34102209)} HP at hubs{record.torque_nm ? ` · ${record.torque_nm} Nm at hubs` : ''}</Text> : null}
+      {!hasAttachments && fileLabel ? <Pressable accessibilityRole="button" accessibilityLabel={noteExpanded ? 'Hide full workshop record details' : 'View full workshop record details'} accessibilityState={{ expanded: noteExpanded }} onPress={() => setExpandedNote(noteExpanded ? null : entry.key)} style={({ pressed }) => [archiveStyles.toggle, pressed && { opacity: .78 }]}>
+          <View style={archiveStyles.toggleCopy}><Ionicons name="document-text-outline" color="#65CFF8" size={21} /><Text style={archiveStyles.toggleText}>{noteExpanded ? 'Hide details' : 'View full details'}</Text></View>
+          <Ionicons name={noteExpanded ? 'chevron-up' : 'chevron-down'} color="#65CFF8" size={20} />
+        </Pressable> : null}
       {hasAttachments ? <Pressable accessibilityRole="button" accessibilityLabel={actionLabel} onPress={() => void openEntry(entry)} style={({ pressed }) => [archiveStyles.toggle, pressed && { opacity: .78 }]}>
           <View style={archiveStyles.toggleCopy}><Ionicons name={ATTACHMENT_ICONS[record.kind as keyof typeof ATTACHMENT_ICONS]} color="#65CFF8" size={21} /><Text style={archiveStyles.toggleText}>{actionLabel}</Text></View>
           {loadingEntry === entry.key ? <ActivityIndicator color="#65CFF8" /> : <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} color="#65CFF8" size={20} />}
