@@ -17,6 +17,7 @@ $WatcherLockHeld = $false
 $RestartWatcher = $false
 $MenuMutex = New-Object System.Threading.Mutex($false, 'Local\PSIWorkshopMenu')
 $MenuLockHeld = $false
+$UseInitialChoice = [bool]$InitialChoice
 
 try {
   $MenuLockHeld = $MenuMutex.WaitOne(0)
@@ -106,9 +107,9 @@ try {
     Write-Host '3. Add a downloaded job folder file (fallback)'
     Write-Host '4. Upload and sync once'
     Write-Host '5. Forget the remembered staff sign-in'
-    if ($InitialChoice) {
+    if ($UseInitialChoice) {
       $Choice = $InitialChoice
-      $InitialChoice = $null
+      $UseInitialChoice = $false
       Write-Host "Selected option $Choice."
     } else {
       $Choice = Read-Host 'Choose 1, 2, 3, 4 or 5'

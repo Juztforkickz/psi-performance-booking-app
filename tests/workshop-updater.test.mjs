@@ -37,11 +37,14 @@ test('workshop update manifest allowlists and hashes every executable file', asy
 
 test('installer and tray expose an explicit verified update flow', async () => {
   const installer = await readFile(path.join(root, 'Install-PSIWorkshopUploader.ps1'), 'utf8');
+  const launcher = await readFile(path.join(root, 'Start-PSIWorkshopUploader.ps1'), 'utf8');
   const tray = await readFile(path.join(root, 'Start-PSIWorkshopTray.ps1'), 'utf8');
   const updater = await readFile(path.join(root, 'Update-PSIWorkshopUploader.ps1'), 'utf8');
 
   assert.match(installer, /Update-PSIWorkshopUploader\.ps1/);
   assert.match(installer, /workshop-update\.json/);
+  assert.match(launcher, /\$UseInitialChoice = \[bool\]\$InitialChoice/);
+  assert.doesNotMatch(launcher, /\$InitialChoice\s*=\s*\$null/);
   assert.match(tray, /Install workshop app update/);
   assert.match(tray, /MessageBoxButtons\]::YesNo/);
   assert.match(updater, /Get-FileHash.+SHA256/);
