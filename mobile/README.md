@@ -214,8 +214,9 @@ against that tagged checkpoint with the verification box checked. Manual runs
 publish only to `app-store-release`. The workflow refuses a public update unless
 the same commit already has an `ota-beta-*` tag. It runs typechecking and linting
 before either update, then verifies the effective Expo environment and runtime
-before publishing. Beta reads the isolated EAS `development` environment; the
-public channel reads `production`.
+before publishing. Both channels read the same EAS `production` environment as
+their signed builds, while the checked-in build and workflow variables select
+the channel and runtime.
 
 Native dependency, permission, app-icon, splash, signing and other native
 configuration changes require a new signed build rather than an OTA update. An
