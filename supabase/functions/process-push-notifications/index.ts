@@ -40,7 +40,9 @@ Deno.serve(async (request) => {
   let isAal2Staff = false;
 
   if (isInternalServiceCall) {
-    if (body.action !== "process_due_service_reminders" || !bookingId) return json({ error: "internal_booking_id_required" }, 400);
+    const dueReminderCall = body.action === "process_due_service_reminders" && Boolean(bookingId);
+    const queueWorkerCall = body.action === "process_queue" && !bookingId;
+    if (!dueReminderCall && !queueWorkerCall) return json({ error: "invalid_internal_action" }, 400);
   } else {
     const { data: userData, error: userError } = await userClient.auth.getUser(token);
     if (userError || !userData.user) return json({ error: "invalid_session" }, 401);
@@ -139,7 +141,7 @@ Deno.serve(async (request) => {
   if (!jobs) {
     let jobsQuery = admin.from("push_notification_jobs").select("id,event_id,booking_request_id,recipient_user_id,attempt_count").in("status", ["pending", "failed"]).lte("available_at", new Date().toISOString()).lt("attempt_count", 20).order("created_at", { ascending: true }).limit(25);
     if (bookingId) jobsQuery = jobsQuery.eq("booking_request_id", bookingId);
-    if (isInternalServiceCall) {
+    if (isInternalServiceCall && body.action === "process_due_service_reminders") {
       const { data: reminderEvents, error: reminderEventsError } = await admin
         .from("notification_events")
         .select("id")
@@ -177,11 +179,16 @@ Deno.serve(async (request) => {
       continue;
     }
     const workshopAlert = event.deep_link === "/staff";
+    const invoiceAttentionAlert = event.kind === "xero_invoice_review";
     const messages = devices.map((device) => ({
       to: device.expo_push_token,
-      title: "PSI update received",
+      title: invoiceAttentionAlert ? "PSI invoices need attention" : "PSI update received",
       subtitle: workshopAlert ? "PSI workshop" : "Customer account",
-      body: workshopAlert ? "Open the protected workshop portal to review it." : "Open PSI to view your private update.",
+      body: invoiceAttentionAlert
+        ? "Open Imports & drafts to review unresolved sales invoices."
+        : workshopAlert
+          ? "Open the protected workshop portal to review it."
+          : "Open PSI to view your private update.",
       data: { url: event.deep_link },
       badge: count ?? 0,
       sound: preference?.sound_enabled === false ? null : "default",

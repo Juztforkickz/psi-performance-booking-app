@@ -194,7 +194,7 @@ async function alertOwnerForReview(admin: SupabaseClient, ownerId: string, queue
   const response = await fetch(`${supabaseUrl}/functions/v1/process-push-notifications`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${serviceRoleKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jobId: eventId }),
+    body: JSON.stringify({ action: 'process_queue' }),
   });
   await response.body?.cancel();
 }

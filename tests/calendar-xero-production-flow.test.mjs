@@ -59,8 +59,25 @@ test('Xero imports rotate tokens, require an owner-confirmed match and publish o
   assert.match(worker, /invoice\.Type !== 'ACCREC'[\s\S]*?vault_import_queue'\)\.delete/u);
   assert.match(worker, /xero_invoice_review/u);
   assert.match(worker, /process-push-notifications/u);
+  assert.match(worker, /action: 'process_queue'/u);
   assert.match(worker, /reader\.pdf\(invoiceId\)/u);
   assert.match(worker, /storage\.from\('performance-vault'\)\.upload/u);
   assert.match(worker, /published_at: new Date\(\)\.toISOString\(\)/u);
   assert.doesNotMatch(worker, /body\.(?:customerId|vehicleId|jobId|invoiceUrl|pdfUrl)/u);
+});
+
+test('owner invoice attention reminders repeat safely during workshop hours', async () => {
+  const migration = await read('../supabase/migrations/20260926235500_repeat_owner_attention_notifications.sql');
+  const dispatcher = await read('../supabase/migrations/20260927000600_owner_only_attention_dispatch.sql');
+  const pushWorker = await read('../supabase/functions/process-push-notifications/index.ts');
+
+  assert.match(migration, /Australia\/Sydney/u);
+  assert.match(migration, /interval '4 hours'/u);
+  assert.match(migration, /psi-owner-attention-reminders/u);
+  assert.match(migration, /status = 'needs_review'/u);
+  assert.match(dispatcher, /matt@psiperformance\.com\.au/u);
+  assert.match(dispatcher, /PSI invoices need attention/u);
+  assert.match(dispatcher, /private\.dispatch_owner_attention_notifications/u);
+  assert.match(pushWorker, /body\.action === "process_queue"/u);
+  assert.match(pushWorker, /PSI invoices need attention/u);
 });

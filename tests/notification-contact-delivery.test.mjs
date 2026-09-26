@@ -19,8 +19,9 @@ test('push delivery distinguishes roles without exposing workshop enquiry detail
     read('../mobile/src/lib/notifications.tsx'),
   ]);
   assert.match(worker, /channelId: workshopAlert \? "psi-workshop" : "psi-customer"/u);
-  assert.match(worker, /title: "PSI update received"/u);
-  assert.match(worker, /body: workshopAlert \? "Open the protected workshop portal to review it\." : "Open PSI to view your private update\."/u);
+  assert.match(worker, /title: invoiceAttentionAlert \? "PSI invoices need attention" : "PSI update received"/u);
+  assert.match(worker, /Open Imports & drafts to review unresolved sales invoices/u);
+  assert.match(worker, /workshopAlert[\s\S]*?"Open the protected workshop portal to review it\."[\s\S]*?"Open PSI to view your private update\."/u);
   assert.doesNotMatch(worker, /bookingId: event\.booking_request_id/u);
   assert.doesNotMatch(worker, /eventId: event\.id/u);
   assert.match(worker, /sound: preference\?\.sound_enabled === false \? null : "default"/u);
