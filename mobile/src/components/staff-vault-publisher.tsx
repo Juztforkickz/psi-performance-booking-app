@@ -158,7 +158,7 @@ export function StaffVaultReview({ snapshot, owner, previewMode = false }: { sna
     setBusy(true); setError('');
     try {
       const [queue, records] = await Promise.all([
-        vaultClient().from('vault_import_queue').select('id,reason,source,source_key,status,identifiers,attempt_count,last_error_code').in('status', ['pending', 'processing', 'needs_review', 'matched', 'failed']).order('created_at', { ascending: false }).limit(50),
+        vaultClient().from('vault_import_queue').select('id,reason,source,source_key,status,identifiers,attempt_count,last_error_code').in('status', ['pending', 'processing', 'needs_review', 'waiting_for_customer', 'matched', 'failed']).order('created_at', { ascending: false }).limit(50),
         vaultClient().from('vault_records').select('id,title,created_at').is('published_at', null).order('created_at', { ascending: false }).limit(50),
       ]);
       if (queue.error || records.error) throw queue.error ?? records.error;
@@ -183,14 +183,19 @@ export function StaffVaultReview({ snapshot, owner, previewMode = false }: { sna
     <PrimaryButton disabled={previewMode || busy} loading={busy} label={loaded ? 'Refresh' : 'Load records'} variant="outline" onPress={() => void review()} />
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
     {loaded && !error ? <>
-      {imports.length ? <View accessibilityRole="alert" style={styles.reviewAlert}>
+      {imports.filter(item => item.status !== 'waiting_for_customer').length ? <View accessibilityRole="alert" style={styles.reviewAlert}>
         <Ionicons color={colors.danger} name="alert-circle" size={24} />
-        <View style={styles.reviewAlertCopy}><Text style={styles.reviewAlertTitle}>Action needed · {imports.length} invoice exception{imports.length === 1 ? '' : 's'}</Text><Text style={styles.muted}>These could not be matched automatically. Check the customer and vehicle before publishing, or keep the invoice in Xero only.</Text></View>
+        <View style={styles.reviewAlertCopy}><Text style={styles.reviewAlertTitle}>Action needed · {imports.filter(item => item.status !== 'waiting_for_customer').length} invoice exception{imports.filter(item => item.status !== 'waiting_for_customer').length === 1 ? '' : 's'}</Text><Text style={styles.muted}>These could not be matched automatically. Check the customer and vehicle before publishing, or keep the invoice in Xero only.</Text></View>
       </View> : null}
       <Text style={styles.title}>Imports needing review</Text>
-      {!imports.length ? <Text style={styles.muted}>No imports need review.</Text> : imports.map(item => item.source === 'xero'
+      {!imports.some(item => item.status !== 'waiting_for_customer') ? <Text style={styles.muted}>No imports need review.</Text> : imports.filter(item => item.status !== 'waiting_for_customer').map(item => item.source === 'xero'
         ? <XeroImportReviewCard disabled={busy} item={item} key={item.id} onDone={review} owner={owner} snapshot={snapshot} />
         : <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.source} · {item.source_key}</Text><Text style={styles.muted}>{item.reason}</Text></View>)}
+      {imports.some(item => item.status === 'waiting_for_customer') ? <>
+        <Text style={styles.title}>Waiting for customer</Text>
+        <Text style={styles.muted}>These private files are ready to sync when the customer creates and matches their account. They do not send owner alerts.</Text>
+        {imports.filter(item => item.status === 'waiting_for_customer').map(item => <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.source} · {item.source_key}</Text><Text style={styles.muted}>{item.reason || 'Waiting for customer account match.'}</Text></View>)}
+      </> : null}
       {imports.length === 50 ? <Text style={styles.muted}>Showing the latest 50 imports.</Text> : null}
       <Text style={styles.title}>Unpublished drafts</Text>
       {!drafts.length ? <Text style={styles.muted}>No unfinished vault drafts.</Text> : <><Text style={styles.muted}>Check the original upload before retrying to avoid duplicates.</Text>{drafts.map(item => <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.title}</Text><Text selectable style={styles.muted}>Draft reference: {item.id}</Text></View>)}</>}
