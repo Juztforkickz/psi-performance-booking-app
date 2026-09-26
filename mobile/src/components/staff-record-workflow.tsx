@@ -116,7 +116,16 @@ export function StaffRecordWorkflow({ snapshot, customerId: shortcutCustomerId, 
       </Pressable> : null}
       <Text style={styles.title}>{selectedTitle}</Text>
     </View> : <Text style={styles.muted}>Add to this vehicle</Text>}
-    {!category ? <PrimaryButton label={viewingHistory ? 'Back to record actions' : 'View records & customer notes'} variant="outline" onPress={() => setViewingHistory(value => !value)} /> : null}
+    {!category ? viewingHistory
+      ? <PrimaryButton label="Back to record actions" variant="outline" onPress={() => setViewingHistory(false)} />
+      : <Pressable accessibilityRole="button" accessibilityLabel="Inspect vehicle records and customer notes" onPress={() => setViewingHistory(true)} style={({ pressed }) => [styles.historyAction, pressed && styles.historyActionPressed]}>
+          <View style={styles.historyActionIcon}><Ionicons color={colors.ink} name="folder-open" size={25} /></View>
+          <View style={styles.rowCopy}>
+            <Text style={styles.historyActionTitle}>Inspect records & customer notes</Text>
+            <Text style={styles.historyActionCopy}>Open the complete vehicle history, attachments and customer notes.</Text>
+          </View>
+          <Ionicons color={colors.ink} name="chevron-forward" size={21} />
+        </Pressable> : null}
     {!category && viewingHistory ? <StaffVehicleHistory key={customerId + ':' + vehicleId} vehicleId={vehicleId} previewMode={previewMode} /> : null}
     {!category && !viewingHistory ? <Text style={styles.title}>Publish a PSI record</Text> : null}
     {!category && !viewingHistory ? categories.map(option => <Row key={option.id} icon={option.icon} title={option.title} onPress={() => chooseCategory(option.id)} />) : null}
@@ -159,6 +168,11 @@ const styles = StyleSheet.create({
   identityVehicle: { color: colors.silver, fontSize: 14, lineHeight: 21 },
   registration: { color: colors.accent, fontSize: 14, lineHeight: 21, fontWeight: '700' },
   change: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
+  historyAction: { backgroundColor: colors.accent, borderWidth: 1, borderColor: colors.accent, borderRadius: 12, padding: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 82 },
+  historyActionPressed: { opacity: 0.82 },
+  historyActionIcon: { height: 42, width: 42, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  historyActionTitle: { color: colors.ink, fontSize: 17, lineHeight: 22, fontWeight: '900', flexShrink: 1 },
+  historyActionCopy: { color: '#0C3444', fontSize: 13, lineHeight: 18, fontWeight: '600' },
   row: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.line, borderRadius: 12, padding: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 66 },
   pressed: { backgroundColor: colors.panelRaised },
   icon: { height: 36, width: 36, alignItems: 'center', justifyContent: 'center' },

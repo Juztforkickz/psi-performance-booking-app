@@ -56,6 +56,9 @@ test('Xero imports rotate tokens, require an owner-confirmed match and publish o
   assert.match(webhook, /SUPABASE_SERVICE_ROLE_KEY/u);
   assert.match(worker, /requestXeroTokenRefresh/u);
   assert.match(worker, /matchXeroInvoice/u);
+  assert.match(worker, /invoice\.Type !== 'ACCREC'[\s\S]*?vault_import_queue'\)\.delete/u);
+  assert.match(worker, /xero_invoice_review/u);
+  assert.match(worker, /process-push-notifications/u);
   assert.match(worker, /reader\.pdf\(invoiceId\)/u);
   assert.match(worker, /storage\.from\('performance-vault'\)\.upload/u);
   assert.match(worker, /published_at: new Date\(\)\.toISOString\(\)/u);

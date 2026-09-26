@@ -183,6 +183,10 @@ export function StaffVaultReview({ snapshot, owner, previewMode = false }: { sna
     <PrimaryButton disabled={previewMode || busy} loading={busy} label={loaded ? 'Refresh' : 'Load records'} variant="outline" onPress={() => void review()} />
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
     {loaded && !error ? <>
+      {imports.length ? <View accessibilityRole="alert" style={styles.reviewAlert}>
+        <Ionicons color={colors.danger} name="alert-circle" size={24} />
+        <View style={styles.reviewAlertCopy}><Text style={styles.reviewAlertTitle}>Action needed · {imports.length} invoice exception{imports.length === 1 ? '' : 's'}</Text><Text style={styles.muted}>These could not be matched automatically. Check the customer and vehicle before publishing, or keep the invoice in Xero only.</Text></View>
+      </View> : null}
       <Text style={styles.title}>Imports needing review</Text>
       {!imports.length ? <Text style={styles.muted}>No imports need review.</Text> : imports.map(item => item.source === 'xero'
         ? <XeroImportReviewCard disabled={busy} item={item} key={item.id} onDone={review} owner={owner} snapshot={snapshot} />
@@ -247,7 +251,7 @@ function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { dis
     <Text style={styles.muted}>{contactName}{invoiceDate ? ` · ${invoiceDate}` : ''}{totalCents !== null ? ` · ${aud(totalCents)}` : ''}</Text>
     {invoiceStatus ? <Text style={styles.importStatus}>Xero · {invoiceStatus}{amountDueCents !== null ? ` · ${aud(amountDueCents)} due` : ''}</Text> : null}
     {reference ? <Text selectable style={styles.copy}>PSI job reference · {reference}</Text> : null}
-    <Text style={styles.muted}>{item.reason}{item.last_error_code ? ` · ${item.last_error_code.replaceAll('_', ' ')}` : ''}</Text>
+    <Text style={styles.muted}>{reviewReason(item.reason)}{item.last_error_code ? ` · ${item.last_error_code.replaceAll('_', ' ')}` : ''}</Text>
     {item.status === 'pending' || item.status === 'matched' || item.status === 'processing' ? <Text style={styles.message}>Secure inspection is queued.</Text> : null}
     {item.status === 'needs_review' && owner ? <>
       <StaffScrollSelect label="Customer" value={customerId} options={customerOptions(snapshot)} searchable onChange={value => { setCustomerId(value); setVehicleId(''); setConfirmed(false); setMessage(''); }} />
@@ -283,6 +287,13 @@ export function StaffPerformanceAccess({ onDirtyChange, onBusyChange, previewMod
 function displayName(customer: StaffPortalSnapshot['customers'][number]) {
   return [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.email;
 }
+
+function reviewReason(reason: string) {
+  if (reason === 'verified_customer_link_required') return 'Customer and vehicle confirmation required before this sales invoice can be added.';
+  if (reason === 'invoice_status_requires_review') return 'This sales invoice is still a draft in Xero. It will not be published until it is issued or paid.';
+  if (reason === 'job_reference_required') return 'An exact PSI job reference or vehicle registration is required.';
+  return reason.replaceAll('_', ' ');
+}
 function customerOptions(snapshot: StaffPortalSnapshot) {
   return [...snapshot.customers].sort((a, b) => displayName(a).localeCompare(displayName(b), 'en-AU')).map(c => ({ value: c.user_id, label: displayName(c), sublabel: c.email }));
 }
@@ -292,6 +303,9 @@ function Choice({ label, selected, onPress, disabled = false }: { label: string;
 const styles = StyleSheet.create({
   stack: { gap: spacing.md },
   card: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: colors.panel, padding: spacing.md, gap: spacing.md },
+  reviewAlert: { borderWidth: 1, borderColor: colors.danger, borderLeftWidth: 4, borderRadius: 12, backgroundColor: colors.panel, padding: spacing.md, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
+  reviewAlertCopy: { flex: 1, minWidth: 0, gap: 3 },
+  reviewAlertTitle: { color: colors.danger, fontSize: 15, lineHeight: 21, fontWeight: '900' },
   review: { gap: spacing.md, paddingVertical: spacing.sm },
   title: { color: colors.white, fontSize: 16, fontWeight: '700', flexShrink: 1 },
   copy: { color: colors.white, fontSize: 14, lineHeight: 21, flexShrink: 1 },

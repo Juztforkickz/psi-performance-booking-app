@@ -158,6 +158,47 @@ async function setQueue(admin: SupabaseClient, id: string, values: Record<string
   if (error) throw new Error('xero_queue_update_failed');
 }
 
+async function alertOwnerForReview(admin: SupabaseClient, ownerId: string, queued: QueueRow, identifiers: Record<string, unknown>) {
+  const invoiceNumber = typeof identifiers.invoiceNumber === 'string' && identifiers.invoiceNumber.trim()
+    ? identifiers.invoiceNumber.trim()
+    : 'Xero sales invoice';
+  const contactName = typeof identifiers.contactName === 'string' && identifiers.contactName.trim()
+    ? identifiers.contactName.trim()
+    : 'an unmatched contact';
+  const sourceEventKey = `xero_invoice_review:${queued.id}`;
+  const { data: inserted, error: eventError } = await admin.from('notification_events').upsert({
+    recipient_user_id: ownerId,
+    booking_request_id: null,
+    kind: 'xero_invoice_review',
+    title: 'Xero sales invoice needs review',
+    body: `${invoiceNumber} for ${contactName} could not be matched automatically. Open Imports & drafts to review it.`.slice(0, 240),
+    deep_link: '/staff',
+    source_event_key: sourceEventKey,
+  }, { onConflict: 'source_event_key', ignoreDuplicates: true }).select('id').maybeSingle();
+  if (eventError) throw new Error('xero_review_alert_failed');
+  let eventId = inserted?.id;
+  if (!eventId) {
+    const { data: existing, error } = await admin.from('notification_events').select('id').eq('source_event_key', sourceEventKey).single();
+    if (error || !existing) throw new Error('xero_review_alert_missing');
+    eventId = existing.id;
+  }
+  const { error: pushError } = await admin.from('push_notification_jobs').upsert({
+    event_id: eventId,
+    booking_request_id: null,
+    recipient_user_id: ownerId,
+  }, { onConflict: 'event_id', ignoreDuplicates: true });
+  if (pushError) throw new Error('xero_review_push_queue_failed');
+
+  const supabaseUrl = env('SUPABASE_URL');
+  const serviceRoleKey = env('SUPABASE_SERVICE_ROLE_KEY');
+  const response = await fetch(`${supabaseUrl}/functions/v1/process-push-notifications`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${serviceRoleKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jobId: eventId }),
+  });
+  await response.body?.cancel();
+}
+
 async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   const tenantId = queued.identifiers.tenantId;
   const invoiceId = queued.identifiers.invoiceId;
@@ -183,6 +224,14 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     currency: invoice.CurrencyCode ?? null,
     invoiceStatus: invoice.Status ?? null,
   };
+
+  // Supplier bills belong in Xero, not in the customer-facing PSI workflow.
+  // Remove the short-lived webhook queue row as soon as Xero identifies it.
+  if (invoice.Type !== 'ACCREC') {
+    const { error } = await admin.from('vault_import_queue').delete().eq('id', queued.id);
+    if (error) throw new Error('xero_supplier_bill_cleanup_failed');
+    return { id: queued.id, status: 'excluded', reason: 'supplier_bill' };
+  }
 
   const { data: linked, error: linkError } = uuid(contactId)
     ? await admin.rpc('xero_customer_link_context', { p_tenant_id: tenantId, p_contact_id: contactId })
@@ -223,6 +272,8 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
       status: 'needs_review', identifiers: enriched, reason: matched.reason,
       completed_at: null, last_error_code: null,
     });
+    // The invoice must remain reviewable even if alert delivery is temporarily unavailable.
+    await alertOwnerForReview(admin, ownerId, queued, enriched).catch(() => undefined);
     return { id: queued.id, status: 'needs_review', reason: matched.reason };
   }
 
