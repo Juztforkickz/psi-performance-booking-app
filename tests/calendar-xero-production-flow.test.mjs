@@ -70,13 +70,15 @@ test('Xero imports rotate tokens, require an owner-confirmed match and publish o
 });
 
 test('owner invoice attention reminders repeat safely during workshop hours', async () => {
-  const migration = await read('../supabase/migrations/20260926235500_repeat_owner_attention_notifications.sql');
+  const migration = await read('../supabase/migrations/20260927003000_daily_owner_invoice_attention.sql');
   const dispatcher = await read('../supabase/migrations/20260927000600_owner_only_attention_dispatch.sql');
   const pushWorker = await read('../supabase/functions/process-push-notifications/index.ts');
 
   assert.match(migration, /Australia\/Sydney/u);
-  assert.match(migration, /interval '4 hours'/u);
-  assert.match(migration, /psi-owner-attention-reminders/u);
+  assert.match(migration, /Australia\/Sydney/u);
+  assert.match(migration, /psi-owner-daily-invoice-reminder/u);
+  assert.match(migration, /xero_attention_reminder:' \|\| to_char\(local_now, 'YYYYMMDD'\)/u);
+  assert.match(migration, /timezone\('Australia\/Sydney', created_at\)::date = local_now::date/u);
   assert.match(migration, /status = 'needs_review'/u);
   assert.match(dispatcher, /matt@psiperformance\.com\.au/u);
   assert.match(dispatcher, /PSI invoices need attention/u);
