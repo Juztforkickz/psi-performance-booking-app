@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, BackHandler, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
@@ -598,7 +598,8 @@ export function StaffWorkspace({
           </Pressable>
         </View>
       </View>
-      <ScrollView ref={scrollRef} contentContainerStyle={[styles.workspaceContent, { paddingHorizontal: horizontalPadding }]} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0} style={styles.flex}>
+      <ScrollView ref={scrollRef} automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive" contentContainerStyle={[styles.workspaceContent, { paddingHorizontal: horizontalPadding, paddingBottom: spacing.xl * 4 }]} keyboardShouldPersistTaps="handled">
         <View style={styles.pageHeading}>
           {section !== 'dashboard' ? <Pressable accessibilityRole="button" accessibilityLabel="Back in workshop portal" onPress={goBack} style={styles.pageBack}><Ionicons name="chevron-back" color={colors.accent} size={22} /></Pressable> : null}
           <Text accessibilityRole="header" style={styles.pageTitle}>{selectedBooking ? 'Booking details' : selectedLookupCustomer ? 'Customer details' : connectionTool ? { xero: 'Xero invoices', calendar: 'Email & Calendar', payments: 'Payments', uploads: 'PC uploads' }[connectionTool] : STAFF_SECTIONS[section].title}</Text>
@@ -1022,6 +1023,7 @@ export function StaffWorkspace({
           <WorkspaceLink title="Return to customer app" icon="phone-portrait-outline" onPress={() => confirmLeaving(() => router.replace('/'))} />
         </> : null}
       </ScrollView>
+      </KeyboardAvoidingView>
       {discardDialog}
     </SafeAreaView>
   );
