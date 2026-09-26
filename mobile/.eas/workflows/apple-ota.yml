@@ -1,0 +1,79 @@
+name: PSI Apple OTA update
+
+defaults:
+  image: sdk-57
+  tools:
+    node: '22'
+    pnpm: 11.19.0
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - mobile/src/**
+      - mobile/.eas/workflows/apple-ota.yml
+
+concurrency:
+  cancel_in_progress: true
+  group: ${{ workflow.filename }}-${{ github.ref }}
+
+jobs:
+  publish_beta:
+    name: Validate and publish Apple beta OTA
+    type: update
+    environment: production
+    env:
+      EXPO_PUBLIC_API_BASE_URL: ''
+      EXPO_PUBLIC_PSI_DEMO_MODE_ENABLED: 'true'
+      EXPO_PUBLIC_PSI_APPLE_REVIEW: 'false'
+      EXPO_PUBLIC_PSI_GOOGLE_REVIEW: 'false'
+      EXPO_PUBLIC_PSI_UPDATE_CHANNEL: beta
+      EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST: 'false'
+      EXPO_PUBLIC_REVENUECAT_APPLE_KEY: appl_qJcOAgyhLBExQHfYkgStIaOxQGj
+      EXPO_PUBLIC_SUPABASE_URL: https://lslhfrujyuqcavsnugfx.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_B1fbCA2hQegGaE9JDCcp-Q_L2rvyeDN
+      EXPO_PUBLIC_SUPABASE_AUTH_ENABLED: 'true'
+      EXPO_PUBLIC_SUPABASE_BOOKING_ENABLED: 'true'
+      EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED: 'false'
+    params:
+      channel: beta
+      platform: ios
+    hooks:
+      after_install_node_modules:
+        - name: Validate mobile app
+          run: pnpm typecheck && pnpm lint
+      before_update:
+        - name: Verify beta OTA configuration
+          run: node scripts/assert-ota-update-config.cjs beta
+
+  approve_release:
+    name: Confirm the beta works on an iPhone
+    needs: [publish_beta]
+    type: require-approval
+
+  publish_release:
+    name: Publish the approved Apple App Store OTA
+    needs: [approve_release]
+    type: update
+    environment: production
+    env:
+      EXPO_PUBLIC_API_BASE_URL: ''
+      EXPO_PUBLIC_PSI_DEMO_MODE_ENABLED: 'true'
+      EXPO_PUBLIC_PSI_APPLE_REVIEW: 'false'
+      EXPO_PUBLIC_PSI_GOOGLE_REVIEW: 'false'
+      EXPO_PUBLIC_PSI_UPDATE_CHANNEL: app-store-release
+      EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST: 'true'
+      EXPO_PUBLIC_REVENUECAT_APPLE_KEY: appl_qJcOAgyhLBExQHfYkgStIaOxQGj
+      EXPO_PUBLIC_SUPABASE_URL: https://lslhfrujyuqcavsnugfx.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_B1fbCA2hQegGaE9JDCcp-Q_L2rvyeDN
+      EXPO_PUBLIC_SUPABASE_AUTH_ENABLED: 'true'
+      EXPO_PUBLIC_SUPABASE_BOOKING_ENABLED: 'true'
+      EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED: 'true'
+    params:
+      channel: app-store-release
+      platform: ios
+    hooks:
+      before_update:
+        - name: Verify public OTA configuration
+          run: node scripts/assert-ota-update-config.cjs app-store-release

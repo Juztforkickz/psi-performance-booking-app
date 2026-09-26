@@ -205,18 +205,18 @@ The customer-facing Apple channels are:
 - `beta` for signed-device acceptance; and
 - `app-store-release` for the public App Store build.
 
-JavaScript, styling and bundled-asset changes are published by
-`.github/workflows/apple-ota-update.yml`. Add an Expo Release Manager robot token
-to the repository's Actions secrets as `EXPO_TOKEN` once. Push an
-`ota-beta-*` tag to publish the exact checkpoint to beta. Only after that exact
-checkpoint passes signed-device acceptance may the workflow be manually run
-against that tagged checkpoint with the verification box checked. Manual runs
-publish only to `app-store-release`. The workflow refuses a public update unless
-the same commit already has an `ota-beta-*` tag. It runs typechecking and linting
-before either update, then verifies the effective Expo environment and runtime
-before publishing. Both channels read the same EAS `production` environment as
-their signed builds, while the checked-in build and workflow variables select
-the channel and runtime.
+JavaScript, styling and bundled-asset changes are published by the native EAS
+Workflows in `.eas/workflows/`; no copied Expo token or GitHub Actions secret is
+required. Link the Expo project to `Juztforkickz/psi-performance-booking-app`
+once in the Expo GitHub settings and set its base directory to `mobile`.
+
+After that one-time connection, every app source change under `mobile/src/`
+pushed to `main` is validated and published to the beta channel automatically.
+The same workflow then pauses until a team member confirms that exact beta works
+on a signed iPhone. Approval publishes the unchanged checkpoint to
+`app-store-release`. A newer source change cancels an older pending run so only
+the latest checkpoint can be approved. No token, GitHub secret or release tag
+is required.
 
 Native dependency, permission, app-icon, splash, signing and other native
 configuration changes require a new signed build rather than an OTA update. An

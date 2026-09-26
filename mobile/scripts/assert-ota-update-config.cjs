@@ -17,6 +17,7 @@ assert.ok(
 );
 
 const release = target === APP_STORE_RELEASE_CHANNEL;
+assert.equal(process.env.EXPO_PUBLIC_API_BASE_URL ?? '', '', 'Direct booking API must remain disabled');
 assert.equal(process.env.EXPO_PUBLIC_PSI_UPDATE_CHANNEL, target, 'OTA channel environment mismatch');
 assert.equal(process.env.EXPO_PUBLIC_PSI_DEMO_MODE_ENABLED, 'true', 'PSI live mode is not enabled');
 assert.equal(process.env.EXPO_PUBLIC_PSI_APPLE_REVIEW, 'false', 'Apple review isolation must be disabled');
@@ -27,7 +28,13 @@ assert.equal(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, LIVE_PUBLIC_KEY, 
 assert.equal(process.env.EXPO_PUBLIC_SUPABASE_AUTH_ENABLED, 'true', 'Customer auth must be enabled');
 assert.equal(process.env.EXPO_PUBLIC_SUPABASE_BOOKING_ENABLED, 'true', 'Customer booking must be enabled');
 assert.equal(process.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED, release ? 'true' : 'false', 'Registration mode mismatch');
-if (release) assert.match(process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY ?? '', /^appl_/, 'Apple purchases require RevenueCat');
+if (release) {
+  assert.equal(
+    process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY,
+    'appl_qJcOAgyhLBExQHfYkgStIaOxQGj',
+    'Apple purchases require the PSI RevenueCat project',
+  );
+}
 
 const resolved = resolveAppConfig({ config: baseConfig });
 assert.equal(resolved.extra?.eas?.projectId, 'e62e9cdf-867c-4eb7-b8c5-a2610f969286', 'Expo project mismatch');
