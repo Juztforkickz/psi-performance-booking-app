@@ -22,6 +22,7 @@ export function bookingArchiveStartedAt(booking: Booking, holding?: Holding): st
 }
 
 export function bookingQueueView(booking: Booking, holding: Holding | undefined, nowMs: number): StaffBookingView | null {
+  if (booking.state === 'cancelled') return null;
   const archiveStartedAt = bookingArchiveStartedAt(booking, holding);
   if (archiveStartedAt) {
     const startedMs = Date.parse(archiveStartedAt);

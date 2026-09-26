@@ -45,11 +45,12 @@ export default function BookingsScreen() {
   const [bankInstructions, setBankInstructions] = useState<BankTransferInstructions | null>(null);
 
   const privateAccountMode = CUSTOMER_AUTH.enabled;
-  const displayBookings = privateAccountMode
+  const displayBookings = (privateAccountMode
     ? (account?.bookings ?? []).map((booking) => secureBookingDisplay(booking, account?.vehicles ?? []))
-    : CUSTOMER_PREVIEW.bookings.map(previewBookingDisplay);
+    : CUSTOMER_PREVIEW.bookings.map(previewBookingDisplay))
+    .filter((booking) => booking.state !== 'cancelled');
   const upcoming = displayBookings.filter((booking) => !['cancelled', 'completed'].includes(booking.state));
-  const past = displayBookings.filter((booking) => ['cancelled', 'completed'].includes(booking.state));
+  const past = displayBookings.filter((booking) => booking.state === 'completed');
   const calendarBookings = displayBookings.filter((booking) => ['date_approved', 'confirmed'].includes(booking.state) && booking.date);
 
   const openBooking = (type: 'service' | 'dyno') => {
@@ -321,7 +322,7 @@ export default function BookingsScreen() {
           <Text style={styles.sectionMeta}>{privateAccountMode ? 'Private account' : 'Example'}</Text>
         </View>
         <View style={styles.bookingList}>
-          {past.length === 0 ? <EmptyBookingState copy="No completed or cancelled visits are currently shown." /> : past.map((booking) => <BookingCard booking={booking} key={booking.id} />)}
+          {past.length === 0 ? <EmptyBookingState copy="No completed visits are currently shown." /> : past.map((booking) => <BookingCard booking={booking} key={booking.id} />)}
         </View>
       </ScrollView>
 

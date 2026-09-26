@@ -75,6 +75,7 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
       .select('*')
       .eq('customer_id', user.id)
       .is('archived_at', null)
+      .neq('state', 'cancelled')
       .order('created_at', { ascending: false }),
     // The isolated review backend has no payment tables and cannot take payments.
     REVIEW_ENVIRONMENT.enabled

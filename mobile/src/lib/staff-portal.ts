@@ -139,7 +139,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     supabase.from('customer_profiles').select('*').order('last_name').order('first_name'),
     supabase.from('customer_vehicles').select('*').is('archived_at', null).order('updated_at', { ascending: false }),
     supabase.from('customer_vehicles').select('*').not('archived_at', 'is', null).order('archived_at', { ascending: false }),
-    supabase.from('booking_requests').select('*').is('archived_at', null).order('created_at', { ascending: false }).limit(500),
+    supabase.from('booking_requests').select('*').is('archived_at', null).neq('state', 'cancelled').order('created_at', { ascending: false }).limit(500),
     supabase.from('booking_portal_holding').select('*').order('queued_at', { ascending: false }).limit(500),
     supabase.from('booking_integration_jobs').select('*').order('created_at', { ascending: false }).limit(150),
     supabase.from('audit_events').select('*').order('occurred_at', { ascending: false }).limit(250),
