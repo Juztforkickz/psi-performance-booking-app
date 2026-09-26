@@ -41,12 +41,10 @@ $Shortcut.Description = 'Add verified PSI jobs and upload workshop files'
 $Shortcut.Save()
 
 $Startup = [Environment]::GetFolderPath('Startup')
-$StartupShortcut = $Shell.CreateShortcut((Join-Path $Startup 'PSI Workshop Automatic Uploads.lnk'))
-$StartupShortcut.TargetPath = (Get-Command powershell.exe).Source
-$StartupShortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + (Join-Path $InstallRoot 'Start-PSIWorkshopWatcher.ps1') + '"'
-$StartupShortcut.WorkingDirectory = $InstallRoot
-$StartupShortcut.Description = 'Automatically sync verified PSI jobs and workshop files'
-$StartupShortcut.Save()
+$LegacyStartupNames = @('PSI Workshop Automatic Uploads.lnk', 'PSI Workshop Menu.lnk')
+foreach ($LegacyStartupName in $LegacyStartupNames) {
+  Remove-Item -LiteralPath (Join-Path $Startup $LegacyStartupName) -Force -ErrorAction SilentlyContinue
+}
 
 $TrayShortcut = $Shell.CreateShortcut((Join-Path $Startup 'PSI Workshop Sync Status.lnk'))
 $TrayShortcut.TargetPath = (Get-Command powershell.exe).Source
@@ -55,12 +53,5 @@ $TrayShortcut.WorkingDirectory = $InstallRoot
 $TrayShortcut.Description = 'Show PSI Workshop Uploads sync status in the notification area'
 $TrayShortcut.Save()
 
-$StartupMenu = $Shell.CreateShortcut((Join-Path $Startup 'PSI Workshop Menu.lnk'))
-$StartupMenu.TargetPath = (Get-Command powershell.exe).Source
-$StartupMenu.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + (Join-Path $InstallRoot 'Start-PSIWorkshopUploader.ps1') + '"'
-$StartupMenu.WorkingDirectory = $InstallRoot
-$StartupMenu.Description = 'Open the centred PSI Workshop Uploads menu at Windows sign-in'
-$StartupMenu.Save()
-
 Write-Host 'PSI Workshop Uploads is installed for this Windows user.'
-Write-Host 'Use the desktop shortcut once to sign in. Automatic uploads and the centred workshop menu then start with Windows.'
+Write-Host 'Use the desktop shortcut once to sign in. The single PSI tray app starts monitoring automatically with Windows.'

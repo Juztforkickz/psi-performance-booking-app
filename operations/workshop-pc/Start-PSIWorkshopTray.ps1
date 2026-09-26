@@ -6,12 +6,25 @@ $Menu = Join-Path $InstallRoot 'Start-PSIWorkshopUploader.ps1'
 $StopFile = Join-Path $InstallRoot 'watcher.stop'
 $SessionFile = Join-Path $InstallRoot 'session.dpapi'
 $ErrorLog = Join-Path $InstallRoot 'last-error.log'
+$TrayMutex = New-Object System.Threading.Mutex($false, 'Local\PSIWorkshopTray')
+$TrayLockHeld = $false
+
+try {
+  $TrayLockHeld = $TrayMutex.WaitOne(0)
+} catch [System.Threading.AbandonedMutexException] {
+  $TrayLockHeld = $true
+}
+if (-not $TrayLockHeld) {
+  $TrayMutex.Dispose()
+  exit 0
+}
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 $script:Exited = $false
 $script:WatcherProcess = $null
+$script:MenuProcess = $null
 $script:StatusTimer = New-Object System.Windows.Forms.Timer
 $script:StatusTimer.Interval = 10000
 
@@ -37,6 +50,17 @@ function Start-PSIWatcher {
 
 function Stop-PSIWatcher {
   Set-Content -LiteralPath $StopFile -Value 'stop' -Encoding ASCII
+}
+
+function Open-PSIMenu([string]$choice = '') {
+  if ($script:MenuProcess -and -not $script:MenuProcess.HasExited) {
+    $shell = New-Object -ComObject WScript.Shell
+    [void]$shell.AppActivate($script:MenuProcess.Id)
+    return
+  }
+  $arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $Menu + '"'
+  if ($choice) { $arguments += ' -InitialChoice ' + $choice }
+  $script:MenuProcess = Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -PassThru
 }
 
 function New-PSIIcon([System.Drawing.Color]$color) {
@@ -103,11 +127,11 @@ function Update-PSITray {
 }
 
 $OpenMenuItem.add_Click({
-  Start-Process -FilePath 'powershell.exe' -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -File "' + $Menu + '"')
+  Open-PSIMenu
 })
 
 $SyncNowItem.add_Click({
-  Start-Process -FilePath 'powershell.exe' -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -File "' + $Menu + '"')
+  Open-PSIMenu '4'
 })
 
 $OpenFolderItem.add_Click({
@@ -138,7 +162,7 @@ $ExitItem.add_Click({
 })
 
 $Tray.add_DoubleClick({
-  Start-Process -FilePath 'powershell.exe' -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -File "' + $Menu + '"')
+  Open-PSIMenu
 })
 
 $script:StatusTimer.add_Tick({ Update-PSITray })
@@ -150,4 +174,10 @@ $script:StatusTimer.Start()
 if (-not $script:Exited) {
   $Tray.Visible = $false
   $Tray.Dispose()
+}
+if ($TrayLockHeld -and $TrayMutex) {
+  $TrayMutex.ReleaseMutex()
+}
+if ($TrayMutex) {
+  $TrayMutex.Dispose()
 }

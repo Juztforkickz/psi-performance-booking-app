@@ -5,11 +5,12 @@ import test from 'node:test';
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 
 test('confirmed app bookings create one exact workshop job and PC manifest workflow', async () => {
-  const [migration, bookingTools, uploader, launcher, installer, guide] = await Promise.all([
+  const [migration, bookingTools, uploader, launcher, tray, installer, guide] = await Promise.all([
     read('../supabase/migrations/20260911143000_booking_job_xero_completion.sql'),
     read('../mobile/src/components/staff-workshop-job.tsx'),
     read('../operations/workshop-pc/psi_uploads.py'),
     read('../operations/workshop-pc/Start-PSIWorkshopUploader.ps1'),
+    read('../operations/workshop-pc/Start-PSIWorkshopTray.ps1'),
     read('../operations/workshop-pc/Install-PSIWorkshopUploader.ps1'),
     read('../operations/workshop-pc/README.md'),
   ]);
@@ -32,10 +33,16 @@ test('confirmed app bookings create one exact workshop job and PC manifest workf
   assert.match(launcher, /PSIWorkshopWindow/u);
   assert.match(launcher, /SetWindowPos/u);
   assert.match(launcher, /\$LASTEXITCODE -eq 10/u);
+  assert.match(launcher, /Local\\PSIWorkshopMenu/u);
+  assert.match(launcher, /Automatic watching is already running in the background/u);
+  assert.match(tray, /Local\\PSIWorkshopTray/u);
+  assert.match(tray, /function Open-PSIMenu/u);
   assert.match(uploader, /Type back at any question/u);
   assert.match(uploader, /Returning to the PSI Workshop Uploads menu/u);
-  assert.match(installer, /PSI Workshop Menu\.lnk/u);
-  assert.match(guide, /bottom-right notification-area sync status icon/u);
+  assert.match(installer, /\$LegacyStartupNames/u);
+  assert.match(installer, /PSI Workshop Sync Status\.lnk/u);
+  assert.match(installer, /Remove-Item -LiteralPath \(Join-Path \$Startup \$LegacyStartupName\)/u);
+  assert.match(guide, /bottom-right PSI notification-area app/u);
 });
 
 test('Xero imports assist service completion without closing the booking', async () => {

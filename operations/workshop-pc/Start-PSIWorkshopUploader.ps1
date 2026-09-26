@@ -1,3 +1,7 @@
+param(
+  [ValidateSet('1', '2', '3', '4', '5')][string]$InitialChoice
+)
+
 $ErrorActionPreference = 'Stop'
 $InstallRoot = $PSScriptRoot
 $ErrorLog = Join-Path $InstallRoot 'last-error.log'
@@ -11,6 +15,27 @@ $StopFile = Join-Path $InstallRoot 'watcher.stop'
 $WatcherMutex = $null
 $WatcherLockHeld = $false
 $RestartWatcher = $false
+$MenuMutex = New-Object System.Threading.Mutex($false, 'Local\PSIWorkshopMenu')
+$MenuLockHeld = $false
+
+try {
+  $MenuLockHeld = $MenuMutex.WaitOne(0)
+} catch [System.Threading.AbandonedMutexException] {
+  $MenuLockHeld = $true
+}
+if (-not $MenuLockHeld) {
+  $MenuMutex.Dispose()
+  exit 0
+}
+
+try {
+  $Host.UI.RawUI.WindowTitle = 'PSI Workshop Uploads'
+  $Host.UI.RawUI.BackgroundColor = 'Black'
+  $Host.UI.RawUI.ForegroundColor = 'White'
+  Clear-Host
+} catch {
+  # Console colour and title are cosmetic; continue if the host does not expose them.
+}
 
 Add-Type -TypeDefinition @'
 using System;
@@ -46,11 +71,16 @@ public static class PSIWorkshopWindow {
 function Enter-PSIUploaderLock {
   Set-Content -LiteralPath $script:StopFile -Value 'stop' -Encoding ASCII
   $script:WatcherMutex = New-Object System.Threading.Mutex($false, 'Local\PSIWorkshopAutomaticUploader')
+  $WaitingMessageShown = $false
   for ($Attempt = 0; $Attempt -lt 40 -and -not $script:WatcherLockHeld; $Attempt++) {
     try {
       $script:WatcherLockHeld = $script:WatcherMutex.WaitOne(1000)
     } catch [System.Threading.AbandonedMutexException] {
       $script:WatcherLockHeld = $true
+    }
+    if (-not $script:WatcherLockHeld -and -not $WaitingMessageShown) {
+      Write-Host 'Finishing the current background sync safely...'
+      $WaitingMessageShown = $true
     }
   }
   if (-not $script:WatcherLockHeld) {
@@ -76,14 +106,32 @@ try {
     Write-Host '3. Add a downloaded job folder file (fallback)'
     Write-Host '4. Upload and sync once'
     Write-Host '5. Forget the remembered staff sign-in'
-    $Choice = Read-Host 'Choose 1, 2, 3, 4 or 5'
+    if ($InitialChoice) {
+      $Choice = $InitialChoice
+      $InitialChoice = $null
+      Write-Host "Selected option $Choice."
+    } else {
+      $Choice = Read-Host 'Choose 1, 2, 3, 4 or 5'
+    }
 
     if ($Choice -eq '1') {
-    Enter-PSIUploaderLock
-    $RestartWatcher = $true
-    & $Python $Uploader --root $Config.uploadRoot --url $Config.projectUrl --key $Config.publishableKey --email $Config.staffEmail --session-file $SessionFile --stop-file $StopFile --manifest-inbox $Config.manifestInbox
-    if ($LASTEXITCODE -ne 0) { throw "PSI uploader stopped with error code $LASTEXITCODE." }
-    Write-Host 'Automatic watching is running in the background and will start with Windows.'
+      $WatcherRunning = @(Get-Process python -ErrorAction SilentlyContinue | Where-Object {
+        $_.Path -like (Join-Path $InstallRoot '*')
+      }).Count -gt 0
+      if ((Test-Path -LiteralPath $SessionFile) -and $WatcherRunning -and -not (Test-Path -LiteralPath $StopFile)) {
+        Write-Host 'Automatic watching is already running in the background.'
+      } elseif (Test-Path -LiteralPath $SessionFile) {
+        Remove-Item -LiteralPath $StopFile -Force -ErrorAction SilentlyContinue
+        $WatcherArguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $Watcher + '"'
+        Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList $WatcherArguments
+        Write-Host 'Automatic watching has started in the background.'
+      } else {
+        Enter-PSIUploaderLock
+        $RestartWatcher = $true
+        & $Python $Uploader --root $Config.uploadRoot --url $Config.projectUrl --key $Config.publishableKey --email $Config.staffEmail --session-file $SessionFile --stop-file $StopFile --manifest-inbox $Config.manifestInbox
+        if ($LASTEXITCODE -ne 0) { throw "PSI uploader stopped with error code $LASTEXITCODE." }
+        Write-Host 'Sign-in complete. Automatic watching is starting in the background.'
+      }
     } elseif ($Choice -eq '2') {
       Enter-PSIUploaderLock
       $RestartWatcher = $true
@@ -148,6 +196,13 @@ try {
     Remove-Item -LiteralPath $StopFile -Force -ErrorAction SilentlyContinue
     $WatcherArguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $Watcher + '"'
     Start-Process -FilePath 'powershell.exe' -WindowStyle Hidden -ArgumentList $WatcherArguments
+  }
+  if ($MenuLockHeld -and $MenuMutex) {
+    $MenuMutex.ReleaseMutex()
+    $MenuLockHeld = $false
+  }
+  if ($MenuMutex) {
+    $MenuMutex.Dispose()
   }
   Remove-Item Env:\PSI_WORKSHOP_ERROR_LOG -ErrorAction SilentlyContinue
   Read-Host 'Press Enter to close'
