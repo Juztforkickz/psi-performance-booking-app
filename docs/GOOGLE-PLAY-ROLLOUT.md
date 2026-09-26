@@ -1,6 +1,6 @@
 # Google Play rollout checkpoint
 
-Updated 24 September 2026 from the signed-in PSI Performance Play Console.
+Updated 26 September 2026 from the signed-in PSI Performance Play Console.
 
 ## Current gate
 
@@ -9,8 +9,10 @@ The PSI Performance Garage Play app now exists under Console app ID
 `4974273807519558547`, with Android package `com.psiperformance.booking`.
 Its default language is English (Australia) and download price is free.
 
-The Play setup dashboard shows **6 of 11 tasks complete**. Saved changes are
-awaiting submission in Publishing overview. The approved PSI App privacy URL is
+The Play setup dashboard still shows **6 of 11 tasks complete**. Publishing
+overview currently shows **no unpublished changes**; this does not mean the
+remaining declarations or production release are complete. The approved PSI
+App privacy URL is
 `https://psiperformance.com.au/policies/privacy-policy`. Ads, government apps,
 health, financial features, and the Auto & vehicles category with public support
 contacts are complete. The store name, descriptions, 512 × 512 icon and
@@ -70,6 +72,18 @@ The uploaded 92,696,504-byte AAB has SHA-256
 `B517743C1EEE37F7F99906B887427C724E4ACBD6A8D967721C7FF94CE9D9FC39`.
 Play identified target SDK 36 and reported one non-blocking warning: no code
 deobfuscation mapping file. Native debug symbols were attached to the bundle.
+
+On 26 September, the Play bundle explorer confirmed that version 3 is active,
+supports Android API 24+, includes arm64-v8a/armeabi-v7a/x86/x86_64, and is
+marked compatible with 16 KB memory pages. Play estimates a 47.4 MB download.
+The bundle lists 31 permissions, including camera, notifications, network,
+biometrics, Play Billing and launcher-badge permissions. Billing is present in
+the native bundle because its SDK is packaged, but purchases are disabled by
+this internal build's configuration. These are manifest observations, not a
+completed SDK data-handling audit. The Pre-launch report page has **no report**
+for this release; it suggests uploading to closed testing, which remains gated
+behind the initial setup tasks. Do not treat bundle compatibility or this
+manifest inspection as a substitute for native device acceptance.
 
 Play subscriptions are locked until a Google Payments merchant profile is
 created. That onboarding has not been started, and no payment was made.
