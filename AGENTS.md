@@ -7,6 +7,10 @@
 - Preserve existing approved work unless you explicitly request changes.
 - Keep deployment boundaries and safety constraints intact unless explicitly changed.
 
+## Writing punctuation
+- Avoid hyphens and dash punctuation in user visible writing, drafts, headings and marketing copy. Rewrite with commas, full stops or natural wording wherever possible.
+- Use a hyphen or dash only when it is required for correct spelling, an existing proper name, a file or URL, a code identifier, or unambiguous technical syntax.
+
 ## Protected owner account
 - The owner account `matt@psiperformance.com.au` must retain permanent complimentary Performance+ access.
 - Always exclude this account from beta cleanup, TestFlight tester removal, customer transition emails, subscription expiry and Performance+ lockouts.
