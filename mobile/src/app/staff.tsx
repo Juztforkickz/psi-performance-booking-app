@@ -1348,7 +1348,7 @@ function bookingContextLines(context: Record<string, unknown>) {
   if (context.serviceReminderConsent === true) lines.push('Future service reminders · Customer opted in');
   if (typeof context.vehiclePowertrain === 'string' && context.vehiclePowertrain.trim()) lines.push(`Vehicle powertrain · ${humanize(context.vehiclePowertrain)}`);
   if (Array.isArray(context.serviceSelections)) {
-    const selections = context.serviceSelections.filter((value): value is string => typeof value === 'string' && value.trim());
+    const selections = context.serviceSelections.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
     if (selections.length > 0) lines.push(`Requested services · ${selections.map(humanize).join(' · ')}`);
   }
   if (typeof context.setupConfidence === 'string') lines.push(`Dyno setup · ${humanize(context.setupConfidence)}`);
