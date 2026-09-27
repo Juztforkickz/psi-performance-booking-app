@@ -50,6 +50,7 @@ import {
   type BookingRequestResult,
   type BookingType,
   type TuningDetails,
+  type VehiclePowertrain,
   validateBookingStep,
 } from '@/lib/booking';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
@@ -111,6 +112,13 @@ const FUEL_OPTIONS: SelectOption<Exclude<TuningDetails['fuelType'], ''>>[] = [
   { value: 'flex_fuel', label: 'Flex fuel' },
   { value: 'race_fuel', label: 'Race fuel' },
   { value: 'other', label: 'Other fuel' },
+];
+const POWERTRAIN_OPTIONS: { value: Exclude<VehiclePowertrain, ''>; title: string; detail: string }[] = [
+  { value: 'petrol', title: 'Petrol', detail: 'Petrol engine' },
+  { value: 'diesel', title: 'Diesel', detail: 'Diesel engine' },
+  { value: 'hev', title: 'Hybrid (HEV)', detail: 'Self-charging hybrid' },
+  { value: 'phev', title: 'Plug-in hybrid (PHEV)', detail: 'Hybrid with external charging' },
+  { value: 'bev', title: 'Electric (BEV)', detail: 'Battery electric vehicle' },
 ];
 const INTAKE_OPTIONS: SelectOption<Exclude<TuningDetails['intakeType'], ''>>[] = [
   { value: 'stock', label: 'Stock intake' },
@@ -884,6 +892,18 @@ function JobStep({
         </View>
       )}
       {errors.bookingType ? <Text style={styles.error}>{errors.bookingType}</Text> : null}
+
+      <Field label="Vehicle powertrain" hint="Select the vehicle type so PSI can prepare the right service scope.">
+        <View accessibilityRole="radiogroup" style={styles.compactChoices}>
+          {POWERTRAIN_OPTIONS.map(option => <ChoiceCard
+            detail={option.detail}
+            key={option.value}
+            onPress={() => update('vehiclePowertrain', option.value)}
+            selected={form.vehiclePowertrain === option.value}
+            title={option.title}
+          />)}
+        </View>
+      </Field>
 
       <Field error={errors.requestDetails} label="What exactly are you after?">
         <FormInput

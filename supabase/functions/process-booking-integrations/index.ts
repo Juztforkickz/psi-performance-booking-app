@@ -163,6 +163,7 @@ const requestContextLines = (context: Record<string, unknown>) => {
   if (context.afterHoursCollection === true) lines.push("Collection: After-hours requested");
   if (context.notifyEarlierAvailability === true) lines.push("Earlier opening: Customer requested contact");
   if (context.serviceReminderConsent === true) lines.push("Service reminders: Customer opted in");
+  if (typeof context.vehiclePowertrain === "string" && context.vehiclePowertrain.trim()) lines.push(`Vehicle powertrain: ${humanize(context.vehiclePowertrain)}`);
   if (typeof context.setupConfidence === "string") lines.push(`Dyno setup: ${humanize(context.setupConfidence)}`);
   if (context.tuningDetails && typeof context.tuningDetails === "object" && !Array.isArray(context.tuningDetails)) {
     Object.entries(context.tuningDetails as Record<string, unknown>)

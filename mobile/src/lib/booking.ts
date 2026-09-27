@@ -5,6 +5,7 @@ import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
 import { dispatchBookingPushNotifications } from '@/lib/notifications';
 
 export type BookingType = 'service' | 'dyno';
+export type VehiclePowertrain = '' | 'petrol' | 'diesel' | 'hev' | 'phev' | 'bev';
 export type AppointmentPreferenceMode = 'specific' | 'flexible';
 export type ArrivalArrangement =
   | 'business_hours'
@@ -67,6 +68,7 @@ export function depositAmountForBookingType(type: BookingType | ''): number | nu
 
 export type BookingFormState = {
   bookingType: BookingType | '';
+  vehiclePowertrain: VehiclePowertrain;
   requestDetails: string;
   firstName: string;
   lastName: string;
@@ -105,7 +107,7 @@ export const EMPTY_TUNING_DETAILS: TuningDetails = {
 };
 
 export const EMPTY_BOOKING: BookingFormState = {
-  bookingType: '', requestDetails: '', firstName: '', lastName: '', email: '', mobile: '', vehicleMake: '',
+  bookingType: '', vehiclePowertrain: '', requestDetails: '', firstName: '', lastName: '', email: '', mobile: '', vehicleMake: '',
   vehicleModel: '', vehicleYear: '', registration: '', vin: '', appointmentPreferenceMode: 'specific', preferredDate: '',
   arrivalArrangement: 'flexible', afterHoursCollection: false, notifyEarlierAvailability: false,
   serviceReminderConsent: false, setupConfidence: '', consent: false, bookingTermsAccepted: false,
@@ -336,6 +338,7 @@ export async function createBookingRequest(form: BookingFormState, idempotencyKe
       signal: controller.signal,
       body: JSON.stringify({
         bookingType: form.bookingType,
+        vehiclePowertrain: form.vehiclePowertrain,
         firstName: form.firstName.trim(), lastName: form.lastName.trim(), email: form.email.trim().toLowerCase(),
         mobile: form.mobile.trim(), vehicleMake: form.vehicleMake.trim(), vehicleModel: form.vehicleModel.trim(),
         vehicleYear: Number(form.vehicleYear), registration: form.registration.trim().toUpperCase(),
@@ -416,7 +419,8 @@ async function createAuthenticatedBookingRequest(
     currency: 'AUD',
     customer_id: user.id,
     preferred_date: form.appointmentPreferenceMode === 'specific' ? form.preferredDate : null,
-    request_context: {
+      request_context: {
+      vehiclePowertrain: form.vehiclePowertrain,
       afterHoursCollection: form.afterHoursCollection,
       appointmentPreferenceMode: form.appointmentPreferenceMode,
       arrivalArrangement: form.arrivalArrangement,
