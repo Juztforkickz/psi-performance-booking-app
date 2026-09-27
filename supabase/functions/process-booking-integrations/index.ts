@@ -164,6 +164,10 @@ const requestContextLines = (context: Record<string, unknown>) => {
   if (context.notifyEarlierAvailability === true) lines.push("Earlier opening: Customer requested contact");
   if (context.serviceReminderConsent === true) lines.push("Service reminders: Customer opted in");
   if (typeof context.vehiclePowertrain === "string" && context.vehiclePowertrain.trim()) lines.push(`Vehicle powertrain: ${humanize(context.vehiclePowertrain)}`);
+  if (Array.isArray(context.serviceSelections)) {
+    const selections = context.serviceSelections.filter((value): value is string => typeof value === "string" && value.trim());
+    if (selections.length > 0) lines.push(`Requested services: ${selections.map(humanize).join(" · ")}`);
+  }
   if (typeof context.setupConfidence === "string") lines.push(`Dyno setup: ${humanize(context.setupConfidence)}`);
   if (context.tuningDetails && typeof context.tuningDetails === "object" && !Array.isArray(context.tuningDetails)) {
     Object.entries(context.tuningDetails as Record<string, unknown>)

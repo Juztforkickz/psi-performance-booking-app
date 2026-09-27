@@ -6,6 +6,17 @@ import { dispatchBookingPushNotifications } from '@/lib/notifications';
 
 export type BookingType = 'service' | 'dyno';
 export type VehiclePowertrain = '' | 'petrol' | 'diesel' | 'hev' | 'phev' | 'bev';
+export type ServiceSelection =
+  | 'scheduled_service'
+  | 'diagnostics_warning_lights'
+  | 'engine_driveline_fault'
+  | 'high_voltage_inspection'
+  | 'charging_fault'
+  | '12v_electrical_fault'
+  | 'cooling_system'
+  | 'brakes_suspension'
+  | 'tyres_alignment'
+  | 'other';
 export type AppointmentPreferenceMode = 'specific' | 'flexible';
 export type ArrivalArrangement =
   | 'business_hours'
@@ -44,6 +55,81 @@ export type TuningDetails = {
 
 export const BOOKING_POLICY_VERSION = 'psi-booking-v1';
 
+export const SERVICE_SELECTIONS: readonly ServiceSelection[] = [
+  'scheduled_service',
+  'diagnostics_warning_lights',
+  'engine_driveline_fault',
+  'high_voltage_inspection',
+  'charging_fault',
+  '12v_electrical_fault',
+  'cooling_system',
+  'brakes_suspension',
+  'tyres_alignment',
+  'other',
+] as const;
+
+const CONVENTIONAL_SERVICE_SELECTIONS: readonly ServiceSelection[] = [
+  'scheduled_service',
+  'diagnostics_warning_lights',
+  'engine_driveline_fault',
+  'cooling_system',
+  'brakes_suspension',
+  'tyres_alignment',
+  'other',
+];
+
+const ELECTRIFIED_SERVICE_SELECTIONS: readonly ServiceSelection[] = [
+  'scheduled_service',
+  'diagnostics_warning_lights',
+  'high_voltage_inspection',
+  'charging_fault',
+  '12v_electrical_fault',
+  'cooling_system',
+  'brakes_suspension',
+  'tyres_alignment',
+  'other',
+];
+
+export function serviceSelectionsForPowertrain(powertrain: VehiclePowertrain): readonly ServiceSelection[] {
+  if (powertrain === 'petrol' || powertrain === 'diesel') return CONVENTIONAL_SERVICE_SELECTIONS;
+  if (powertrain === 'hev' || powertrain === 'phev' || powertrain === 'bev') return ELECTRIFIED_SERVICE_SELECTIONS;
+  return [];
+}
+
+export function serviceSelectionLabel(selection: ServiceSelection, powertrain: VehiclePowertrain) {
+  const labels: Record<ServiceSelection, string> = {
+    scheduled_service: powertrain === 'bev'
+      ? 'Scheduled electric vehicle service'
+      : powertrain === 'hev' || powertrain === 'phev'
+        ? 'Scheduled hybrid service'
+        : 'Scheduled service',
+    diagnostics_warning_lights: 'Diagnostics / warning lights',
+    engine_driveline_fault: 'Engine or driveline fault',
+    high_voltage_inspection: 'High-voltage system inspection',
+    charging_fault: 'Charging fault',
+    '12v_electrical_fault': '12V battery or electrical fault',
+    cooling_system: powertrain === 'hev' || powertrain === 'phev' || powertrain === 'bev'
+      ? 'Battery, inverter or motor cooling'
+      : 'Cooling system',
+    brakes_suspension: 'Brakes or suspension',
+    tyres_alignment: 'Tyres or wheel alignment',
+    other: 'Other',
+  };
+  return labels[selection];
+}
+
+export function vehiclePowertrainLabel(powertrain: VehiclePowertrain) {
+  const labels: Record<VehiclePowertrain, string> = {
+    '': 'Not selected',
+    petrol: 'Petrol',
+    diesel: 'Diesel',
+    hev: 'Hybrid (HEV)',
+    phev: 'Plug-in hybrid (PHEV)',
+    bev: 'Electric (BEV)',
+  };
+  return labels[powertrain];
+}
+
 export const BOOKING_PURPOSES = {
   service: {
     label: 'Service & Report',
@@ -69,6 +155,7 @@ export function depositAmountForBookingType(type: BookingType | ''): number | nu
 export type BookingFormState = {
   bookingType: BookingType | '';
   vehiclePowertrain: VehiclePowertrain;
+  serviceSelections: ServiceSelection[];
   requestDetails: string;
   firstName: string;
   lastName: string;
@@ -107,7 +194,7 @@ export const EMPTY_TUNING_DETAILS: TuningDetails = {
 };
 
 export const EMPTY_BOOKING: BookingFormState = {
-  bookingType: '', vehiclePowertrain: '', requestDetails: '', firstName: '', lastName: '', email: '', mobile: '', vehicleMake: '',
+  bookingType: '', vehiclePowertrain: '', serviceSelections: [], requestDetails: '', firstName: '', lastName: '', email: '', mobile: '', vehicleMake: '',
   vehicleModel: '', vehicleYear: '', registration: '', vin: '', appointmentPreferenceMode: 'specific', preferredDate: '',
   arrivalArrangement: 'flexible', afterHoursCollection: false, notifyEarlierAvailability: false,
   serviceReminderConsent: false, setupConfidence: '', consent: false, bookingTermsAccepted: false,
@@ -222,6 +309,17 @@ export function validateBookingStep(form: BookingFormState, step: number): Booki
   const errors: BookingErrors = {};
   if (step === 1) {
     if (!form.bookingType) errors.bookingType = 'Choose Service & Report or Dyno Tuning from the PSI home screen.';
+    if (!form.vehiclePowertrain) errors.vehiclePowertrain = 'Choose the vehicle powertrain.';
+    else if (form.bookingType === 'dyno' && form.vehiclePowertrain === 'bev') {
+      errors.vehiclePowertrain = 'Book a battery electric vehicle through Service & Report for diagnostics or inspection.';
+    }
+    if (form.bookingType === 'service') {
+      const allowedSelections = new Set(serviceSelectionsForPowertrain(form.vehiclePowertrain));
+      if (form.serviceSelections.length === 0) errors.serviceSelections = 'Select at least one service or inspection.';
+      else if (form.serviceSelections.some((selection) => !allowedSelections.has(selection))) {
+        errors.serviceSelections = 'Review the selected services for this vehicle type.';
+      }
+    }
     if (form.requestDetails.trim().length < 10) errors.requestDetails = 'Tell PSI what you need in at least 10 characters.';
     if (form.bookingType === 'dyno') {
       if (!form.setupConfidence) errors.setupConfidence = 'Tell PSI whether you know the vehicle setup or want PSI to inspect it.';
@@ -339,6 +437,7 @@ export async function createBookingRequest(form: BookingFormState, idempotencyKe
       body: JSON.stringify({
         bookingType: form.bookingType,
         vehiclePowertrain: form.vehiclePowertrain,
+        serviceSelections: form.bookingType === 'service' ? form.serviceSelections : [],
         firstName: form.firstName.trim(), lastName: form.lastName.trim(), email: form.email.trim().toLowerCase(),
         mobile: form.mobile.trim(), vehicleMake: form.vehicleMake.trim(), vehicleModel: form.vehicleModel.trim(),
         vehicleYear: Number(form.vehicleYear), registration: form.registration.trim().toUpperCase(),
@@ -421,6 +520,7 @@ async function createAuthenticatedBookingRequest(
     preferred_date: form.appointmentPreferenceMode === 'specific' ? form.preferredDate : null,
       request_context: {
       vehiclePowertrain: form.vehiclePowertrain,
+      serviceSelections: form.bookingType === 'service' ? form.serviceSelections : [],
       afterHoursCollection: form.afterHoursCollection,
       appointmentPreferenceMode: form.appointmentPreferenceMode,
       arrivalArrangement: form.arrivalArrangement,

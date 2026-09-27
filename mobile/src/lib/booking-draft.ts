@@ -4,10 +4,13 @@ import { environmentStorageKey } from '@/lib/review-environment';
 import {
   EMPTY_BOOKING,
   EMPTY_TUNING_DETAILS,
+  SERVICE_SELECTIONS,
   type ArrivalArrangement,
   type BookingFormState,
   type BookingType,
+  type ServiceSelection,
   type SetupConfidence,
+  type VehiclePowertrain,
 } from '@/lib/booking';
 
 const DRAFT_VERSION = 1;
@@ -43,6 +46,13 @@ function oneOf<T extends string>(value: unknown, values: readonly T[], fallback:
   return typeof value === 'string' && values.includes(value as T) ? value as T : fallback;
 }
 
+function serviceSelectionsValue(value: unknown): ServiceSelection[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((item): item is ServiceSelection => (
+    typeof item === 'string' && SERVICE_SELECTIONS.includes(item as ServiceSelection)
+  )))].slice(0, SERVICE_SELECTIONS.length);
+}
+
 function realIsoDate(value: unknown) {
   if (typeof value !== 'string') return '';
   const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(value);
@@ -66,6 +76,8 @@ function sanitiseDraftForm(value: unknown, bookingType: BookingType): BookingFor
   return {
     ...EMPTY_BOOKING,
     bookingType,
+    vehiclePowertrain: oneOf<VehiclePowertrain>(raw.vehiclePowertrain, ['', 'petrol', 'diesel', 'hev', 'phev', 'bev'], ''),
+    serviceSelections: bookingType === 'service' ? serviceSelectionsValue(raw.serviceSelections) : [],
     requestDetails: stringValue(raw.requestDetails, 1_200),
     firstName: stringValue(raw.firstName, 80),
     lastName: stringValue(raw.lastName, 80),

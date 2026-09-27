@@ -44,13 +44,17 @@ import {
   isEligibleBookingDate,
   localIsoDate,
   maxBookingDate,
+  serviceSelectionLabel,
+  serviceSelectionsForPowertrain,
   type ArrivalArrangement,
   type BookingErrors,
   type BookingFormState,
   type BookingRequestResult,
   type BookingType,
+  type ServiceSelection,
   type TuningDetails,
   type VehiclePowertrain,
+  vehiclePowertrainLabel,
   validateBookingStep,
 } from '@/lib/booking';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
@@ -190,7 +194,7 @@ function draftMatchesVehicle(form: BookingFormState, vehicle: PreviewVehicle) {
 }
 
 function firstErrorStep(errors: BookingErrors) {
-  if (errors.bookingType || errors.requestDetails || errors.setupConfidence || Object.keys(errors).some((key) => key === 'tuningDetails' || key.startsWith('tuningDetails.'))) return 1;
+  if (errors.bookingType || errors.vehiclePowertrain || errors.serviceSelections || errors.requestDetails || errors.setupConfidence || Object.keys(errors).some((key) => key === 'tuningDetails' || key.startsWith('tuningDetails.'))) return 1;
   if (errors.vehicleMake || errors.vehicleModel || errors.vehicleYear || errors.registration || errors.vin) return 2;
   if (errors.firstName || errors.lastName || errors.email || errors.mobile) return 3;
   if (errors.preferredDate || errors.appointmentPreferenceMode || errors.arrivalArrangement) return 4;
@@ -862,6 +866,20 @@ function JobStep({
   onChooseBooking: () => void;
 }) {
   const purpose = form.bookingType ? BOOKING_PURPOSES[form.bookingType] : null;
+  const powertrainOptions = form.bookingType === 'dyno'
+    ? POWERTRAIN_OPTIONS.filter((option) => option.value !== 'bev')
+    : POWERTRAIN_OPTIONS;
+  const serviceOptions = serviceSelectionsForPowertrain(form.vehiclePowertrain);
+  const selectPowertrain = (powertrain: Exclude<VehiclePowertrain, ''>) => {
+    const allowedSelections = new Set(serviceSelectionsForPowertrain(powertrain));
+    update('vehiclePowertrain', powertrain);
+    update('serviceSelections', form.serviceSelections.filter((selection) => allowedSelections.has(selection)));
+  };
+  const toggleService = (selection: ServiceSelection) => {
+    update('serviceSelections', form.serviceSelections.includes(selection)
+      ? form.serviceSelections.filter((item) => item !== selection)
+      : [...form.serviceSelections, selection]);
+  };
   return (
     <View style={styles.stepContent}>
       <StepHeading
@@ -893,17 +911,45 @@ function JobStep({
       )}
       {errors.bookingType ? <Text style={styles.error}>{errors.bookingType}</Text> : null}
 
-      <Field label="Vehicle powertrain" hint="Select the vehicle type so PSI can prepare the right service scope.">
+      <Field error={errors.vehiclePowertrain} label="Vehicle powertrain" hint="Select the vehicle type so PSI can prepare the right service scope.">
         <View accessibilityRole="radiogroup" style={styles.compactChoices}>
-          {POWERTRAIN_OPTIONS.map(option => <ChoiceCard
+          {powertrainOptions.map(option => <ChoiceCard
             detail={option.detail}
             key={option.value}
-            onPress={() => update('vehiclePowertrain', option.value)}
+            onPress={() => selectPowertrain(option.value)}
             selected={form.vehiclePowertrain === option.value}
             title={option.title}
           />)}
         </View>
       </Field>
+
+      {form.bookingType === 'service' && form.vehiclePowertrain ? (
+        <Field
+          error={errors.serviceSelections}
+          hint="Choose one or more. Your written details below help PSI confirm the exact scope."
+          label={form.vehiclePowertrain === 'petrol' || form.vehiclePowertrain === 'diesel' ? 'What does the vehicle need?' : 'EV & hybrid service options'}
+        >
+          <View accessibilityRole="list" style={styles.serviceChoiceList}>
+            {serviceOptions.map((selection) => {
+              const selected = form.serviceSelections.includes(selection);
+              const label = serviceSelectionLabel(selection, form.vehiclePowertrain);
+              return (
+                <Pressable
+                  accessibilityLabel={label}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: selected }}
+                  key={selection}
+                  onPress={() => toggleService(selection)}
+                  style={({ pressed }) => [styles.serviceChoice, selected && styles.serviceChoiceSelected, pressed && styles.pressed]}
+                >
+                  <CheckBox checked={selected} />
+                  <Text style={[styles.serviceChoiceText, selected && styles.serviceChoiceTextSelected]}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Field>
+      ) : null}
 
       <Field error={errors.requestDetails} label="What exactly are you after?">
         <FormInput
@@ -1772,6 +1818,14 @@ function ReviewStep({
           <Text style={styles.summaryReference}>Pending staff review</Text>
         </View>
         <SummaryRow label="Work" value={purpose?.label || 'Not selected'} secondary={purpose?.priceGuide} />
+        <SummaryRow label="Powertrain" value={vehiclePowertrainLabel(form.vehiclePowertrain)} />
+        {form.bookingType === 'service' ? (
+          <SummaryRow
+            label="Requested services"
+            value={form.serviceSelections.map((selection) => serviceSelectionLabel(selection, form.vehiclePowertrain)).join(' · ') || 'Not selected'}
+            secondary="PSI will review and confirm the final workshop scope"
+          />
+        ) : null}
         <SummaryRow
           label="Vehicle"
           value={`${form.vehicleYear} ${form.vehicleMake} ${form.vehicleModel}`.trim()}
@@ -2101,6 +2155,11 @@ const styles = StyleSheet.create({
   inspectionTitle: { color: colors.white, fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
   inspectionCopy: { color: colors.muted, fontSize: 12, lineHeight: 19 },
   choiceList: { gap: spacing.sm },
+  serviceChoiceList: { gap: spacing.sm },
+  serviceChoice: { ...mobileFrame, minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: bookingColors.surface, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  serviceChoiceSelected: { borderColor: bookingColors.accent, backgroundColor: bookingColors.surfaceAlt },
+  serviceChoiceText: { flex: 1, color: colors.silver, fontSize: 14, fontWeight: '800', lineHeight: 20 },
+  serviceChoiceTextSelected: { color: colors.white },
   error: { marginTop: spacing.sm, color: colors.danger, fontSize: 12, lineHeight: 17 },
   fields: { gap: spacing.lg },
   fieldRow: { gap: spacing.lg },
