@@ -104,6 +104,9 @@ test("the Shopify global theme layer carries the approved PSI palette across sha
   assert.match(versionSix, /main \.main-page-title[\s\S]*color:#f7f9fa!important/u);
   assert.match(versionSix, /--marquee-duration:22s!important/u);
   assert.match(versionSix, /Brands We Service|brands we service/u);
+  for (const brand of ["BYD", "Chevrolet", "HSV", "Hyundai", "Kia", "Lexus", "Mazda", "Mitsubishi", "Nissan", "Polestar", "Subaru", "Tesla", "Toyota", "Volvo"]) {
+    assert.match(versionSix, new RegExp(`"${brand}"`, "u"));
+  }
   assert.match(versionSix, /\/pages\/power-estimator/u);
   assert.match(versionSix, /Real feedback from customers/u);
   assert.match(versionSix, /psi-v6-brand-grid/u);

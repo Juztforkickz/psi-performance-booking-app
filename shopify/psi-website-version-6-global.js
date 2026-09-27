@@ -4,12 +4,26 @@
   const servicedBrands = [
     "Audi",
     "BMW",
+    "BYD",
+    "Chevrolet",
     "Ford",
     "Holden",
+    "HSV",
+    "Hyundai",
+    "Kia",
     "Lamborghini",
+    "Lexus",
+    "Mazda",
     "Mercedes-Benz",
+    "Mitsubishi",
+    "Nissan",
+    "Polestar",
     "Porsche",
+    "Subaru",
     "Škoda",
+    "Tesla",
+    "Toyota",
+    "Volvo",
     "Volkswagen",
   ];
 
@@ -35,12 +49,12 @@ main .main-page-title,main .collection-hero__title{text-shadow:0 2px 22px rgba(0
 .brand-marquee{border-top:1px solid rgba(101,207,248,.24);border-bottom:1px solid rgba(101,207,248,.24)}
 .brand-marquee__content{--marquee-duration:22s!important;animation-duration:22s!important}
 .brand-marquee__logo{filter:grayscale(1) brightness(1.32) contrast(1.08) drop-shadow(0 0 7px rgba(101,207,248,.18))}
-.psi-v6-brand-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 14px;margin-top:0!important}
+.psi-v6-brand-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px 14px;margin-top:0!important;max-width:520px}
 .psi-v6-brand-grid li{margin:0!important;padding:0!important}
-.psi-v6-brand-grid span{display:block;padding:3px 0;color:rgba(219,227,231,.82);font-size:1.35rem;line-height:1.45}
+.psi-v6-brand-grid span{display:block;padding:2px 0;color:rgba(219,227,231,.82);font-size:1.18rem;line-height:1.34}
 .footer-block__details-content a{color:rgba(219,227,231,.88)!important}
 .footer-block__details-content a:hover{color:#65cff8!important}
-@media(max-width:749px){main .main-page-title,main .collection-hero__title{color:#fff!important}.why-choose-us-section,.services-carousel-section,.custom-review-section{background:radial-gradient(circle at 50% 0,rgba(101,207,248,.09),transparent 34%),#000!important}.psi-v6-brand-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:749px){main .main-page-title,main .collection-hero__title{color:#fff!important}.why-choose-us-section,.services-carousel-section,.custom-review-section{background:radial-gradient(circle at 50% 0,rgba(101,207,248,.09),transparent 34%),#000!important}.psi-v6-brand-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:1px 18px;max-width:360px}.psi-v6-brand-grid span{font-size:1.2rem;line-height:1.32}}
 `;
     document.head.appendChild(style);
   }
