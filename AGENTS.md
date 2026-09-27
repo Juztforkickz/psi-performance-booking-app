@@ -11,6 +11,10 @@
 - Avoid hyphens and dash punctuation in user visible writing, drafts, headings and marketing copy. Rewrite with commas, full stops or natural wording wherever possible.
 - Use a hyphen or dash only when it is required for correct spelling, an existing proper name, a file or URL, a code identifier, or unambiguous technical syntax.
 
+## Email platform preference
+- Use Microsoft 365 and Outlook for email access, drafting, sending and account setup.
+- Do not use Gmail for PSI email work unless Matt explicitly overrides this rule for a specific task.
+
 ## Protected owner account
 - The owner account `matt@psiperformance.com.au` must retain permanent complimentary Performance+ access.
 - Always exclude this account from beta cleanup, TestFlight tester removal, customer transition emails, subscription expiry and Performance+ lockouts.
