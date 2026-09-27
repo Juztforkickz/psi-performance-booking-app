@@ -10,6 +10,7 @@ import { colors, spacing } from '@/constants/brand';
 import { australianDateToIso, todayAustralianDate } from '@/lib/australian-date';
 import type { StaffPortalSnapshot } from '@/lib/staff-portal';
 import { createOrFindWorkshopJob, publishVaultRecord } from '@/lib/staff-vault';
+import { xeroImportFailureMessage } from '@/lib/xero-import-feedback';
 import { xeroWorkshopJobReference } from '@/lib/xero-workshop-reference';
 import { aud, PUBLISHABLE_VAULT_KINDS, VAULT_LABELS, vaultClient, type VaultKind } from '@/lib/performance-plus';
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
@@ -238,6 +239,7 @@ function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { dis
   const matchAndImport = async () => {
     if (!canMatch || disabled || working) return;
     setWorking(true); setMessage('');
+    let matchSaved = false;
     try {
       const selectedVehicle = snapshot.vehicles.find(vehicle => vehicle.id === vehicleId && vehicle.customer_id === customerId && !vehicle.archived_at);
       if (!selectedVehicle) throw new Error('Choose the verified customer vehicle again.');
@@ -245,13 +247,14 @@ function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { dis
       const job = await createOrFindWorkshopJob({ customerId, vehicleId, reference: jobReference, title: `Xero invoice ${invoiceNumber}`, date: invoiceDate });
       const confirmedMatch = await vaultClient().rpc('confirm_xero_import_match', { p_queue_id: item.id, p_customer_id: customerId, p_job_id: job.id });
       if (confirmedMatch.error) throw confirmedMatch.error;
+      matchSaved = true;
       const processed = await getSupabaseClient().functions.invoke('process-xero-imports', { body: { queueId: item.id, limit: 1 } });
       if (processed.error) throw processed.error;
       const outcome = processed.data?.results?.[0];
       setConfirmed(false);
       setMessage(outcome?.status === 'imported' ? 'Invoice imported and published to the verified vehicle.' : 'Match saved. The secure importer will retry this invoice.');
       await onDone();
-    } catch { setMessage('Nothing was published. Recheck the customer, registration and exact PSI job reference, then try again.'); }
+    } catch (error) { setMessage(xeroImportFailureMessage(error, matchSaved)); }
     finally { setWorking(false); }
   };
 

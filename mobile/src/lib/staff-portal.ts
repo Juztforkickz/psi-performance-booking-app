@@ -18,6 +18,7 @@ import { parseAccountDeletionError } from '@/lib/deletion-errors';
 import { getSupabaseClient } from '@/lib/supabase';
 import { dispatchBookingPushNotifications } from '@/lib/notifications';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
+import { isVisibleStaffCustomer } from '@/lib/staff-customer-visibility';
 
 export type StaffPortalAccess =
   | { kind: 'access_denied' }
@@ -174,7 +175,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
       auditEvents: auditEventsResult.data ?? [],
       bookings: bookingsResult.data ?? [],
       bookingHolding: bookingHoldingResult.data ?? [],
-      customers: customersResult.data ?? [],
+      customers: (customersResult.data ?? []).filter(isVisibleStaffCustomer),
       deletionCustomers: deletionCustomersResult.data ?? [],
       integrationJobs: integrationJobsResult.data ?? [],
       invitations: invitationsResult.data ?? [],

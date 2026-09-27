@@ -4,6 +4,8 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import test from 'node:test';
+import { xeroImportFailureMessage } from '../mobile/src/lib/xero-import-feedback.ts';
+import { xeroWorkshopJobReference } from '../mobile/src/lib/xero-workshop-reference.ts';
 
 const require = createRequire(import.meta.url);
 const ts = require('../mobile/node_modules/typescript');
@@ -60,6 +62,8 @@ function mountComponent(filename, exportName, props, moduleOverrides = {}) {
     '@/lib/review-environment': { REVIEW_ENVIRONMENT: { enabled: false } },
     '@/lib/staff-record-publishing': {},
     '@/lib/staff-vault': {},
+    '@/lib/xero-import-feedback': { xeroImportFailureMessage },
+    '@/lib/xero-workshop-reference': { xeroWorkshopJobReference },
     '@/lib/performance-plus': { PUBLISHABLE_VAULT_KINDS: ['service', 'dyno', 'invoice', 'media', 'document'], VAULT_LABELS: {} },
     '@/lib/supabase': { SUPABASE_CONNECTION: {} },
     '@/lib/staff-portal': {},
