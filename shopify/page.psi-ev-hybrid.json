@@ -1,0 +1,9 @@
+{
+  "sections": {
+    "psi_ev_hybrid": {
+      "type": "psi-ev-hybrid-page",
+      "settings": {}
+    }
+  },
+  "order": ["psi_ev_hybrid"]
+}
