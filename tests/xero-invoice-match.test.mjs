@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { matchXeroInvoice } from '../supabase/functions/_shared/xero-invoice-match.ts';
+import { xeroWorkshopJobReference } from '../mobile/src/lib/xero-workshop-reference.ts';
 
 const id = n => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const make = () => ({
@@ -64,4 +65,11 @@ test('a confirmed queue job still rejects a different customer', () => {
   value.confirmedJobId = id(6);
   value.jobs[0].customer_id = id(9);
   assert.deepEqual(matchXeroInvoice(value), { status: 'needs_review', reason: 'job_customer_mismatch' });
+});
+
+test('Xero punctuation produces a deterministic safe PSI workshop reference', () => {
+  const reference = xeroWorkshopJobReference('INV-1615', '1TX4SZ');
+  assert.equal(reference, 'XERO INV-1615 - 1TX4SZ');
+  assert.match(reference, /^[A-Z0-9][A-Z0-9 -]{2,79}$/u);
+  assert.equal(xeroWorkshopJobReference('INV/1615', '1TX4SZ'), 'XERO INV 1615 - 1TX4SZ');
 });
