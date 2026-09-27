@@ -141,8 +141,7 @@ test('record creation requires an explicit customer and a vehicle belonging to t
   flow.select('Vehicle', 'vehicle-a');
   flow.press('Continue');
   assert.equal(flow.count('Select'), 0);
-  flow.press('Invoices');
-  flow.press('Invoice details & PDF');
+  flow.press('Add invoice');
   const form = flow.find('LegacyPublisher');
   assert.equal(form.props.initialCustomerId, 'customer-a');
   assert.equal(form.props.initialVehicleId, 'vehicle-a');
@@ -164,8 +163,7 @@ test('booking/customer shortcuts advance only when both customer and vehicle mat
 
 test('changing vehicle protects dirty details and discarding starts a fresh form', () => {
   const flow = workflow({ customerId: 'customer-a', vehicleId: 'vehicle-a' });
-  flow.press('Invoices');
-  flow.press('Invoice details & PDF');
+  flow.press('Add invoice');
   const original = flow.find('LegacyPublisher');
   original.props.onDirtyChange(true);
   flow.render();
@@ -181,8 +179,7 @@ test('changing vehicle protects dirty details and discarding starts a fresh form
   assert.equal(flow.find('Select', node => node.props.label === 'Vehicle').props.value, '');
   flow.select('Vehicle', 'vehicle-b');
   flow.press('Continue');
-  flow.press('Invoices');
-  flow.press('Invoice details & PDF');
+  flow.press('Add invoice');
   assert.notEqual(flow.find('LegacyPublisher').key, original.key);
   assert.equal(flow.find('LegacyPublisher').props.initialCustomerId, 'customer-b');
   assert.equal(flow.find('LegacyPublisher').props.initialVehicleId, 'vehicle-b');
@@ -225,14 +222,19 @@ for (const [filename, exportName, extra] of [
   });
 }
 
-test('preview record workflow passes preview protection to both publishing destinations', () => {
+test('preview record workflow passes preview protection to invoice publishing', () => {
   const flow = workflow({ customerId: 'customer-a', vehicleId: 'vehicle-a', previewMode: true });
-  flow.press('Invoices');
-  flow.press('Invoice details & PDF');
+  flow.press('Add invoice');
   assert.equal(flow.find('LegacyPublisher').props.previewMode, true);
-  flow.press('Options');
-  flow.press('Job invoice files');
-  assert.equal(flow.find('VaultPublisher').props.previewMode, true);
+});
+
+test('invoice actions clearly separate viewing saved invoices from adding one invoice', () => {
+  const flow = workflow({ customerId: 'customer-a', vehicleId: 'vehicle-a' });
+  assert(flow.find('Pressable', node => node.props.accessibilityLabel === 'Add invoice'));
+  assert(flow.find('Pressable', node => node.props.accessibilityLabel === 'View invoices and vehicle records'));
+  flow.press('Add invoice');
+  assert.equal(flow.count('LegacyPublisher'), 1);
+  assert.equal(flow.count('VaultPublisher'), 0);
 });
 
 for (const fixedType of ['repair', 'recommendation', 'dyno', 'invoice']) {

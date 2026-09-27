@@ -51,7 +51,12 @@ test('Vehicle Reports advertises locked categories without fetching their conten
   assert.match(definitions, /REPORT_KINDS: ReportSection\[\] = \['service', 'recommendation', 'dyno', 'invoice', 'media', 'document'\]/u);
   for (const label of ['Service & Repair History', 'Recommended Work', 'Dyno Results & Graphs', 'Invoices', 'Workshop Photos', 'Documents & DTCs']) {
     assert.ok(definitions.includes(label), `Missing customer report label: ${label}`);
-    assert.ok(workflow.includes(label), `Missing staff report label: ${label}`);
+    if (label === 'Invoices') {
+      assert.match(workflow, /View invoices & records/u);
+      assert.match(workflow, /Add invoice/u);
+    } else {
+      assert.ok(workflow.includes(label), `Missing staff report label: ${label}`);
+    }
   }
   assert.match(definitions, /section === 'document' \? recordKind === 'document' \|\| recordKind === 'modification'/u);
   assert.match(definitions, /section === 'document' \? counts\.modification \?\? 0 : 0/u);

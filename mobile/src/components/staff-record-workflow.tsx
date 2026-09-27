@@ -13,11 +13,11 @@ import type { StaffPortalSnapshot } from '@/lib/staff-portal';
 
 type Category = 'service' | 'recommendation' | 'dyno' | 'invoice' | 'media' | 'document';
 type Destination = { legacy: StaffRecordType; vault?: never } | { vault: VaultKind; legacy?: never };
-const categories: { id: Category; title: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+const categories: { id: Category; title: string; description?: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: 'service', title: 'Service & Repair History', icon: 'construct-outline' },
   { id: 'recommendation', title: 'Recommended Work', icon: 'alert-circle-outline' },
   { id: 'dyno', title: 'Dyno Results & Graphs', icon: 'speedometer-outline' },
-  { id: 'invoice', title: 'Invoices', icon: 'receipt-outline' },
+  { id: 'invoice', title: 'Add invoice', description: 'Add an invoice number, AUD amount and PDF.', icon: 'receipt-outline' },
   { id: 'media', title: 'Workshop Photos', icon: 'images-outline' },
   { id: 'document', title: 'Documents & DTCs', icon: 'documents-outline' },
 ];
@@ -25,10 +25,6 @@ const formats: Partial<Record<Category, { title: string; description: string; de
   service: [
     { title: 'Service details', description: 'Service, repair or inspection notes and kilometres.', destination: { legacy: 'repair' } },
     { title: 'Service files', description: 'Job documents in the Performance+ service vault.', destination: { vault: 'service' } },
-  ],
-  invoice: [
-    { title: 'Invoice details & PDF', description: 'Invoice number, AUD amount and a PDF.', destination: { legacy: 'invoice' } },
-    { title: 'Job invoice files', description: 'A batch of PDFs linked to one workshop job.', destination: { vault: 'invoice' } },
   ],
   dyno: [
     { title: 'Verified dyno result', description: 'Power, torque and a PDF in the vehicle’s dyno record.', destination: { legacy: 'dyno' } },
@@ -68,6 +64,7 @@ export function StaffRecordWorkflow({ snapshot, customerId: shortcutCustomerId, 
     if (busy || !identityReady) return;
     setCategory(value);
     if (value === 'recommendation') setDestination({ legacy: 'recommendation' });
+    else if (value === 'invoice') setDestination({ legacy: 'invoice' });
     else if (value === 'media' || value === 'document') setDestination({ vault: value });
   };
   const applyStep = useCallback((action: 'back' | 'identity') => {
@@ -118,17 +115,17 @@ export function StaffRecordWorkflow({ snapshot, customerId: shortcutCustomerId, 
     </View> : <Text style={styles.muted}>Add to this vehicle</Text>}
     {!category ? viewingHistory
       ? <PrimaryButton label="Back to record actions" variant="outline" onPress={() => setViewingHistory(false)} />
-      : <Pressable accessibilityRole="button" accessibilityLabel="Inspect vehicle records and customer notes" onPress={() => setViewingHistory(true)} style={({ pressed }) => [styles.historyAction, pressed && styles.historyActionPressed]}>
+      : <Pressable accessibilityRole="button" accessibilityLabel="View invoices and vehicle records" onPress={() => setViewingHistory(true)} style={({ pressed }) => [styles.historyAction, pressed && styles.historyActionPressed]}>
           <View style={styles.historyActionIcon}><Ionicons color={colors.ink} name="folder-open" size={25} /></View>
           <View style={styles.rowCopy}>
-            <Text style={styles.historyActionTitle}>Inspect records & customer notes</Text>
-            <Text style={styles.historyActionCopy}>Open the complete vehicle history, attachments and customer notes.</Text>
+            <Text style={styles.historyActionTitle}>View invoices & records</Text>
+            <Text style={styles.historyActionCopy}>Open saved invoices, attached PDFs, vehicle history and customer notes.</Text>
           </View>
           <Ionicons color={colors.ink} name="chevron-forward" size={21} />
         </Pressable> : null}
     {!category && viewingHistory ? <StaffVehicleHistory key={customerId + ':' + vehicleId} vehicleId={vehicleId} previewMode={previewMode} /> : null}
     {!category && !viewingHistory ? <Text style={styles.title}>Publish a PSI record</Text> : null}
-    {!category && !viewingHistory ? categories.map(option => <Row key={option.id} icon={option.icon} title={option.title} onPress={() => chooseCategory(option.id)} />) : null}
+    {!category && !viewingHistory ? categories.map(option => <Row key={option.id} icon={option.icon} title={option.title} description={option.description} onPress={() => chooseCategory(option.id)} />) : null}
     {category && !destination ? formats[category]?.map(option => <Row key={option.title} title={option.title} description={option.description} icon="document-text-outline" onPress={() => setDestination(option.destination)} />) : null}
     {destination?.legacy ? <StaffRecordPublisher key={`legacy:${destination.legacy}:${customerId}:${vehicleId}`} compact fixedIdentity fixedType={destination.legacy} initialCustomerId={customerId} initialVehicleId={vehicleId} onBusyChange={busyChanged} onDirtyChange={dirtyChanged} previewMode={previewMode} snapshot={snapshot} /> : null}
     {destination?.vault ? <StaffVaultPublisher key={`vault:${destination.vault}:${customerId}:${vehicleId}`} compact fixedIdentity fixedKind={destination.vault} initialCustomerId={customerId} initialVehicleId={vehicleId} onBusyChange={busyChanged} onDirtyChange={dirtyChanged} previewMode={previewMode} snapshot={snapshot} /> : null}
@@ -149,7 +146,7 @@ function customerName(customer: StaffPortalSnapshot['customers'][number]) {
 }
 
 function Row({ title, description, icon, onPress }: { title: string; description?: string; icon: keyof typeof Ionicons.glyphMap; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+  return <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
     <View style={styles.icon}><Ionicons color={colors.accent} name={icon} size={22} /></View>
     <View style={styles.rowCopy}><Text style={styles.rowTitle}>{title}</Text>{description ? <Text style={styles.muted}>{description}</Text> : null}</View>
     <Ionicons color={colors.accent} name="chevron-forward" size={19} />
