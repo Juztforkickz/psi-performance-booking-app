@@ -155,6 +155,8 @@ export function StaffVaultReview({ snapshot, owner, previewMode = false }: { sna
   const [busy, setBusy] = useState(!previewMode);
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(previewMode);
+  const [activeTab, setActiveTab] = useState<'review' | 'waiting'>('review');
+  const waitingImports = imports.filter(item => item.status === 'waiting_for_customer');
   const review = useCallback(async () => {
     if (previewMode) return;
     setBusy(true); setError('');
@@ -185,6 +187,15 @@ export function StaffVaultReview({ snapshot, owner, previewMode = false }: { sna
     <PrimaryButton disabled={previewMode || busy} loading={busy} label={loaded ? 'Refresh' : 'Load records'} variant="outline" onPress={() => void review()} />
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
     {loaded && !error ? <>
+      <View accessibilityRole="tablist" style={styles.reviewTabs}>
+        <Pressable accessibilityRole="tab" accessibilityState={{ selected: activeTab === 'review' }} onPress={() => setActiveTab('review')} style={[styles.reviewTab, activeTab === 'review' && styles.selected]}>
+          <Text style={[styles.copy, activeTab === 'review' && styles.selectedText]}>Review & drafts</Text>
+        </Pressable>
+        <Pressable accessibilityRole="tab" accessibilityState={{ selected: activeTab === 'waiting' }} onPress={() => setActiveTab('waiting')} style={[styles.reviewTab, activeTab === 'waiting' && styles.selected]}>
+          <Text style={[styles.copy, activeTab === 'waiting' && styles.selectedText]}>Waiting for account{waitingImports.length ? ` (${waitingImports.length})` : ''}</Text>
+        </Pressable>
+      </View>
+      {activeTab === 'review' ? <>
       {imports.filter(item => item.status !== 'waiting_for_customer').length ? <View accessibilityRole="alert" style={styles.reviewAlert}>
         <Ionicons color={colors.danger} name="alert-circle" size={24} />
         <View style={styles.reviewAlertCopy}><Text style={styles.reviewAlertTitle}>Action needed · {imports.filter(item => item.status !== 'waiting_for_customer').length} invoice exception{imports.filter(item => item.status !== 'waiting_for_customer').length === 1 ? '' : 's'}</Text><Text style={styles.muted}>These could not be matched automatically. Check the customer and vehicle before publishing, or keep the invoice in Xero only.</Text></View>
@@ -193,16 +204,31 @@ export function StaffVaultReview({ snapshot, owner, previewMode = false }: { sna
       {!imports.some(item => item.status !== 'waiting_for_customer') ? <Text style={styles.muted}>No imports need review.</Text> : imports.filter(item => item.status !== 'waiting_for_customer').map(item => item.source === 'xero'
         ? <XeroImportReviewCard disabled={busy} item={item} key={item.id} onDone={review} owner={owner} snapshot={snapshot} />
         : <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.source} · {item.source_key}</Text><Text style={styles.muted}>{item.reason}</Text></View>)}
-      {imports.some(item => item.status === 'waiting_for_customer') ? <>
-        <Text style={styles.title}>Waiting for customer</Text>
-        <Text style={styles.muted}>These private files are ready to sync when the customer creates and matches their account. They do not send owner alerts.</Text>
-        {imports.filter(item => item.status === 'waiting_for_customer').map(item => <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.source} · {item.source_key}</Text><Text style={styles.muted}>{item.reason || 'Waiting for customer account match.'}</Text></View>)}
-      </> : null}
       {imports.length === 50 ? <Text style={styles.muted}>Showing the latest 50 imports.</Text> : null}
       <Text style={styles.title}>Unpublished drafts</Text>
       {!drafts.length ? <Text style={styles.muted}>No unfinished vault drafts.</Text> : <><Text style={styles.muted}>Check the original upload before retrying to avoid duplicates.</Text>{drafts.map(item => <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.title}</Text><Text selectable style={styles.muted}>Draft reference: {item.id}</Text></View>)}</>}
       {drafts.length === 50 ? <Text style={styles.muted}>Showing the latest 50 drafts.</Text> : null}
+      </> : <>
+        <Text style={styles.title}>Waiting for a customer account</Text>
+        <Text style={styles.muted}>These files are saved privately for customers whose PSI account and vehicle have not been matched yet. Once they create an account and the details are securely matched, syncing continues automatically.</Text>
+        <Text style={styles.message}>No action needed here. These files do not send owner alerts. Do not upload them again.</Text>
+        {!waitingImports.length ? <Text style={styles.muted}>No files are waiting for a customer account.</Text> : waitingImports.map(item => <WaitingAccountCard item={item} key={item.id} />)}
+      </>}
     </> : null}
+  </View>;
+}
+
+function WaitingAccountCard({ item }: { item: VaultImportReview }) {
+  const details = item.identifiers;
+  const name = typeof details.contactName === 'string' && details.contactName.trim() ? details.contactName.trim() : 'Customer details not yet available';
+  const invoice = typeof details.invoiceNumber === 'string' && details.invoiceNumber.trim() ? details.invoiceNumber.trim() : null;
+  const reference = typeof details.reference === 'string' && details.reference.trim() ? details.reference.trim() : null;
+  return <View style={styles.card}>
+    <Text style={styles.title}>{name}</Text>
+    <Text style={styles.copy}>{item.source === 'xero' ? `Xero invoice${invoice ? ` ${invoice}` : ''}` : 'Workshop file'}</Text>
+    {reference ? <Text style={styles.muted}>Vehicle / job: {reference}</Text> : null}
+    {typeof details.totalCents === 'number' && details.currency === 'AUD' ? <Text style={styles.muted}>{aud(details.totalCents)}{details.invoiceStatus === 'PAID' ? ' · Paid in Xero' : ''}</Text> : null}
+    <Text style={styles.importStatus}>Waiting for account match</Text>
   </View>;
 }
 
@@ -314,6 +340,8 @@ function Choice({ label, selected, onPress, disabled = false }: { label: string;
 }
 const styles = StyleSheet.create({
   stack: { gap: spacing.md },
+  reviewTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  reviewTab: { flexGrow: 1, flexBasis: 140, minHeight: 48, borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: spacing.sm, justifyContent: 'center' },
   card: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: colors.panel, padding: spacing.md, gap: spacing.md },
   reviewAlert: { borderWidth: 1, borderColor: colors.danger, borderLeftWidth: 4, borderRadius: 12, backgroundColor: colors.panel, padding: spacing.md, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   reviewAlertCopy: { flex: 1, minWidth: 0, gap: 3 },

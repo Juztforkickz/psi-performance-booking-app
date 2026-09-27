@@ -295,6 +295,31 @@ test('preview imports never load protected records, including their mount effect
   assert.equal(operations, 0);
 });
 
+test('waiting account files are separate and show customer details instead of internal IDs', async () => {
+  const waiting = { id: 'queue-private-id', source: 'xero', source_key: 'tenant-secret:invoice-secret', status: 'waiting_for_customer', identifiers: { contactName: 'Vince Tavete', invoiceNumber: 'INV-1640', reference: 'VZ OVERHAUL TYC767', totalCents: 2586000, currency: 'AUD', invoiceStatus: 'PAID' } };
+  const client = { from(table) {
+    const query = { select: () => query, in: () => query, is: () => query, order: () => query, limit: async () => ({ data: table === 'vault_import_queue' ? [waiting] : [], error: null }) };
+    return query;
+  } };
+  const component = mountComponent('staff-vault-publisher.tsx', 'StaffVaultReview', { snapshot, owner: false }, {
+    '@/lib/performance-plus': { vaultClient: () => client, aud: cents => `AUD ${(cents / 100).toFixed(2)}` },
+  });
+  component.render();
+  await new Promise(resolve => setTimeout(resolve, 20));
+  component.render();
+  assert.equal(component.find('Text', node => node.props.children === 'Vince Tavete'), undefined);
+  component.press('Waiting for account');
+  assert(component.find('Text', node => node.props.children === 'Vince Tavete'));
+  assert(component.find('Text', node => node.props.children === 'Xero invoice INV-1640'));
+  assert(component.find('Text', node => JSON.stringify(node.props.children).includes('TYC767')));
+  assert.equal(component.find('Text', node => JSON.stringify(node.props.children).includes('tenant-secret')), undefined);
+  assert.equal(component.find('Text', node => node.props.children === 'Unpublished drafts'), undefined);
+  assert.equal(component.find('Button', node => node.props.label === 'Match and import invoice'), undefined);
+  component.press('Review & drafts');
+  assert.equal(component.find('Text', node => node.props.children === 'Vince Tavete'), undefined);
+  assert(component.find('Text', node => node.props.children === 'Unpublished drafts'));
+});
+
 test('preview complimentary access explains customer-controlled trial without a staff grant action', () => {
   const component = mountComponent('staff-vault-publisher.tsx', 'StaffPerformanceAccess', {
     snapshot, customerId: 'customer-a', previewMode: true,
