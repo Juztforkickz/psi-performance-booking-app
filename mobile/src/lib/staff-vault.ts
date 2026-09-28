@@ -4,6 +4,7 @@ import type { DocumentPickerAsset } from 'expo-document-picker';
 import { Image } from 'react-native';
 import { getSupabaseClient } from '@/lib/supabase';
 import { vaultClient, type ServiceCompletionCandidate, type VaultKind, type WorkshopJob } from '@/lib/performance-plus';
+import { selectReusableXeroWorkshopJob } from '@/lib/xero-workshop-reference';
 
 export async function loadServiceCompletionCandidate(bookingId: string): Promise<ServiceCompletionCandidate | null> {
   const { data, error } = await vaultClient()
@@ -26,7 +27,7 @@ export async function loadWorkshopJobForBooking(bookingId: string): Promise<Work
   return data;
 }
 
-export async function createOrFindWorkshopJob(input: { customerId: string; vehicleId: string; reference: string; title: string; date: string }) {
+export async function createOrFindWorkshopJob(input: { customerId: string; vehicleId: string; reference: string; title: string; date: string; reuseExistingVehicleDate?: boolean }) {
   const client = vaultClient();
   const reference = input.reference.trim().toUpperCase();
   if (!/^[A-Z0-9][A-Z0-9 -]{2,79}$/.test(reference)) throw new Error('Use a clear PSI job reference of 3–80 letters, numbers, spaces or dashes.');
@@ -35,6 +36,19 @@ export async function createOrFindWorkshopJob(input: { customerId: string; vehic
   if (existing) {
     if (existing.customer_id !== input.customerId || existing.vehicle_id !== input.vehicleId) throw new Error('This job reference belongs to another vehicle. Check the job before continuing.');
     return existing;
+  }
+  if (input.reuseExistingVehicleDate) {
+    const { data: candidates, error: candidateError } = await client
+      .from('workshop_jobs')
+      .select('*')
+      .eq('customer_id', input.customerId)
+      .eq('vehicle_id', input.vehicleId)
+      .eq('job_date', input.date)
+      .order('created_at', { ascending: true })
+      .limit(2);
+    if (candidateError) throw candidateError;
+    const reusable = selectReusableXeroWorkshopJob(candidates ?? []);
+    if (reusable) return reusable;
   }
   const { data: auth } = await getSupabaseClient().auth.getUser();
   if (!auth.user) throw new Error('Staff sign-in required.');

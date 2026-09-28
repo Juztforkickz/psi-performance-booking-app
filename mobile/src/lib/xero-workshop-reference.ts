@@ -13,3 +13,10 @@ export function xeroWorkshopJobReference(invoiceNumber: string, registration: st
   }
   return reference;
 }
+
+export function selectReusableXeroWorkshopJob<T>(jobs: readonly T[]): T | null {
+  if (jobs.length > 1) {
+    throw new Error('More than one workshop job matches this customer, vehicle and date. Review the correct job before importing.');
+  }
+  return jobs[0] ?? null;
+}

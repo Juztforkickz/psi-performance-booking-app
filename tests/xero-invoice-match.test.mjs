@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { matchXeroInvoice } from '../supabase/functions/_shared/xero-invoice-match.ts';
-import { xeroWorkshopJobReference } from '../mobile/src/lib/xero-workshop-reference.ts';
+import { selectReusableXeroWorkshopJob, xeroWorkshopJobReference } from '../mobile/src/lib/xero-workshop-reference.ts';
 
 const id = n => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const make = () => ({
@@ -72,4 +72,17 @@ test('Xero punctuation produces a deterministic safe PSI workshop reference', ()
   assert.equal(reference, 'XERO INV-1615 - 1TX4SZ');
   assert.match(reference, /^[A-Z0-9][A-Z0-9 -]{2,79}$/u);
   assert.equal(xeroWorkshopJobReference('INV/1615', '1TX4SZ'), 'XERO INV 1615 - 1TX4SZ');
+});
+
+test('a single existing customer vehicle date job is reused for a Xero import', () => {
+  const job = { id: id(6), reference: 'PSI-PHONE-20260924-309254C2' };
+  assert.equal(selectReusableXeroWorkshopJob([job]), job);
+  assert.equal(selectReusableXeroWorkshopJob([]), null);
+});
+
+test('multiple customer vehicle date jobs require review instead of guessing', () => {
+  assert.throws(
+    () => selectReusableXeroWorkshopJob([{ id: id(6) }, { id: id(7) }]),
+    /More than one workshop job matches/u,
+  );
 });

@@ -270,7 +270,7 @@ function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { dis
       const selectedVehicle = snapshot.vehicles.find(vehicle => vehicle.id === vehicleId && vehicle.customer_id === customerId && !vehicle.archived_at);
       if (!selectedVehicle) throw new Error('Choose the verified customer vehicle again.');
       const jobReference = xeroWorkshopJobReference(invoiceNumber, selectedVehicle.registration);
-      const job = await createOrFindWorkshopJob({ customerId, vehicleId, reference: jobReference, title: `Xero invoice ${invoiceNumber}`, date: invoiceDate });
+      const job = await createOrFindWorkshopJob({ customerId, vehicleId, reference: jobReference, title: `Xero invoice ${invoiceNumber}`, date: invoiceDate, reuseExistingVehicleDate: true });
       const confirmedMatch = await vaultClient().rpc('confirm_xero_import_match', { p_queue_id: item.id, p_customer_id: customerId, p_job_id: job.id });
       if (confirmedMatch.error) throw confirmedMatch.error;
       matchSaved = true;
