@@ -344,7 +344,7 @@ export default function BookingsScreen() {
             <View style={styles.modalHeader}>
               <View style={styles.modalHeaderCopy}>
                 <Text style={styles.eyebrow}>Book ahead</Text>
-                <Text style={styles.modalTitle}>Choose a starting point</Text>
+                <Text style={styles.modalTitle}>Where should PSI begin?</Text>
               </View>
               <Pressable
                 accessibilityLabel="Close"
@@ -355,13 +355,17 @@ export default function BookingsScreen() {
                 <Ionicons color={colors.white} name="close" size={24} />
               </Pressable>
             </View>
-            <BookingChoice icon="construct-outline" label="Service & Report" onPress={() => openBooking('service')} />
-            <BookingChoice icon="speedometer-outline" label="Dyno Tuning" onPress={() => openBooking('dyno')} />
-            <Text style={styles.modalNote}>{privateAccountMode
-              ? account?.vehicles.length
-                ? 'Choose a saved vehicle to begin.'
-                : 'Add a vehicle in My Garage first.'
-              : 'Explore the flow with demonstration data. Submission is disabled.'}</Text>
+            <BookingChoice
+              detail="Service, inspection and a clear vehicle report. From $423.50 AUD including GST."
+              label="Service & Report"
+              onPress={() => openBooking('service')}
+            />
+            <BookingChoice
+              detail="Hub dyno calibration, testing and measured results. From $649.00 AUD including GST."
+              label="Dyno Tuning"
+              onPress={() => openBooking('dyno')}
+            />
+            <Text style={styles.modalNote}>PSI reviews every preferred date before confirming work or requesting a deposit.</Text>
             </View>
           </ScrollView>
         </SafeAreaView>
@@ -575,19 +579,26 @@ function bookingStatusLabel(state: BookingRequestRow['state']) {
 }
 
 function BookingChoice({
-  icon,
+  detail,
   label,
   onPress,
 }: {
-  icon: 'construct-outline' | 'speedometer-outline';
+  detail: string;
   label: string;
   onPress: () => void;
 }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.bookingChoice, pressed && styles.pressed]}>
-      <Ionicons color={colors.accent} name={icon} size={28} />
-      <Text style={styles.bookingChoiceText}>{label}</Text>
-      <Ionicons color={colors.white} name="arrow-forward" size={20} />
+    <Pressable
+      accessibilityHint={detail}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.bookingChoice, pressed && styles.pressed]}
+    >
+      <View style={styles.bookingChoiceCopy}>
+        <Text style={styles.bookingChoiceTitle}>{label}</Text>
+        <Text style={styles.bookingChoiceDetail}>{detail}</Text>
+      </View>
+      <Ionicons color={colors.accent} name="arrow-forward" size={22} />
     </Pressable>
   );
 }
@@ -679,10 +690,12 @@ const styles = StyleSheet.create({
   modalSheet: { ...mobileFrame, zIndex: 1, width: '100%', maxWidth: 560, gap: spacing.md, backgroundColor: colors.inkSoft, padding: spacing.lg },
   modalHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.md },
   modalHeaderCopy: { flex: 1, gap: spacing.xs },
-  modalTitle: { color: colors.white, fontSize: 22, fontWeight: '900', lineHeight: 26, textTransform: 'uppercase' },
+  modalTitle: { color: colors.white, fontSize: 24, fontWeight: '900', lineHeight: 28, textTransform: 'uppercase' },
   closeButton: { ...mobileFrame, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.ink },
-  bookingChoice: { ...mobileFrame, minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.panel, padding: spacing.md },
-  bookingChoiceText: { flex: 1, color: colors.white, fontSize: 15, fontWeight: '900', textTransform: 'uppercase' },
+  bookingChoice: { ...mobileFrame, minHeight: 98, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.panel, padding: spacing.md },
+  bookingChoiceCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
+  bookingChoiceTitle: { color: colors.white, fontSize: 16, fontWeight: '900', textTransform: 'uppercase' },
+  bookingChoiceDetail: { color: colors.muted, fontSize: 11, lineHeight: 17 },
   vehicleChoice: { ...mobileFrame, minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.panel, padding: spacing.md },
   vehicleChoiceCopy: { flex: 1, minWidth: 0, gap: 3 },
   vehicleChoiceTitle: { color: colors.white, fontSize: 14, fontWeight: '900', textTransform: 'uppercase' },
