@@ -870,6 +870,32 @@ def _object_suffix(mime):
         return '.jpg'
     raise ValueError('Unsupported upload file type')
 
+
+def invoice_identity(value):
+    """Return a conservative invoice key only for filenames carrying an INV number."""
+    compact = re.sub(r'[^A-Z0-9]+', '', Path(value).stem.upper())
+    for prefix in ('XEROINVOICE', 'INVOICE', 'XERO'):
+        if compact.startswith(prefix):
+            compact = compact[len(prefix):]
+            break
+    return compact if re.fullmatch(r'INV[A-Z0-9]{2,}', compact) else None
+
+
+def published_invoice_for_job(connection, job_id, filename):
+    """Avoid a second visible copy when Xero or the workshop already published this invoice."""
+    identity = invoice_identity(filename)
+    if not identity:
+        return None
+    path = (
+        '/rest/v1/vault_records?select=id,title,source,published_at'
+        '&job_id=eq.' + urllib.parse.quote(job_id, safe='')
+        + '&kind=eq.invoice&published_at=not.is.null'
+    )
+    matches = [record for record in connection.call(path) if invoice_identity(record.get('title', '')) == identity]
+    if len(matches) > 1:
+        raise ValueError('More than one published copy of this invoice needs PSI review')
+    return matches[0] if matches else None
+
 def process_job(folder, connection=None):
     manifest = manifest_for(folder, connection)
     migrate_category_folders(folder)
@@ -914,6 +940,15 @@ def process_job(folder, connection=None):
                 if (prior.get('key') == source_key or str(prior.get('key', '')).endswith(':' + digest)) and prior.get('status') == 'uploaded':
                     state[relative] = _source_state(source_key, 'uploaded', before)
                     continue
+                if connection and not workshop_only and kind == 'invoice':
+                    published_invoice = published_invoice_for_job(connection, manifest['job_id'], path.name)
+                    if published_invoice:
+                        state[relative] = _source_state(
+                            source_key, 'uploaded', before,
+                            record_id=published_invoice['id'], deduplicated=True,
+                        )
+                        atomic_json(state_path, state)
+                        continue
                 if not connection or workshop_only:
                     out = prepared_folder(folder) / category
                     out.mkdir(parents=True, exist_ok=True)

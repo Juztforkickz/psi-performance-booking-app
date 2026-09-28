@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { matchXeroInvoice } from '../supabase/functions/_shared/xero-invoice-match.ts';
+import { invoiceIdentity, selectPublishedInvoiceByIdentity } from '../supabase/functions/_shared/xero-invoice-dedupe.ts';
 import { selectReusableXeroWorkshopJob, xeroWorkshopJobReference } from '../mobile/src/lib/xero-workshop-reference.ts';
 
 const id = n => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -85,4 +86,12 @@ test('multiple customer vehicle date jobs require review instead of guessing', (
     () => selectReusableXeroWorkshopJob([{ id: id(6) }, { id: id(7) }]),
     /More than one workshop job matches/u,
   );
+});
+
+test('the same verified job invoice is selected despite label formatting or date differences', () => {
+  const invoice = { id: id(8), title: 'invoice_inv-1642' };
+  assert.equal(invoiceIdentity('Xero invoice INV-1642'), 'INV1642');
+  assert.equal(selectPublishedInvoiceByIdentity([invoice], 'INV-1642'), invoice);
+  assert.equal(selectPublishedInvoiceByIdentity([invoice], 'INV-1643'), null);
+  assert.equal(selectPublishedInvoiceByIdentity([invoice, { id: id(9), title: 'INV 1642' }], 'INV-1642'), null);
 });

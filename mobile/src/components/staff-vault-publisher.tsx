@@ -163,7 +163,7 @@ export function StaffVaultReview({ snapshot, owner, previewMode = false }: { sna
     try {
       const [queue, records] = await Promise.all([
         vaultClient().from('vault_import_queue').select('id,reason,source,source_key,status,identifiers,attempt_count,last_error_code').in('status', ['pending', 'processing', 'needs_review', 'waiting_for_customer', 'matched', 'failed']).order('created_at', { ascending: false }).limit(50),
-        vaultClient().from('vault_records').select('id,title,created_at').is('published_at', null).order('created_at', { ascending: false }).limit(50),
+        vaultClient().from('vault_records').select('id,title,created_at').is('published_at', null).not('title', 'like', 'ARCHIVED DUPLICATE%').order('created_at', { ascending: false }).limit(50),
       ]);
       if (queue.error || records.error) throw queue.error ?? records.error;
       setImports(queue.data ?? []); setDrafts(records.data ?? []); setLoaded(true);

@@ -13,7 +13,8 @@ from pillow_heif import from_pillow
 from psi_uploads import (
     Connection, RequestFailure, SessionStore, _ReturnToMenu, _parse_job_date, _parse_job_type,
     create_job_folder, create_manual_job,
-    ensure_object, folder_label_for, import_manifest_inbox, manifest_for, prepare_file, process_job,
+    ensure_object, folder_label_for, import_manifest_inbox, invoice_identity, manifest_for,
+    prepare_file, process_job, published_invoice_for_job,
     sync_job_folders,
 )
 
@@ -87,6 +88,30 @@ class WorkshopImporterTests(unittest.TestCase):
         path.write_bytes(b'<html>not a PDF</html>')
         with self.assertRaises(ValueError):
             prepare_file(path)
+
+    def test_invoice_identity_matches_workshop_and_xero_titles(self):
+        self.assertEqual(invoice_identity('Invoice INV-1642.pdf'), 'INV1642')
+        self.assertEqual(invoice_identity('Xero invoice INV-1642'), 'INV1642')
+        self.assertEqual(invoice_identity('INV_1642.PDF'), 'INV1642')
+        self.assertIsNone(invoice_identity('invoice.pdf'))
+
+    def test_existing_verified_job_invoice_prevents_a_second_copy(self):
+        class FakeConnection:
+            requested = ''
+            def call(inner, path):
+                inner.requested = path
+                return [{
+                    'id': 'a4600000-0000-4000-8000-000000000001',
+                    'title': 'Xero invoice INV-1642', 'source': 'xero',
+                    'published_at': '2026-09-28T00:00:00Z',
+                }]
+
+        connection = FakeConnection()
+        found = published_invoice_for_job(connection, self.manifest['job_id'], 'Invoice INV-1642.pdf')
+
+        self.assertEqual(found['source'], 'xero')
+        self.assertIn('job_id=eq.' + self.manifest['job_id'], connection.requested)
+        self.assertIn('kind=eq.invoice', connection.requested)
 
     def test_prepare_only_is_repeatable_without_upload(self):
         self.image()

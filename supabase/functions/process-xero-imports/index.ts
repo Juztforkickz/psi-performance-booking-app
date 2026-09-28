@@ -2,6 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.112.3';
 import { openXeroTokens, sealXeroTokens } from '../_shared/xero-token-crypto.ts';
 import { xeroInvoiceReader } from '../_shared/xero-invoice-fetch.ts';
+import { selectPublishedInvoiceByIdentity } from '../_shared/xero-invoice-dedupe.ts';
 import { matchXeroInvoice, type VerifiedContactLink, type XeroInvoice } from '../_shared/xero-invoice-match.ts';
 import { parseXeroTokenSet, requestXeroTokenRefresh } from '../_shared/xero-token-refresh.ts';
 
@@ -163,18 +164,22 @@ async function findPublishedWorkshopInvoice(
   reference: string,
   invoiceNumber: string,
   occurredOn: string,
+  confirmedJobId?: string | null,
 ) {
   const normalizedReference = ` ${reference.toUpperCase().replace(/[^A-Z0-9]+/gu, ' ').trim()} `;
   const titles = [`Invoice ${invoiceNumber}`, `Xero invoice ${invoiceNumber}`];
-  const { data: records, error: recordError } = await admin
+  let query = admin
     .from('vault_records')
-    .select('id,job_id,customer_id,vehicle_id,occurred_on,published_at')
+    .select('id,job_id,customer_id,vehicle_id,title,occurred_on,published_at')
     .eq('kind', 'invoice')
-    .in('title', titles)
     .not('published_at', 'is', null)
     .limit(3);
+  if (uuid(confirmedJobId)) query = query.eq('job_id', confirmedJobId);
+  else query = query.in('title', titles);
+  const { data: records, error: recordError } = await query;
   if (recordError) throw new Error('workshop_invoice_duplicate_lookup_failed');
   if (!records?.length) return null;
+  if (uuid(confirmedJobId)) return selectPublishedInvoiceByIdentity(records, invoiceNumber);
 
   const vehicleIds = [...new Set(records.map(record => record.vehicle_id).filter(uuid))];
   const { data: vehicles, error: vehicleError } = await admin
@@ -281,6 +286,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     reference,
     invoiceNumber,
     invoiceDate(invoice),
+    queued.job_id,
   );
   if (publishedWorkshopInvoice) {
     await setQueue(admin, queued.id, {
@@ -337,6 +343,26 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     // The invoice must remain reviewable even if alert delivery is temporarily unavailable.
     await alertOwnerForReview(admin, ownerId, queued, enriched).catch(() => undefined);
     return { id: queued.id, status: 'needs_review', reason: matched.reason };
+  }
+
+  const publishedMatchedInvoice = await findPublishedWorkshopInvoice(
+    admin,
+    reference,
+    invoiceNumber,
+    invoiceDate(invoice),
+    matched.jobId,
+  );
+  if (publishedMatchedInvoice) {
+    await setQueue(admin, queued.id, {
+      status: 'imported',
+      job_id: publishedMatchedInvoice.job_id,
+      record_id: publishedMatchedInvoice.id,
+      identifiers: enriched,
+      reason: 'Already published for this verified PSI workshop job; the Xero copy was not duplicated.',
+      completed_at: new Date().toISOString(),
+      last_error_code: null,
+    });
+    return { id: queued.id, status: 'imported', recordId: publishedMatchedInvoice.id, duplicate: true };
   }
 
   const sourceReference = matched.sourceReference;

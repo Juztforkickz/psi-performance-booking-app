@@ -2,11 +2,38 @@ import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { PrivateVaultThumbnail } from '@/components/private-vault-thumbnail';
 import { PrimaryButton } from '@/components/ui';
 import { CustomerVehicleNotes } from '@/components/customer-vehicle-notes';
 import { colors, spacing } from '@/constants/brand';
-import { loadVaultAssets, loadVaultRecords, recordMatchesReportSection, reportSectionCount, REPORT_KINDS, REPORT_LABELS, type ReportSection, type VaultRecord } from '@/lib/performance-plus';
+import { loadVaultAssets, loadVaultRecords, recordMatchesReportSection, reportSectionCount, REPORT_KINDS, REPORT_LABELS, type ReportKind, type ReportSection, type VaultAsset, type VaultRecord } from '@/lib/performance-plus';
 import { getSupabaseClient } from '@/lib/supabase';
+
+type HistoryEntry = { key: string; primary: VaultRecord; records: VaultRecord[] };
+
+const ATTACHMENT_KINDS = new Set<ReportKind>(['media', 'dyno', 'invoice', 'modification', 'document']);
+
+function groupHistoryEntries(records: VaultRecord[], section: ReportSection): HistoryEntry[] {
+  const entries: HistoryEntry[] = [];
+  const visitGroups = new Map<string, HistoryEntry>();
+  for (const record of records) {
+    if (!recordMatchesReportSection(record.kind, section)) continue;
+    const groupByVisit = record.kind === 'media' || Boolean(record.job_id && ATTACHMENT_KINDS.has(record.kind));
+    if (!groupByVisit) {
+      entries.push({ key: record.id, primary: record, records: [record] });
+      continue;
+    }
+    const key = `${record.kind}:${record.job_id || record.occurred_on || record.id}`;
+    const existing = visitGroups.get(key);
+    if (existing) existing.records.push(record);
+    else {
+      const entry = { key, primary: record, records: [record] };
+      visitGroups.set(key, entry);
+      entries.push(entry);
+    }
+  }
+  return entries;
+}
 
 // Only mounted inside the MFA-protected staff portal. RLS independently checks staff access.
 export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicleId: string; previewMode?: boolean }) {
@@ -15,7 +42,8 @@ export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicl
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
   const [image, setImage] = useState<string | null>(null);
-  const [files, setFiles] = useState<Awaited<ReturnType<typeof loadVaultAssets>>>([]);
+  const [opened, setOpened] = useState<{ key: string; assets: VaultAsset[] } | null>(null);
+  const [loadingEntry, setLoadingEntry] = useState('');
   useEffect(() => {
     if (previewMode) return;
     let active = true;
@@ -29,6 +57,34 @@ export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicl
     return () => clearTimeout(timer);
   }, [image]);
   const copy = { color: colors.silver, fontSize: 15, lineHeight: 23 };
+  const entries = section && section !== 'notes' && records ? groupHistoryEntries(records, section) : [];
+  const openEntry = async (entry: HistoryEntry) => {
+    if (opened?.key === entry.key) { setOpened(null); return; }
+    setOpened(null);
+    setLoadingEntry(entry.key);
+    try {
+      const batches = await Promise.all(entry.records.map(record => loadVaultAssets(record.id)));
+      const assets = batches.flat();
+      setOpened({ key: entry.key, assets });
+      setError(assets.length ? '' : 'No files attached to this record.');
+    } catch {
+      setError('Files could not be loaded. Check your staff session.');
+    } finally {
+      setLoadingEntry('');
+    }
+  };
+  const openAsset = async (file: VaultAsset) => {
+    try {
+      const { data, error: accessError } = await getSupabaseClient().functions.invoke('open-vault-file', {
+        body: file.id.startsWith('legacy:') ? { legacyFileId: file.id.slice(7) } : { assetId: file.id },
+      });
+      if (accessError || !data?.url) throw new Error('access');
+      if (file.mime_type === 'application/pdf') await Linking.openURL(data.url);
+      else setImage(data.url);
+    } catch {
+      setError('This attachment could not be opened. Check your staff session.');
+    }
+  };
   return <View style={{ gap: 14 }}>
     <Text style={{ color: colors.white, fontSize: 18, fontWeight: '800' }}>View vehicle history</Text>
     <Text style={copy}>PSI can read workshop records regardless of the customer’s subscription. Customer notes are separately labelled and unverified.</Text>
@@ -39,30 +95,35 @@ export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicl
         return <HistoryCategory key={kind} title={REPORT_LABELS[kind]} detail={count == null ? 'Loading saved records…' : `${count} saved record${count === 1 ? '' : 's'}`} icon={HISTORY_ICONS[kind]} onPress={() => setSection(kind)} />;
       })}
     </View> : <>
-      <PrimaryButton label="Back to history categories" variant="outline" onPress={() => { setSection(null); setFiles([]); setImage(null); setError(''); }} />
+      <PrimaryButton label="Back to history categories" variant="outline" onPress={() => { setSection(null); setOpened(null); setImage(null); setError(''); }} />
       {section === 'notes' ? <CustomerVehicleNotes key={vehicleId} vehicleId={vehicleId} readOnly previewMode={previewMode} /> : <>
         <Text style={{ color: colors.white, fontSize: 18, fontWeight: '700' }}>{REPORT_LABELS[section]}</Text>
         {previewMode ? <Text style={copy}>Open the signed-in portal to view saved customer records.</Text> : !records && !error ? <ActivityIndicator color={colors.accent} /> : null}
-        {records?.filter(record => recordMatchesReportSection(record.kind, section)).map(record => <View key={record.id} style={styles.recordCard}>
+        {entries.map(entry => {
+          const record = entry.primary;
+          const expanded = opened?.key === entry.key;
+          const attachmentKind = ATTACHMENT_KINDS.has(record.kind);
+          const isGallery = record.kind === 'media';
+          const fileCount = expanded ? opened?.assets.length ?? entry.records.length : entry.records.length;
+          const displayTitle = isGallery ? 'Workshop photos' : record.kind === 'document' || record.kind === 'modification' ? 'Documents & DTCs' : record.title;
+          const actionLabel = isGallery
+            ? expanded ? 'Hide photos' : `View all ${fileCount} ${fileCount === 1 ? 'photo' : 'photos'}`
+            : expanded ? 'Hide attached files' : record.kind === 'invoice' ? 'View invoice' : record.kind === 'dyno' ? 'View dyno files' : 'View attached files';
+          return <View key={entry.key} style={styles.recordCard}>
           <Text style={{ color: colors.accent, fontSize: 12, fontWeight: '800' }}>{record.source === 'customer_entry' ? 'CUSTOMER-SUPPLIED · UNVERIFIED' : 'PSI WORKSHOP RECORD · READ-ONLY'}</Text>
-          <Text style={{ color: colors.white, fontWeight: '800', fontSize: 17 }}>{record.title}</Text>
-          <Text style={copy}>{record.occurred_on.slice(0, 10)}</Text><Text selectable style={copy}>{record.notes}</Text>
+          <Text style={{ color: colors.white, fontWeight: '800', fontSize: 17 }}>{displayTitle}</Text>
+          <Text style={copy}>{record.occurred_on.slice(0, 10)}</Text>
+          {isGallery ? <Text style={copy}>{fileCount} {fileCount === 1 ? 'photo' : 'photos'} from this workshop visit</Text> : record.notes ? <Text selectable style={copy}>{record.notes}</Text> : null}
           {record.power_kw != null ? <Text style={copy}>{Math.round(record.power_kw * 1.34102209)} HP at hubs · {record.torque_nm ?? '—'} Nm</Text> : null}
-          <PrimaryButton label="View attached files" variant="outline" onPress={() => {
-            void loadVaultAssets(record.id).then(value => { setFiles(value); setError(value.length ? '' : 'No files attached to this record.'); }).catch(() => setError('Files could not be loaded.'));
-          }} />
-        </View>)}
-        {records && !records.some(record => recordMatchesReportSection(record.kind, section)) ? <Text style={copy}>No records in this category yet.</Text> : null}
-        {files.map(file => <PrimaryButton key={file.id} label={file.caption || 'Open attachment'} onPress={() => {
-          void (async () => {
-            const { data, error: accessError } = await getSupabaseClient().functions.invoke('open-vault-file', {
-              body: file.id.startsWith('legacy:') ? { legacyFileId: file.id.slice(7) } : { assetId: file.id },
-            });
-            if (accessError || !data?.url) throw new Error('access');
-            if (file.mime_type === 'application/pdf') await Linking.openURL(data.url);
-            else setImage(data.url);
-          })().catch(() => setError('This attachment could not be opened. Check your staff session.'));
-        }} />)}
+          {attachmentKind ? <Pressable accessibilityRole="button" accessibilityLabel={actionLabel} accessibilityState={{ expanded }} onPress={() => void openEntry(entry)} style={({ pressed }) => [styles.attachmentToggle, pressed && styles.pressed]}>
+            <View style={styles.attachmentToggleCopy}><Ionicons color={colors.accent} name={isGallery ? 'images-outline' : record.kind === 'invoice' ? 'receipt-outline' : 'documents-outline'} size={21} /><Text style={styles.attachmentToggleText}>{actionLabel}</Text></View>
+            {loadingEntry === entry.key ? <ActivityIndicator color={colors.accent} /> : <Ionicons color={colors.accent} name={expanded ? 'chevron-up' : 'chevron-down'} size={20} />}
+          </Pressable> : null}
+          {expanded ? <View style={styles.attachments}>{(opened?.assets ?? []).map(file => file.mime_type.startsWith('image/')
+            ? <PrivateVaultThumbnail compact asset={file} key={file.id} onOpen={() => void openAsset(file)} />
+            : <PrimaryButton key={file.id} label={file.caption || 'Open attachment'} onPress={() => void openAsset(file)} variant="outline" />)}</View> : null}
+        </View>; })}
+        {records && !entries.length ? <Text style={copy}>No records in this category yet.</Text> : null}
         <PrimaryButton label="Refresh history" variant="outline" onPress={() => setRevision(value => value + 1)} />
       </>}
     </>}
@@ -100,5 +161,9 @@ const styles = StyleSheet.create({
   categoryDetail: { color: colors.muted, fontSize: 13, lineHeight: 18 },
   categoryDetailAttention: { color: colors.danger, fontWeight: '700' },
   recordCard: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: colors.panel, padding: spacing.md, gap: 10 },
+  attachmentToggle: { minHeight: 52, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  attachmentToggleCopy: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  attachmentToggleText: { color: colors.accent, fontSize: 13, fontWeight: '900', textTransform: 'uppercase', letterSpacing: .35 },
+  attachments: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },
   pressed: { backgroundColor: colors.panelRaised },
 });

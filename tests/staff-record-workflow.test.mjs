@@ -300,7 +300,7 @@ test('preview imports never load protected records, including their mount effect
 test('waiting account files are separate and show customer details instead of internal IDs', async () => {
   const waiting = { id: 'queue-private-id', source: 'xero', source_key: 'tenant-secret:invoice-secret', status: 'waiting_for_customer', identifiers: { contactName: 'Vince Tavete', invoiceNumber: 'INV-1640', reference: 'VZ OVERHAUL TYC767', totalCents: 2586000, currency: 'AUD', invoiceStatus: 'PAID' } };
   const client = { from(table) {
-    const query = { select: () => query, in: () => query, is: () => query, order: () => query, limit: async () => ({ data: table === 'vault_import_queue' ? [waiting] : [], error: null }) };
+    const query = { select: () => query, in: () => query, is: () => query, not: () => query, order: () => query, limit: async () => ({ data: table === 'vault_import_queue' ? [waiting] : [], error: null }) };
     return query;
   } };
   const component = mountComponent('staff-vault-publisher.tsx', 'StaffVaultReview', { snapshot, owner: false }, {
