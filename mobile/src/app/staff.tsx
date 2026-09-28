@@ -608,12 +608,12 @@ export function StaffWorkspace({
         {actionNotice ? <Text accessibilityRole="alert" style={styles.cardMeta}>{actionNotice}</Text> : null}
 
         {section === 'dashboard' ? <>
+          <PortalAlertSummary customerLabel={customerAlertLabel} customerCount={notifications.customerUnreadCount} onPress={() => navigate('alerts')} statusLabel={previewMode ? 'Sample workshop and account updates' : Platform.OS === 'web' ? 'Workshop and account updates' : notifications.pushStatus === 'ready' ? 'Device registered' : 'Set up alerts on this phone'} staffCount={notifications.staffUnreadCount} />
           <View style={styles.dashboardMetrics}>
             <DashboardMetric label="Needs action" value={bookingQueues.needs.length} onPress={() => navigate('bookings', { view: 'needs' })} />
             <DashboardMetric label="Actioned" value={bookingQueues.actioned.length} onPress={() => navigate('bookings', { view: 'actioned' })} />
             <DashboardMetric label="Booked" value={bookingQueues.booked.length} onPress={() => navigate('bookings', { view: 'booked' })} />
           </View>
-          <PortalAlertSummary customerLabel={customerAlertLabel} customerCount={notifications.customerUnreadCount} onPress={() => navigate('alerts')} statusLabel={previewMode ? 'Sample workshop and account updates' : Platform.OS === 'web' ? 'Workshop and account updates' : notifications.pushStatus === 'ready' ? 'Device registered' : 'Set up alerts on this phone'} staffCount={notifications.staffUnreadCount} />
           <PrimaryButton label="Add vehicle record" onPress={() => navigate('records')} />
           <WorkspaceLink title="Find customer or vehicle" detail="Search name, email or registration" icon="search-outline" onPress={() => navigate('customers')} />
           {activeWorkshopContacts.length ? <WorkspaceLink title="Workshop-only customers" detail={`${activeWorkshopContacts.length} phone or walk-in customer${activeWorkshopContacts.length === 1 ? '' : 's'} awaiting an account match`} icon="git-merge-outline" onPress={() => navigate('workshop_customers')} /> : null}

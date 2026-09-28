@@ -63,6 +63,9 @@ test('Vehicle Reports advertises locked categories without fetching their conten
   assert.match(history, /recordMatchesReportSection\(record\.kind, section\)/u);
   assert.match(history, /groupHistoryEntries\(records, section\)/u);
   assert.match(history, /Promise\.all\(entry\.records\.map\(record => loadVaultAssets\(record\.id\)\)\)/u);
+  assert.match(history, /setGalleryAssets\(\{ key: galleryKey, values: Object\.fromEntries\(values\) \}\)/u);
+  assert.match(history, /\(cachedGallery \?\? \[\]\)\.slice\(0, 3\)/u);
+  assert.match(history, /Loading photo thumbnails/u);
   assert.match(history, /<PrivateVaultThumbnail compact asset=\{file\}/u);
   assert.match(history, /name=\{expanded \? 'chevron-up' : 'chevron-down'\}/u);
   assert.doesNotMatch(workflow, /Build history|id: 'modification'/u);

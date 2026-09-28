@@ -41,6 +41,7 @@ test('staff portal exposes split badges, alert setup and customer contact action
     read('../mobile/src/components/persistent-bottom-navigation.tsx'),
   ]);
   assert.match(portal, /PortalAlertSummary/u);
+  assert.ok(portal.indexOf('<PortalAlertSummary') < portal.indexOf('<View style={styles.dashboardMetrics}>'), 'Alerts must appear above dashboard counters');
   assert.match(portal, /Enable device alerts/u);
   assert.match(portal, /openCustomerEmail/u);
   assert.match(portal, /Customer enquiry/u);

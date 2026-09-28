@@ -43,7 +43,9 @@ export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicl
   const [revision, setRevision] = useState(0);
   const [image, setImage] = useState<string | null>(null);
   const [opened, setOpened] = useState<{ key: string; assets: VaultAsset[] } | null>(null);
+  const [galleryAssets, setGalleryAssets] = useState<{ key: string; values: Record<string, VaultAsset[]> } | null>(null);
   const [loadingEntry, setLoadingEntry] = useState('');
+  const galleryKey = `${vehicleId}:${revision}`;
   useEffect(() => {
     if (previewMode) return;
     let active = true;
@@ -56,6 +58,20 @@ export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicl
     const timer = setTimeout(() => setImage(null), 60000);
     return () => clearTimeout(timer);
   }, [image]);
+  useEffect(() => {
+    if (previewMode || section !== 'media' || !records) return;
+    let active = true;
+    const galleries = groupHistoryEntries(records, 'media');
+    void Promise.all(galleries.map(async entry => {
+      const batches = await Promise.all(entry.records.map(record => loadVaultAssets(record.id)));
+      return [entry.key, batches.flat()] as const;
+    })).then(values => {
+      if (active) setGalleryAssets({ key: galleryKey, values: Object.fromEntries(values) });
+    }).catch(() => {
+      if (active) setError('Photo thumbnails could not be loaded. Refresh vehicle history and try again.');
+    });
+    return () => { active = false; };
+  }, [galleryKey, previewMode, records, section]);
   const copy = { color: colors.silver, fontSize: 15, lineHeight: 23 };
   const entries = section && section !== 'notes' && records ? groupHistoryEntries(records, section) : [];
   const openEntry = async (entry: HistoryEntry) => {
@@ -63,8 +79,8 @@ export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicl
     setOpened(null);
     setLoadingEntry(entry.key);
     try {
-      const batches = await Promise.all(entry.records.map(record => loadVaultAssets(record.id)));
-      const assets = batches.flat();
+      const cachedGallery = entry.primary.kind === 'media' && galleryAssets?.key === galleryKey ? galleryAssets.values[entry.key] : undefined;
+      const assets = cachedGallery ?? (await Promise.all(entry.records.map(record => loadVaultAssets(record.id)))).flat();
       setOpened({ key: entry.key, assets });
       setError(assets.length ? '' : 'No files attached to this record.');
     } catch {
@@ -104,7 +120,11 @@ export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicl
           const expanded = opened?.key === entry.key;
           const attachmentKind = ATTACHMENT_KINDS.has(record.kind);
           const isGallery = record.kind === 'media';
-          const fileCount = expanded ? opened?.assets.length ?? entry.records.length : entry.records.length;
+          const cachedGallery = isGallery && galleryAssets?.key === galleryKey ? galleryAssets.values[entry.key] : undefined;
+          const fileCount = expanded ? opened?.assets.length ?? entry.records.length : cachedGallery?.length ?? entry.records.length;
+          const visibleAssets = isGallery
+            ? expanded ? opened?.assets ?? [] : (cachedGallery ?? []).slice(0, 3)
+            : expanded ? opened?.assets ?? [] : [];
           const displayTitle = isGallery ? 'Workshop photos' : record.kind === 'document' || record.kind === 'modification' ? 'Documents & DTCs' : record.title;
           const actionLabel = isGallery
             ? expanded ? 'Hide photos' : `View all ${fileCount} ${fileCount === 1 ? 'photo' : 'photos'}`
@@ -115,13 +135,14 @@ export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicl
           <Text style={copy}>{record.occurred_on.slice(0, 10)}</Text>
           {isGallery ? <Text style={copy}>{fileCount} {fileCount === 1 ? 'photo' : 'photos'} from this workshop visit</Text> : record.notes ? <Text selectable style={copy}>{record.notes}</Text> : null}
           {record.power_kw != null ? <Text style={copy}>{Math.round(record.power_kw * 1.34102209)} HP at hubs · {record.torque_nm ?? '—'} Nm</Text> : null}
+          {isGallery && !cachedGallery && !expanded ? <View style={styles.thumbnailLoading}><ActivityIndicator color={colors.accent} /><Text style={styles.thumbnailLoadingText}>Loading photo thumbnails…</Text></View> : null}
+          {visibleAssets.length ? <View style={styles.attachments}>{visibleAssets.map(file => file.mime_type.startsWith('image/')
+            ? <PrivateVaultThumbnail compact asset={file} key={file.id} onOpen={() => void openAsset(file)} />
+            : <PrimaryButton key={file.id} label={file.caption || 'Open attachment'} onPress={() => void openAsset(file)} variant="outline" />)}</View> : null}
           {attachmentKind ? <Pressable accessibilityRole="button" accessibilityLabel={actionLabel} accessibilityState={{ expanded }} onPress={() => void openEntry(entry)} style={({ pressed }) => [styles.attachmentToggle, pressed && styles.pressed]}>
             <View style={styles.attachmentToggleCopy}><Ionicons color={colors.accent} name={isGallery ? 'images-outline' : record.kind === 'invoice' ? 'receipt-outline' : 'documents-outline'} size={21} /><Text style={styles.attachmentToggleText}>{actionLabel}</Text></View>
             {loadingEntry === entry.key ? <ActivityIndicator color={colors.accent} /> : <Ionicons color={colors.accent} name={expanded ? 'chevron-up' : 'chevron-down'} size={20} />}
           </Pressable> : null}
-          {expanded ? <View style={styles.attachments}>{(opened?.assets ?? []).map(file => file.mime_type.startsWith('image/')
-            ? <PrivateVaultThumbnail compact asset={file} key={file.id} onOpen={() => void openAsset(file)} />
-            : <PrimaryButton key={file.id} label={file.caption || 'Open attachment'} onPress={() => void openAsset(file)} variant="outline" />)}</View> : null}
         </View>; })}
         {records && !entries.length ? <Text style={copy}>No records in this category yet.</Text> : null}
         <PrimaryButton label="Refresh history" variant="outline" onPress={() => setRevision(value => value + 1)} />
@@ -165,5 +186,7 @@ const styles = StyleSheet.create({
   attachmentToggleCopy: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
   attachmentToggleText: { color: colors.accent, fontSize: 13, fontWeight: '900', textTransform: 'uppercase', letterSpacing: .35 },
   attachments: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },
+  thumbnailLoading: { minHeight: 72, borderRadius: 8, backgroundColor: colors.inkSoft, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  thumbnailLoadingText: { color: colors.silver, fontSize: 13, fontWeight: '700' },
   pressed: { backgroundColor: colors.panelRaised },
 });
