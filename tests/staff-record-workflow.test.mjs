@@ -297,6 +297,12 @@ test('preview imports never load protected records, including their mount effect
   assert.equal(operations, 0);
 });
 
+test('imports hide archived duplicate repair records in both the query and client result', () => {
+  const source = readFileSync(new URL('../mobile/src/components/staff-vault-publisher.tsx', import.meta.url), 'utf8');
+  assert.match(source, /\.not\('title', 'like', 'ARCHIVED DUPLICATE%'\)/u);
+  assert.match(source, /filter\(record => !record\.title\.toUpperCase\(\)\.startsWith\('ARCHIVED DUPLICATE'\)\)/u);
+});
+
 test('waiting account files are separate and show customer details instead of internal IDs', async () => {
   const waiting = { id: 'queue-private-id', source: 'xero', source_key: 'tenant-secret:invoice-secret', status: 'waiting_for_customer', identifiers: { contactName: 'Vince Tavete', invoiceNumber: 'INV-1640', reference: 'VZ OVERHAUL TYC767', totalCents: 2586000, currency: 'AUD', invoiceStatus: 'PAID' } };
   const client = { from(table) {

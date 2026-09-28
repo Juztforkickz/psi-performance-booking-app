@@ -166,7 +166,9 @@ export function StaffVaultReview({ snapshot, owner, previewMode = false }: { sna
         vaultClient().from('vault_records').select('id,title,created_at').is('published_at', null).not('title', 'like', 'ARCHIVED DUPLICATE%').order('created_at', { ascending: false }).limit(50),
       ]);
       if (queue.error || records.error) throw queue.error ?? records.error;
-      setImports(queue.data ?? []); setDrafts(records.data ?? []); setLoaded(true);
+      setImports(queue.data ?? []);
+      setDrafts((records.data ?? []).filter(record => !record.title.toUpperCase().startsWith('ARCHIVED DUPLICATE')));
+      setLoaded(true);
     } catch { setError('Imports and drafts could not be loaded. Check your staff session and try again.'); }
     finally { setBusy(false); }
   }, [previewMode]);
@@ -235,6 +237,7 @@ function WaitingAccountCard({ item }: { item: VaultImportReview }) {
 function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { disabled: boolean; item: VaultImportReview; onDone: () => Promise<void>; owner: boolean; snapshot: StaffPortalSnapshot }) {
   const [customerId, setCustomerId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
+  const [importType, setImportType] = useState<'workshop_job' | 'parts_only'>('workshop_job');
   const [confirmed, setConfirmed] = useState(false);
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState('');
@@ -247,7 +250,7 @@ function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { dis
   const amountDueCents = typeof identifiers.amountDueCents === 'number' ? identifiers.amountDueCents : null;
   const contactName = typeof identifiers.contactName === 'string' ? identifiers.contactName : 'Xero contact not loaded';
   const vehicles = snapshot.vehicles.filter(vehicle => vehicle.customer_id === customerId && !vehicle.archived_at);
-  const canMatch = owner && item.status === 'needs_review' && Boolean(reference && invoiceDate && customerId && vehicleId && confirmed);
+  const canMatch = owner && item.status === 'needs_review' && Boolean(invoiceDate && customerId && vehicleId && confirmed && (importType === 'parts_only' || reference));
 
   const keepInXeroOnly = async () => {
     if (!owner || disabled || working || !['needs_review', 'failed'].includes(item.status)) return;
@@ -269,16 +272,24 @@ function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { dis
     try {
       const selectedVehicle = snapshot.vehicles.find(vehicle => vehicle.id === vehicleId && vehicle.customer_id === customerId && !vehicle.archived_at);
       if (!selectedVehicle) throw new Error('Choose the verified customer vehicle again.');
-      const jobReference = xeroWorkshopJobReference(invoiceNumber, selectedVehicle.registration);
-      const job = await createOrFindWorkshopJob({ customerId, vehicleId, reference: jobReference, title: `Xero invoice ${invoiceNumber}`, date: invoiceDate, reuseExistingVehicleDate: true });
-      const confirmedMatch = await vaultClient().rpc('confirm_xero_import_match', { p_queue_id: item.id, p_customer_id: customerId, p_job_id: job.id });
+      const confirmedMatch = importType === 'parts_only'
+        ? await vaultClient().rpc('confirm_xero_parts_only_import', { p_queue_id: item.id, p_customer_id: customerId, p_vehicle_id: vehicleId })
+        : await (async () => {
+          const jobReference = xeroWorkshopJobReference(invoiceNumber, selectedVehicle.registration);
+          const job = await createOrFindWorkshopJob({ customerId, vehicleId, reference: jobReference, title: `Xero invoice ${invoiceNumber}`, date: invoiceDate, reuseExistingVehicleDate: true });
+          return vaultClient().rpc('confirm_xero_import_match', { p_queue_id: item.id, p_customer_id: customerId, p_job_id: job.id });
+        })();
       if (confirmedMatch.error) throw confirmedMatch.error;
       matchSaved = true;
       const processed = await getSupabaseClient().functions.invoke('process-xero-imports', { body: { queueId: item.id, limit: 1 } });
       if (processed.error) throw processed.error;
       const outcome = processed.data?.results?.[0];
       setConfirmed(false);
-      setMessage(outcome?.status === 'imported' ? 'Invoice imported and published to the verified vehicle.' : 'Match saved. The secure importer will retry this invoice.');
+      setMessage(outcome?.status === 'imported'
+        ? importType === 'parts_only'
+          ? 'Parts-only invoice published to the verified vehicle. No workshop job or folder was created.'
+          : 'Invoice imported and published to the verified vehicle.'
+        : 'Match saved. The secure importer will retry this invoice.');
       await onDone();
     } catch (error) { setMessage(xeroImportFailureMessage(error, matchSaved)); }
     finally { setWorking(false); }
@@ -294,11 +305,18 @@ function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { dis
     {item.status === 'needs_review' && owner ? <>
       <StaffScrollSelect label="Customer" value={customerId} options={customerOptions(snapshot)} searchable onChange={value => { setCustomerId(value); setVehicleId(''); setConfirmed(false); setMessage(''); }} />
       <StaffScrollSelect label="Vehicle" value={vehicleId} options={vehicles.map(vehicle => ({ value: vehicle.id, label: `${vehicle.year} ${vehicle.make} ${vehicle.model}`, sublabel: vehicle.registration }))} searchable onChange={value => { setVehicleId(value); setConfirmed(false); setMessage(''); }} />
+      <View accessibilityRole="radiogroup" style={styles.choices}>
+        <Choice disabled={disabled || working} label="Workshop job" selected={importType === 'workshop_job'} onPress={() => { setImportType('workshop_job'); setConfirmed(false); setMessage(''); }} />
+        <Choice disabled={disabled || working} label="Parts only" selected={importType === 'parts_only'} onPress={() => { setImportType('parts_only'); setConfirmed(false); setMessage(''); }} />
+      </View>
+      {importType === 'parts_only' ? <Text style={styles.muted}>Use this for a parts sale with no PSI workshop job. It adds the invoice to this vehicle’s app and portal history without creating a booking, workshop job or desktop folder.</Text> : null}
       <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: confirmed }} disabled={disabled || working || !vehicleId} onPress={() => setConfirmed(value => !value)} style={styles.confirm}>
         <Ionicons color={colors.accent} name={confirmed ? 'checkbox' : 'square-outline'} size={25} />
-        <Text style={styles.confirmText}>I checked the Xero contact, customer, registration and exact PSI job reference. Import this invoice to that vehicle.</Text>
+        <Text style={styles.confirmText}>{importType === 'parts_only'
+          ? 'I checked the Xero contact, customer and registration. This is a parts-only sale with no PSI workshop job. Import this invoice to that vehicle.'
+          : 'I checked the Xero contact, customer, registration and exact PSI job reference. Import this invoice to that vehicle.'}</Text>
       </Pressable>
-      <PrimaryButton disabled={!canMatch || disabled || working} loading={working} label="Match and import invoice" onPress={() => void matchAndImport()} />
+      <PrimaryButton disabled={!canMatch || disabled || working} loading={working} label={importType === 'parts_only' ? 'Import as parts only' : 'Match and import invoice'} onPress={() => void matchAndImport()} />
       <PrimaryButton disabled={disabled || working} label="Keep in Xero only" variant="outline" onPress={() => void keepInXeroOnly()} />
     </> : null}
     {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}

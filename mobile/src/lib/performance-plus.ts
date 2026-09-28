@@ -21,7 +21,7 @@ export function reportSectionCount(counts: Partial<Record<ReportKind, number>>, 
   return (counts[section] ?? 0) + (section === 'document' ? counts.modification ?? 0 : 0);
 }
 export type VaultRecord = {
-  id: string; customer_id: string; vehicle_id: string; job_id: string; kind: ReportKind;
+  id: string; customer_id: string; vehicle_id: string; job_id: string | null; kind: ReportKind;
   title: string; notes: string; occurred_on: string; power_kw: number | null; torque_nm: number | null;
   run_stage: 'before' | 'after' | 'baseline' | null; amount_cents: number | null; currency: string;
   published_at: string | null; created_at: string; created_by: string | null; source: string; source_reference: string | null;
@@ -53,6 +53,7 @@ type VaultDatabase = { public: { Tables: {
   xero_connection_candidates: { Args: Record<string, never>; Returns: { tenant_id: string; tenant_name: string }[] };
   confirm_xero_organisation: { Args: { p_tenant_id: string }; Returns: undefined };
   confirm_xero_import_match: { Args: { p_queue_id: string; p_customer_id: string; p_job_id: string }; Returns: undefined };
+  confirm_xero_parts_only_import: { Args: { p_queue_id: string; p_customer_id: string; p_vehicle_id: string }; Returns: undefined };
   ignore_xero_import: { Args: { p_queue_id: string }; Returns: undefined };
 }; Enums: Record<never, never>; CompositeTypes: Record<never, never> } };
 // Same authenticated connection and RLS boundary as the existing app.

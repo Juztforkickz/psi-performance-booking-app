@@ -15,6 +15,15 @@ type QueueRow = {
   attempt_count: number;
 };
 
+type ImportTarget = {
+  customerId: string;
+  vehicleId: string;
+  jobId: string | null;
+  bookingRequestId: string | null;
+  sourceReference: string;
+  partsOnly: boolean;
+};
+
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
@@ -268,6 +277,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     amountPaidCents: optionalAmountCents(invoice.AmountPaid),
     currency: invoice.CurrencyCode ?? null,
     invoiceStatus: invoice.Status ?? null,
+    sentToContact: invoice.SentToContact === true,
   };
 
   // Supplier bills belong in Xero, not in the customer-facing PSI workflow.
@@ -306,52 +316,84 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     : { data: null, error: null };
   if (linkError) throw new Error('xero_customer_link_unavailable');
   const links = linked && typeof linked === 'object' && uuid(linked.customer_id) ? [linked as VerifiedContactLink] : [];
+  let matched: ImportTarget;
+  if (queued.identifiers.partsOnly === true) {
+    const customerId = queued.identifiers.partsOnlyCustomerId;
+    const vehicleId = queued.identifiers.partsOnlyVehicleId;
+    const verifiedLink = links.length === 1 ? links[0] : null;
+    if (!uuid(customerId) || !uuid(vehicleId)
+      || invoice.Status !== 'AUTHORISED' && invoice.Status !== 'PAID'
+      || invoice.CurrencyCode !== 'AUD'
+      || invoice.SentToContact !== true
+      || !uuid(contactId)
+      || !verifiedLink
+      || verifiedLink.customer_id !== customerId
+      || !uuid(verifiedLink.verified_by)
+      || !Number.isFinite(Date.parse(verifiedLink.verified_at))) {
+      throw new Error('xero_parts_only_verification_failed');
+    }
+    const [{ data: customer, error: customerError }, { data: vehicle, error: vehicleError }] = await Promise.all([
+      admin.from('customer_profiles').select('user_id').eq('user_id', customerId).eq('account_state', 'active').maybeSingle(),
+      admin.from('customer_vehicles').select('id,customer_id,archived_at').eq('id', vehicleId).eq('customer_id', customerId).is('archived_at', null).maybeSingle(),
+    ]);
+    if (customerError || vehicleError) throw new Error('xero_parts_only_target_lookup_failed');
+    if (!customer || !vehicle) throw new Error('xero_parts_only_customer_vehicle_mismatch');
+    matched = {
+      customerId,
+      vehicleId,
+      jobId: null,
+      bookingRequestId: null,
+      sourceReference: `${tenantId}:${invoiceId}`,
+      partsOnly: true,
+    };
+  } else {
+    let jobsQuery = admin.from('workshop_jobs').select('id,reference,customer_id,vehicle_id,booking_request_id');
+    jobsQuery = queued.job_id
+      ? jobsQuery.eq('id', queued.job_id)
+      : jobsQuery.eq('reference', reference);
+    const { data: jobs, error: jobsError } = await jobsQuery.limit(2);
+    if (jobsError) throw new Error('xero_job_lookup_failed');
+    const vehicleIds = [...new Set((jobs ?? []).map(job => job.vehicle_id).filter(uuid))];
+    const { data: vehicles, error: vehiclesError } = vehicleIds.length
+      ? await admin.from('customer_vehicles').select('id,customer_id,archived_at').in('id', vehicleIds)
+      : { data: [], error: null };
+    if (vehiclesError) throw new Error('xero_vehicle_lookup_failed');
+    const customerIds = [...new Set(links.map(link => link.customer_id))];
+    const { data: activeCustomers, error: customerError } = customerIds.length
+      ? await admin.from('customer_profiles').select('user_id').in('user_id', customerIds).eq('account_state', 'active')
+      : { data: [], error: null };
+    if (customerError) throw new Error('xero_customer_lookup_failed');
 
-  let jobsQuery = admin.from('workshop_jobs').select('id,reference,customer_id,vehicle_id,booking_request_id');
-  jobsQuery = queued.job_id
-    ? jobsQuery.eq('id', queued.job_id)
-    : jobsQuery.eq('reference', reference);
-  const { data: jobs, error: jobsError } = await jobsQuery.limit(2);
-  if (jobsError) throw new Error('xero_job_lookup_failed');
-  const vehicleIds = [...new Set((jobs ?? []).map(job => job.vehicle_id).filter(uuid))];
-  const { data: vehicles, error: vehiclesError } = vehicleIds.length
-    ? await admin.from('customer_vehicles').select('id,customer_id,archived_at').in('id', vehicleIds)
-    : { data: [], error: null };
-  if (vehiclesError) throw new Error('xero_vehicle_lookup_failed');
-  const customerIds = [...new Set(links.map(link => link.customer_id))];
-  const { data: activeCustomers, error: customerError } = customerIds.length
-    ? await admin.from('customer_profiles').select('user_id').in('user_id', customerIds).eq('account_state', 'active')
-    : { data: [], error: null };
-  if (customerError) throw new Error('xero_customer_lookup_failed');
-
-  const matched = matchXeroInvoice({
-    tenantId,
-    expectedTenantId: tenantId,
-    expectedInvoiceId: invoiceId,
-    invoice,
-    links,
-    jobs: jobs ?? [],
-    vehicles: vehicles ?? [],
-    activeCustomerIds: (activeCustomers ?? []).map(customer => customer.user_id),
-    confirmedJobId: queued.job_id,
-  });
-  if (matched.status === 'needs_review') {
-    await setQueue(admin, queued.id, {
-      status: 'needs_review', identifiers: enriched, reason: matched.reason,
-      completed_at: null, last_error_code: null,
+    const jobMatch = matchXeroInvoice({
+      tenantId,
+      expectedTenantId: tenantId,
+      expectedInvoiceId: invoiceId,
+      invoice,
+      links,
+      jobs: jobs ?? [],
+      vehicles: vehicles ?? [],
+      activeCustomerIds: (activeCustomers ?? []).map(customer => customer.user_id),
+      confirmedJobId: queued.job_id,
     });
-    // The invoice must remain reviewable even if alert delivery is temporarily unavailable.
-    await alertOwnerForReview(admin, ownerId, queued, enriched).catch(() => undefined);
-    return { id: queued.id, status: 'needs_review', reason: matched.reason };
+    if (jobMatch.status === 'needs_review') {
+      await setQueue(admin, queued.id, {
+        status: 'needs_review', identifiers: enriched, reason: jobMatch.reason,
+        completed_at: null, last_error_code: null,
+      });
+      // The invoice must remain reviewable even if alert delivery is temporarily unavailable.
+      await alertOwnerForReview(admin, ownerId, queued, enriched).catch(() => undefined);
+      return { id: queued.id, status: 'needs_review', reason: jobMatch.reason };
+    }
+    matched = { ...jobMatch, partsOnly: false };
   }
 
-  const publishedMatchedInvoice = await findPublishedWorkshopInvoice(
+  const publishedMatchedInvoice = matched.jobId ? await findPublishedWorkshopInvoice(
     admin,
     reference,
     invoiceNumber,
     invoiceDate(invoice),
     matched.jobId,
-  );
+  ) : null;
   if (publishedMatchedInvoice) {
     await setQueue(admin, queued.id, {
       status: 'imported',
@@ -369,7 +411,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   const { data: existing, error: existingError } = await admin.from('vault_records').select('id,published_at').eq('source', 'xero').eq('source_reference', sourceReference).maybeSingle();
   if (existingError) throw new Error('xero_record_lookup_failed');
   if (existing?.published_at) {
-    await syncServiceCompletionCandidate(admin, matched, invoice, existing.id);
+    if (matched.jobId) await syncServiceCompletionCandidate(admin, { ...matched, jobId: matched.jobId }, invoice, existing.id);
     await setQueue(admin, queued.id, { status: 'imported', job_id: matched.jobId, record_id: existing.id, identifiers: enriched, reason: 'Invoice already imported.', completed_at: new Date().toISOString(), last_error_code: null });
     return { id: queued.id, status: 'imported', recordId: existing.id };
   }
@@ -384,8 +426,10 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
       customer_id: matched.customerId,
       vehicle_id: matched.vehicleId,
       kind: 'invoice',
-      title: `Xero invoice ${invoiceNumber}`,
-      notes: 'Original Xero invoice imported after protected customer, vehicle and PSI job verification.',
+      title: matched.partsOnly ? `Parts-only invoice ${invoiceNumber}` : `Xero invoice ${invoiceNumber}`,
+      notes: matched.partsOnly
+        ? 'Original Xero parts-only invoice imported after protected customer and vehicle verification. No PSI workshop job was created.'
+        : 'Original Xero invoice imported after protected customer, vehicle and PSI job verification.',
       occurred_on: invoiceDate(invoice),
       amount_cents: invoiceAmountCents(invoice),
       currency: 'AUD',
@@ -423,11 +467,14 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   const recordReady = await admin.from('vault_records').update({ published_at: new Date().toISOString() }).eq('id', recordId);
   if (recordReady.error) throw new Error('xero_record_publish_failed');
 
-  await syncServiceCompletionCandidate(admin, matched, invoice, recordId);
+  if (matched.jobId) await syncServiceCompletionCandidate(admin, { ...matched, jobId: matched.jobId }, invoice, recordId);
 
   await setQueue(admin, queued.id, {
     status: 'imported', job_id: matched.jobId, record_id: recordId,
-    identifiers: enriched, reason: 'Original invoice PDF imported and published to the verified vehicle.',
+    identifiers: enriched,
+    reason: matched.partsOnly
+      ? 'Original parts-only invoice PDF imported and published to the verified vehicle without creating a workshop job.'
+      : 'Original invoice PDF imported and published to the verified vehicle.',
     completed_at: new Date().toISOString(), last_error_code: null,
   });
   return { id: queued.id, status: 'imported', recordId };

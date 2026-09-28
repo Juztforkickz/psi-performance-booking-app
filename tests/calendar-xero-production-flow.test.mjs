@@ -69,6 +69,27 @@ test('Xero imports rotate tokens, require an owner-confirmed match and publish o
   assert.doesNotMatch(worker, /body\.(?:customerId|vehicleId|jobId|invoiceUrl|pdfUrl)/u);
 });
 
+test('parts-only Xero invoices publish to a verified vehicle without creating a workshop job', async () => {
+  const [worker, migration, mobile] = await Promise.all([
+    read('../supabase/functions/process-xero-imports/index.ts'),
+    read('../supabase/migrations/20260928114903_support_parts_only_xero_invoices.sql'),
+    read('../mobile/src/components/staff-vault-publisher.tsx'),
+  ]);
+  assert.match(migration, /alter column job_id drop not null/u);
+  assert.match(migration, /private\.confirm_xero_parts_only_import/u);
+  assert.match(migration, /private\.is_owner_staff\(\)/u);
+  assert.match(migration, /'partsOnly', true/u);
+  assert.match(migration, /new\.job_id is not null/u);
+  assert.match(worker, /queued\.identifiers\.partsOnly === true/u);
+  assert.match(worker, /jobId: null/u);
+  assert.match(worker, /No PSI workshop job was created\./u);
+  assert.match(worker, /if \(matched\.jobId\) await syncServiceCompletionCandidate/u);
+  assert.match(mobile, /label="Parts only"/u);
+  assert.match(mobile, /confirm_xero_parts_only_import/u);
+  assert.match(mobile, /No workshop job or folder was created\./u);
+  assert.doesNotMatch(worker, /body\.(?:customerId|vehicleId|jobId|invoiceUrl|pdfUrl)/u);
+});
+
 test('owner invoice attention reminders repeat safely during workshop hours', async () => {
   const migration = await read('../supabase/migrations/20260927003000_daily_owner_invoice_attention.sql');
   const dispatcher = await read('../supabase/migrations/20260927000600_owner_only_attention_dispatch.sql');
