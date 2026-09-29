@@ -132,12 +132,15 @@ test("uses one native responsive contract across every customer screen", async (
   assert.match(home, /DASHBOARD_TILES\.bookAhead\}[\s\S]*?imageStyle=\{styles\.lowerTileImage\}/);
   assert.match(home, /DASHBOARD_TILES\.alerts\}[\s\S]*?imageStyle=\{styles\.lowerTileImage\}/);
   assert.match(home, /prepareBookingVehicleRecord/);
-  assert.match(home, /garageAccount\?\.vehicles\.find\(\(vehicle\) => vehicle\.id === pendingBookingVehicle\?\.id\)/);
+  assert.match(home, /garageAccount\?\.vehicles\.find\(\(vehicle\) => vehicle\.is_primary\)/);
+  assert.match(home, /\?\? garageAccount\?\.vehicles\[0\]/);
+  assert.match(home, /homeVehicleId = selectedAccountVehicle\?\.id \?\? selectedVehicleId/);
   assert.match(home, /vehicleDisplayPreferences\.find\(\(preference\) => preference\.vehicle_id === homeVehicleId\)/);
-  assert.match(home, /image=\{garageArtwork\.art\.thumbnail\}/);
+  assert.match(home, /image=\{garageArtwork\.art\.preview\}/);
+  assert.match(home, /imageResizeMode=\{garageArtwork\.art\.previewResizeMode\}/);
   assert.match(home, /imageStyle=\{styles\.garageTileImage\}/);
   assert.match(home, /garageTileImage:\s*\{\s*transform:\s*\[\{\s*scale:\s*1\s*\}\]/);
-  assert.doesNotMatch(home, /image=\{garageArtwork\.art\.source\}/);
+  assert.doesNotMatch(home, /image=\{garageArtwork\.art\.(?:source|thumbnail)\}/);
   assert.doesNotMatch(home, /trustedPartnersTileImage|planBuildTileImage/);
   assert.match(alerts, /adjustsFontSizeToFit[\s\S]*?numberOfLines=\{1\}[\s\S]*?themeModeOptionText/);
   assert.match(alerts, /tile-my-bookings-blue-silver\.jpg/);

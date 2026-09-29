@@ -54,8 +54,9 @@ test("the Shopify Version 3 handoff is self-contained, enquiry-only and responsi
   assert.match(liquid, /data-psi-customer-step[^\n]+kind==='plan'\?'03':'02'/u);
   assert.doesNotMatch(liquid, /PSI App · Coming Soon/u);
   assert.match(liquid, /psi-app-arrived-hero\.png\?v=1789260666/u);
-  assert.match(liquid, /Explore the PSI app/u);
-  assert.match(liquid, /https:\/\/juztforkickz\.github\.io\/psi-performance-booking-app\//u);
+  assert.match(liquid, /Download on the App Store/u);
+  assert.match(liquid, /Google Play will follow after Android device testing and store approval\./u);
+  assert.match(liquid, /https:\/\/apps\.apple\.com\/au\/app\/psi-performance-garage\/id6806902732/u);
   assert.match(liquid, /aspect-ratio:1674\/943;object-fit:contain/u);
   assert.match(liquid, /psi-performance-plus-website-panel\.png/u);
   assert.match(liquid, /\.psi-v3__app--available::after\{content:"";display:block/u);

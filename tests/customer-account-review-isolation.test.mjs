@@ -26,6 +26,7 @@ function accountHarness({ review = false, failures = {}, payments = [], preferen
       const chain = {
         select() { return chain; },
         eq(column, value) { query.filters.push([column, value]); return chain; },
+        neq(column, value) { query.filters.push([column, value]); return chain; },
         is() { return chain; },
         in() { return chain; },
         order() { return chain; },
@@ -72,6 +73,16 @@ test('account artwork preferences load with the initial account snapshot', async
   assert.deepEqual(result.vehicleDisplayPreferences, [preference]);
   const preferenceQuery = app.queries.find(query => query.table === 'vehicle_display_preferences');
   assert.deepEqual(preferenceQuery.filters, [['customer_id', 'fixture-customer']]);
+});
+
+test('active account snapshot excludes cancelled booking requests', async () => {
+  const app = accountHarness();
+  await app.load();
+  const bookingQuery = app.queries.find(query => query.table === 'booking_requests');
+  assert.deepEqual(bookingQuery.filters, [
+    ['customer_id', 'fixture-customer'],
+    ['state', 'cancelled'],
+  ]);
 });
 
 test('live mode reads payment attempts scoped to the verified customer', async () => {
