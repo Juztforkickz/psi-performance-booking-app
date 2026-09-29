@@ -11,11 +11,11 @@ from unittest.mock import patch
 from PIL import Image
 from pillow_heif import from_pillow
 from psi_uploads import (
-    Connection, RequestFailure, SessionStore, _ReturnToMenu, _parse_job_date, _parse_job_type,
+    Connection, RequestFailure, SessionStore, VEHICLE_INDEX_FOLDER, _ReturnToMenu, _parse_job_date, _parse_job_type,
     create_job_folder, create_manual_job,
     ensure_object, folder_label_for, import_manifest_inbox, invoice_identity, manifest_for,
-    prepare_file, process_job, published_invoice_for_job,
-    sync_job_folders,
+    is_vehicle_index_folder, prepare_file, process_job, published_invoice_for_job,
+    sync_job_folders, sync_vehicle_index,
 )
 
 
@@ -439,6 +439,35 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(first[0].name, 'TEST CUSTOMER - 2020 FORD MUSTANG - ABC123 - PSI-TEST')
         self.assertTrue((first[0] / 'Dyno results & graphs').is_dir())
+
+    def test_active_customer_vehicles_are_visible_in_a_view_only_index(self):
+        customer_id = self.manifest['customer_id']
+        vehicles = [
+            {'id': self.manifest['vehicle_id'], 'customer_id': customer_id, 'registration': 'RBJ575',
+             'year': 2004, 'make': 'Holden', 'model': 'Monaro', 'archived_at': None},
+            {'id': 'a4200000-0000-4000-8000-000000000002', 'customer_id': customer_id,
+             'registration': '9573-H3', 'year': 1963, 'make': 'Chevrolet', 'model': 'Impala',
+             'archived_at': None},
+        ]
+        customers = [{'user_id': customer_id, 'first_name': 'Antonio', 'last_name': 'Nesci',
+                      'email': 'customer@example.invalid'}]
+        class FakeConnection:
+            url = 'https://test.supabase.co'
+
+        root = self.folder / 'vehicle-index'
+        root.mkdir()
+        first = sync_vehicle_index(root, FakeConnection(), vehicles, customers)
+        second = sync_vehicle_index(root, FakeConnection(), vehicles, customers)
+
+        index = root / VEHICLE_INDEX_FOLDER
+        customer = index / 'ANTONIO NESCI'
+        self.assertTrue(is_vehicle_index_folder(index))
+        self.assertEqual(first, second)
+        self.assertEqual(len(first), 2)
+        self.assertTrue((customer / '2004 HOLDEN MONARO - RBJ575' / 'psi-vehicle.json').is_file())
+        self.assertTrue((customer / '1963 CHEVROLET IMPALA - 9573-H3' / 'psi-vehicle.json').is_file())
+        self.assertFalse(any(index.rglob('psi-job.json')))
+        self.assertIn('view-only index', (index / 'READ ME.txt').read_text(encoding='utf-8'))
 
     def test_phone_job_uses_existing_vehicle_and_staff_identity(self):
         class FakeConnection:

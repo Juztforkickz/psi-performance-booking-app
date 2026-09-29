@@ -18,6 +18,8 @@ The tray app checks the approved public PSI repository for a versioned workshop-
 
 Open the desktop shortcut once, choose **Sign in and start automatic watching**, and enter the PSI email code and authenticator code. Only the rotating refresh token is remembered; Windows DPAPI encrypts it for this Windows account. The PSI tray app then starts hidden at Windows sign-in, starts the watcher automatically, refreshes the session, checks that it is still AAL2 and active staff, and scans every 30 seconds. Choosing option 1 again while monitoring is active confirms the current state immediately instead of interrupting the watcher. Revoking the session, disabling the staff account or changing security settings makes it fail closed and require sign-in again.
 
+Each scan also maintains `00 CUSTOMER VEHICLES - VIEW ONLY` inside the upload root. It shows every active app customer with one subfolder per active vehicle, so second vehicles are visible on the workshop computer even before a booking exists. This is an index only and is ignored by the uploader. Do not place files there. Use **Create a phone / walk-in job** to create a verified upload folder for the selected vehicle. The index never creates a fake workshop job, never uploads a loose file and never changes customer data.
+
 If Supabase temporarily rate-limits a new email, the uploader accepts a recent unused email code instead. Otherwise, wait at least 60 seconds before requesting another. Projects using Supabase's built-in email sender can share a much lower project-wide email allowance; production should use PSI's configured SMTP provider.
 
 ## Each workshop job
@@ -42,6 +44,10 @@ python psi_uploads.py --root "C:/PSI Uploads" --add-job "C:/Users/YOU/Downloads/
 
 ```text
 C:/PSI Uploads/
+  00 CUSTOMER VEHICLES - VIEW ONLY/
+    CUSTOMER NAME/
+      2004 HOLDEN MONARO - RBJ575/
+      1963 CHEVROLET IMPALA - 9573-H3/
   CUSTOMER NAME - 2020 FORD MUSTANG - ABC123 - PSI-2026-0123/
     psi-job.json
     Service & repair history/
