@@ -1,29 +1,17 @@
 # PSI Android native QA checklist
 
-Status: the refreshed signed internal Android APK completed on 22 September
-2026 from checkpoint `f451ca0`, EAS build
-`c1d100c8-bf21-4233-b979-7f6567b06b2b`, version 1.0.0 (2).
-Install it from the [EAS build record](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/c1d100c8-bf21-4233-b979-7f6567b06b2b)
-for the device checks below. Its `android-internal` channel uses the live customer backend, permits
-public sign-up and offers the separate fictional demonstration. Google Play
-subscriptions remain unavailable until the Play app, products, RevenueCat
-connection and device purchase tests are complete. The older `qa` APK
-`ad1827e6-252b-4d23-a402-9e4aaa77f435` is not the current acceptance build.
+Status: Google Play internal release **1.0.1 (4)** is active for the owner only
+tester list. It was built from source checkpoint
+`da6fc5ded83964dfad93b73d1e21c1101a38366e` using EAS build
+`e85a6635-9aab-4895-b199-694c452941ab`.
 
-Google Play Console was checked live on 24 September 2026 for the PSI
-Performance organisation account. Identity and both developer phone numbers
-are verified, and the free PSI Performance Garage app has been created under
-package `com.psiperformance.booking`. The Play setup dashboard shows 6 of 11
-tasks complete; listing text, icon and feature graphic are saved as drafts.
-The separate `android-play-internal` profile has a successfully finished
-[purchases-disabled App Bundle build](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/a0b3a419-dda5-43eb-aa23-6810bdaa2750)
-for internal testing, version 1.0.0 (3), source `51d80e6`. The bundle is now
-uploaded and the Play internal release is active for the owner-only tester list.
 [Join the private test](https://play.google.com/apps/internaltest/4701264059153280916)
-with `matt@psiperformance.com.au`, then install and check version 1.0.0 (3) on
-the physical device. Play currently marks this release **Not reviewed** and may
-show the temporary package name. See `GOOGLE-PLAY-ROLLOUT.md` for current
-gates. Identity documents must never be stored in this repository.
+with `matt@psiperformance.com.au`, then install and check version 1.0.1, build 4
+on the borrowed physical Android phone. Google Play marks this release
+**Available to internal testers** and **Not reviewed**. It may show the temporary
+package name before the first review. Purchases remain disabled. See
+`ANDROID-BORROWED-PHONE-ACCEPTANCE.md` for the short acceptance sequence and
+`GOOGLE-PLAY-ROLLOUT.md` for the exact release evidence.
 
 ## Evidence to record
 
@@ -49,7 +37,7 @@ material or private service credentials in this file or an issue.
 - [x] Prepare the separate `android-play-internal` App Bundle profile with an
   isolated update channel and runtime, public registration and purchases closed.
 - [x] Confirm the new `android-internal` APK builds successfully.
-- [x] Upload version 1.0.0 (3) App Bundle to the owner-only Google Play internal
+- [x] Upload version 1.0.1 (4) App Bundle to the owner only Google Play internal
   track and confirm Play marks the release available to internal testers.
 - [ ] Opt in and install the Play-delivered version on a supported Android phone.
 - [ ] Install the new APK on a supported Android phone.

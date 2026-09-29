@@ -1,171 +1,108 @@
 # Google Play rollout checkpoint
 
-Updated 26 September 2026 from the signed-in PSI Performance Play Console.
+Updated 29 September 2026 from the signed in PSI Performance Play Console.
 
-## Current gate
+## Current state
 
-Google approved Matt's identity and both developer phone numbers show verified.
-The PSI Performance Garage Play app now exists under Console app ID
-`4974273807519558547`, with Android package `com.psiperformance.booking`.
-Its default language is English (Australia) and download price is free.
+Google Play setup shows **10 of 11 tasks complete** for PSI Performance Garage.
+The only incomplete setup task is the default Store Listing because Google
+requires at least two Android phone screenshots. Capture at least four clean
+portrait screenshots from the accepted physical Android build so the listing
+uses real Android presentation and qualifies for promotion.
 
-The Play setup dashboard still shows **6 of 11 tasks complete**. Publishing
-overview currently shows **no unpublished changes**; this does not mean the
-remaining declarations or production release are complete. The approved PSI
-App privacy URL is
-`https://psiperformance.com.au/policies/privacy-policy`. Ads, government apps,
-health, financial features, and the Auto & vehicles category with public support
-contacts are complete. The store name, descriptions, 512 × 512 icon and
-1024 × 500 feature graphic are saved as a draft. The feature graphic attached to
-the listing is a 24-bit PNG copy without alpha of the approved design. Final
-Android phone screenshots are still required; the current marketing screenshots
-are drafts pending device acceptance.
+The app remains a draft for production. No production, closed testing, open
+testing or public Google Play release has been created. The private internal
+testing track is active.
 
-Sign-in details, content rating, target audience, Data safety and the completed
-store listing remain. Google blocks the target-audience form until sign-in
-details are complete. Google reviewers cannot create a new account or use a
-personal account to get through the app's email-code sign-in; establish a
-pre-existing independent review path before declaring access. Content rating
-requires the account owner to review and accept IARC terms. Do not claim review
-access or Data safety is complete before testing against the final signed build.
-The App Bundle has been uploaded to the private internal track. No production
-release or subscription catalogue has been published.
+## Active private release
 
-A Data safety draft has been saved with the confirmed basics: the app collects
-user data, uses encrypted transport and creates accounts through an email
-address plus one-time code. Google's account-deletion URL was set to the live
-[public PSI deletion page](https://juztforkickz.github.io/psi-performance-booking-app/delete-account),
-which explains both in-app and email requests, the normal 30-day process, and
-data deletion versus lawful retention. The **unsubmitted Data safety draft**
-selects Name, Email address, User IDs, Phone number, Other personal
-info, Purchase history, Photos, Files and docs, Other user-generated content,
-and Device or other IDs. These reflect account/profile and vehicle fields,
-workshop transactions, uploaded images/documents, customer-entered notes and
-the optional Expo push token. Handling answers for all ten selected types were
-saved as a draft and the resulting Store Listing preview was checked. The
-preview shows required stored account/contact and transaction data, optional
-photos/documents/notes/push identifier, encryption in transit, the deletion
-link and no declared third-party sharing. **Do not submit this preview yet**:
-audit the finished Android binary, SDK/provider flows and backend transfers,
-including whether app interactions, diagnostics, inferred location or
-third-party sharing require different answers. Play also blocks Data safety
-submission until Target audience is complete; that questionnaire is itself
-blocked until the reviewer sign-in details are complete. Google says an
-app active exclusively on the
-[internal testing track](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en-GB)
-is currently exempt from completing this form, but it is required for wider
-release.
+The owner only tester list contains `matt@psiperformance.com.au`. The active
+release is **PSI Android internal 1.0.1 (4)** and Google Play reports it as
+**Available to internal testers**, released on 29 September 2026 at 16:33 and
+not reviewed.
 
-The internal testing track has a saved email list, **PSI owner internal test**,
-containing only `matt@psiperformance.com.au`. The private release
-**PSI Android internal 1.0.0 (3)** is active and Play Console says it is
-**Available to internal testers**, released on 24 September 2026 at 16:45,
-and marked **Not reviewed**. [Owner opt-in link](https://play.google.com/apps/internaltest/4701264059153280916).
-Until app setup
-and review finish, testers see the temporary name
-`com.psiperformance.booking (unreviewed)`.
-The isolated EAS App Bundle build finished successfully
-on 24 September 2026:
-[build a0b3a419-dda5-43eb-aa23-6810bdaa2750](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/a0b3a419-dda5-43eb-aa23-6810bdaa2750),
-profile `android-play-internal`, version 1.0.0 (3), source commit `51d80e6a1de66f549702f2bb2c94d404612588bb`.
-The uploaded 92,696,504-byte AAB has SHA-256
-`B517743C1EEE37F7F99906B887427C724E4ACBD6A8D967721C7FF94CE9D9FC39`.
-Play identified target SDK 36 and reported one non-blocking warning: no code
-deobfuscation mapping file. Native debug symbols were attached to the bundle.
+[Join the private test](https://play.google.com/apps/internaltest/4701264059153280916)
 
-On 26 September, the Play bundle explorer confirmed that version 3 is active,
-supports Android API 24+, includes arm64-v8a/armeabi-v7a/x86/x86_64, and is
-marked compatible with 16 KB memory pages. Play estimates a 47.4 MB download.
-The bundle lists 31 permissions, including camera, notifications, network,
-biometrics, Play Billing and launcher-badge permissions. Billing is present in
-the native bundle because its SDK is packaged, but purchases are disabled by
-this internal build's configuration. These are manifest observations, not a
-completed SDK data-handling audit. The Pre-launch report page has **no report**
-for this release; it suggests uploading to closed testing, which remains gated
-behind the initial setup tasks. Do not treat bundle compatibility or this
-manifest inspection as a substitute for native device acceptance.
+Google may show the temporary app name
+`com.psiperformance.booking (unreviewed)` until the first review is complete.
 
-Play subscriptions are locked until a Google Payments merchant profile is
-created. That onboarding has not been started, and no payment was made.
-The current Android release keeps purchases disabled.
+The signed App Bundle was built by EAS from exact source checkpoint
+`da6fc5ded83964dfad93b73d1e21c1101a38366e`:
 
-Do not copy identity photographs, registration letters, verification codes,
-service-account keys or review credentials into Git or public artifacts.
+* Version: `1.0.1`
+* Version code: `4`
+* Package: `com.psiperformance.booking`
+* EAS profile: `android-play-internal`
+* Update channel: `android-play-internal`
+* Runtime: `1.0.0-android-play-internal-1`
+* EAS build ID: `e85a6635-9aab-4895-b199-694c452941ab`
+* [EAS build record](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/e85a6635-9aab-4895-b199-694c452941ab)
+* AAB size: `92,709,033` bytes
+* AAB SHA256: `1346202D39D0D0B03BE283EA0F6C22831A95320D08B8E4C3BBDA69F37141CB18`
+* Minimum API: `24`
+* Target SDK: `36`
+* Google Play estimated new install size: `47.4 MB`
 
-## Prepared app details
+Google Play reported one nonblocking warning because there is no deobfuscation
+file. Native debug symbols are attached. The release keeps Google Play
+purchases disabled. Performance+ products, RevenueCat Google configuration and
+the Google Payments merchant profile remain outside this first Android release.
 
-- Proposed Play listing name: **PSI Performance Garage** (matches the rollout request).
-- Android application ID: `com.psiperformance.booking`.
-- Installed app label: **PSI**; version: **1.0.0**.
-- Free download; optional Performance+ products require separate activation and testing.
-- Support email: `info@psiperformance.com.au`.
-- Draft short description: **Your PSI vehicle history, visits, reports and next plan in one place.**
+## Completed Play declarations
 
-Draft Android description, to reconcile with the final Play binary before saving:
+The following setup items are saved and counted complete by Google Play:
 
-> Keep your vehicles and PSI workshop visits together in one secure customer
-> workspace. View your garage, request bookings, review available service and
-> dyno reports, and plan future work with PSI Performance Garage.
->
-> Sign in using a verification code sent to your email. Your customer records
-> stay private, and PSI-published workshop history is protected from customer
-> editing. Workshop availability, scope, pricing and timing are confirmed by PSI.
+* Privacy policy
+* Reviewer sign in access through the fictional demonstration
+* Ads declaration
+* IARC content rating, all ages or equivalent across regions
+* Target audience, 18 and over
+* Data safety
+* Government apps declaration
+* Financial features declaration
+* Health declaration
+* App category and support contact details
 
-Add Performance+ purchase wording only when the submitted Android build supports
-the activated Google Play products. Never copy the Apple purchase wording or
-Apple EULA footer into the Play description.
+The reviewer instructions open the fictional demonstration without a username,
+password or email code. Live submissions, payments, emails and push delivery
+are disabled in that demonstration.
 
-The older `STORE-RELEASE-PACKAGE.md` is a historical cross-platform draft. It
-contains older company identifiers and Apple-specific purchase/review wording;
-do not transfer those fields into Google Play. Use Google's approved organisation
-record and the original supplied evidence for legal identity fields. This
-checkpoint does not change the iOS listing or any legal/account settings.
+The Data safety declaration records encrypted transport, account deletion and
+the required data categories used by the app: name, email address, user IDs,
+phone number, other personal information, purchase history, photos, files and
+documents, other user generated content, and device or other IDs. It declares
+no third party sharing because the app providers act as service providers. The
+public account deletion route is:
 
-## Existing build and artwork
+<https://juztforkickz.github.io/psi-performance-booking-app/delete-account>
 
-- Current installable acceptance APK: version 1.0.0 (2), build
-  `c1d100c8-bf21-4233-b979-7f6567b06b2b`, source `f451ca0`.
-- Its `android-internal` channel enables public customer registration and the
-  fictional demonstration; Google purchases remain disabled.
-- The APK is for device acceptance. A Play release needs an Android App Bundle.
-- Existing desktop artwork: `PSI APP/google-play-icon-512.png` and
-  `PSI APP/google-play-feature-graphic-1024x500.png`.
-- Existing marketing screenshots are drafts. Capture final screenshots from
-  the accepted Android build without private customer information.
-- Physical Android acceptance remains outstanding in
-  `ANDROID-NATIVE-QA-CHECKLIST.md`; an iOS pass does not satisfy it.
+## Store Listing draft
 
-## Remaining rollout steps
+The following assets and text are saved as a draft:
 
-1. Confirm an independent passwordless reviewer-access method with a dedicated
-   synthetic customer identity before completing Play sign-in details. Do not
-   share a live staff login, mailbox password or one-time code in this file.
-2. Capture final Android phone screenshots from the accepted native build and
-   complete the default store listing. Answer target audience, content rating
-   and Data safety from actual functionality and SDK behaviour, not solely the
-   historical draft. The account owner must review any binding IARC terms.
-3. Verify the finished Play internal-test App Bundle linked above against the
-   final release configuration. It uses its own update channel and runtime;
-   Android purchases are disabled. Do not change iOS, beta, public-web or
-   production update channels.
-4. Install the active owner-only internal release using the opt-in link and
-   complete physical Android acceptance. Confirm the temporary name and that
-   no in-app purchase is offered in this build.
-5. Once the payments profile prerequisite is authorised and completed, create
-   monthly and annual Performance+ base plans at the approved Australian
-   prices of **AUD 9.99/month** and **AUD 99.00/year**. Record identifiers from
-   the actual catalogue; do not invent server allowlist identifiers in advance.
-6. Connect the Play app to RevenueCat using the required least-privilege access,
-   subject to approval for new security-sensitive credentials/permissions.
-   Preserve the existing Apple app, products, offerings and entitlements.
-7. Configure the Google public SDK key and exact product allowlist only for
-   isolated purchase testing. `google-performance-test` is deliberately gated
-   until its real Google key, active base plans and matching allowlist exist.
-   Do not relax production sandbox protection or change existing backend settings
-   to make tests pass. Follow `PERFORMANCE-PLUS-ACTIVATION.md`.
-8. Test installation, account/privacy flows, purchase, restore, renewal,
-   cancellation, expiry and refund using approved test identities and a real
-   Android device. Record evidence before submission or public activation.
+* App name: **PSI Performance Garage**
+* Short description: **Your PSI vehicle history, visits, reports and next plan in one place.**
+* 512 by 512 app icon
+* 1024 by 500 feature graphic
+* Full description with petrol, diesel, hybrid and electric vehicle support
 
-This checkpoint authorises no automatic production release. Existing iOS,
-RevenueCat, Supabase, beta and public settings remain intact.
+The missing Android phone screenshots are the only reason the Store Listing
+task is incomplete. Do not substitute iPhone images or mockups.
+
+## Remaining work
+
+1. Borrow a supported Android phone and follow
+   `ANDROID-BORROWED-PHONE-ACCEPTANCE.md`.
+2. Confirm version `1.0.1` and build `4` are installed from Google Play.
+3. Complete the physical acceptance checks without real customer information.
+4. Capture at least four clean portrait Android screenshots at 1080 pixels or
+   more using fictional demonstration records.
+5. Add those screenshots to the default Store Listing and review the complete
+   listing.
+6. Submit to production review only after the physical acceptance pass and
+   Matt's separate approval.
+
+This checkpoint does not change iOS, RevenueCat, Supabase, workshop computer,
+customer data or existing public website services. Identity documents,
+verification codes, service account keys and review credentials must never be
+stored in Git or public artifacts.
