@@ -11,11 +11,12 @@ from unittest.mock import patch
 from PIL import Image
 from pillow_heif import from_pillow
 from psi_uploads import (
-    Connection, RequestFailure, SessionStore, VEHICLE_INDEX_FOLDER, _ReturnToMenu, _parse_job_date, _parse_job_type,
+    Connection, RequestFailure, SessionStore, _ReturnToMenu, _parse_job_date, _parse_job_type,
+    _remove_legacy_vehicle_index,
     create_job_folder, create_manual_job,
     ensure_object, folder_label_for, import_manifest_inbox, invoice_identity, manifest_for,
-    is_vehicle_index_folder, prepare_file, process_job, published_invoice_for_job,
-    sync_job_folders, sync_vehicle_index,
+    local_folder_scan, prepare_file, process_job, published_invoice_for_job,
+    sync_job_folders,
 )
 
 
@@ -262,9 +263,10 @@ class WorkshopImporterTests(unittest.TestCase):
         }
         source.write_text(json.dumps(named))
         renamed = create_job_folder(root, source)
+        self.assertEqual(renamed.parent.name, 'TYRONE BROWN')
         self.assertEqual(
             renamed.name,
-            'TYRONE BROWN - 2011 PORSCHE CAYENNE - ABC123 - PSI-TEST',
+            '2011 PORSCHE CAYENNE - ABC123 - PSI-TEST',
         )
         self.assertFalse(old_folder.exists())
         self.assertEqual(json.loads((renamed / 'psi-job.json').read_text()), named)
@@ -277,7 +279,7 @@ class WorkshopImporterTests(unittest.TestCase):
         }
         label = folder_label_for(named)
         self.assertNotRegex(label, r'[<>:"/\\|?*]')
-        self.assertIn('CUSTOMER - NAME', label)
+        self.assertIn('RANGER- WILDTRAK', label)
 
     def test_manifest_cannot_replace_another_job_folder(self):
         source = self.folder / 'downloaded.json'
@@ -303,8 +305,9 @@ class WorkshopImporterTests(unittest.TestCase):
         root = self.folder / 'claimed-uploads'
         folder = create_job_folder(root, source)
         source.write_text(json.dumps(self.manifest))
-        self.assertEqual(create_job_folder(root, source), folder)
-        self.assertEqual(json.loads((folder / 'psi-job.json').read_text()), self.manifest)
+        claimed = create_job_folder(root, source)
+        self.assertFalse(folder.exists())
+        self.assertEqual(json.loads((claimed / 'psi-job.json').read_text()), self.manifest)
 
     def test_mismatched_server_owner_environment_and_date_rejected(self):
         manifest = self.manifest
@@ -437,37 +440,64 @@ class WorkshopImporterTests(unittest.TestCase):
         second, repeated_errors = sync_job_folders(root, FakeConnection())
         self.assertEqual(errors + repeated_errors, [])
         self.assertEqual(first, second)
-        self.assertEqual(first[0].name, 'TEST CUSTOMER - 2020 FORD MUSTANG - ABC123 - PSI-TEST')
+        self.assertEqual(first[0].parent.name, 'TEST CUSTOMER')
+        self.assertEqual(first[0].name, '2020 FORD MUSTANG - ABC123 - PSI-TEST')
         self.assertTrue((first[0] / 'Dyno results & graphs').is_dir())
 
-    def test_active_customer_vehicles_are_visible_in_a_view_only_index(self):
-        customer_id = self.manifest['customer_id']
-        vehicles = [
-            {'id': self.manifest['vehicle_id'], 'customer_id': customer_id, 'registration': 'RBJ575',
-             'year': 2004, 'make': 'Holden', 'model': 'Monaro', 'archived_at': None},
-            {'id': 'a4200000-0000-4000-8000-000000000002', 'customer_id': customer_id,
-             'registration': '9573-H3', 'year': 1963, 'make': 'Chevrolet', 'model': 'Impala',
-             'archived_at': None},
-        ]
-        customers = [{'user_id': customer_id, 'first_name': 'Antonio', 'last_name': 'Nesci',
-                      'email': 'customer@example.invalid'}]
-        class FakeConnection:
-            url = 'https://test.supabase.co'
+    def test_one_customer_folder_groups_multiple_vehicle_jobs_for_upload(self):
+        root = self.folder / 'grouped-jobs'
+        first_manifest = {
+            **self.manifest, 'customer_name': 'Antonio Nesci', 'vehicle_year': 1963,
+            'vehicle_make': 'Chevrolet', 'vehicle_model': 'Impala', 'registration': '9573-H3',
+        }
+        second_manifest = {
+            **self.manifest, 'job_id': 'a4300000-0000-4000-8000-000000000002',
+            'vehicle_id': 'a4200000-0000-4000-8000-000000000002', 'reference': 'PSI-PHONE-MONARO',
+            'customer_name': 'Antonio Nesci', 'vehicle_year': 2004, 'vehicle_make': 'Holden',
+            'vehicle_model': 'Monaro', 'registration': 'RBJ575',
+        }
 
-        root = self.folder / 'vehicle-index'
-        root.mkdir()
-        first = sync_vehicle_index(root, FakeConnection(), vehicles, customers)
-        second = sync_vehicle_index(root, FakeConnection(), vehicles, customers)
+        source = self.folder / 'grouped.json'
+        source.write_text(json.dumps(first_manifest))
+        first = create_job_folder(root, source)
+        source.write_text(json.dumps(second_manifest))
+        second = create_job_folder(root, source)
+        jobs, review = local_folder_scan(root)
 
-        index = root / VEHICLE_INDEX_FOLDER
-        customer = index / 'ANTONIO NESCI'
-        self.assertTrue(is_vehicle_index_folder(index))
-        self.assertEqual(first, second)
-        self.assertEqual(len(first), 2)
-        self.assertTrue((customer / '2004 HOLDEN MONARO - RBJ575' / 'psi-vehicle.json').is_file())
-        self.assertTrue((customer / '1963 CHEVROLET IMPALA - 9573-H3' / 'psi-vehicle.json').is_file())
-        self.assertFalse(any(index.rglob('psi-job.json')))
-        self.assertIn('view-only index', (index / 'READ ME.txt').read_text(encoding='utf-8'))
+        self.assertEqual(first.parent, second.parent)
+        self.assertEqual(first.parent.name, 'ANTONIO NESCI')
+        self.assertEqual(first.name, '1963 CHEVROLET IMPALA - 9573-H3 - PSI-TEST')
+        self.assertEqual(second.name, '2004 HOLDEN MONARO - RBJ575 - PSI-PHONE-MONARO')
+        self.assertEqual(set(jobs), {first, second})
+        self.assertEqual(review, [])
+        for job in jobs:
+            self.assertTrue((job / 'Workshop photos').is_dir())
+            self.assertTrue((job / "Documents + DTC's").is_dir())
+
+    def test_old_view_only_index_is_removed_only_when_it_has_no_user_files(self):
+        root = self.folder / 'old-index'
+        vehicle = root / '00 CUSTOMER VEHICLES - VIEW ONLY' / 'TEST CUSTOMER' / '2020 FORD MUSTANG - ABC123'
+        vehicle.mkdir(parents=True)
+        index = root / '00 CUSTOMER VEHICLES - VIEW ONLY'
+        (index / 'psi-vehicle-index.json').write_text(json.dumps({
+            'schema': 1, 'project_ref': 'test', 'purpose': 'customer_vehicle_index',
+        }))
+        (index / 'READ ME.txt').write_text('Generated index')
+        (vehicle.parent / 'psi-customer.json').write_text('{}')
+        (vehicle / 'psi-vehicle.json').write_text('{}')
+        self.assertTrue(_remove_legacy_vehicle_index(root))
+        self.assertFalse(index.exists())
+
+        vehicle.mkdir(parents=True)
+        (index / 'psi-vehicle-index.json').write_text(json.dumps({
+            'schema': 1, 'project_ref': 'test', 'purpose': 'customer_vehicle_index',
+        }))
+        (vehicle.parent / 'psi-customer.json').write_text('{}')
+        (vehicle / 'psi-vehicle.json').write_text('{}')
+        (vehicle / 'customer-file.txt').write_text('preserve me')
+        with self.assertRaisesRegex(ValueError, 'user file'):
+            _remove_legacy_vehicle_index(root)
+        self.assertEqual((vehicle / 'customer-file.txt').read_text(), 'preserve me')
 
     def test_phone_job_uses_existing_vehicle_and_staff_identity(self):
         class FakeConnection:
@@ -498,7 +528,8 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(connection.posted['title'], 'Phone service')
         self.assertTrue(connection.posted['reference'].startswith('PSI-PHONE-20260915-'))
         self.assertTrue((folder / 'psi-job.json').is_file())
-        self.assertTrue(folder.name.startswith('TEST CUSTOMER - 2020 FORD MUSTANG - ABC123 - PSI-PHONE-'))
+        self.assertEqual(folder.parent.name, 'TEST CUSTOMER')
+        self.assertTrue(folder.name.startswith('2020 FORD MUSTANG - ABC123 - PSI-PHONE-'))
 
     def test_manual_job_date_accepts_australian_iso_and_past_formats(self):
         self.assertEqual(_parse_job_date('23/09/2026'), '2026-09-23')
@@ -618,9 +649,10 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(manifest['schema'], 2)
         self.assertEqual(manifest['owner_type'], 'workshop')
         self.assertEqual(manifest['workshop_contact_id'], workshop_contact_id)
+        self.assertEqual(folder.parent.name, 'PHONE CUSTOMER')
         self.assertEqual(
             folder.name,
-            'PHONE CUSTOMER - 2018 TOYOTA 86 - 2FC2BJ - PSI-PHONE-20260915-1234ABCD',
+            '2018 TOYOTA 86 - 2FC2BJ - PSI-PHONE-20260915-1234ABCD',
         )
 
     def test_manifest_inbox_ignores_unrelated_json(self):

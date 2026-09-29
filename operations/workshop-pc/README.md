@@ -18,8 +18,6 @@ The tray app checks the approved public PSI repository for a versioned workshop-
 
 Open the desktop shortcut once, choose **Sign in and start automatic watching**, and enter the PSI email code and authenticator code. Only the rotating refresh token is remembered; Windows DPAPI encrypts it for this Windows account. The PSI tray app then starts hidden at Windows sign-in, starts the watcher automatically, refreshes the session, checks that it is still AAL2 and active staff, and scans every 30 seconds. Choosing option 1 again while monitoring is active confirms the current state immediately instead of interrupting the watcher. Revoking the session, disabling the staff account or changing security settings makes it fail closed and require sign-in again.
 
-Each scan also maintains `00 CUSTOMER VEHICLES - VIEW ONLY` inside the upload root. It shows every active app customer with one subfolder per active vehicle, so second vehicles are visible on the workshop computer even before a booking exists. This is an index only and is ignored by the uploader. Do not place files there. Use **Create a phone / walk-in job** to create a verified upload folder for the selected vehicle. The index never creates a fake workshop job, never uploads a loose file and never changes customer data.
-
 If Supabase temporarily rate-limits a new email, the uploader accepts a recent unused email code instead. Otherwise, wait at least 60 seconds before requesting another. Projects using Supabase's built-in email sender can share a much lower project-wide email allowance; production should use PSI's configured SMTP provider.
 
 ## Each workshop job
@@ -32,7 +30,9 @@ For a phone or walk-in job, open the desktop shortcut and choose **Create a phon
 
 Files for a workshop-only customer are prepared once and marked `waiting_for_customer_account`; they remain local and private rather than being attached to the wrong identity, and unchanged files are not repeatedly prepared or reported as errors. The customer creates their own app account and enters their vehicle. A matching registration plus either the verified account email, or exact normalized full name and mobile, automatically links the eligible workshop vehicles and jobs. The existing folder manifest upgrades automatically and the next watcher scan uploads each waiting file once. Its local terminal status becomes `uploaded` (synced), so unchanged files are not retried or alerted again. This rule applies equally to invoices, workshop photos, documents/DTCs, dyno PDFs, service history notes and recommended-work notes. Anything without that deterministic match remains in the owner portal for manual review. Similarity alone never transfers records automatically.
 
-Folder names use the customer, vehicle, registration and unique PSI job reference, for example `TYRONE BROWN - 2011 PORSCHE CAYENNE - 2EW4VQ - PSI-PHONE-20260921-64265D66`. The reference prevents two visits for the same vehicle from colliding. Synchronization safely renames older verified folders to this format by reading their protected job ID.
+The upload root contains one folder per customer. Every verified vehicle job sits inside that customer folder and keeps its own category folders. For example, one customer can contain `2010 HOLDEN VE SSV REDLINE - 1YT9HQ - PSI-PHONE-...` and `2008 FORD FALCON - ABC123 - PSI-PHONE-...`. The registration and unique PSI job reference keep vehicles and visits separate. Synchronization safely moves older verified flat folders into this structure by reading protected customer, vehicle and job IDs. When an eligible workshop-only job is claimed by a newly registered customer, it moves into that app customer's folder without changing or re-uploading completed files.
+
+Parts-only Xero sales remain read-only sales records. They do not create a customer workshop upload folder or pretend that a workshop job occurred.
 
 The resulting layout is:
 
@@ -44,18 +44,15 @@ python psi_uploads.py --root "C:/PSI Uploads" --add-job "C:/Users/YOU/Downloads/
 
 ```text
 C:/PSI Uploads/
-  00 CUSTOMER VEHICLES - VIEW ONLY/
-    CUSTOMER NAME/
-      2004 HOLDEN MONARO - RBJ575/
-      1963 CHEVROLET IMPALA - 9573-H3/
-  CUSTOMER NAME - 2020 FORD MUSTANG - ABC123 - PSI-2026-0123/
-    psi-job.json
-    Service & repair history/
-    Recommended work/        (.txt notes only)
-    Dyno results & graphs/   (PDF only)
-    Invoice archive/         (PDF only)
-    Workshop photos/
-    Documents + DTC's/
+  CUSTOMER NAME/
+    2020 FORD MUSTANG - ABC123 - PSI-2026-0123/
+      psi-job.json
+      Service & repair history/
+      Recommended work/        (.txt notes only)
+      Dyno results & graphs/   (PDF only)
+      Invoice archive/         (PDF only)
+      Workshop photos/
+      Documents + DTC's/
 ```
 
 To inspect local preparation without upload:

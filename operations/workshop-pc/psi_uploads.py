@@ -49,8 +49,9 @@ TEXT_RECORD_CATEGORIES = {
     'Service & repair history': 'service',
     'Recommended work': 'recommendation',
 }
-VEHICLE_INDEX_FOLDER = '00 CUSTOMER VEHICLES - VIEW ONLY'
-VEHICLE_INDEX_MARKER = 'psi-vehicle-index.json'
+CUSTOMER_FOLDER_MARKER = '.psi-customer-folder.json'
+LEGACY_VEHICLE_INDEX_FOLDER = '00 CUSTOMER VEHICLES - VIEW ONLY'
+LEGACY_VEHICLE_INDEX_MARKER = 'psi-vehicle-index.json'
 
 
 class SessionStore:
@@ -288,141 +289,153 @@ def _safe_folder_part(value, limit):
 
 
 def folder_label_for(manifest):
-    customer = _safe_folder_part(manifest.get('customer_name'), 60)
     vehicle = _safe_folder_part(' '.join(str(value or '') for value in (
         manifest.get('vehicle_year'), manifest.get('vehicle_make'), manifest.get('vehicle_model')
     )), 70)
     registration = _safe_folder_part(manifest.get('registration'), 20)
     reference = _safe_folder_part(manifest.get('reference'), 70)
-    if customer and vehicle:
-        label = f'{customer} - {vehicle} - {registration} - {reference}'
-    else:
-        label = f'{reference}-{registration}'
+    label = f'{vehicle} - {registration} - {reference}' if vehicle else f'{reference}-{registration}'
     label = label.upper().strip(' .-')
     if not label:
         raise ValueError('Manifest has no safe job folder label')
     return label
 
 
-def _managed_index_child(parent, desired_name, marker_name, marker_key, marker_value, marker):
-    """Create or safely rename one app-owned index folder without deleting user files."""
+def _customer_identity(manifest):
+    if manifest.get('schema') == 1:
+        return 'customer_id', manifest['customer_id']
+    return 'workshop_contact_id', manifest['workshop_contact_id']
+
+
+def _customer_marker(manifest):
+    key, value = _customer_identity(manifest)
+    return {
+        'schema': 1,
+        'owner_type': 'app' if key == 'customer_id' else 'workshop',
+        key: value,
+        'customer_name': manifest.get('customer_name'),
+    }
+
+
+def _read_customer_marker(folder):
+    marker_path = folder / CUSTOMER_FOLDER_MARKER
+    if folder.is_symlink() or not folder.is_dir() or not marker_path.is_file():
+        return None
+    try:
+        return json.loads(marker_path.read_text(encoding='utf-8-sig'))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+
+
+def _marker_matches(marker, identity):
+    return bool(marker) and marker.get(identity[0]) == identity[1]
+
+
+def _customer_folder_label(manifest):
+    label = _safe_folder_part(manifest.get('customer_name'), 100).upper()
+    if label:
+        return label
+    return ('CUSTOMER ' + _customer_identity(manifest)[1][:8]).upper()
+
+
+def _customer_folder_for(root, manifest, existing_folder=None, existing_manifest=None):
+    """Return one managed customer folder, preserving strong account ownership boundaries."""
+    identity = _customer_identity(manifest)
+    expected_marker = _customer_marker(manifest)
     matches = []
-    if parent.is_dir():
-        for candidate in parent.iterdir():
-            marker_path = candidate / marker_name
-            if candidate.is_symlink() or not candidate.is_dir() or not marker_path.is_file():
-                continue
-            try:
-                existing = json.loads(marker_path.read_text(encoding='utf-8-sig'))
-            except (OSError, UnicodeError, json.JSONDecodeError):
-                continue
-            if existing.get(marker_key) == marker_value:
-                matches.append(candidate)
+    for candidate in root.iterdir():
+        if _marker_matches(_read_customer_marker(candidate), identity):
+            matches.append(candidate)
     if len(matches) > 1:
-        raise ValueError('More than one managed vehicle index folder has the same identity')
-    desired = parent / desired_name
+        raise ValueError('More than one local customer folder has the same PSI identity')
+
+    desired = root / _customer_folder_label(manifest)
     folder = matches[0] if matches else None
+    existing_parent = existing_folder.parent if existing_folder and existing_folder.parent != root else None
+    claim_upgrade = (
+        folder is None and existing_parent is not None and _read_customer_marker(existing_parent)
+        and existing_manifest is not None and _manifest_update_allowed(existing_manifest, manifest)
+        and existing_manifest.get('schema') == 2 and manifest.get('schema') == 1
+    )
+    if claim_upgrade:
+        folder = existing_parent
+
     if folder is None:
         if desired.exists():
-            raise ValueError('A vehicle index folder name is already in use')
+            marker = _read_customer_marker(desired)
+            if not _marker_matches(marker, identity):
+                desired = root / f'{_customer_folder_label(manifest)} - {identity[1][:8].upper()}'
+        if desired.exists():
+            raise ValueError('The preferred PSI customer folder name is already in use')
         desired.mkdir()
         folder = desired
     elif folder != desired:
-        if desired.exists():
-            raise ValueError('The preferred vehicle index folder name is already in use')
-        folder.rename(desired)
-        folder = desired
-    child_marker_path = folder / marker_name
-    current_marker = None
-    if child_marker_path.is_file():
-        try:
-            current_marker = json.loads(child_marker_path.read_text(encoding='utf-8-sig'))
-        except (OSError, UnicodeError, json.JSONDecodeError):
-            pass
-    if current_marker != marker:
-        atomic_json(child_marker_path, marker)
-    hide_windows_folder(child_marker_path)
+        if desired.exists() and desired != existing_parent:
+            marker = _read_customer_marker(desired)
+            if not _marker_matches(marker, identity):
+                desired = root / f'{_customer_folder_label(manifest)} - {identity[1][:8].upper()}'
+        if desired.exists() and desired != folder:
+            raise ValueError('The preferred PSI customer folder name is already in use')
+        if desired != folder:
+            folder.rename(desired)
+            folder = desired
+
+    marker_path = folder / CUSTOMER_FOLDER_MARKER
+    current = _read_customer_marker(folder)
+    if current != expected_marker:
+        atomic_json(marker_path, expected_marker)
+    hide_windows_folder(marker_path)
     return folder
 
 
-def sync_vehicle_index(root, connection, vehicles=None, customers=None):
-    """Show every active app customer and vehicle locally without creating fake jobs."""
-    root = Path(root)
-    project_ref = urllib.parse.urlparse(connection.url).hostname.split('.')[0]
-    index = root / VEHICLE_INDEX_FOLDER
-    marker_path = index / VEHICLE_INDEX_MARKER
-    if index.exists() and (index.is_symlink() or not index.is_dir()):
-        raise ValueError('The customer vehicle index path is not a safe folder')
-    if index.exists() and not marker_path.is_file():
-        raise ValueError('The customer vehicle index name is already in use')
-    index.mkdir(exist_ok=True)
-    expected_root_marker = {'schema': 1, 'project_ref': project_ref, 'purpose': 'customer_vehicle_index'}
-    current_root_marker = None
-    if marker_path.is_file():
-        current_root_marker = json.loads(marker_path.read_text(encoding='utf-8-sig'))
-        if current_root_marker.get('project_ref') != project_ref or current_root_marker.get('purpose') != 'customer_vehicle_index':
-            raise ValueError('The customer vehicle index belongs to a different PSI environment')
-    if not marker_path.is_file() or current_root_marker != expected_root_marker:
-        atomic_json(marker_path, expected_root_marker)
-    hide_windows_folder(marker_path)
-    readme = index / 'READ ME.txt'
-    readme_text = (
-        'This folder shows every active vehicle in the PSI customer app.\n\n'
-        'It is a view-only index. Do not place upload files here.\n'
-        'To upload files for a vehicle, open PSI Workshop Uploads and choose Create a phone / walk-in job.\n'
-        'The verified job folder created by PSI is the only safe upload destination.\n'
-    )
-    if not readme.is_file() or readme.read_text(encoding='utf-8-sig') != readme_text:
-        readme.write_text(readme_text, encoding='utf-8')
-
-    if vehicles is None:
-        vehicles = connection.call(
-            '/rest/v1/customer_vehicles?select=id,customer_id,registration,year,make,model,archived_at&archived_at=is.null&limit=2000'
-        )
-    if customers is None:
-        customers = connection.call(
-            '/rest/v1/customer_profiles?select=user_id,first_name,last_name,email&account_state=eq.active&limit=2000'
-        )
-    active_customers = {customer['user_id']: customer for customer in customers}
-    vehicles_by_customer = {}
-    for vehicle in vehicles:
-        if vehicle.get('archived_at') is None and vehicle.get('customer_id') in active_customers:
-            vehicles_by_customer.setdefault(vehicle['customer_id'], []).append(vehicle)
-
-    visible = []
-    for customer_id in sorted(vehicles_by_customer):
-        customer = active_customers[customer_id]
-        customer_name = ' '.join(filter(None, (customer.get('first_name'), customer.get('last_name')))).strip()
-        customer_label = _safe_folder_part(customer_name, 80).upper()
-        if not customer_label:
-            customer_label = 'CUSTOMER ' + customer_id[:8].upper()
-        customer_marker = {'schema': 1, 'customer_id': customer_id, 'customer_name': customer_name}
-        customer_folder = _managed_index_child(
-            index, customer_label, 'psi-customer.json', 'customer_id', customer_id, customer_marker
-        )
-        for vehicle in sorted(vehicles_by_customer[customer_id], key=lambda item: (item.get('registration') or '', item['id'])):
-            description = ' '.join(str(value or '') for value in (vehicle.get('year'), vehicle.get('make'), vehicle.get('model')))
-            vehicle_label = _safe_folder_part(f'{description} - {vehicle.get("registration") or "NO REGISTRATION"}', 120).upper()
-            vehicle_marker = {
-                'schema': 1, 'customer_id': customer_id, 'vehicle_id': vehicle['id'],
-                'registration': vehicle.get('registration'), 'year': vehicle.get('year'),
-                'make': vehicle.get('make'), 'model': vehicle.get('model'),
-            }
-            visible.append(_managed_index_child(
-                customer_folder, vehicle_label, 'psi-vehicle.json', 'vehicle_id', vehicle['id'], vehicle_marker
-            ))
-    return visible
+def _cleanup_empty_customer_folder(folder, root):
+    if folder == root or not folder.is_dir() or folder.is_symlink() or not _read_customer_marker(folder):
+        return
+    entries = list(folder.iterdir())
+    if entries and all(entry.name == CUSTOMER_FOLDER_MARKER for entry in entries):
+        (folder / CUSTOMER_FOLDER_MARKER).unlink(missing_ok=True)
+        folder.rmdir()
 
 
-def is_vehicle_index_folder(folder):
-    marker = folder / VEHICLE_INDEX_MARKER
-    if folder.name != VEHICLE_INDEX_FOLDER or folder.is_symlink() or not marker.is_file():
+def _remove_legacy_vehicle_index(root):
+    """Remove only the exact app-generated view-only index and never user content."""
+    index = root / LEGACY_VEHICLE_INDEX_FOLDER
+    marker_path = index / LEGACY_VEHICLE_INDEX_MARKER
+    if not index.exists():
         return False
-    try:
-        value = json.loads(marker.read_text(encoding='utf-8-sig'))
-    except (OSError, UnicodeError, json.JSONDecodeError):
-        return False
-    return value.get('schema') == 1 and value.get('purpose') == 'customer_vehicle_index'
+    if index.is_symlink() or not index.is_dir() or not marker_path.is_file():
+        raise ValueError('The old customer vehicle index contains an unverified folder')
+    marker = json.loads(marker_path.read_text(encoding='utf-8-sig'))
+    if marker.get('schema') != 1 or marker.get('purpose') != 'customer_vehicle_index':
+        raise ValueError('The old customer vehicle index is not app-managed')
+    allowed_root_files = {LEGACY_VEHICLE_INDEX_MARKER, 'READ ME.txt', '.psi-upload-status.json'}
+    for entry in index.iterdir():
+        if entry.is_file():
+            if entry.name not in allowed_root_files:
+                raise ValueError('The old customer vehicle index contains a user file and was preserved')
+            continue
+        if entry.is_symlink() or not entry.is_dir() or not (entry / 'psi-customer.json').is_file():
+            raise ValueError('The old customer vehicle index contains an unverified customer folder')
+        for vehicle in entry.iterdir():
+            if vehicle.is_file():
+                if vehicle.name != 'psi-customer.json':
+                    raise ValueError('The old customer vehicle index contains a user file and was preserved')
+                continue
+            if vehicle.is_symlink() or not vehicle.is_dir():
+                raise ValueError('The old customer vehicle index contains an unverified vehicle folder')
+            contents = list(vehicle.iterdir())
+            if any(item.is_dir() or item.name != 'psi-vehicle.json' for item in contents):
+                raise ValueError('The old customer vehicle index contains a user file and was preserved')
+    for customer in [entry for entry in index.iterdir() if entry.is_dir()]:
+        for vehicle in [entry for entry in customer.iterdir() if entry.is_dir()]:
+            (vehicle / 'psi-vehicle.json').unlink(missing_ok=True)
+            vehicle.rmdir()
+        (customer / 'psi-customer.json').unlink(missing_ok=True)
+        customer.rmdir()
+    for name in allowed_root_files:
+        (index / name).unlink(missing_ok=True)
+    index.rmdir()
+    return True
 
 
 def _manifest_update_allowed(existing, manifest):
@@ -439,9 +452,16 @@ def _manifest_update_allowed(existing, manifest):
 def _existing_job_folder(root, job_id):
     matches = []
     if root.is_dir():
-        for candidate in root.iterdir():
+        candidates = []
+        for top in root.iterdir():
+            if top.is_symlink() or not top.is_dir():
+                continue
+            candidates.append(top)
+            if _read_customer_marker(top):
+                candidates.extend(child for child in top.iterdir() if child.is_dir() and not child.is_symlink())
+        for candidate in candidates:
             manifest_path = candidate / 'psi-job.json'
-            if candidate.is_symlink() or not candidate.is_dir() or not manifest_path.is_file():
+            if not manifest_path.is_file():
                 continue
             try:
                 existing = json.loads(manifest_path.read_text(encoding='utf-8-sig'))
@@ -548,8 +568,12 @@ def migrate_category_folders(folder):
 
 def create_folder_from_manifest(root, manifest):
     root.mkdir(parents=True, exist_ok=True)
-    desired = root / folder_label_for(manifest)
     folder, existing = _existing_job_folder(root, manifest['job_id'])
+    previous_parent = folder.parent if folder else None
+    customer_folder = _customer_folder_for(root, manifest, folder, existing)
+    if folder is not None and not folder.exists() and (customer_folder / folder.name).exists():
+        folder = customer_folder / folder.name
+    desired = customer_folder / folder_label_for(manifest)
     if folder is None:
         folder = desired
         folder.mkdir(exist_ok=True)
@@ -565,6 +589,8 @@ def create_folder_from_manifest(root, manifest):
         folder.rename(desired)
         folder = desired
         destination = folder / 'psi-job.json'
+        if previous_parent is not None:
+            _cleanup_empty_customer_folder(previous_parent, root)
     if existing != manifest:
         atomic_json(destination, manifest)
     for category in CATEGORIES:
@@ -660,6 +686,10 @@ def sync_job_folders(root, connection, days_back=30):
     workshop_names = {contact['id']: contact['display_name'] for contact in workshop_contacts}
     connection.verified_jobs = {}
     created, errors = [], []
+    try:
+        _remove_legacy_vehicle_index(root)
+    except Exception as error:
+        errors.append('Old customer vehicle index: ' + str(error))
     for job in connection.call(path):
         try:
             vehicle = vehicles_by_id.get(job.get('vehicle_id')) if job.get('vehicle_id') else workshop_vehicles_by_id.get(job.get('workshop_vehicle_id'))
@@ -670,11 +700,29 @@ def sync_job_folders(root, connection, days_back=30):
             created.append(folder)
         except Exception as error:
             errors.append(f'{job.get("reference", "Unknown job")}: {error}')
-    try:
-        sync_vehicle_index(root, connection, vehicles, customers)
-    except Exception as error:
-        errors.append('Customer vehicle index: ' + str(error))
     return created, errors
+
+
+def local_folder_scan(root):
+    """Return verified job folders and unverified folders needing human review."""
+    jobs, review = [], []
+    for top in root.iterdir():
+        if top.is_symlink() or not top.is_dir():
+            continue
+        if (top / 'psi-job.json').is_file():
+            jobs.append(top)
+            continue
+        if _read_customer_marker(top):
+            for child in top.iterdir():
+                if child.is_symlink() or not child.is_dir():
+                    continue
+                if (child / 'psi-job.json').is_file():
+                    jobs.append(child)
+                else:
+                    review.append(child)
+            continue
+        review.append(top)
+    return jobs, review
 
 
 def import_manifest_inbox(root, inbox, connection):
@@ -1199,15 +1247,11 @@ def main():
                     imported = import_manifest_inbox(root, args.manifest_inbox, connection)
                     if imported:
                         print(f'Imported {len(imported)} downloaded PSI job file(s).')
-            for folder in root.iterdir():
-                if not folder.is_dir() or folder.is_symlink():
-                    continue
-                if is_vehicle_index_folder(folder):
-                    continue
+            job_folders, review_folders = local_folder_scan(root)
+            for folder in review_folders:
+                atomic_json(folder / '.psi-upload-status.json', {'status': 'needs_review', 'error': 'No verified psi-job.json; nothing uploaded'})
+            for folder in job_folders:
                 try:
-                    if not (folder / 'psi-job.json').is_file():
-                        atomic_json(folder / '.psi-upload-status.json', {'status': 'needs_review', 'error': 'No verified psi-job.json; nothing uploaded'})
-                        continue
                     process_job(folder, connection)
                 except Exception as error:
                     atomic_json(folder / '.psi-upload-status.json', {'status': 'needs_review', 'error': str(error)})
