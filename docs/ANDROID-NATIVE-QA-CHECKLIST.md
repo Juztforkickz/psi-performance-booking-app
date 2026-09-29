@@ -1,12 +1,12 @@
 # PSI Android native QA checklist
 
-Status: Google Play internal release **1.0.1 (4)** is active for the owner only
+Status: Google Play internal release **1.0.1 (5)** is active for the owner only
 tester list. It was built from source checkpoint
-`da6fc5ded83964dfad93b73d1e21c1101a38366e` using EAS build
-`e85a6635-9aab-4895-b199-694c452941ab`.
+`4fea69b1c2ca3a1cddb94024be9c080544f00251` using EAS build
+`24fb542a-fa79-4c2e-a9c8-69d01d4da0f0`.
 
 [Join the private test](https://play.google.com/apps/internaltest/4701264059153280916)
-with `matt@psiperformance.com.au`, then install and check version 1.0.1, build 4
+with `matt@psiperformance.com.au`, then install and check version 1.0.1, build 5
 on the borrowed physical Android phone. Google Play marks this release
 **Available to internal testers** and **Not reviewed**. It may show the temporary
 package name before the first review. Purchases remain disabled. See
@@ -37,7 +37,7 @@ material or private service credentials in this file or an issue.
 - [x] Prepare the separate `android-play-internal` App Bundle profile with an
   isolated update channel and runtime, public registration and purchases closed.
 - [x] Confirm the new `android-internal` APK builds successfully.
-- [x] Upload version 1.0.1 (4) App Bundle to the owner only Google Play internal
+- [x] Upload version 1.0.1 (5) App Bundle to the owner only Google Play internal
   track and confirm Play marks the release available to internal testers.
 - [ ] Opt in and install the Play-delivered version on a supported Android phone.
 - [ ] Install the new APK on a supported Android phone.

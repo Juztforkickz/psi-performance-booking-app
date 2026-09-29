@@ -1,12 +1,12 @@
 # PSI Android borrowed phone acceptance
 
 Use this short acceptance pass for the active Google Play internal release
-`1.0.1 (4)`, published to private testers on 29 September 2026. The signed source checkpoint is
-`da6fc5ded83964dfad93b73d1e21c1101a38366e` and the EAS build ID is
-`e85a6635-9aab-4895-b199-694c452941ab`.
+`1.0.1 (5)`, published to private testers on 29 September 2026. The signed source checkpoint is
+`4fea69b1c2ca3a1cddb94024be9c080544f00251` and the EAS build ID is
+`24fb542a-fa79-4c2e-a9c8-69d01d4da0f0`.
 
 The archived App Bundle SHA256 is
-`1346202D39D0D0B03BE283EA0F6C22831A95320D08B8E4C3BBDA69F37141CB18`.
+`CD0372217783A8769495EE26427BD0F139383F7F081DE0CFBED76E15641C1C6C`.
 
 The phone owner does not need to give PSI their Google password. Matt should
 join the private test with `matt@psiperformance.com.au`, install the app from
@@ -20,7 +20,7 @@ testing.
 3. Open the private tester link:
    <https://play.google.com/apps/internaltest/4701264059153280916>
 4. Join the test and install PSI from Google Play.
-5. In Android app information, confirm version `1.0.1` and build `4`.
+5. In Android app information, confirm version `1.0.1` and build `5`.
 
 ## Required checks
 

@@ -17,8 +17,8 @@ testing track is active.
 ## Active private release
 
 The owner only tester list contains `matt@psiperformance.com.au`. The active
-release is **PSI Android internal 1.0.1 (4)** and Google Play reports it as
-**Available to internal testers**, released on 29 September 2026 at 16:33 and
+release is **PSI Android internal 1.0.1 (5)** and Google Play reports it as
+**Available to internal testers**, released on 29 September 2026 at 17:29 and
 not reviewed.
 
 [Join the private test](https://play.google.com/apps/internaltest/4701264059153280916)
@@ -27,18 +27,18 @@ Google may show the temporary app name
 `com.psiperformance.booking (unreviewed)` until the first review is complete.
 
 The signed App Bundle was built by EAS from exact source checkpoint
-`da6fc5ded83964dfad93b73d1e21c1101a38366e`:
+`4fea69b1c2ca3a1cddb94024be9c080544f00251`:
 
 * Version: `1.0.1`
-* Version code: `4`
+* Version code: `5`
 * Package: `com.psiperformance.booking`
 * EAS profile: `android-play-internal`
 * Update channel: `android-play-internal`
 * Runtime: `1.0.0-android-play-internal-1`
-* EAS build ID: `e85a6635-9aab-4895-b199-694c452941ab`
-* [EAS build record](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/e85a6635-9aab-4895-b199-694c452941ab)
-* AAB size: `92,709,033` bytes
-* AAB SHA256: `1346202D39D0D0B03BE283EA0F6C22831A95320D08B8E4C3BBDA69F37141CB18`
+* EAS build ID: `24fb542a-fa79-4c2e-a9c8-69d01d4da0f0`
+* [EAS build record](https://expo.dev/accounts/psi-performance/projects/matt-psi/builds/24fb542a-fa79-4c2e-a9c8-69d01d4da0f0)
+* AAB size: `92,711,001` bytes
+* AAB SHA256: `CD0372217783A8769495EE26427BD0F139383F7F081DE0CFBED76E15641C1C6C`
 * Minimum API: `24`
 * Target SDK: `36`
 * Google Play estimated new install size: `47.4 MB`
@@ -93,7 +93,7 @@ task is incomplete. Do not substitute iPhone images or mockups.
 
 1. Borrow a supported Android phone and follow
    `ANDROID-BORROWED-PHONE-ACCEPTANCE.md`.
-2. Confirm version `1.0.1` and build `4` are installed from Google Play.
+2. Confirm version `1.0.1` and build `5` are installed from Google Play.
 3. Complete the physical acceptance checks without real customer information.
 4. Capture at least four clean portrait Android screenshots at 1080 pixels or
    more using fictional demonstration records.
