@@ -1,20 +1,19 @@
 # Google Play rollout checkpoint
 
-Updated 30 September 2026 from the signed in PSI Performance Play Console and
+Updated 1 October 2026 from the signed in PSI Performance Play Console and
 the completed Expo Android build.
 
 ## Current state
 
-Google Play setup shows **10 of 11 tasks complete** for PSI Performance Garage.
-Five 9:16 phone screenshots at 1512 by 2688 pixels have been uploaded to the
-Play media library. They meet Google's phone screenshot and promotion size
-requirements. The default Store Listing still needs those assets saved before
-the setup task is counted complete.
+PSI Performance Garage version `1.0.1`, version code `6`, has been submitted to
+Google for production review. Google Play reports **Release PSI Performance
+Garage 1.0.1 (6) in review**. Australia is the selected country. Managed
+publishing is off, so Google will publish the approved release automatically.
 
-The app remains a draft for production. No production, closed testing, open
-testing or public Google Play release has been created. The private internal
-testing track remains active on build 5 while signed build 6 is ready for the
-replacement release.
+The default Store Listing is complete with the approved name, description,
+icon, feature graphic and five phone screenshots. The feature graphic and the
+five prepared screenshots are labelled under Google's AI asset declaration.
+The existing PSI app icon is recorded as the original brand asset.
 
 Expo Submit cannot upload to Play until a Google service account key is linked
 to the Expo project. No key is currently configured. The signed bundle can be
@@ -103,9 +102,9 @@ public account deletion route is:
 
 <https://juztforkickz.github.io/psi-performance-booking-app/delete-account>
 
-## Store Listing draft
+## Store Listing
 
-The following assets and text are saved as a draft:
+The following assets and text were submitted for review:
 
 * App name: **PSI Performance Garage**
 * Short description: **Your PSI vehicle history, visits, reports and next plan in one place.**
@@ -113,21 +112,42 @@ The following assets and text are saved as a draft:
 * 1024 by 500 feature graphic
 * Full description with petrol, diesel, hybrid and electric vehicle support
 
-Five phone screenshots are ready in the Play media library. The edited feature
-graphic and five screenshots are prepared for Google's AI asset declaration.
-The original PSI app icon remains separately identified as the existing brand
-asset.
+Five 9:16 phone screenshots at 1512 by 2688 pixels are included. They meet
+Google's phone screenshot and promotion size requirements.
+
+## Production review submission
+
+All ten production changes were sent to Google on 1 October 2026. The review
+submission includes:
+
+* production release `PSI Performance Garage 1.0.1 (6)`
+* Australia as the release country
+* the English Australia Store Listing
+* content rating and target audience declarations
+* privacy policy, ads, Data safety and health declarations
+* the Auto and vehicles app category
+* corrected reviewer sign in details for the isolated fictional demonstration
+* the required Advertising ID declaration, set to **No** after checking the app
+  dependencies and configuration for advertising SDKs or the Android AD ID
+  permission
+
+Google accepted the submission and shows it under **Changes in review**. Review
+is commonly completed within seven days but Google may take longer.
+
+The release has one nonblocking deobfuscation warning. Google also reports DEX
+code optimisation below its future threshold, with a February 2027 deadline,
+and recommends reviewing deprecated edge to edge APIs. Neither item blocked
+this submission. They should be addressed in a later Android maintenance build.
 
 ## Remaining work
 
-1. Save the five prepared screenshots to the default Store Listing and complete
-   the AI asset declaration.
-2. Replace the outdated credential free reviewer instructions with the private
-   fictional customer review credentials.
-3. Upload signed build 6 to the production track.
-4. Review the final production changes and send them to Google for review.
-5. Use Google's automated pre launch report while review is pending, then run
-   a borrowed phone acceptance pass when a device is available.
+1. Wait for Google's review decision. No further Play Console submission action
+   is currently required.
+2. Review Google's automated pre launch report when it becomes available.
+3. Run the borrowed phone acceptance pass when a supported Android device is
+   available. This physical device check was not completed before submission.
+4. Confirm the public Play Store listing and installation after Google approves
+   and publishes the release.
 
 This checkpoint does not change iOS, RevenueCat, Supabase, workshop computer,
 customer data or existing public website services. Identity documents,
