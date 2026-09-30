@@ -36,7 +36,7 @@ export function DemoModeControl() {
     <Modal visible={open} transparent animationType="fade" onRequestClose={() => { if (!busy) setOpen(false); }}>
       <View style={styles.overlay}><View accessibilityViewIsModal style={styles.card}>
         <Text accessibilityRole="header" style={styles.heading}>{label}</Text>
-        <Text style={styles.copy}>{exiting ? 'The demonstration will sign out and the app will restart normally. Your real PSI account and records have not been changed.' : 'For app review and exploration using dedicated demo credentials. Only fictional cars, documents and bookings are available. Real emails, push alerts, Calendar changes and payments are disabled. The app will restart; your normal account and saved records stay separate.'}</Text>
+        <Text style={styles.copy}>{exiting ? 'The demonstration will sign out and the app will restart normally. Your real PSI account and records have not been changed.' : 'Explore fictional cars, documents and bookings using the credentials supplied to the app store reviewer. Real emails, push alerts, Calendar changes and payments are disabled. The app will restart and your normal account and saved records stay separate.'}</Text>
         {error ? <Text accessibilityRole="alert" style={styles.copy}>{error}</Text> : null}
         {busy ? <><ActivityIndicator color="#65CFF8" /><Text style={styles.copy}>Restarting PSI…</Text></> : <>
           <PrimaryButton label={exiting ? 'Return and restart' : 'Enter demo and restart'} onPress={() => void change()} />

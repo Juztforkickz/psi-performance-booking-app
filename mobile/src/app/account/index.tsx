@@ -5,7 +5,7 @@ import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProfilePhotoPicker } from '@/components/profile-photo-picker';
-import { AppleReviewSignIn } from '@/components/apple-review-sign-in';
+import { AppReviewSignIn } from '@/components/apple-review-sign-in';
 import { DemoModeControl } from '@/components/demo-mode-control';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
@@ -247,7 +247,7 @@ export default function AccountScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-        {auth.status !== 'signed_in' && REVIEW_ENVIRONMENT.enabled ? <AppleReviewSignIn /> : null}
+        {auth.status !== 'signed_in' && REVIEW_ENVIRONMENT.enabled ? <AppReviewSignIn /> : null}
         {auth.status === 'signed_out' && !REVIEW_ENVIRONMENT.enabled ? <DemoModeControl /> : null}
         {auth.status !== 'signed_in' && !REVIEW_ENVIRONMENT.enabled ? <View style={[styles.card, compact && styles.cardCompact]}>
           <Text style={styles.cardTitle}>Sign in with email</Text>

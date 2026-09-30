@@ -8,7 +8,7 @@ export function AppleReviewBanner() {
   if (!REVIEW_ENVIRONMENT.enabled) return null;
   return (
     <SafeAreaView edges={['top']} style={styles.banner}>
-      <Text style={styles.title}>APPLE REVIEW SANDBOX · FICTIONAL DATA</Text>
+      <Text style={styles.title}>APP REVIEW DEMONSTRATION · FICTIONAL DATA</Text>
       <Text style={styles.copy}>No real bookings, payments, emails or calendar changes.</Text>
       <DemoModeControl />
     </SafeAreaView>

@@ -63,9 +63,10 @@ The following setup items are saved and counted complete by Google Play:
 * Health declaration
 * App category and support contact details
 
-The reviewer instructions open the fictional demonstration without a username,
-password or email code. Live submissions, payments, emails and push delivery
-are disabled in that demonstration.
+The reviewer instructions open the isolated fictional demonstration with the
+dedicated review credentials supplied privately in Play Console. Live
+submissions, payments, emails and push delivery are disabled in that
+demonstration.
 
 The Data safety declaration records encrypted transport, account deletion and
 the required data categories used by the app: name, email address, user IDs,

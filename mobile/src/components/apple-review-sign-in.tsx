@@ -6,7 +6,7 @@ import { colors, spacing } from '@/constants/brand';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { getSupabaseClient } from '@/lib/supabase';
 
-export function AppleReviewSignIn() {
+export function AppReviewSignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -15,7 +15,7 @@ export function AppleReviewSignIn() {
   async function signIn() {
     if (!REVIEW_ENVIRONMENT.enabled || busy) return;
     if (!/^\S+@\S+\.\S+$/.test(email.trim()) || !password) {
-      setError('Enter the review email and app password supplied in App Store Connect.');
+      setError('Enter the review email and app password supplied in the store review notes.');
       return;
     }
     setBusy(true);
@@ -36,8 +36,8 @@ export function AppleReviewSignIn() {
   if (!REVIEW_ENVIRONMENT.enabled) return null;
   return (
     <View style={styles.card}>
-      <Text accessibilityRole="header" style={styles.title}>Apple review sign-in</Text>
-      <Text style={styles.copy}>Use the dedicated app credentials in the review notes. This isolated environment contains fictional records only. Do not enter a Gmail, Apple or live PSI password.</Text>
+      <Text accessibilityRole="header" style={styles.title}>App review sign in</Text>
+      <Text style={styles.copy}>Use the dedicated credentials in the store review notes. This isolated demonstration contains fictional records only. Do not enter a personal email password or a live PSI password.</Text>
       <Field label="Review email">
         <FormInput autoCapitalize="none" autoComplete="username" keyboardType="email-address" maxLength={160} onChangeText={setEmail} value={email} />
       </Field>
@@ -49,6 +49,9 @@ export function AppleReviewSignIn() {
     </View>
   );
 }
+
+// Kept for archived source snapshots that are included by the repository TypeScript project.
+export const AppleReviewSignIn = AppReviewSignIn;
 
 const styles = StyleSheet.create({
   card: { backgroundColor: colors.ink, borderColor: colors.accent, borderWidth: 1, padding: spacing.md, gap: spacing.sm },
