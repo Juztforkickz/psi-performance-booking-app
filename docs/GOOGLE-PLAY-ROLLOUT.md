@@ -1,18 +1,25 @@
 # Google Play rollout checkpoint
 
-Updated 29 September 2026 from the signed in PSI Performance Play Console.
+Updated 30 September 2026 from the signed in PSI Performance Play Console and
+the completed Expo Android build.
 
 ## Current state
 
 Google Play setup shows **10 of 11 tasks complete** for PSI Performance Garage.
-The only incomplete setup task is the default Store Listing because Google
-requires at least two Android phone screenshots. Capture at least four clean
-portrait screenshots from the accepted physical Android build so the listing
-uses real Android presentation and qualifies for promotion.
+Five 9:16 phone screenshots at 1512 by 2688 pixels have been uploaded to the
+Play media library. They meet Google's phone screenshot and promotion size
+requirements. The default Store Listing still needs those assets saved before
+the setup task is counted complete.
 
 The app remains a draft for production. No production, closed testing, open
 testing or public Google Play release has been created. The private internal
-testing track is active.
+testing track remains active on build 5 while signed build 6 is ready for the
+replacement release.
+
+Expo Submit cannot upload to Play until a Google service account key is linked
+to the Expo project. No key is currently configured. The signed bundle can be
+uploaded directly through Play Console without creating another app, package
+or signing identity.
 
 ## Active private release
 
@@ -42,6 +49,25 @@ The signed App Bundle was built by EAS from exact source checkpoint
 * Minimum API: `24`
 * Target SDK: `36`
 * Google Play estimated new install size: `47.4 MB`
+
+## Production candidate
+
+The replacement production candidate was built successfully from exact source
+checkpoint `5416c01084b5d955a020e5386ca2c84a2ebec3f2`:
+
+* Version: `1.0.1`
+* Version code: `6`
+* Package: `com.psiperformance.booking`
+* EAS profile: `android-play-internal`
+* Update channel: `android-play-internal`
+* Runtime: `1.0.0-android-play-internal-1`
+* EAS build ID: `e8c58a01-375a-4c14-a07e-4460bca1a609`
+* AAB size: `92,710,775` bytes
+* AAB SHA256: `4AA98A5A198932ACADD8EBAB2CF9F723E5B0438ABE2CDFF994024FC0704471F3`
+
+This candidate changes the review demonstration wording from Apple specific
+language to platform neutral store review language. It does not change the
+package name, production Supabase project, Apple release or signing identity.
 
 Google Play reported one nonblocking warning because there is no deobfuscation
 file. Native debug symbols are attached. The release keeps Google Play
@@ -87,21 +113,21 @@ The following assets and text are saved as a draft:
 * 1024 by 500 feature graphic
 * Full description with petrol, diesel, hybrid and electric vehicle support
 
-The missing Android phone screenshots are the only reason the Store Listing
-task is incomplete. Do not substitute iPhone images or mockups.
+Five phone screenshots are ready in the Play media library. The edited feature
+graphic and five screenshots are prepared for Google's AI asset declaration.
+The original PSI app icon remains separately identified as the existing brand
+asset.
 
 ## Remaining work
 
-1. Borrow a supported Android phone and follow
-   `ANDROID-BORROWED-PHONE-ACCEPTANCE.md`.
-2. Confirm version `1.0.1` and build `5` are installed from Google Play.
-3. Complete the physical acceptance checks without real customer information.
-4. Capture at least four clean portrait Android screenshots at 1080 pixels or
-   more using fictional demonstration records.
-5. Add those screenshots to the default Store Listing and review the complete
-   listing.
-6. Submit to production review only after the physical acceptance pass and
-   Matt's separate approval.
+1. Save the five prepared screenshots to the default Store Listing and complete
+   the AI asset declaration.
+2. Replace the outdated credential free reviewer instructions with the private
+   fictional customer review credentials.
+3. Upload signed build 6 to the production track.
+4. Review the final production changes and send them to Google for review.
+5. Use Google's automated pre launch report while review is pending, then run
+   a borrowed phone acceptance pass when a device is available.
 
 This checkpoint does not change iOS, RevenueCat, Supabase, workshop computer,
 customer data or existing public website services. Identity documents,
