@@ -438,14 +438,20 @@ def _remove_legacy_vehicle_index(root):
     return True
 
 
-def _manifest_update_allowed(existing, manifest):
+def _manifest_update_allowed(existing, manifest, allow_workshop_identity_repair=False):
     shared = ('job_id', 'project_ref', 'reference', 'registration', 'job_date')
     if any(existing.get(field) != manifest.get(field) for field in shared):
         return False
     if existing.get('schema') == manifest.get('schema') == 1:
         return all(existing.get(field) == manifest.get(field) for field in ('customer_id', 'vehicle_id'))
     if existing.get('schema') == manifest.get('schema') == 2:
-        return all(existing.get(field) == manifest.get(field) for field in ('workshop_contact_id', 'workshop_vehicle_id'))
+        # An owner-reviewed duplicate-contact repair can move the same verified
+        # job to a replacement workshop vehicle/customer identity. The job ID,
+        # reference, registration and date above must still match exactly.
+        return allow_workshop_identity_repair or all(
+            existing.get(field) == manifest.get(field)
+            for field in ('workshop_contact_id', 'workshop_vehicle_id')
+        )
     return existing.get('schema') == 2 and manifest.get('schema') == 1
 
 
@@ -566,7 +572,7 @@ def migrate_category_folders(folder):
         atomic_json(state_path, state)
 
 
-def create_folder_from_manifest(root, manifest):
+def create_folder_from_manifest(root, manifest, allow_workshop_identity_repair=False):
     root.mkdir(parents=True, exist_ok=True)
     folder, existing = _existing_job_folder(root, manifest['job_id'])
     previous_parent = folder.parent if folder else None
@@ -581,7 +587,9 @@ def create_folder_from_manifest(root, manifest):
         existing = json.loads(destination.read_text(encoding='utf-8-sig')) if destination.exists() else None
     else:
         destination = folder / 'psi-job.json'
-    if existing is not None and existing != manifest and not _manifest_update_allowed(existing, manifest):
+    if existing is not None and existing != manifest and not _manifest_update_allowed(
+        existing, manifest, allow_workshop_identity_repair
+    ):
         raise ValueError('This folder already contains a different PSI job manifest')
     if folder != desired:
         if desired.exists():
@@ -696,7 +704,7 @@ def sync_job_folders(root, connection, days_back=30):
             customer_name = customer_names.get(job.get('customer_id')) if job.get('customer_id') else workshop_names.get(job.get('workshop_contact_id'))
             manifest = manifest_from_job(connection, job, vehicle, customer_name)
             connection.verified_jobs[job['id']] = manifest
-            folder = create_folder_from_manifest(root, manifest)
+            folder = create_folder_from_manifest(root, manifest, allow_workshop_identity_repair=True)
             created.append(folder)
         except Exception as error:
             errors.append(f'{job.get("reference", "Unknown job")}: {error}')
@@ -837,7 +845,9 @@ def _manual_job_details(input_fn, registration):
 
 
 def _new_workshop_customer(input_fn, registration):
-    if input_fn('No existing vehicle matches. Create a workshop-only customer and vehicle? [y/N]: ').strip().lower() not in ('y', 'yes'):
+    if input_fn(
+        'No existing vehicle matches. Check an existing customer or create a new customer and vehicle? [y/N]: '
+    ).strip().lower() not in ('y', 'yes'):
         raise ValueError('No workshop job was created')
     display_name = input_fn('Customer name: ').strip()
     mobile = input_fn('Customer mobile (optional if email supplied): ').strip()
@@ -862,6 +872,76 @@ def _new_workshop_customer(input_fn, registration):
         'p_make': make,
         'p_model': model,
     }
+
+
+def _normalized_identity_text(value):
+    return re.sub(r'\s+', ' ', str(value or '').strip()).casefold()
+
+
+def _normalized_mobile(value):
+    return re.sub(r'\D+', '', str(value or ''))
+
+
+def _existing_customer_match(connection, customer):
+    """Find one exact existing identity before creating another contact.
+
+    Name alone is never enough. The entered name must match exactly together
+    with either the verified email or the normalized mobile number.
+    """
+    wanted_name = _normalized_identity_text(customer['p_display_name'])
+    wanted_email = str(customer.get('p_email') or '').strip().casefold()
+    wanted_mobile = _normalized_mobile(customer.get('p_mobile'))
+    matches = []
+
+    profiles = connection.call(
+        '/rest/v1/customer_profiles?select=user_id,first_name,last_name,email,mobile,account_state'
+        '&account_state=eq.active&limit=2000'
+    )
+    for profile in profiles:
+        name = ' '.join(filter(None, (profile.get('first_name'), profile.get('last_name')))).strip()
+        name_matches = _normalized_identity_text(name) == wanted_name
+        email_matches = bool(wanted_email) and str(profile.get('email') or '').strip().casefold() == wanted_email
+        mobile_matches = bool(wanted_mobile) and _normalized_mobile(profile.get('mobile')) == wanted_mobile
+        if name_matches and (email_matches or mobile_matches):
+            matches.append(('app', profile, name or profile['email']))
+
+    contacts = connection.call(
+        '/rest/v1/workshop_contacts?select=id,display_name,email,mobile,status'
+        '&status=eq.active&limit=2000'
+    )
+    for contact in contacts:
+        name_matches = _normalized_identity_text(contact.get('display_name')) == wanted_name
+        email_matches = bool(wanted_email) and str(contact.get('email') or '').strip().casefold() == wanted_email
+        mobile_matches = bool(wanted_mobile) and _normalized_mobile(contact.get('mobile')) == wanted_mobile
+        if name_matches and (email_matches or mobile_matches):
+            matches.append(('workshop', contact, contact['display_name']))
+
+    if len(matches) > 1:
+        raise ValueError(
+            'More than one existing customer has these exact details. '
+            'Nothing was created; review the customer records first.'
+        )
+    return matches[0] if matches else None
+
+
+def _create_new_vehicle_for_customer(connection, owner_type, owner, customer):
+    if owner_type == 'app':
+        return connection.call('/rest/v1/customer_vehicles', 'POST', {
+            'customer_id': owner['user_id'],
+            'registration': customer['p_registration'],
+            'year': customer['p_year'],
+            'make': customer['p_make'],
+            'model': customer['p_model'],
+            'created_by': connection.user_id,
+        }, headers={'Prefer': 'return=representation'})[0]
+    return connection.call('/rest/v1/workshop_vehicles', 'POST', {
+        'workshop_contact_id': owner['id'],
+        'registration': customer['p_registration'],
+        'year': customer['p_year'],
+        'make': customer['p_make'],
+        'model': customer['p_model'],
+        'created_by': connection.user_id,
+    }, headers={'Prefer': 'return=representation'})[0]
 
 
 def _create_manual_job_once(root, connection, input_fn):
@@ -904,6 +984,16 @@ def _create_manual_job_once(root, connection, input_fn):
         if selected <= len(choices):
             selected_choice = choices[selected - 1]
 
+    new_customer = None
+    if not selected_choice:
+        new_customer = _new_workshop_customer(input_fn, registration)
+        matched_customer = _existing_customer_match(connection, new_customer)
+        if matched_customer:
+            owner_type, owner, customer_name = matched_customer
+            print(f'Existing customer matched exactly: {customer_name}. Adding this vehicle to that customer.')
+            vehicle = _create_new_vehicle_for_customer(connection, owner_type, owner, new_customer)
+            selected_choice = (owner_type, vehicle, customer_name)
+
     if selected_choice and selected_choice[0] == 'app':
         _, vehicle, customer_name = selected_choice
         job_date, title = _manual_job_details(input_fn, vehicle['registration'])
@@ -919,7 +1009,7 @@ def _create_manual_job_once(root, connection, input_fn):
         customer = {
             'p_display_name': None, 'p_email': None, 'p_mobile': None,
             'p_registration': None, 'p_year': None, 'p_make': None, 'p_model': None,
-        } if existing_vehicle else _new_workshop_customer(input_fn, registration)
+        } if existing_vehicle else new_customer
         vehicle_registration = existing_vehicle['registration'] if existing_vehicle else registration
         job_date, title = _manual_job_details(input_fn, vehicle_registration)
         payload = {

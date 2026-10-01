@@ -13,7 +13,7 @@ from pillow_heif import from_pillow
 from psi_uploads import (
     Connection, RequestFailure, SessionStore, _ReturnToMenu, _parse_job_date, _parse_job_type,
     _remove_legacy_vehicle_index,
-    create_job_folder, create_manual_job,
+    create_folder_from_manifest, create_job_folder, create_manual_job,
     ensure_object, folder_label_for, import_manifest_inbox, invoice_identity, manifest_for,
     local_folder_scan, prepare_file, process_job, published_invoice_for_job,
     sync_job_folders,
@@ -627,6 +627,8 @@ class WorkshopImporterTests(unittest.TestCase):
             def call(inner, path, method='GET', data=None, **kwargs):
                 if path.startswith('/rest/v1/customer_vehicles') or path.startswith('/rest/v1/workshop_vehicles'):
                     return []
+                if path.startswith('/rest/v1/customer_profiles') or path.startswith('/rest/v1/workshop_contacts'):
+                    return []
                 if path == '/rest/v1/rpc/create_workshop_only_job' and method == 'POST':
                     inner.rpc_payload = data
                     return [{
@@ -654,6 +656,133 @@ class WorkshopImporterTests(unittest.TestCase):
             folder.name,
             '2018 TOYOTA 86 - 2FC2BJ - PSI-PHONE-20260915-1234ABCD',
         )
+
+    def test_new_registration_reuses_exact_existing_workshop_customer(self):
+        contact_id = 'a4400000-0000-4000-8000-000000000010'
+        vehicle_id = 'a4500000-0000-4000-8000-000000000010'
+
+        class FakeConnection:
+            url = 'https://test.supabase.co'
+            user_id = 'a4000000-0000-4000-8000-000000000001'
+            verified_jobs = {}
+            vehicle_post = None
+            rpc_payload = None
+
+            def call(inner, path, method='GET', data=None, **kwargs):
+                if path.startswith('/rest/v1/customer_vehicles?select=id'):
+                    return []
+                if path.startswith('/rest/v1/workshop_vehicles?select=id'):
+                    return []
+                if path.startswith('/rest/v1/customer_profiles?select=user_id,first_name,last_name,email,mobile'):
+                    return []
+                if path.startswith('/rest/v1/workshop_contacts?select=id,display_name,email,mobile,status&status=eq.active'):
+                    return [{
+                        'id': contact_id, 'display_name': 'BEN LAUGHTON',
+                        'email': 'benlaughton67@gmail.com', 'mobile': '0490 119 298', 'status': 'active',
+                    }]
+                if path == '/rest/v1/workshop_vehicles' and method == 'POST':
+                    inner.vehicle_post = data
+                    return [{**data, 'id': vehicle_id, 'status': 'active'}]
+                if path == '/rest/v1/rpc/create_workshop_only_job' and method == 'POST':
+                    inner.rpc_payload = data
+                    return [{
+                        'id': self.manifest['job_id'], 'customer_id': None, 'vehicle_id': None,
+                        'workshop_contact_id': contact_id, 'workshop_vehicle_id': vehicle_id,
+                        'reference': 'PSI-PHONE-20261001-1234ABCD', 'title': data['p_title'],
+                        'job_date': data['p_job_date'],
+                    }]
+                raise AssertionError(path)
+
+        answers = iter((
+            'lyn 73', 'yes', 'Ben Laughton', '0490119298', 'benlaughton67@gmail.com',
+            '2013', 'Jeep', 'Grand Cherokee', '01/10/2026', '3', 'Jeep repairs',
+        ))
+        connection = FakeConnection()
+        folder = create_manual_job(self.folder / 'existing-contact', connection, lambda _prompt: next(answers))
+
+        self.assertEqual(connection.vehicle_post['workshop_contact_id'], contact_id)
+        self.assertEqual(connection.rpc_payload['p_existing_workshop_vehicle_id'], vehicle_id)
+        self.assertIsNone(connection.rpc_payload['p_display_name'])
+        self.assertEqual(folder.parent.name, 'BEN LAUGHTON')
+
+    def test_new_registration_reuses_exact_existing_app_customer(self):
+        customer_id = 'a4100000-0000-4000-8000-000000000010'
+        vehicle_id = 'a4200000-0000-4000-8000-000000000010'
+
+        class FakeConnection:
+            url = 'https://test.supabase.co'
+            user_id = 'a4000000-0000-4000-8000-000000000001'
+            verified_jobs = {}
+            vehicle_post = None
+
+            def call(inner, path, method='GET', data=None, **kwargs):
+                if path.startswith('/rest/v1/customer_vehicles?select=id'):
+                    return []
+                if path.startswith('/rest/v1/workshop_vehicles?select=id'):
+                    return []
+                if path.startswith('/rest/v1/customer_profiles?select=user_id,first_name,last_name,email,mobile'):
+                    return [{
+                        'user_id': customer_id, 'first_name': 'Ben', 'last_name': 'Laughton',
+                        'email': 'benlaughton67@gmail.com', 'mobile': '0490 119 298', 'account_state': 'active',
+                    }]
+                if path.startswith('/rest/v1/workshop_contacts?select=id,display_name,email,mobile,status&status=eq.active'):
+                    return []
+                if path == '/rest/v1/customer_vehicles' and method == 'POST':
+                    inner.vehicle_post = data
+                    return [{**data, 'id': vehicle_id, 'archived_at': None}]
+                if path == '/rest/v1/workshop_jobs' and method == 'POST':
+                    return [{**data, 'id': self.manifest['job_id']}]
+                raise AssertionError(path)
+
+        answers = iter((
+            'lyn 73', 'yes', 'Ben Laughton', '0490119298', 'benlaughton67@gmail.com',
+            '2013', 'Jeep', 'Grand Cherokee', '01/10/2026', '3', 'Jeep repairs',
+        ))
+        connection = FakeConnection()
+        folder = create_manual_job(self.folder / 'existing-app', connection, lambda _prompt: next(answers))
+
+        self.assertEqual(connection.vehicle_post['customer_id'], customer_id)
+        manifest = json.loads((folder / 'psi-job.json').read_text())
+        self.assertEqual(manifest['schema'], 1)
+        self.assertEqual(manifest['customer_id'], customer_id)
+        self.assertEqual(folder.parent.name, 'BEN LAUGHTON')
+
+    def test_verified_sync_can_repair_workshop_identity_without_losing_files(self):
+        root = self.folder / 'repair-root'
+        old_manifest = {
+            'schema': 2, 'owner_type': 'workshop', 'project_ref': 'test',
+            'job_id': 'a4300000-0000-4000-8000-000000000099',
+            'workshop_contact_id': 'a4400000-0000-4000-8000-000000000099',
+            'workshop_vehicle_id': 'a4500000-0000-4000-8000-000000000099',
+            'registration': 'LYN73', 'reference': 'PSI-PHONE-REPAIR', 'job_date': '2026-10-01',
+            'customer_name': 'BEN LAUGHTON', 'vehicle_year': 2013,
+            'vehicle_make': 'JEEP', 'vehicle_model': 'GRAND CHEROKEE',
+        }
+        repaired_manifest = {
+            **old_manifest,
+            'workshop_contact_id': 'a4400000-0000-4000-8000-000000000010',
+            'workshop_vehicle_id': 'a4500000-0000-4000-8000-000000000010',
+        }
+        canonical_manifest = {
+            **repaired_manifest,
+            'job_id': 'a4300000-0000-4000-8000-000000000010',
+            'workshop_vehicle_id': 'a4500000-0000-4000-8000-000000000011',
+            'registration': 'ZPM826', 'reference': 'PSI-PHONE-CANONICAL', 'job_date': '2026-09-30',
+            'vehicle_year': 2011, 'vehicle_make': 'HOLDEN', 'vehicle_model': 'VE SV6 WAGON',
+        }
+        canonical = create_folder_from_manifest(root, canonical_manifest)
+        folder = create_folder_from_manifest(root, old_manifest)
+        customer_file = folder / 'Workshop photos' / 'keep.jpg'
+        customer_file.write_bytes(b'keep this exact file')
+
+        with self.assertRaisesRegex(ValueError, 'different PSI job manifest'):
+            create_folder_from_manifest(root, repaired_manifest)
+        repaired = create_folder_from_manifest(root, repaired_manifest, allow_workshop_identity_repair=True)
+
+        self.assertEqual((repaired / 'Workshop photos' / 'keep.jpg').read_bytes(), b'keep this exact file')
+        self.assertEqual(repaired.parent, canonical.parent)
+        self.assertFalse(folder.parent.exists())
+        self.assertEqual(json.loads((repaired / 'psi-job.json').read_text()), repaired_manifest)
 
     def test_manifest_inbox_ignores_unrelated_json(self):
         inbox = self.folder / 'downloads'
