@@ -845,10 +845,6 @@ def _manual_job_details(input_fn, registration):
 
 
 def _new_workshop_customer(input_fn, registration):
-    if input_fn(
-        'No existing vehicle matches. Check an existing customer or create a new customer and vehicle? [y/N]: '
-    ).strip().lower() not in ('y', 'yes'):
-        raise ValueError('No workshop job was created')
     display_name = input_fn('Customer name: ').strip()
     mobile = input_fn('Customer mobile (optional if email supplied): ').strip()
     email = input_fn('Customer email (optional if mobile supplied): ').strip().lower()
@@ -856,6 +852,15 @@ def _new_workshop_customer(input_fn, registration):
         raise ValueError('Enter the customer name and at least a mobile or email')
     if email and not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
         raise ValueError('Enter a valid customer email or leave it blank')
+    return {
+        'p_display_name': display_name,
+        'p_email': email or None,
+        'p_mobile': mobile or None,
+        **_new_vehicle_details(input_fn, registration),
+    }
+
+
+def _new_vehicle_details(input_fn, registration):
     year_text = input_fn('Vehicle year: ').strip()
     if not year_text.isdigit() or not 1900 <= int(year_text) <= 2200:
         raise ValueError('Enter a valid four-digit vehicle year')
@@ -864,9 +869,6 @@ def _new_workshop_customer(input_fn, registration):
     if not make or not model:
         raise ValueError('Enter the vehicle make and model')
     return {
-        'p_display_name': display_name,
-        'p_email': email or None,
-        'p_mobile': mobile or None,
         'p_registration': registration,
         'p_year': int(year_text),
         'p_make': make,
@@ -880,6 +882,70 @@ def _normalized_identity_text(value):
 
 def _normalized_mobile(value):
     return re.sub(r'\D+', '', str(value or ''))
+
+
+def _customer_search_choices(connection, search_term):
+    """Return active customers matching a staff-entered discovery term.
+
+    This is only a discovery search. The selected immutable customer/contact ID,
+    rather than the entered text, is used when the vehicle is created.
+    """
+    wanted_text = _normalized_identity_text(search_term)
+    wanted_mobile = _normalized_mobile(search_term)
+    phone_search = len(wanted_mobile) >= 4 and not re.search(r'[a-z@]', wanted_text)
+    if len(wanted_text) < 2:
+        raise ValueError('Enter at least two letters, or a customer email or mobile')
+
+    matches = []
+    profiles = connection.call(
+        '/rest/v1/customer_profiles?select=user_id,first_name,last_name,email,mobile,account_state'
+        '&account_state=eq.active&limit=2000'
+    )
+    for profile in profiles:
+        name = ' '.join(filter(None, (profile.get('first_name'), profile.get('last_name')))).strip()
+        email = str(profile.get('email') or '').strip()
+        mobile = str(profile.get('mobile') or '').strip()
+        text_match = wanted_text in _normalized_identity_text(name) or wanted_text in email.casefold()
+        mobile_match = phone_search and wanted_mobile in _normalized_mobile(mobile)
+        if text_match or mobile_match:
+            matches.append(('app', profile, name or email, email, mobile))
+
+    contacts = connection.call(
+        '/rest/v1/workshop_contacts?select=id,display_name,email,mobile,status'
+        '&status=eq.active&limit=2000'
+    )
+    for contact in contacts:
+        name = str(contact.get('display_name') or '').strip()
+        email = str(contact.get('email') or '').strip()
+        mobile = str(contact.get('mobile') or '').strip()
+        text_match = wanted_text in _normalized_identity_text(name) or wanted_text in email.casefold()
+        mobile_match = phone_search and wanted_mobile in _normalized_mobile(mobile)
+        if text_match or mobile_match:
+            matches.append(('workshop', contact, name or email or mobile, email, mobile))
+
+    matches.sort(key=lambda item: (_normalized_identity_text(item[2]), item[0], item[1].get('user_id') or item[1].get('id')))
+    if not matches:
+        raise ValueError('No active customer matched that search. Nothing was created')
+    if len(matches) > 20:
+        raise ValueError('More than 20 customers matched. Search again with more of the name, email or mobile')
+    return matches
+
+
+def _select_existing_customer(connection, input_fn):
+    matches = _customer_search_choices(
+        connection,
+        input_fn('Search customer name, email or mobile: ').strip(),
+    )
+    print('Check the customer details carefully before choosing:')
+    for index, (owner_type, _owner, name, email, mobile) in enumerate(matches, 1):
+        label = 'App customer' if owner_type == 'app' else 'Workshop-only customer'
+        details = ' | '.join(value for value in (name, email, mobile, label) if value)
+        print(f'{index}. {details}')
+    selected_text = input_fn('Choose customer: ').strip()
+    if not selected_text.isdigit() or not 1 <= int(selected_text) <= len(matches):
+        raise ValueError('Choose one of the listed customers')
+    owner_type, owner, name, _email, _mobile = matches[int(selected_text) - 1]
+    return owner_type, owner, name
 
 
 def _existing_customer_match(connection, customer):
@@ -976,7 +1042,7 @@ def _create_manual_job_once(root, connection, input_fn):
     if choices:
         for index, (owner_type, vehicle, name) in enumerate(choices, 1):
             label = 'App customer' if owner_type == 'app' else 'Workshop-only customer'
-            print(f'{index}. {vehicle["year"]} {vehicle["make"]} {vehicle["model"]} · {name} · {label}')
+            print(f'{index}. {vehicle["year"]} {vehicle["make"]} {vehicle["model"]} | {name} | {label}')
         print(f'{len(choices) + 1}. Create a new workshop-only customer and vehicle')
         selected = int(input_fn('Choose vehicle: ') or '1')
         if selected < 1 or selected > len(choices) + 1:
@@ -986,13 +1052,25 @@ def _create_manual_job_once(root, connection, input_fn):
 
     new_customer = None
     if not selected_choice:
-        new_customer = _new_workshop_customer(input_fn, registration)
-        matched_customer = _existing_customer_match(connection, new_customer)
-        if matched_customer:
-            owner_type, owner, customer_name = matched_customer
-            print(f'Existing customer matched exactly: {customer_name}. Adding this vehicle to that customer.')
+        print('No selected vehicle matches this registration.')
+        print('1. Find an existing customer and add this vehicle')
+        print('2. Create a new workshop-only customer and vehicle')
+        customer_option = input_fn('Choose customer option [1]: ').strip() or '1'
+        if customer_option == '1':
+            owner_type, owner, customer_name = _select_existing_customer(connection, input_fn)
+            new_customer = _new_vehicle_details(input_fn, registration)
             vehicle = _create_new_vehicle_for_customer(connection, owner_type, owner, new_customer)
             selected_choice = (owner_type, vehicle, customer_name)
+        elif customer_option == '2':
+            new_customer = _new_workshop_customer(input_fn, registration)
+            matched_customer = _existing_customer_match(connection, new_customer)
+            if matched_customer:
+                owner_type, owner, customer_name = matched_customer
+                print(f'Existing customer matched exactly: {customer_name}. Adding this vehicle to that customer.')
+                vehicle = _create_new_vehicle_for_customer(connection, owner_type, owner, new_customer)
+                selected_choice = (owner_type, vehicle, customer_name)
+        else:
+            raise ValueError('Choose 1 to find a customer or 2 to create a new customer')
 
     if selected_choice and selected_choice[0] == 'app':
         _, vehicle, customer_name = selected_choice

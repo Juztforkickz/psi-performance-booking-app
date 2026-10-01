@@ -639,7 +639,7 @@ class WorkshopImporterTests(unittest.TestCase):
                     }]
                 raise AssertionError(path)
         answers = iter((
-            '2fc 2bj', 'yes', 'Phone Customer', '0400 000 000', 'phone@example.com',
+            '2fc 2bj', '2', 'Phone Customer', '0400 000 000', 'phone@example.com',
             '2018', 'Toyota', '86', '2026-09-15', 'dyno', 'Phone dyno booking',
         ))
         connection = FakeConnection()
@@ -694,7 +694,7 @@ class WorkshopImporterTests(unittest.TestCase):
                 raise AssertionError(path)
 
         answers = iter((
-            'lyn 73', 'yes', 'Ben Laughton', '0490119298', 'benlaughton67@gmail.com',
+            'lyn 73', '2', 'Ben Laughton', '0490119298', 'benlaughton67@gmail.com',
             '2013', 'Jeep', 'Grand Cherokee', '01/10/2026', '3', 'Jeep repairs',
         ))
         connection = FakeConnection()
@@ -735,7 +735,7 @@ class WorkshopImporterTests(unittest.TestCase):
                 raise AssertionError(path)
 
         answers = iter((
-            'lyn 73', 'yes', 'Ben Laughton', '0490119298', 'benlaughton67@gmail.com',
+            'lyn 73', '2', 'Ben Laughton', '0490119298', 'benlaughton67@gmail.com',
             '2013', 'Jeep', 'Grand Cherokee', '01/10/2026', '3', 'Jeep repairs',
         ))
         connection = FakeConnection()
@@ -744,6 +744,48 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(connection.vehicle_post['customer_id'], customer_id)
         manifest = json.loads((folder / 'psi-job.json').read_text())
         self.assertEqual(manifest['schema'], 1)
+        self.assertEqual(manifest['customer_id'], customer_id)
+        self.assertEqual(folder.parent.name, 'BEN LAUGHTON')
+
+    def test_new_registration_can_find_existing_customer_by_partial_name(self):
+        customer_id = 'a4100000-0000-4000-8000-000000000020'
+        vehicle_id = 'a4200000-0000-4000-8000-000000000020'
+
+        class FakeConnection:
+            url = 'https://test.supabase.co'
+            user_id = 'a4000000-0000-4000-8000-000000000001'
+            verified_jobs = {}
+            vehicle_post = None
+
+            def call(inner, path, method='GET', data=None, **kwargs):
+                if path.startswith('/rest/v1/customer_vehicles?select=id'):
+                    return []
+                if path.startswith('/rest/v1/workshop_vehicles?select=id'):
+                    return []
+                if path.startswith('/rest/v1/customer_profiles?select=user_id,first_name,last_name,email,mobile'):
+                    return [{
+                        'user_id': customer_id, 'first_name': 'Ben', 'last_name': 'Laughton',
+                        'email': 'benlaughton67@gmail.com', 'mobile': '0490 119 298',
+                        'account_state': 'active',
+                    }]
+                if path.startswith('/rest/v1/workshop_contacts?select=id,display_name,email,mobile,status'):
+                    return []
+                if path == '/rest/v1/customer_vehicles' and method == 'POST':
+                    inner.vehicle_post = data
+                    return [{**data, 'id': vehicle_id, 'archived_at': None}]
+                if path == '/rest/v1/workshop_jobs' and method == 'POST':
+                    return [{**data, 'id': self.manifest['job_id']}]
+                raise AssertionError(path)
+
+        answers = iter((
+            'lyn 73', '1', 'ben laug', '1', '2013', 'Jeep', 'Grand Cherokee',
+            '01/10/2026', '3', 'Jeep repairs',
+        ))
+        connection = FakeConnection()
+        folder = create_manual_job(self.folder / 'customer-search', connection, lambda _prompt: next(answers))
+
+        self.assertEqual(connection.vehicle_post['customer_id'], customer_id)
+        manifest = json.loads((folder / 'psi-job.json').read_text())
         self.assertEqual(manifest['customer_id'], customer_id)
         self.assertEqual(folder.parent.name, 'BEN LAUGHTON')
 
