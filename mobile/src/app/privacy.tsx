@@ -28,7 +28,7 @@ const SECTIONS = [
   },
   {
     title: 'Storage and service providers',
-    copy: 'Private customer account records and files use PSI-controlled Supabase services configured in the Sydney region. Resend supports transactional email, Expo supports authorised app builds and opted-in push delivery, and Stripe hosts approved deposit checkout for card, eligible device-wallet and bank-debit payments. PSI does not store full payment-card or bank-account credentials in the app. Google Calendar receives only PSI internal booking events after verified payment. Customers cannot list or read PSI calendar contents. Providers receive only the information required to perform their service.',
+    copy: 'Private customer account records and files use PSI controlled Supabase services configured in the Sydney region. Resend supports transactional email and optional Customer Cars for Sale emails, Expo supports authorised app builds and opted in push delivery, and Stripe hosts approved deposit checkout for card, eligible device wallet and bank debit payments. Customer Cars for Sale emails are off until you choose to receive them. You can turn them off in notification settings or reply with an unsubscribe request. PSI does not store full payment card or bank account credentials in the app. Google Calendar receives only PSI internal booking events after verified payment. Customers cannot list or read PSI calendar contents. Providers receive only the information required to perform their service.',
   },
   {
     title: 'Your control and access',
@@ -79,7 +79,7 @@ export default function PrivacyScreen() {
           </View>
         ))}
         <PrimaryButton label="Request account deletion" onPress={() => router.push('/delete-account')} variant="outline" />
-        <Text style={styles.updated}>LAST UPDATED · 24/09/2026</Text>
+        <Text style={styles.updated}>LAST UPDATED · 04/10/2026</Text>
       </ScrollView>
     </SafeAreaView>
   );

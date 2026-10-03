@@ -1,20 +1,21 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import {
-  CUSTOMER_CARS_FOR_SALE,
   PREVIEW_CUSTOMER_CARS_FOR_SALE,
   formatAud,
   formatKilometres,
+  loadCustomerCarsForSale,
   type CustomerCarListing,
 } from '@/lib/customer-cars-for-sale';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
+import { useNotifications } from '@/lib/notifications';
 import { useThemePreference } from '@/lib/theme-preference';
 
 const LISTING_ART = require('../../assets/images/dashboard/tile-customer-cars-for-sale-blue-silver.jpg');
@@ -24,11 +25,23 @@ export default function CustomerCarsForSaleScreen() {
   const { account } = useCustomerAccount();
   const { compact, horizontalPadding, largeText, width } = useResponsiveLayout();
   const { activeTheme, theme } = useThemePreference();
+  const notifications = useNotifications();
   const [message, setMessage] = useState('');
+  const [listings, setListings] = useState<readonly CustomerCarListing[]>(() => !CUSTOMER_AUTH.enabled ? PREVIEW_CUSTOMER_CARS_FOR_SALE : []);
+  const [loading, setLoading] = useState(CUSTOMER_AUTH.enabled);
   const preview = !CUSTOMER_AUTH.enabled;
-  const listings = preview ? PREVIEW_CUSTOMER_CARS_FOR_SALE : CUSTOMER_CARS_FOR_SALE;
   const twoColumns = width >= 760 && !largeText;
   const primaryVehicle = account?.vehicles.find((vehicle) => vehicle.is_primary) ?? account?.vehicles[0];
+
+  useEffect(() => {
+    if (preview) return;
+    let active = true;
+    void loadCustomerCarsForSale()
+      .then((result) => { if (active) setListings(result); })
+      .catch(() => { if (active) setMessage('Listings could not be refreshed. Please try again.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [preview]);
 
   const openEmail = async (subject: string, body: string) => {
     setMessage('');
@@ -79,9 +92,27 @@ export default function CustomerCarsForSaleScreen() {
           <Text style={[styles.noticeText, { color: theme.textMuted }]}>A listing appears only after the owner gives permission and PSI checks the vehicle identity. PSI workshop history is shared only where authorised. Buyers should confirm the sale terms and arrange their own inspection.</Text>
         </View>
 
+        {!preview && notifications.preferences ? <View style={[styles.alertSettings, { backgroundColor: theme.surface, borderColor: theme.frame }]}>
+          <View style={styles.alertSettingsCopy}>
+            <Text style={[styles.alertSettingsTitle, { color: theme.text }]}>New listing alerts</Text>
+            <Text style={[styles.noticeText, { color: theme.textMuted }]}>Choose app banners with sound, and optional email notices when PSI publishes a customer car.</Text>
+          </View>
+          <AlertToggle
+            enabled={notifications.preferences?.car_sale_alerts_enabled ?? true}
+            label="App banners and sound"
+            onPress={() => void notifications.setPreference('car_sale_alerts_enabled', !(notifications.preferences?.car_sale_alerts_enabled ?? true))}
+          />
+          <AlertToggle
+            enabled={notifications.preferences?.car_sale_emails_enabled ?? false}
+            label="Email notices"
+            onPress={() => void notifications.setPreference('car_sale_emails_enabled', !(notifications.preferences?.car_sale_emails_enabled ?? false))}
+          />
+          <Text style={[styles.emailConsent, { color: theme.textMuted }]}>Email notices are optional. Every email explains how to unsubscribe.</Text>
+        </View> : null}
+
         {preview ? <Text style={[styles.previewNote, { color: theme.accent }]}>Preview data only · this vehicle is not for sale.</Text> : null}
 
-        {listings.length > 0 ? (
+        {loading ? <ActivityIndicator color={theme.accent} size="large" /> : listings.length > 0 ? (
           <View style={[styles.list, twoColumns && styles.listWide]}>
             {listings.map((listing) => (
               <ListingCard key={listing.id} listing={listing} onEnquire={enquire} wide={twoColumns} />
@@ -113,6 +144,14 @@ export default function CustomerCarsForSaleScreen() {
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+function AlertToggle({ enabled, label, onPress }: { enabled: boolean; label: string; onPress: () => void }) {
+  const { theme } = useThemePreference();
+  return <Pressable accessibilityLabel={`${label}, ${enabled ? 'on' : 'off'}`} accessibilityRole="switch" accessibilityState={{ checked: enabled }} onPress={onPress} style={({ pressed }) => [styles.alertToggle, { borderColor: theme.border }, pressed && styles.pressed]}>
+    <Text style={[styles.alertToggleLabel, { color: theme.text }]}>{label}</Text>
+    <View style={[styles.switchTrack, { backgroundColor: enabled ? theme.accent : theme.surfaceRaised }]}><View style={[styles.switchThumb, enabled && styles.switchThumbEnabled]} /></View>
+  </Pressable>;
 }
 
 function ListingCard({ listing, onEnquire, wide }: { listing: CustomerCarListing; onEnquire: (listing: CustomerCarListing) => void; wide: boolean }) {
@@ -153,6 +192,15 @@ const styles = StyleSheet.create({
   lead: { maxWidth: 660, fontSize: 14, lineHeight: 21 },
   notice: { ...mobileFrame, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, padding: spacing.md },
   noticeText: { flex: 1, minWidth: 0, fontSize: 11, lineHeight: 17 },
+  alertSettings: { ...mobileFrame, gap: spacing.sm, padding: spacing.md },
+  alertSettingsCopy: { gap: spacing.xs },
+  alertSettingsTitle: { fontSize: 16, fontWeight: '900', textTransform: 'uppercase' },
+  alertToggle: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, borderTopWidth: 1, paddingTop: spacing.sm },
+  alertToggleLabel: { flex: 1, fontSize: 12, fontWeight: '800' },
+  switchTrack: { width: 44, height: 26, borderRadius: 13, padding: 3 },
+  switchThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.white },
+  switchThumbEnabled: { alignSelf: 'flex-end' },
+  emailConsent: { fontSize: 10, lineHeight: 16 },
   previewNote: { fontSize: 10, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
   list: { gap: spacing.md },
   listWide: { flexDirection: 'row', flexWrap: 'wrap' },

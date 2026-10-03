@@ -8,6 +8,7 @@ export const STAFF_SECTIONS = {
   records: { title: 'Workshop records', description: 'Publish reports and manage private vehicle files.', tab: 'records' },
   menu: { title: 'Workspace menu', description: 'Events, connections, history and workshop settings.', tab: 'menu' },
   events: { title: 'PSI Events', description: 'Prepare event dates and customer announcements.', tab: 'menu' },
+  car_sales: { title: 'Customer cars for sale', description: 'Prepare approved vehicle listings and customer alerts.', tab: 'menu' },
   connections: { title: 'Connections', description: 'Review workshop integrations and delivery queues.', tab: 'menu' },
   history: { title: 'Activity history', description: 'Review protected workshop activity.', tab: 'menu' },
   settings: { title: 'Workspace settings', description: 'Manage account and authenticator security.', tab: 'menu' },

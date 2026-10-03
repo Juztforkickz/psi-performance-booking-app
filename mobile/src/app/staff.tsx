@@ -11,6 +11,7 @@ import { StaffPerformanceAccess, StaffVaultReview } from '@/components/staff-vau
 import { StaffXeroConnection } from '@/components/staff-xero-connection';
 import { StaffBookingReview } from '@/components/staff-booking-review';
 import { StaffEventsManager } from '@/components/staff-events-manager';
+import { StaffCarSalesManager } from '@/components/staff-car-sales-manager';
 import { StaffServiceCompletion } from '@/components/staff-service-completion';
 import { StaffWorkshopJob } from '@/components/staff-workshop-job';
 import { StaffWorkshopCustomers } from '@/components/staff-workshop-customers';
@@ -376,6 +377,8 @@ export function StaffWorkspace({
   const [completionBusy, setCompletionBusy] = useState(false);
   const [eventDirty, setEventDirty] = useState(false);
   const [eventBusy, setEventBusy] = useState(false);
+  const [carSaleDirty, setCarSaleDirty] = useState(false);
+  const [carSaleBusy, setCarSaleBusy] = useState(false);
   const [deletionDrafts, setDeletionDrafts] = useState<Record<string, boolean>>({});
   const [deletionActions, setDeletionActions] = useState<Record<string, boolean>>({});
   const [activeDeletionId, setActiveDeletionId] = useState('');
@@ -470,14 +473,14 @@ export function StaffWorkspace({
     return matchesSearch(`${customerName(customer)} ${customer?.email ?? ''} ${vehicle?.registration ?? ''} ${vehicle?.make ?? ''} ${vehicle?.model ?? ''}`, bookingSearch);
   });
   const visibleBookings = filteredBookings.slice(bookingPage * 8, bookingPage * 8 + 8);
-  const actionBusy = notificationSaving || recordBusy || bookingBusy || completionBusy || eventBusy || invitationBusy || integrationBusy || Object.values(deletionActions).some(Boolean);
-  const dirty = recordDirty || bookingDirty || completionDirty || eventDirty || Boolean(invitationEmail.trim()) || Object.values(deletionDrafts).some(Boolean);
+  const actionBusy = notificationSaving || recordBusy || bookingBusy || completionBusy || eventBusy || carSaleBusy || invitationBusy || integrationBusy || Object.values(deletionActions).some(Boolean);
+  const dirty = recordDirty || bookingDirty || completionDirty || eventDirty || carSaleDirty || Boolean(invitationEmail.trim()) || Object.values(deletionDrafts).some(Boolean);
   const confirmLeaving = useCallback((action: () => void) => {
     if (actionBusy) {
       setActionNotice('Please wait for the current action to finish.');
       return;
     }
-    const leave = () => { setRecordDirty(false); setBookingDirty(false); setCompletionDirty(false); setEventDirty(false); setInvitationEmail(''); setDeletionDrafts({}); setActionNotice(''); action(); };
+    const leave = () => { setRecordDirty(false); setBookingDirty(false); setCompletionDirty(false); setEventDirty(false); setCarSaleDirty(false); setInvitationEmail(''); setDeletionDrafts({}); setActionNotice(''); action(); };
     if (!dirty) { leave(); return; }
     confirmDiscard(leave);
   }, [actionBusy, confirmDiscard, dirty]);
@@ -504,6 +507,8 @@ export function StaffWorkspace({
       navigate(event.deep_link === '/events' ? 'events' : 'bookings', event.booking_request_id ? { bookingId: event.booking_request_id } : {});
     } else if (event.deep_link === '/events') {
       confirmLeaving(() => router.push('/events'));
+    } else if (event.deep_link === '/customer-cars-for-sale') {
+      confirmLeaving(() => router.push('/customer-cars-for-sale'));
     } else {
       confirmLeaving(() => router.push('/bookings'));
     }
@@ -891,9 +896,11 @@ export function StaffWorkspace({
 
         </> : <EmptyState>Owner access is required.</EmptyState> : null}
         {section === 'events' ? previewMode ? <StaffEventsPreview onDirtyChange={setEventDirty} /> : <StaffEventsManager onDirtyChange={setEventDirty} onBusyChange={setEventBusy} /> : null}
+        {section === 'car_sales' ? previewMode ? <EmptyState>Car sale publishing is disabled in the review preview.</EmptyState> : <StaffCarSalesManager onDirtyChange={setCarSaleDirty} onBusyChange={setCarSaleBusy} /> : null}
 
         {section === 'menu' ? <>
           <WorkspaceLink title="PSI events" detail="Upcoming events and customer announcements" icon="flag-outline" onPress={() => navigate('events')} />
+          <WorkspaceLink title="Customer cars for sale" detail="Create listings and notify customers" icon="car-sport-outline" onPress={() => navigate('car_sales')} />
           <WorkspaceLink title="Connections" detail="Xero, payments, email and Calendar" icon="link-outline" onPress={() => navigate('connections')} />
           <WorkspaceLink title="Activity history" icon="time-outline" onPress={() => navigate('history')} />
           <WorkspaceLink title="Return to customer app" icon="phone-portrait-outline" onPress={() => confirmLeaving(() => router.replace('/'))} />

@@ -166,6 +166,70 @@ export type Database = {
         };
         Relationships: [];
       };
+      car_sale_email_jobs: {
+        Row: {
+          attempt_count: number;
+          available_at: string;
+          completed_at: string | null;
+          created_at: string;
+          id: string;
+          last_attempt_at: string | null;
+          last_error_code: string | null;
+          listing_id: string;
+          provider_reference: string | null;
+          recipient_user_id: string;
+          status: 'blocked_configuration' | 'cancelled' | 'failed' | 'pending' | 'processing' | 'succeeded';
+          updated_at: string;
+        };
+        Insert: Record<never, never>;
+        Update: Record<never, never>;
+        Relationships: [];
+      };
+      customer_car_listings: {
+        Row: {
+          asking_price_cents: number;
+          created_at: string;
+          created_by: string;
+          highlights: string[];
+          id: string;
+          kilometres: number;
+          published_at: string | null;
+          registration: string;
+          status: 'draft' | 'published' | 'sold' | 'under_offer' | 'withdrawn';
+          summary: string;
+          title: string;
+          transmission: string;
+          updated_at: string;
+        };
+        Insert: {
+          asking_price_cents: number;
+          created_at?: string;
+          created_by: string;
+          highlights: string[];
+          id?: string;
+          kilometres: number;
+          published_at?: string | null;
+          registration: string;
+          status?: 'draft' | 'published' | 'sold' | 'under_offer' | 'withdrawn';
+          summary: string;
+          title: string;
+          transmission: string;
+          updated_at?: string;
+        };
+        Update: {
+          asking_price_cents?: number;
+          highlights?: string[];
+          kilometres?: number;
+          published_at?: string | null;
+          registration?: string;
+          status?: 'draft' | 'published' | 'sold' | 'under_offer' | 'withdrawn';
+          summary?: string;
+          title?: string;
+          transmission?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       booking_portal_holding: {
         Row: {
           booking_request_id: string;
@@ -478,10 +542,11 @@ export type Database = {
         Row: {
           body: string;
           booking_request_id: string | null;
+          car_sale_listing_id: string | null;
           created_at: string;
-          deep_link: '/booking' | '/bookings' | '/events' | '/staff';
+          deep_link: '/booking' | '/bookings' | '/customer-cars-for-sale' | '/events' | '/staff';
           id: string;
-          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'new_booking_request' | 'psi_event_cancelled' | 'psi_event_published' | 'psi_event_updated' | 'service_reminder';
+          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'car_sale_published' | 'new_booking_request' | 'psi_event_cancelled' | 'psi_event_published' | 'psi_event_updated' | 'service_reminder' | 'xero_invoice_review';
           psi_event_id: string | null;
           read_at: string | null;
           recipient_user_id: string;
@@ -496,6 +561,8 @@ export type Database = {
         Row: {
           booking_reminders_enabled: boolean;
           booking_updates_enabled: boolean;
+          car_sale_alerts_enabled: boolean;
+          car_sale_emails_enabled: boolean;
           created_at: string;
           event_alerts_enabled: boolean;
           sound_enabled: boolean;
@@ -506,6 +573,8 @@ export type Database = {
         Insert: {
           booking_reminders_enabled?: boolean;
           booking_updates_enabled?: boolean;
+          car_sale_alerts_enabled?: boolean;
+          car_sale_emails_enabled?: boolean;
           event_alerts_enabled?: boolean;
           sound_enabled?: boolean;
           updated_at?: string;
@@ -515,6 +584,8 @@ export type Database = {
         Update: {
           booking_reminders_enabled?: boolean;
           booking_updates_enabled?: boolean;
+          car_sale_alerts_enabled?: boolean;
+          car_sale_emails_enabled?: boolean;
           event_alerts_enabled?: boolean;
           sound_enabled?: boolean;
           updated_at?: string;
@@ -870,9 +941,13 @@ export type CustomerVehicleRow = Database['public']['Tables']['customer_vehicles
 export type WorkshopContactRow = Database['public']['Tables']['workshop_contacts']['Row'];
 export type WorkshopVehicleRow = Database['public']['Tables']['workshop_vehicles']['Row'];
 export type BookingRequestRow = Database['public']['Tables']['booking_requests']['Row'];
+export type CarSaleEmailJobRow = Database['public']['Tables']['car_sale_email_jobs']['Row'];
+export type CustomerCarListingRow = Database['public']['Tables']['customer_car_listings']['Row'];
 export type DynoRecordRow = Database['public']['Tables']['dyno_records']['Row'];
 export type InvoiceRow = Database['public']['Tables']['invoices']['Row'];
-export type NotificationEventRow = Database['public']['Tables']['notification_events']['Row'];
+export type NotificationEventRow = Omit<Database['public']['Tables']['notification_events']['Row'], 'car_sale_listing_id'> & {
+  car_sale_listing_id?: string | null;
+};
 export type NotificationPreferenceRow = Database['public']['Tables']['notification_preferences']['Row'];
 export type OdometerReadingRow = Database['public']['Tables']['odometer_readings']['Row'];
 export type PsiEventRow = Database['public']['Tables']['psi_events']['Row'];

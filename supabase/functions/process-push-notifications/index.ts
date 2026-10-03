@@ -4,20 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 const cors = { "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Origin": "*" };
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { ...cors, "Cache-Control": "no-store" } });
 const env = (name: string) => Deno.env.get(name)?.trim() ?? "";
-const isProjectServiceRoleToken = (token: string, supabaseUrl: string) => {
-  try {
-    const encodedPayload = token.split(".")[1];
-    if (!encodedPayload) return false;
-    const paddedPayload = encodedPayload.replace(/-/gu, "+").replace(/_/gu, "/").padEnd(Math.ceil(encodedPayload.length / 4) * 4, "=");
-    const claims = JSON.parse(atob(paddedPayload)) as { iss?: unknown; ref?: unknown; role?: unknown };
-    const projectRef = new URL(supabaseUrl).hostname.split(".")[0];
-    return claims.iss === "supabase" && claims.ref === projectRef && claims.role === "service_role";
-  } catch {
-    return false;
-  }
-};
-
-type ActionBody = { action?: unknown; bookingId?: unknown; expoPushToken?: unknown; platform?: unknown };
+type ActionBody = { action?: unknown; bookingId?: unknown; carSaleListingId?: unknown; expoPushToken?: unknown; platform?: unknown };
 type EventRow = { body: string; deep_link: string; id: string; kind: string; recipient_user_id: string; title: string };
 type JobRow = { attempt_count: number; booking_request_id: string | null; event_id: string; id: string; recipient_user_id: string };
 
@@ -34,7 +21,9 @@ Deno.serve(async (request) => {
   let body: ActionBody = {};
   try { body = await request.json(); } catch { return json({ error: "invalid_json" }, 400); }
   const bookingId = typeof body.bookingId === "string" && /^[0-9a-f-]{36}$/iu.test(body.bookingId) ? body.bookingId : null;
-  const isInternalServiceCall = token === serviceRoleKey || isProjectServiceRoleToken(token, supabaseUrl);
+  const carSaleListingId = typeof body.carSaleListingId === "string" && /^[0-9a-f-]{36}$/iu.test(body.carSaleListingId) ? body.carSaleListingId : null;
+  if (bookingId && carSaleListingId) return json({ error: "invalid_notification_scope" }, 400);
+  const isInternalServiceCall = token === serviceRoleKey;
   const userClient = createClient(supabaseUrl, anonKey, { auth: { autoRefreshToken: false, persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
   let userId = "";
   let isAal2Staff = false;
@@ -141,6 +130,17 @@ Deno.serve(async (request) => {
   if (!jobs) {
     let jobsQuery = admin.from("push_notification_jobs").select("id,event_id,booking_request_id,recipient_user_id,attempt_count").in("status", ["pending", "failed"]).lte("available_at", new Date().toISOString()).lt("attempt_count", 20).order("created_at", { ascending: true }).limit(25);
     if (bookingId) jobsQuery = jobsQuery.eq("booking_request_id", bookingId);
+    if (carSaleListingId) {
+      const { data: carSaleEvents, error: carSaleEventsError } = await admin
+        .from("notification_events")
+        .select("id")
+        .eq("car_sale_listing_id", carSaleListingId)
+        .eq("kind", "car_sale_published");
+      if (carSaleEventsError) return json({ error: "notification_queue_unavailable" }, 500);
+      const eventIds = (carSaleEvents ?? []).map((event) => event.id);
+      if (!eventIds.length) return json({ processed: 0, sent: 0 });
+      jobsQuery = jobsQuery.in("event_id", eventIds);
+    }
     if (isInternalServiceCall && body.action === "process_due_service_reminders") {
       const { data: reminderEvents, error: reminderEventsError } = await admin
         .from("notification_events")
@@ -164,11 +164,13 @@ Deno.serve(async (request) => {
     const [{ data: event }, { data: devices }, { data: preference }, { count }] = await Promise.all([
       admin.from("notification_events").select("id,recipient_user_id,title,body,deep_link,kind").eq("id", queued.event_id).single(),
       admin.from("push_devices").select("expo_push_token").eq("user_id", queued.recipient_user_id).eq("enabled", true),
-      admin.from("notification_preferences").select("booking_reminders_enabled,booking_updates_enabled,event_alerts_enabled,workshop_alerts_enabled,sound_enabled").eq("user_id", queued.recipient_user_id).maybeSingle(),
+      admin.from("notification_preferences").select("booking_reminders_enabled,booking_updates_enabled,car_sale_alerts_enabled,event_alerts_enabled,workshop_alerts_enabled,sound_enabled").eq("user_id", queued.recipient_user_id).maybeSingle(),
       admin.from("notification_events").select("id", { count: "exact", head: true }).eq("recipient_user_id", queued.recipient_user_id).is("read_at", null),
     ]);
     const allowed = (event as EventRow | null)?.kind === "service_reminder"
       ? preference?.booking_reminders_enabled !== false
+      : (event as EventRow | null)?.kind === "car_sale_published"
+        ? preference?.car_sale_alerts_enabled !== false
       : (event as EventRow | null)?.deep_link === "/staff"
       ? preference?.workshop_alerts_enabled !== false
       : (event as EventRow | null)?.deep_link === "/events"
@@ -180,12 +182,15 @@ Deno.serve(async (request) => {
     }
     const workshopAlert = event.deep_link === "/staff";
     const invoiceAttentionAlert = event.kind === "xero_invoice_review";
+    const carSaleAlert = event.kind === "car_sale_published";
     const messages = devices.map((device) => ({
       to: device.expo_push_token,
-      title: invoiceAttentionAlert ? "PSI invoices need attention" : "PSI update received",
-      subtitle: workshopAlert ? "PSI workshop" : "Customer account",
+      title: invoiceAttentionAlert ? "PSI invoices need attention" : carSaleAlert ? event.title : "PSI update received",
+      subtitle: workshopAlert ? "PSI workshop" : carSaleAlert ? "Customer Cars for Sale" : "Customer account",
       body: invoiceAttentionAlert
         ? "Open Imports & drafts to review unresolved sales invoices."
+        : carSaleAlert
+          ? event.body
         : workshopAlert
           ? "Open the protected workshop portal to review it."
           : "Open PSI to view your private update.",

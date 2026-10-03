@@ -36,7 +36,7 @@ type NotificationContextValue = {
   staffUnreadCount: number;
   unreadCount: number;
 };
-type PreferenceKey = 'booking_reminders_enabled' | 'booking_updates_enabled' | 'event_alerts_enabled' | 'sound_enabled' | 'workshop_alerts_enabled';
+type PreferenceKey = 'booking_reminders_enabled' | 'booking_updates_enabled' | 'car_sale_alerts_enabled' | 'car_sale_emails_enabled' | 'event_alerts_enabled' | 'sound_enabled' | 'workshop_alerts_enabled';
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 let registeredToken = '';
@@ -57,7 +57,7 @@ async function ensureAndroidNotificationChannels() {
     }),
     Notifications.setNotificationChannelAsync('psi-customer', {
       name: 'My PSI updates',
-      description: 'Updates about your bookings, events and vehicle records.',
+      description: 'Updates about your bookings, events, vehicle records and customer car listings.',
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 150, 250],
       lightColor: '#D92D20',
@@ -70,7 +70,7 @@ function responseHref(data: Record<string, unknown> | undefined): Href | null {
   const url = data?.url;
   const bookingId = typeof data?.bookingId === 'string' ? data.bookingId : '';
   if (url === '/staff') return bookingId ? { pathname: '/staff', params: { bookingId, section: 'bookings' } } : { pathname: '/staff', params: { section: 'alerts' } };
-  if (url === '/booking' || url === '/bookings' || url === '/events') return url;
+  if (url === '/booking' || url === '/bookings' || url === '/customer-cars-for-sale' || url === '/events') return url;
   return null;
 }
 
@@ -316,6 +316,8 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     if (!userId || !scope.data.isActive()) throw new Error('SIGN_IN_REQUIRED');
     const update = key === 'booking_updates_enabled' ? { booking_updates_enabled: value }
       : key === 'booking_reminders_enabled' ? { booking_reminders_enabled: value }
+        : key === 'car_sale_alerts_enabled' ? { car_sale_alerts_enabled: value }
+          : key === 'car_sale_emails_enabled' ? { car_sale_emails_enabled: value }
         : key === 'event_alerts_enabled' ? { event_alerts_enabled: value }
           : key === 'workshop_alerts_enabled' ? { workshop_alerts_enabled: value }
             : { sound_enabled: value };
@@ -369,6 +371,18 @@ export async function dispatchPsiEventPushNotifications() {
   if (REVIEW_ENVIRONMENT.enabled) return;
   if (!SUPABASE_CONNECTION.authEnabled) return;
   await getSupabaseClient().functions.invoke('process-push-notifications', { body: { action: 'dispatch' } });
+}
+
+export async function dispatchCustomerCarSalePushNotifications(listingId: string) {
+  if (REVIEW_ENVIRONMENT.enabled) return;
+  if (!SUPABASE_CONNECTION.authEnabled) return;
+  for (let batch = 0; batch < 20; batch += 1) {
+    const { data, error } = await getSupabaseClient().functions.invoke<{ processed: number; sent: number }>('process-push-notifications', {
+      body: { action: 'dispatch', carSaleListingId: listingId },
+    });
+    if (error) throw error;
+    if (!data || data.processed < 25) break;
+  }
 }
 
 export async function sendTestPushNotifications() {

@@ -36,10 +36,12 @@ const BOOKING_ALERT_IMAGE = require('../../../assets/images/dashboard/tile-my-bo
 const WORKSHOP_ALERT_COLOR = '#2D9CDB';
 const CUSTOMER_ALERT_COLOR = '#D92D20';
 
-type AlertPreference = 'booking' | 'event' | 'reminder' | 'vehicle';
+type AlertPreference = 'booking' | 'carSale' | 'carSaleEmail' | 'event' | 'reminder' | 'vehicle';
 
 const SECURE_PREFERENCE_KEYS = {
   booking: 'booking_updates_enabled',
+  carSale: 'car_sale_alerts_enabled',
+  carSaleEmail: 'car_sale_emails_enabled',
   event: 'event_alerts_enabled',
   reminder: 'booking_reminders_enabled',
   vehicle: 'workshop_alerts_enabled',
@@ -55,7 +57,7 @@ export default function AlertsScreen() {
   const [readIds, setReadIds] = useState<Set<string>>(
     () => new Set(CUSTOMER_PREVIEW.alerts.filter((alert) => alert.read).map((alert) => alert.id)),
   );
-  const [preferences, setPreferences] = useState<Record<AlertPreference, boolean>>({ booking: true, event: true, reminder: true, vehicle: true });
+  const [preferences, setPreferences] = useState<Record<AlertPreference, boolean>>({ booking: true, carSale: true, carSaleEmail: false, event: true, reminder: true, vehicle: true });
   const [notificationFeedback, setNotificationFeedback] = useState('');
   const [notificationSaving, setNotificationSaving] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -279,6 +281,22 @@ export default function AlertsScreen() {
             onPress={() => togglePreference('event')}
             previewOnly={!privateMode}
           />
+          <PreferenceRow
+            copy="Show an app banner and play your chosen notification sound when PSI publishes a customer car."
+            enabled={securePreference('carSale')}
+            icon="car-sport-outline"
+            label="Cars for Sale alerts"
+            onPress={() => togglePreference('carSale')}
+            previewOnly={!privateMode}
+          />
+          <PreferenceRow
+            copy="Receive optional listing emails. Each email includes a clear unsubscribe instruction."
+            enabled={securePreference('carSaleEmail')}
+            icon="mail-outline"
+            label="Cars for Sale emails"
+            onPress={() => togglePreference('carSaleEmail')}
+            previewOnly={!privateMode}
+          />
           {!privateMode || staffMode ? (
             <PreferenceRow
               copy={privateMode ? 'New customer requests ready for workshop review.' : 'New dyno results, reports or build-plan stages.'}
@@ -384,16 +402,19 @@ function SecureAlertCard({ event, onPress }: { event: NotificationEventRow; onPr
   const read = Boolean(event.read_at);
   const staffNotification = event.deep_link === '/staff';
   const eventNotification = event.deep_link === '/events';
+  const carSaleNotification = event.deep_link === '/customer-cars-for-sale';
   const roleColor = staffNotification ? WORKSHOP_ALERT_COLOR : CUSTOMER_ALERT_COLOR;
   return (
     <Pressable
-      accessibilityHint={`Marks this notification as read and opens ${eventNotification ? 'PSI Events' : staffNotification ? 'the staff portal' : 'Bookings'}`}
+      accessibilityHint={`Marks this notification as read and opens ${carSaleNotification ? 'Customer Cars for Sale' : eventNotification ? 'PSI Events' : staffNotification ? 'the staff portal' : 'Bookings'}`}
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.alertCard, !read && styles.alertCardUnread, { borderLeftColor: roleColor, borderLeftWidth: 4 }, pressed && styles.pressed]}
     >
       <View style={[styles.alertIcon, !read && { backgroundColor: roleColor, borderColor: roleColor }]}>
-        {eventNotification
+        {carSaleNotification
+          ? <Ionicons color={!read ? colors.white : CUSTOMER_ALERT_COLOR} name="car-sport" size={23} />
+          : eventNotification
           ? <Ionicons color={!read ? colors.white : CUSTOMER_ALERT_COLOR} name="flag" size={23} />
           : staffNotification
           ? <Ionicons color={!read ? colors.white : WORKSHOP_ALERT_COLOR} name="construct-outline" size={23} />
@@ -401,7 +422,7 @@ function SecureAlertCard({ event, onPress }: { event: NotificationEventRow; onPr
       </View>
       <View style={styles.alertCopy}>
         <View style={styles.alertTopline}>
-          <Text style={[styles.alertType, { color: roleColor }]}>{eventNotification ? 'Customer · PSI event' : staffNotification ? 'PSI workshop' : 'Customer · Booking'}</Text>
+          <Text style={[styles.alertType, { color: roleColor }]}>{carSaleNotification ? 'Customer · Cars for Sale' : eventNotification ? 'Customer · PSI event' : staffNotification ? 'PSI workshop' : 'Customer · Booking'}</Text>
           {!read ? <View accessibilityLabel="Unread" style={[styles.unreadDot, { backgroundColor: roleColor }]} /> : <Text style={styles.readLabel}>Read</Text>}
         </View>
         <Text style={styles.alertTitle}>{event.title}</Text>
@@ -416,6 +437,7 @@ function notificationHref(event: NotificationEventRow): Href {
   if (event.deep_link === '/staff') return event.booking_request_id
     ? { pathname: '/staff', params: { section: 'bookings', bookingId: event.booking_request_id } }
     : { pathname: '/staff', params: { section: 'bookings', view: 'review' } };
+  if (event.deep_link === '/customer-cars-for-sale') return '/customer-cars-for-sale';
   return event.deep_link === '/events' ? '/events' : '/bookings';
 }
 
@@ -430,7 +452,7 @@ function PreferenceRow({
 }: {
   copy: string;
   enabled: boolean;
-  icon: 'calendar-outline' | 'time-outline' | 'car-sport-outline' | 'construct-outline' | 'flag-outline' | 'volume-high-outline';
+  icon: 'calendar-outline' | 'time-outline' | 'car-sport-outline' | 'construct-outline' | 'flag-outline' | 'mail-outline' | 'volume-high-outline';
   label: string;
   last?: boolean;
   onPress: () => void;
