@@ -77,9 +77,10 @@ test('Play App Bundle keeps isolated Android updates and only accepts a Google p
   assert.equal(profile.distribution, 'store');
   assert.equal(profile.android.buildType, 'app-bundle');
   assert.equal(profile.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED, 'true');
-  assert.equal(profile.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY, 'disabled');
+  assert.match(profile.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY, /^goog_/);
   assert.equal(resolveDemoBuild({ ...valid, registration: 'true', channel: ANDROID_PLAY_INTERNAL_CHANNEL }), true);
   for (const override of [
+    { EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY: 'disabled' },
     { EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY: 'invalid' },
     { EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST: 'true' },
     { EAS_BUILD_PLATFORM: 'ios' },
