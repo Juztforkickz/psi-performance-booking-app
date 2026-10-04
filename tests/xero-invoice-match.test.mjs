@@ -3,6 +3,7 @@ import test from 'node:test';
 import { matchXeroInvoice } from '../supabase/functions/_shared/xero-invoice-match.ts';
 import { invoiceIdentity, selectPublishedInvoiceByIdentity } from '../supabase/functions/_shared/xero-invoice-dedupe.ts';
 import { selectReusableXeroWorkshopJob, xeroWorkshopJobReference } from '../mobile/src/lib/xero-workshop-reference.ts';
+import { xeroDescriptionRegistration } from '../supabase/functions/_shared/xero-invoice-registration.ts';
 
 const id = n => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const make = () => ({
@@ -55,10 +56,50 @@ test('an owner-confirmed queue job remains eligible when Xero uses the registrat
   const value = make();
   value.invoice.Reference = 'VF BJS98 - REPAIRS';
   value.confirmedJobId = id(6);
+  value.vehicles[0].registration = 'BJS98';
   assert.deepEqual(matchXeroInvoice(value), {
     status: 'eligible', customerId: id(4), vehicleId: id(7), jobId: id(6),
     bookingRequestId: id(10), sourceReference: `${id(1)}:${id(2)}`,
   });
+});
+
+test('a confirmed job accepts the explicit vehicle registration already in the invoice description', () => {
+  const value = make();
+  value.invoice.Reference = 'VZ SERVICE / REPAIRS / BRAKES / TUNE / TACHO';
+  value.invoice.LineItems = [{ Description: '2005 VZ SS SEDAN AUTOMATIC\nCOLOUR : SILVER\nREGISTRATION : TEST42\nVIN # FIXTUREVIN12345678' }];
+  value.vehicles[0].registration = 'TEST42';
+  value.confirmedJobId = id(6);
+  assert.equal(matchXeroInvoice(value).status, 'eligible');
+  value.invoice.Reference = '';
+  assert.equal(matchXeroInvoice(value).status, 'eligible');
+});
+
+test('changed, partial, ambiguous and unlabelled invoice registrations cannot publish a confirmed selection', () => {
+  for (const description of ['REGISTRATION: OTHER1', 'REGISTRATION: TEST4', 'Repair TEST42', 'REGISTRATION: TEST42\nREGISTRATION: OTHER1', 'REGISTRATION: TEST42 / OTHER1', 'REGISTRATION: TEST42\nREGISTRATION: UNKNOWN PLATE', '']) {
+    const value = make();
+    value.invoice.Reference = 'VZ SERVICE / REPAIRS';
+    value.invoice.LineItems = [{ Description: description }];
+    value.vehicles[0].registration = 'TEST42';
+    value.confirmedJobId = id(6);
+    assert.deepEqual(matchXeroInvoice(value), { status: 'needs_review', reason: 'invoice_vehicle_evidence_required' });
+  }
+});
+
+test('registration labels handle case, Windows lines and repeated identical evidence conservatively', () => {
+  assert.equal(xeroDescriptionRegistration({ LineItems: [{ Description: 'Registration : test42\r\nVIN # OTHER1' }, { Description: 'REGO: TEST42' }] }), 'TEST42');
+  assert.equal(xeroDescriptionRegistration({ LineItems: [{ Description: 'REGISTRATION: TEST42' }, { Description: 'REG: OTHER1' }] }), null);
+  assert.equal(xeroDescriptionRegistration({}), null);
+});
+
+test('description evidence does not establish a customer link or select a job automatically', () => {
+  const value = make();
+  value.invoice.Reference = 'VZ SERVICE';
+  value.invoice.LineItems = [{ Description: 'REGISTRATION: TEST42' }];
+  value.vehicles[0].registration = 'TEST42';
+  assert.deepEqual(matchXeroInvoice(value), { status: 'needs_review', reason: 'exact_job_reference_required' });
+  value.confirmedJobId = id(6);
+  value.links = [];
+  assert.deepEqual(matchXeroInvoice(value), { status: 'needs_review', reason: 'verified_customer_link_required' });
 });
 test('a confirmed queue job still rejects a different customer', () => {
   const value = make();

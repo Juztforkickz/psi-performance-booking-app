@@ -1,3 +1,5 @@
+import { xeroInvoiceMatchesVehicle } from './xero-invoice-registration.ts';
+
 /** Pure checks over server-fetched data. Never use browser-supplied links/jobs. */
 export type XeroInvoice = {
   InvoiceID?: string; Type?: string; Status?: string; CurrencyCode?: string;
@@ -11,7 +13,7 @@ export type VerifiedContactLink = {
   verified_by: string | null; verified_at: string;
 };
 export type CheckedJob = { id: string; reference: string; customer_id: string; vehicle_id: string; booking_request_id?: string | null };
-export type CheckedVehicle = { id: string; customer_id: string; archived_at: string | null };
+export type CheckedVehicle = { id: string; customer_id: string; archived_at: string | null; registration?: string };
 type Input = {
   tenantId: string; expectedTenantId: string; expectedInvoiceId: string;
   invoice: XeroInvoice; links: VerifiedContactLink[]; jobs: CheckedJob[];
@@ -52,6 +54,10 @@ export function matchXeroInvoice(input: Input) {
   if (!uuid(job.id) || !uuid(job.vehicle_id) || job.customer_id !== link.customer_id) return review('job_customer_mismatch');
   const vehicles = input.vehicles.filter(v => v.id === job.vehicle_id);
   if (vehicles.length !== 1 || vehicles[0].customer_id !== link.customer_id || vehicles[0].archived_at !== null) return review('vehicle_ownership_requires_review');
+  // A saved owner selection cannot override changed or missing Xero vehicle evidence.
+  if (confirmedJobId && !xeroInvoiceMatchesVehicle(invoice, job.reference, vehicles[0].registration ?? '')) {
+    return review('invoice_vehicle_evidence_required');
+  }
   return {
     status: 'eligible' as const, customerId: link.customer_id, vehicleId: job.vehicle_id,
     jobId: job.id, bookingRequestId: uuid(job.booking_request_id) ? job.booking_request_id : null,

@@ -71,7 +71,9 @@ function mountComponent(filename, exportName, props, moduleOverrides = {}) {
     ...moduleOverrides,
   };
   const result = { exports: {} };
-  const source = ts.transpileModule(readFileSync(new URL(filename, componentRoot), 'utf8'), {
+  const componentSource = readFileSync(new URL(filename, componentRoot), 'utf8')
+    + (exportName === 'XeroImportReviewCard' ? '\nexport { XeroImportReviewCard };' : '');
+  const source = ts.transpileModule(componentSource, {
     fileName: filename,
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
@@ -295,6 +297,61 @@ test('preview imports never load protected records, including their mount effect
   refresh.props.onPress();
   await new Promise(resolve => setTimeout(resolve, 10));
   assert.equal(operations, 0);
+});
+
+test('invoice matching inspects Xero first and uses its fresh number and date for the existing job lookup', async () => {
+  const calls = [];
+  const component = mountComponent('staff-vault-publisher.tsx', 'XeroImportReviewCard', {
+    disabled: false, owner: true, snapshot,
+    item: { id: 'queue-a', status: 'needs_review', reason: 'verified_customer_link_required', identifiers: { invoiceNumber: 'OLD', invoiceDate: '2026-09-09' } },
+    onDone: async () => { calls.push('refresh'); },
+  }, {
+    '@/lib/performance-plus': { aud: () => 'A$0', vaultClient: () => ({ rpc: async (name, args) => { calls.push([name, args]); return {}; } }) },
+    '@/lib/staff-vault': { createOrFindWorkshopJob: async args => { calls.push(['job', args]); return { id: 'existing-job' }; } },
+    '@/lib/supabase': { getSupabaseClient: () => ({ functions: { invoke: async (name, args) => {
+      calls.push([name, args.body]);
+      return args.body.action === 'inspect_invoice'
+        ? { data: { identifiers: { invoiceNumber: 'INV-1646', invoiceDate: '2026-09-28', descriptionRegistration: 'TESTA' } } }
+        : { data: { results: [{ status: 'imported' }] } };
+    } } }) },
+  });
+  component.render();
+  component.select('Customer', 'customer-a');
+  component.select('Vehicle', 'vehicle-a');
+  component.press('I checked the Xero contact');
+  component.press('Match and import invoice');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(calls[0][1].action, 'inspect_invoice');
+  assert.equal(calls[1][0], 'job');
+  assert.equal(calls[1][1].date, '2026-09-28');
+  assert.equal(calls[1][1].title, 'Xero invoice INV-1646');
+  assert.equal(calls[1][1].reuseExistingVehicleDate, true);
+  assert.equal(calls[2][0], 'confirm_xero_import_match');
+  assert.equal(calls[2][1].p_job_id, 'existing-job');
+  assert.equal(calls[3][1].queueId, 'queue-a');
+  assert.equal(calls[4], 'refresh');
+});
+
+test('failed fresh inspection preserves the selection and cannot create a job or confirm an invoice', async () => {
+  const forbidden = () => { throw new Error('Inspection failure allowed publication'); };
+  const component = mountComponent('staff-vault-publisher.tsx', 'XeroImportReviewCard', {
+    disabled: false, owner: true, snapshot,
+    item: { id: 'queue-a', status: 'needs_review', reason: 'verified_customer_link_required', identifiers: { invoiceNumber: 'INV-1646', invoiceDate: '2026-09-28' } },
+    onDone: forbidden,
+  }, {
+    '@/lib/performance-plus': { aud: () => 'A$0', vaultClient: forbidden },
+    '@/lib/staff-vault': { createOrFindWorkshopJob: forbidden },
+    '@/lib/supabase': { getSupabaseClient: () => ({ functions: { invoke: async () => ({ data: { error: 'xero_invoice_details_required' } }) } }) },
+  });
+  component.render();
+  component.select('Customer', 'customer-a');
+  component.select('Vehicle', 'vehicle-a');
+  component.press('I checked the Xero contact');
+  component.press('Match and import invoice');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  component.render();
+  assert.equal(component.find('Select', node => node.props.label === 'Vehicle').props.value, 'vehicle-a');
+  assert(component.find('Text', node => node.children.join('').includes('sent Xero sales invoice in AUD')));
 });
 
 test('imports hide archived duplicate repair records in both the query and client result', () => {

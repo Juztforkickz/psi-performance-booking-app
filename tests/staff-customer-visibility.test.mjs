@@ -16,6 +16,7 @@ test('Xero feedback distinguishes a saved match from a failed confirmation', () 
   assert.match(xeroImportFailureMessage(new Error('network failure'), true), /match was saved/);
   assert.match(xeroImportFailureMessage({ message: 'owner_aal2_required' }, false), /owner security/);
   assert.match(xeroImportFailureMessage({ message: 'xero_customer_vehicle_job_mismatch' }, false), /does not match/);
+  assert.match(xeroImportFailureMessage({ message: 'xero_invoice_vehicle_evidence_required' }, false), /Registration line/);
   assert.match(xeroImportFailureMessage({ message: 'xero_import_not_reviewable' }, false), /another stage/);
   const backend = xeroImportFailureMessage({ message: 'column reference tenant_id is ambiguous' }, false);
   assert.match(backend, /system error/);
