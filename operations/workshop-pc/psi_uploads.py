@@ -1260,6 +1260,10 @@ def process_job(folder, connection=None):
     workshop_only = manifest.get('schema') == 2 and manifest.get('owner_type') == 'workshop'
     state_path = folder / '.psi-upload-status.json'
     state = json.loads(state_path.read_text()) if state_path.exists() else {}
+    removed_folder_error = state.pop('status', None) is not None
+    removed_folder_error = state.pop('error', None) is not None or removed_folder_error
+    if removed_folder_error:
+        atomic_json(state_path, state)
     for category, (kind, phase, category_key) in CATEGORIES.items():
         category_path = folder / category
         if not category_path.is_dir() or category_path.is_symlink():

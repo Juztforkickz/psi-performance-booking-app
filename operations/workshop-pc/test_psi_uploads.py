@@ -320,6 +320,19 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(marker['customer_id'], self.manifest['customer_id'])
         self.assertNotIn('workshop_contact_id', marker)
 
+    def test_verified_retry_clears_stale_folder_review_error(self):
+        state_path = self.folder / '.psi-upload-status.json'
+        state_path.write_text(json.dumps({
+            'status': 'needs_review',
+            'error': 'Job, customer or vehicle does not match the server',
+        }))
+
+        state = process_job(self.folder)
+
+        self.assertNotIn('status', state)
+        self.assertNotIn('error', state)
+        self.assertEqual(json.loads(state_path.read_text()), {})
+
     def test_mismatched_server_owner_environment_and_date_rejected(self):
         manifest = self.manifest
         class FakeConnection:
