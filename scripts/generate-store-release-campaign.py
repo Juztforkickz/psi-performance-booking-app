@@ -230,15 +230,23 @@ def combined_web(background: Image.Image, apple_qr: Image.Image, google_qr: Imag
     return path
 
 
-def facebook_banner() -> Path:
+def facebook_banner(apple_qr: Image.Image, google_qr: Image.Image) -> Path:
     canvas = Image.open(META_SOURCE).convert("RGBA")
     if canvas.size != (2033, 774):
         canvas = cover(canvas, (2033, 774))
-    # Preserve the approved banner, including its original top right app panel,
-    # social icons and footer spacing. Replace only the existing compact QR code
-    # with the current download page code, which offers both app stores.
-    combined_qr = create_qr(DOWNLOAD_URL, ASSETS / "psi-app-download-both-qr-1600.png")
-    canvas.alpha_composite(combined_qr.resize((74, 74), Image.Resampling.NEAREST).convert("RGBA"), (1289, 640))
+    # Preserve the approved banner and its original top right app panel. Rework
+    # only the footer area after the social icons so each store has its own code.
+    draw = ImageDraw.Draw(canvas, "RGBA")
+    draw.rectangle((1265, 632, 2033, 774), fill=(2, 7, 10, 248))
+    for qr, label, x in [(apple_qr, "APPLE", 1282), (google_qr, "GOOGLE PLAY", 1380)]:
+        tile = qr.resize((74, 74), Image.Resampling.NEAREST).convert("RGBA")
+        canvas.alpha_composite(tile, (x, 640))
+        label_box = draw.textbbox((0, 0), label, font=font(18, condensed=True))
+        draw.text((x + (74 - (label_box[2] - label_box[0])) // 2, 721), label, font=font(18, condensed=True), fill=WHITE)
+    draw.rectangle((1482, 649, 1485, 752), fill=BLUE)
+    draw.rectangle((1530, 679, 1572, 683), fill=BLUE)
+    draw.text((1590, 659), "PERFORMANCE LIVES HERE.", font=font(31, condensed=True), fill=BLUE)
+    draw.rectangle((1977, 679, 2019, 683), fill=BLUE)
     path = OUT / "PSI-Facebook-Banner-Apple-Android-2033x774.jpg"
     canvas.convert("RGB").save(path, quality=96, subsampling=0)
     return path
@@ -263,7 +271,7 @@ def main() -> None:
         android_story(background),
         combined_feed(background, apple_qr, google_qr),
         combined_web(background, apple_qr, google_qr),
-        facebook_banner(),
+        facebook_banner(apple_qr, google_qr),
     ]
     for path in outputs:
         print(path.relative_to(ROOT))
