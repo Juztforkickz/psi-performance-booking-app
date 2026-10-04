@@ -11,7 +11,7 @@ Prepared 4 October 2026 after public Google Play production release was confirme
 * `PSI-Google-Play-Now-Available-Cover-9x16.png` is its matching Reel cover and static Story artwork.
 * `PSI-App-Download-Apple-Android-QR-Feed-4x5.png` is the combined Apple and Android social post.
 * `PSI-App-Download-Apple-Android-QR-Website-1600x900.png` is the combined website graphic.
-* `PSI-Facebook-Banner-Apple-Android-2033x774.jpg` matches the existing PSI Facebook banner dimensions.
+* `PSI-Facebook-Banner-Apple-Android-2033x774.jpg` preserves the approved PSI Facebook banner layout and uses one compact QR code for both stores.
 * `Captions.txt` contains the prepared Android and combined store captions.
 
 ## QR files

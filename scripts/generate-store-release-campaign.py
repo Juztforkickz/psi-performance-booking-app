@@ -230,31 +230,15 @@ def combined_web(background: Image.Image, apple_qr: Image.Image, google_qr: Imag
     return path
 
 
-def facebook_banner(apple_qr: Image.Image, google_qr: Image.Image) -> Path:
+def facebook_banner() -> Path:
     canvas = Image.open(META_SOURCE).convert("RGBA")
     if canvas.size != (2033, 774):
         canvas = cover(canvas, (2033, 774))
-    draw = ImageDraw.Draw(canvas, "RGBA")
-    draw.rectangle((1560, 20, 2012, 313), fill=(2, 7, 10, 220), outline=(101, 207, 248, 165), width=2)
-    icon = alpha_resize(APP_ICON, width=92)
-    canvas.alpha_composite(icon, (1600, 50))
-    draw.text((1710, 63), "APP AVAILABLE", font=font(36, condensed=True), fill=WHITE)
-    draw.text((1710, 106), "IPHONE + ANDROID", font=font(27, condensed=True), fill=BLUE)
-    app_badge = badge(APPLE_BADGE, 50)
-    play_badge = badge(GOOGLE_BADGE, 50)
-    canvas.alpha_composite(app_badge, (1600, 166))
-    canvas.alpha_composite(play_badge, (1600 + app_badge.width + 12, 166))
-    draw.text((1600, 238), "Bookings  •  My Garage  •  Records", font=font(23, condensed=True), fill=WHITE)
-
-    draw.rectangle((1215, 612, 2033, 774), fill=(2, 7, 10, 248))
-    for qr, label, x in [(apple_qr, "APPLE", 1230), (google_qr, "ANDROID", 1424)]:
-        tile = qr_tile(qr, 104, 7)
-        canvas.alpha_composite(tile, (x, 620))
-        label_box = draw.textbbox((0, 0), label, font=font(20, condensed=True))
-        draw.text((x + (tile.width - (label_box[2] - label_box[0])) // 2, 744), label, font=font(20, condensed=True), fill=WHITE)
-    draw.rectangle((1638, 622, 2005, 625), fill=BLUE)
-    draw.text((1658, 654), "DOWNLOAD THE PSI APP", font=font(31, condensed=True), fill=BLUE)
-    draw.text((1658, 704), "Your car. Its whole story.", font=font(24, regular=True), fill=WHITE)
+    # Preserve the approved banner, including its original top right app panel,
+    # social icons and footer spacing. Replace only the existing compact QR code
+    # with the current download page code, which offers both app stores.
+    combined_qr = create_qr(DOWNLOAD_URL, ASSETS / "psi-app-download-both-qr-1600.png")
+    canvas.alpha_composite(combined_qr.resize((74, 74), Image.Resampling.NEAREST).convert("RGBA"), (1289, 640))
     path = OUT / "PSI-Facebook-Banner-Apple-Android-2033x774.jpg"
     canvas.convert("RGB").save(path, quality=96, subsampling=0)
     return path
@@ -279,7 +263,7 @@ def main() -> None:
         android_story(background),
         combined_feed(background, apple_qr, google_qr),
         combined_web(background, apple_qr, google_qr),
-        facebook_banner(apple_qr, google_qr),
+        facebook_banner(),
     ]
     for path in outputs:
         print(path.relative_to(ROOT))
