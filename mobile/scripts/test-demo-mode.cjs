@@ -61,7 +61,7 @@ test('Android internal build opens registration and demo while keeping purchases
     assert.notEqual(invalid.status, 0);
   }
 });
-test('Play internal App Bundle stays Android-only with purchases closed and isolated updates', () => {
+test('Play App Bundle keeps isolated Android updates and only accepts a Google purchase key', () => {
   const eas = JSON.parse(readFileSync(resolve(__dirname, '../eas.json'), 'utf8'));
   const profile = eas.build[ANDROID_PLAY_INTERNAL_CHANNEL];
   const env = { ...process.env, ...profile.env, EAS_BUILD_PROFILE: ANDROID_PLAY_INTERNAL_CHANNEL, EAS_BUILD_PLATFORM: 'android' };
@@ -80,7 +80,7 @@ test('Play internal App Bundle stays Android-only with purchases closed and isol
   assert.equal(profile.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY, 'disabled');
   assert.equal(resolveDemoBuild({ ...valid, registration: 'true', channel: ANDROID_PLAY_INTERNAL_CHANNEL }), true);
   for (const override of [
-    { EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY: 'goog_unready' },
+    { EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY: 'invalid' },
     { EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST: 'true' },
     { EAS_BUILD_PLATFORM: 'ios' },
     { EAS_BUILD_PROFILE: ANDROID_INTERNAL_CHANNEL },
@@ -88,6 +88,12 @@ test('Play internal App Bundle stays Android-only with purchases closed and isol
     const invalid = spawnSync(process.execPath, ['-e', script], { cwd: resolve(__dirname, '..'), env: { ...env, ...override }, encoding: 'utf8' });
     assert.notEqual(invalid.status, 0);
   }
+  const purchaseReady = spawnSync(process.execPath, ['-e', script], {
+    cwd: resolve(__dirname, '..'),
+    env: { ...env, EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY: 'goog_ready' },
+    encoding: 'utf8',
+  });
+  assert.equal(purchaseReady.status, 0, purchaseReady.stderr);
 });
 test('no backend client may open until the saved environment is loaded', () => {
   const runtime = createDemoRuntime(true);

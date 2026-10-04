@@ -18,6 +18,10 @@ export type PerformancePlusStorePrices = Record<'monthly' | 'annual', Performanc
   applePurchaseTest?: true;
 };
 
+const performancePlusProductIds = Platform.OS === 'android'
+  ? { monthly: 'psi_performance_plus:monthly', annual: 'psi_performance_plus:annual' }
+  : { monthly: 'psi_performance_plus_monthly', annual: 'psi_performance_plus_annual' };
+
 function storefrontConfiguration(): { key: string; name: SubscriptionStorefront; managementUrl: string } | null {
   if (Platform.OS === 'ios') return { key: appleKey, name: 'Apple', managementUrl: 'https://apps.apple.com/account/subscriptions' };
   if (Platform.OS === 'android') return { key: googleKey, name: 'Google Play', managementUrl: 'https://play.google.com/store/account/subscriptions?package=com.psiperformance.booking' };
@@ -68,7 +72,7 @@ async function performancePlusPackages(userId: string) {
   const annual = offering?.annual ?? offering?.availablePackages.find(item => item.identifier === '$rc_annual');
   const storefront = subscriptionStorefrontName() ?? 'your app store';
   if (!monthly || !annual) throw new Error(`${storefront} has not returned both Performance+ options yet. Please try again shortly.`);
-  if (monthly.product.identifier !== 'psi_performance_plus_monthly' || annual.product.identifier !== 'psi_performance_plus_annual') {
+  if (monthly.product.identifier !== performancePlusProductIds.monthly || annual.product.identifier !== performancePlusProductIds.annual) {
     throw new Error(`The ${storefront} returned the wrong Performance+ products. No purchase has been started.`);
   }
   return { sdk, monthly, annual };

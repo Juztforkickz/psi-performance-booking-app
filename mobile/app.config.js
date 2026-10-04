@@ -25,7 +25,9 @@ module.exports = ({ config }) => {
     const androidPlayInternal = channel === ANDROID_PLAY_INTERNAL_CHANNEL;
     if (purchaseTest !== appStoreRelease) throw new Error(appStoreRelease ? 'APP_STORE_RELEASE_REQUIRES_PURCHASE_REVIEW' : 'PURCHASE_TEST_REQUIRES_ISOLATED_PROFILE');
     if ((androidInternal || androidPlayInternal) && process.env.EAS_BUILD_PLATFORM && process.env.EAS_BUILD_PLATFORM !== 'android') throw new Error('ANDROID_INTERNAL_REQUIRES_ANDROID');
-    if ((androidInternal || androidPlayInternal) && process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY !== 'disabled') throw new Error('ANDROID_INTERNAL_PURCHASES_MUST_BE_CLOSED');
+    const googleKey = process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY ?? '';
+    if (androidInternal && googleKey !== 'disabled') throw new Error('ANDROID_INTERNAL_PURCHASES_MUST_BE_CLOSED');
+    if (androidPlayInternal && googleKey !== 'disabled' && !googleKey.startsWith('goog_')) throw new Error('ANDROID_PLAY_REQUIRES_GOOGLE_PURCHASE_KEY');
     const expectedProfile = appStoreRelease ? APP_STORE_RELEASE_CHANNEL : androidInternal ? ANDROID_INTERNAL_CHANNEL : androidPlayInternal ? ANDROID_PLAY_INTERNAL_CHANNEL : BETA_CHANNEL;
     if (process.env.EAS_BUILD_PROFILE && process.env.EAS_BUILD_PROFILE !== expectedProfile) throw new Error('DEMO_REQUIRES_MATCHING_BUILD_PROFILE');
     if (appStoreRelease && !(process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY ?? '').startsWith('appl_')) throw new Error('APP_STORE_RELEASE_REQUIRES_APPLE_PURCHASE_KEY');
