@@ -29,7 +29,7 @@ Plan for new Apple and Google app versions after private testing. Store privacy 
 
 ## Reminder
 
-Tori's daily recap is active at 9:00 AM Sydney time. It includes Stage 5 as parked future work and asks whether Matt wants to keep it parked or begin planning. It must not start implementation without explicit approval.
+Tori's combined daily wake up message and recap is active at 9:00 AM Sydney time. It reviews confirmed priorities, waiting items, pinned and active tasks, and parked future work. It includes Stage 5 as parked future work and asks whether Matt wants to keep it parked or begin planning. It must not start implementation without explicit approval.
 
 ## New chat handover command
 
