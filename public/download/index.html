@@ -16,9 +16,9 @@
     .icon{width:112px;height:112px;border-radius:24px;margin:auto;box-shadow:0 0 0 1px #444}
     .eyebrow{margin:0;color:var(--blue);font-family:Ethnocentric,Arial,sans-serif;font-weight:900;letter-spacing:2px;font-size:12px}.title{margin:0;font-size:clamp(36px,9vw,62px);line-height:1.02;letter-spacing:-1.8px}.title-line{display:block}.title-car{font-size:.76em;white-space:nowrap}.title-highlight{color:var(--blue)}.lead{max-width:600px;margin:0 auto;color:var(--silver);font-size:clamp(18px,4vw,21px);line-height:1.55}
     .cta-copy{border-left:4px solid var(--blue);background:#111b20;padding:18px 20px;text-align:left;display:grid;gap:5px}.cta-copy strong{font-size:20px}.cta-copy span{color:var(--silver);font-size:16px;line-height:1.45}
-    .button{display:block;padding:18px 20px;background:var(--blue);color:#050505;text-decoration:none;font-weight:900;letter-spacing:.8px;text-transform:uppercase;border:2px solid #d9f5ff}.button:hover,.button:focus{background:#8edcff}
-    .soon{margin:0;color:var(--muted);font-size:14px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.feature{border:1px solid var(--line);background:var(--panel);padding:18px;color:var(--silver);line-height:1.45}.feature strong{display:block;color:#fff;margin-bottom:6px}.trial{border-left:4px solid var(--blue);background:#142d39;padding:18px;color:#e8f8ff;line-height:1.5}.fine{color:var(--muted);font-size:12px;line-height:1.5;text-align:center}
-    @media(max-width:520px){.grid{grid-template-columns:1fr}.hero{padding:24px 18px}}
+    .stores{display:flex;justify-content:center;align-items:center;gap:14px;flex-wrap:wrap}.store-link{display:block;line-height:0;transition:transform .18s ease,filter .18s ease}.store-link:hover,.store-link:focus{transform:translateY(-2px);filter:brightness(1.12)}.store-link img{display:block;width:auto;height:58px;max-width:100%}
+    .available{margin:0;color:var(--muted);font-size:14px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.feature{border:1px solid var(--line);background:var(--panel);padding:18px;color:var(--silver);line-height:1.45}.feature strong{display:block;color:#fff;margin-bottom:6px}.trial{border-left:4px solid var(--blue);background:#142d39;padding:18px;color:#e8f8ff;line-height:1.5}.fine{color:var(--muted);font-size:12px;line-height:1.5;text-align:center}
+    @media(max-width:520px){.grid{grid-template-columns:1fr}.hero{padding:24px 14px}.title{font-size:clamp(32px,10vw,48px);letter-spacing:-1px}.title-car{font-size:.72em;white-space:normal}.store-link img{height:45px}.stores{gap:8px}.lead{font-size:18px}.cta-copy{padding:16px}}
   </style>
 </head>
 <body>
@@ -27,12 +27,15 @@
       <img class="icon" src="../psi-app-icon.png" alt="PSI Performance Garage app icon">
       <p class="eyebrow">PSI PERFORMANCE GARAGE</p>
       <h1 class="title"><span class="title-line title-car">Everything for your car.</span><span class="title-line title-highlight">Everything PSI.</span><span class="title-line">All in one place.</span></h1>
-      <p class="lead">Book your car. View your photos. Access invoices, service history, dyno results and reminders — all from your PSI Garage.</p>
+      <p class="lead">Book your car. View your photos. Access invoices, service history, dyno results and reminders, all from your PSI Garage.</p>
       <div class="cta-copy"><strong>Your car is already waiting.</strong><span>Download the PSI app and create your profile.</span></div>
-      <a class="button" href="https://apps.apple.com/au/app/psi-performance-garage/id6806902732">Download for iPhone</a>
-      <p class="soon">Google Play is coming after Android testing and approval. This page and QR code will automatically stay current.</p>
+      <div class="stores" aria-label="Download the PSI Performance Garage app">
+        <a class="store-link" href="https://apps.apple.com/au/app/psi-performance-garage/id6806902732" aria-label="Download PSI Performance Garage on the App Store"><img src="app-store-badge.png" alt="Download on the App Store"></a>
+        <a class="store-link" href="https://play.google.com/store/apps/details?id=com.psiperformance.booking" aria-label="Get PSI Performance Garage on Google Play"><img src="google-play-badge.png" alt="Get it on Google Play"></a>
+      </div>
+      <p class="available">Available now for iPhone and Android.</p>
     </section>
-    <section class="trial"><strong>Photos waiting after a PSI visit?</strong><br>Create and complete your own PSI account and vehicle. Matching workshop job folders connect automatically using the verified details and registration, and your complimentary 14-day Performance+ trial begins. No payment and no automatic renewal.</section>
+    <section class="trial"><strong>Photos waiting after a PSI visit?</strong><br>Create and complete your own PSI account and vehicle. Matching workshop job folders connect automatically using the verified details and registration, and your complimentary 14 day Performance+ trial begins. No payment and no automatic renewal.</section>
     <section class="grid">
       <div class="feature"><strong>Book your car</strong>Request your next PSI visit and keep it connected to the right vehicle.</div>
       <div class="feature"><strong>View your photos</strong>Review before, progress and after workshop photos in your private account.</div>
