@@ -138,8 +138,8 @@ export default function PerformancePlusScreen() {
         const restoredOverview = await loadVaultOverview(vehicleId);
         setState({ key, overview: restoredOverview });
         setMessage(restoredOverview.plan === 'performance_plus'
-          ? 'Restore completed. Apple confirmed your purchase and Performance+ access is active.'
-          : 'Restore completed, but Apple did not return an active Performance+ subscription for this PSI account.');
+          ? `Restore completed. ${storefront ?? 'Your app store'} confirmed your purchase and Performance+ access is active.`
+          : `Restore completed, but ${storefront ?? 'your app store'} did not return an active Performance+ subscription for this PSI account.`);
         setRevision(v => v + 1);
         return;
       }
@@ -155,10 +155,10 @@ export default function PerformancePlusScreen() {
     try {
       await managePerformancePlusSubscription(auth.user.id);
       await verifyWithServer();
-      setMessage('Apple subscription management closed. Your verified access status has been refreshed.');
+      setMessage(`${storefront ?? 'App store'} subscription management ${storefront === 'Google Play' ? 'opened' : 'closed'}. Your verified access status has been refreshed.`);
       setRevision(v => v + 1);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Apple subscription management could not be opened.');
+      setMessage(error instanceof Error ? error.message : `${storefront ?? 'App store'} subscription management could not be opened.`);
     } finally { setBusy(false); }
   };
   const appleTestPrices = storePrices?.applePurchaseTest === true;
@@ -177,18 +177,18 @@ export default function PerformancePlusScreen() {
   const pricingPanel = (!activePlus || trialPlus) && entitlementReady ? <View style={s.pricing}>
     <Text style={s.pricingEyebrow}>{trialPlus ? 'KEEP YOUR COMPLETE VEHICLE STORY' : 'UNLOCK YOUR COMPLETE VEHICLE STORY'}</Text><Text style={s.section}>Choose Performance+</Text><Text style={s.copy}>{trialPlus ? 'Your complimentary trial does not renew or charge you. Choose a subscription to keep every photo and record unlocked after the trial.' : 'One subscription covers every vehicle in your PSI account.'}</Text>
     <View style={[s.priceGrid, singleColumn && s.priceGridStacked]}>
-      <Pressable accessibilityLabel={`${monthlyPrice} monthly`} accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'monthly', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('monthly'); setMessage(''); }} style={({ pressed }) => [s.priceOption, singleColumn && s.priceOptionStacked, selectedPeriod === 'monthly' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><Text style={s.priceLabel}>MONTHLY</Text><Ionicons name={selectedPeriod === 'monthly' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{storePricesLoading ? 'Checking Apple…' : monthlyPrice}</Text><Text style={s.priceMeta}>per month</Text></Pressable>
-      <Pressable accessibilityLabel={`${annualPrice} annual, best value`} accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'annual', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('annual'); setMessage(''); }} style={({ pressed }) => [s.priceOption, singleColumn && s.priceOptionStacked, s.bestValue, selectedPeriod === 'annual' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><View style={s.priceChoiceLabels}><Text style={s.bestValueLabel}>BEST VALUE</Text><Text style={s.priceLabel}>ANNUAL</Text></View><Ionicons name={selectedPeriod === 'annual' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{storePricesLoading ? 'Checking Apple…' : annualPrice}</Text><Text style={s.priceMeta}>per year · save {annualSavings}</Text></Pressable>
+      <Pressable accessibilityLabel={`${monthlyPrice} monthly`} accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'monthly', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('monthly'); setMessage(''); }} style={({ pressed }) => [s.priceOption, singleColumn && s.priceOptionStacked, selectedPeriod === 'monthly' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><Text style={s.priceLabel}>MONTHLY</Text><Ionicons name={selectedPeriod === 'monthly' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{storePricesLoading ? `Checking ${storefront ?? 'store'}…` : monthlyPrice}</Text><Text style={s.priceMeta}>per month</Text></Pressable>
+      <Pressable accessibilityLabel={`${annualPrice} annual, best value`} accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'annual', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('annual'); setMessage(''); }} style={({ pressed }) => [s.priceOption, singleColumn && s.priceOptionStacked, s.bestValue, selectedPeriod === 'annual' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><View style={s.priceChoiceLabels}><Text style={s.bestValueLabel}>BEST VALUE</Text><Text style={s.priceLabel}>ANNUAL</Text></View><Ionicons name={selectedPeriod === 'annual' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{storePricesLoading ? `Checking ${storefront ?? 'store'}…` : annualPrice}</Text><Text style={s.priceMeta}>per year · save {annualSavings}</Text></Pressable>
     </View>
     {testPriceMismatch ? <Text accessibilityRole="alert" style={s.notice}>Australian reference prices shown. Apple returned inconsistent test pricing. Continue to check Apple’s confirmation and approve only if it shows AUD and the expected amount.</Text> : null}
     <Text style={s.selectionHelp}>{appleTestPrices ? 'TestFlight purchases use Apple\u2019s sandbox. You can use your normal Australian Media & Purchases account; a separate sandbox login is optional.' : 'Select monthly or annual above, then continue. Your app store shows the final price before purchase.'}</Text>
-    <PrimaryButton disabled={!purchaseReady} loading={busy || storePricesLoading} label={storePricesLoading ? 'Checking Apple prices' : testPriceMismatch ? `Check ${selectedPeriod} price with Apple` : `Unlock ${selectedPeriod} · ${selectedPrice}`} onPress={() => void subscribe(selectedPeriod)} />
+    <PrimaryButton disabled={!purchaseReady} loading={busy || storePricesLoading} label={storePricesLoading ? `Checking ${storefront ?? 'store'} prices` : testPriceMismatch ? `Check ${selectedPeriod} price with Apple` : `Unlock ${selectedPeriod} · ${selectedPrice}`} onPress={() => void subscribe(selectedPeriod)} />
     {!storePricesLoading && storePrices && !audStorePrices && !appleTestPrices ? <Text accessibilityRole="alert" style={s.notice}>An AUD price is unavailable. Check your app store account country, then retry.</Text> : null}
     {purchasesAvailable && auth.user && !paidPlus ? <PrimaryButton label="Retry store prices" variant="outline" disabled={busy || storePricesLoading} onPress={() => { setStorePriceState(null); setRevision(v => v + 1); }} /> : null}
     {!purchasesAvailable ? <Text style={s.muted}>{demo ? 'Preview only · no payment will be taken.' : 'Purchases are not open in this beta yet. PSI can grant complimentary beta access.'}</Text> : null}
     {storePricesMessage ? <Text accessibilityRole="alert" style={s.notice}>{storePricesMessage}</Text> : null}
     {message ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
-    <Text style={s.muted}>Prices are supplied by Apple for your storefront. Subscriptions renew automatically unless cancelled before renewal. Cancellation keeps your records safe and locks premium access after the paid period ends.</Text>
+    <Text style={s.muted}>Prices are supplied by {storefront ?? 'your app store'} for your storefront. Subscriptions renew automatically unless cancelled before renewal. Cancellation keeps your records safe and locks premium access after the paid period ends.</Text>
   </View> : null;
   return <SafeAreaView edges={['top', 'left', 'right']} style={s.screen}><ScrollView contentContainerStyle={[s.content, { paddingHorizontal: horizontalPadding }]}>
     <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={s.link}>‹ Back</Text></Pressable>
