@@ -69,9 +69,48 @@ language to platform neutral store review language. It does not change the
 package name, production Supabase project, Apple release or signing identity.
 
 Google Play reported one nonblocking warning because there is no deobfuscation
-file. Native debug symbols are attached. The release keeps Google Play
-purchases disabled. Performance+ products, RevenueCat Google configuration and
-the Google Payments merchant profile remain outside this first Android release.
+file. Native debug symbols are attached. The embedded bundle was built with
+Google Play purchases disabled. The verified Android update described below now
+enables Performance+ without changing the native runtime or the Apple app.
+
+## Performance+ activation on 5 October 2026
+
+Google Play and RevenueCat are configured for the live PSI Performance+
+entitlement with the same customer offer used on Apple:
+
+* Subscription product: `psi_performance_plus`
+* Monthly base plan: `monthly`, AUD 9.99
+* Annual base plan: `annual`, AUD 99.00
+* RevenueCat entitlement: `performance_plus`
+* RevenueCat offering: `performance_plus`
+
+Both Google products are mapped beside their matching Apple products in the
+existing monthly and annual RevenueCat packages. RevenueCat reports valid
+Google service account credentials. The existing project webhook remains
+active for entitlement updates.
+
+Real time Google Play subscription notifications are enabled through
+`projects/ardent-pact-506522-j8/topics/Play-Store-Notifications`. Google Play
+has Pub/Sub Publisher access on that topic, the Google Play test notification
+succeeded, and RevenueCat recorded the notification at 10:23 PM UTC on
+4 October 2026.
+
+The live Supabase Performance+ product allowlist contains both Google base plan
+identifiers. The protected owner account `matt@psiperformance.com.au` remains
+permanently complimentary and was not changed.
+
+The purchase key and current application bundle were published only to the
+existing Android Play channel:
+
+* Checkpoint commit: `c890a4f27fc1187d062a49cc6adfcec076bf5ce7`
+* Branch and channel: `android-play-internal`
+* Runtime: `1.0.0-android-play-internal-1`
+* Update group: `9c2961a7-2a95-4e26-8dde-b790e96ae62a`
+* Android update: `01a10930-2ea2-7a5c-8265-da8f5b09dc7b`
+* EAS update: <https://expo.dev/accounts/psi-performance/projects/matt-psi/updates/9c2961a7-2a95-4e26-8dde-b790e96ae62a>
+
+The Apple RevenueCat key, Apple product mappings, Apple update channels and
+Apple release configuration were not changed.
 
 ## Completed Play declarations
 
