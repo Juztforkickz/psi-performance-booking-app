@@ -67,7 +67,7 @@
           "defaultChannel": "psi-bookings",
           "enableBackgroundRemoteNotifications": false,
           "sounds": [
-            "./assets/sounds/psi-cash-receipt.wav"
+            "./assets/sounds/psi_cash_receipt.wav"
           ]
         }
       ],

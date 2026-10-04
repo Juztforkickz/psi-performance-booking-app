@@ -11,7 +11,7 @@ from pathlib import Path
 
 SAMPLE_RATE = 44_100
 DURATION_SECONDS = 1.35
-OUTPUT = Path(__file__).resolve().parents[1] / "assets" / "sounds" / "psi-cash-receipt.wav"
+OUTPUT = Path(__file__).resolve().parents[1] / "assets" / "sounds" / "psi_cash_receipt.wav"
 
 
 def envelope(time: float, start: float, attack: float, decay: float) -> float:

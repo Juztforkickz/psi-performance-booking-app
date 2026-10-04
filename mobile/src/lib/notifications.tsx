@@ -43,7 +43,7 @@ let registeredToken = '';
 const PUSH_TOKEN_STORAGE_KEY = environmentStorageKey('psi-notifications.expo-push-token');
 const PUSH_ENABLED_STORAGE_KEY = environmentStorageKey('psi-notifications.device-alerts-enabled');
 const EMPTY_EVENTS: NotificationEventRow[] = [];
-const PSI_CASH_NOTIFICATION_SOUND = 'psi-cash-receipt.wav';
+const PSI_CASH_NOTIFICATION_SOUND = 'psi_cash_receipt.wav';
 const PSI_WORKSHOP_CASH_CHANNEL = 'psi-workshop-cash-v1';
 
 function hasBundledCashNotificationSound() {

@@ -8,7 +8,7 @@ type ActionBody = { action?: unknown; bookingId?: unknown; carSaleListingId?: un
 type DeviceRow = { expo_push_token: string; notification_sound: string | null };
 type EventRow = { body: string; deep_link: string; id: string; kind: string; recipient_user_id: string; title: string };
 type JobRow = { attempt_count: number; booking_request_id: string | null; event_id: string; id: string; recipient_user_id: string };
-const PSI_CASH_NOTIFICATION_SOUND = "psi-cash-receipt.wav";
+const PSI_CASH_NOTIFICATION_SOUND = "psi_cash_receipt.wav";
 const PSI_WORKSHOP_CASH_CHANNEL = "psi-workshop-cash-v1";
 
 Deno.serve(async (request) => {
