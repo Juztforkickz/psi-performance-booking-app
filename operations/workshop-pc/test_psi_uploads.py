@@ -300,14 +300,25 @@ class WorkshopImporterTests(unittest.TestCase):
             'workshop_vehicle_id': 'a4500000-0000-4000-8000-000000000001',
             'registration': self.manifest['registration'], 'reference': self.manifest['reference'],
             'job_date': self.manifest['job_date'],
+            'customer_name': 'Dyan Dsouza', 'vehicle_year': 2005,
+            'vehicle_make': 'Holden', 'vehicle_model': 'VZ SS',
+        }
+        app_manifest = {
+            **self.manifest,
+            'customer_name': "Dyan D'Souza", 'vehicle_year': 2005,
+            'vehicle_make': 'Holden', 'vehicle_model': 'VZ SS',
         }
         source.write_text(json.dumps(workshop_manifest))
         root = self.folder / 'claimed-uploads'
         folder = create_job_folder(root, source)
-        source.write_text(json.dumps(self.manifest))
+        source.write_text(json.dumps(app_manifest))
         claimed = create_job_folder(root, source)
-        self.assertFalse(folder.exists())
-        self.assertEqual(json.loads((claimed / 'psi-job.json').read_text()), self.manifest)
+        self.assertEqual(claimed, folder)
+        self.assertEqual(claimed.parent.name, 'DYAN DSOUZA')
+        self.assertEqual(json.loads((claimed / 'psi-job.json').read_text()), app_manifest)
+        marker = json.loads((claimed.parent / '.psi-customer-folder.json').read_text())
+        self.assertEqual(marker['customer_id'], self.manifest['customer_id'])
+        self.assertNotIn('workshop_contact_id', marker)
 
     def test_mismatched_server_owner_environment_and_date_rejected(self):
         manifest = self.manifest

@@ -365,6 +365,11 @@ def _customer_folder_for(root, manifest, existing_folder=None, existing_manifest
     )
     if claim_upgrade:
         folder = existing_parent
+        # Keep the established customer folder name when a workshop-only job
+        # is claimed by the verified app account. A harmless profile spelling
+        # change must not require Windows to rename a folder that may be open
+        # in Explorer, because that would block the ownership upgrade.
+        desired = existing_parent
 
     if folder is None:
         if desired.exists():
