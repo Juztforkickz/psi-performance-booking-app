@@ -2,7 +2,7 @@
   "expo": {
     "name": "PSI",
     "slug": "matt-psi",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -65,7 +65,10 @@
         {
           "color": "#65CFF8",
           "defaultChannel": "psi-bookings",
-          "enableBackgroundRemoteNotifications": false
+          "enableBackgroundRemoteNotifications": false,
+          "sounds": [
+            "./assets/sounds/psi-cash-receipt.wav"
+          ]
         }
       ],
       "expo-secure-store",

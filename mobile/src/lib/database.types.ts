@@ -600,6 +600,7 @@ export type Database = {
           expo_push_token: string;
           id: string;
           last_seen_at: string;
+          notification_sound: string | null;
           platform: 'android' | 'ios';
           updated_at: string;
           user_id: string;
@@ -609,11 +610,12 @@ export type Database = {
           expo_push_token: string;
           id?: string;
           last_seen_at?: string;
+          notification_sound?: string | null;
           platform: 'android' | 'ios';
           updated_at?: string;
           user_id: string;
         };
-        Update: { enabled?: boolean; last_seen_at?: string; updated_at?: string };
+        Update: { enabled?: boolean; last_seen_at?: string; notification_sound?: string | null; updated_at?: string };
         Relationships: [];
       };
       psi_events: {

@@ -4,9 +4,12 @@ import { createClient } from "@supabase/supabase-js";
 const cors = { "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Origin": "*" };
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { ...cors, "Cache-Control": "no-store" } });
 const env = (name: string) => Deno.env.get(name)?.trim() ?? "";
-type ActionBody = { action?: unknown; bookingId?: unknown; carSaleListingId?: unknown; expoPushToken?: unknown; platform?: unknown };
+type ActionBody = { action?: unknown; bookingId?: unknown; carSaleListingId?: unknown; expoPushToken?: unknown; notificationSound?: unknown; platform?: unknown };
+type DeviceRow = { expo_push_token: string; notification_sound: string | null };
 type EventRow = { body: string; deep_link: string; id: string; kind: string; recipient_user_id: string; title: string };
 type JobRow = { attempt_count: number; booking_request_id: string | null; event_id: string; id: string; recipient_user_id: string };
+const PSI_CASH_NOTIFICATION_SOUND = "psi-cash-receipt.wav";
+const PSI_WORKSHOP_CASH_CHANNEL = "psi-workshop-cash-v1";
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -47,8 +50,9 @@ Deno.serve(async (request) => {
     if (isInternalServiceCall) return json({ error: "action_not_allowed" }, 403);
     if (typeof body.expoPushToken !== "string" || !/^(Exponent|Expo)PushToken\[[A-Za-z0-9_-]+\]$/.test(body.expoPushToken)) return json({ error: "invalid_push_token" }, 400);
     if (body.platform !== "ios" && body.platform !== "android") return json({ error: "invalid_platform" }, 400);
+    if (body.notificationSound !== undefined && body.notificationSound !== null && body.notificationSound !== PSI_CASH_NOTIFICATION_SOUND) return json({ error: "invalid_notification_sound" }, 400);
     await admin.from("push_devices").update({ enabled: false, updated_at: new Date().toISOString() }).eq("expo_push_token", body.expoPushToken).neq("user_id", userId);
-    const { error } = await admin.from("push_devices").upsert({ user_id: userId, expo_push_token: body.expoPushToken, platform: body.platform, enabled: true, last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: "expo_push_token" });
+    const { error } = await admin.from("push_devices").upsert({ user_id: userId, expo_push_token: body.expoPushToken, platform: body.platform, notification_sound: body.notificationSound === PSI_CASH_NOTIFICATION_SOUND ? PSI_CASH_NOTIFICATION_SOUND : null, enabled: true, last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: "expo_push_token" });
     return error ? json({ error: "device_registration_failed" }, 500) : json({ registered: true });
   }
 
@@ -163,7 +167,7 @@ Deno.serve(async (request) => {
     if (!claimed) continue;
     const [{ data: event }, { data: devices }, { data: preference }, { count }] = await Promise.all([
       admin.from("notification_events").select("id,recipient_user_id,title,body,deep_link,kind").eq("id", queued.event_id).single(),
-      admin.from("push_devices").select("expo_push_token").eq("user_id", queued.recipient_user_id).eq("enabled", true),
+      admin.from("push_devices").select("expo_push_token,notification_sound").eq("user_id", queued.recipient_user_id).eq("enabled", true),
       admin.from("notification_preferences").select("booking_reminders_enabled,booking_updates_enabled,car_sale_alerts_enabled,event_alerts_enabled,workshop_alerts_enabled,sound_enabled").eq("user_id", queued.recipient_user_id).maybeSingle(),
       admin.from("notification_events").select("id", { count: "exact", head: true }).eq("recipient_user_id", queued.recipient_user_id).is("read_at", null),
     ]);
@@ -183,23 +187,26 @@ Deno.serve(async (request) => {
     const workshopAlert = event.deep_link === "/staff";
     const invoiceAttentionAlert = event.kind === "xero_invoice_review";
     const carSaleAlert = event.kind === "car_sale_published";
-    const messages = devices.map((device) => ({
-      to: device.expo_push_token,
-      title: invoiceAttentionAlert ? "PSI invoices need attention" : carSaleAlert ? event.title : "PSI update received",
-      subtitle: workshopAlert ? "PSI workshop" : carSaleAlert ? "Customer Cars for Sale" : "Customer account",
-      body: invoiceAttentionAlert
-        ? "Open Imports & drafts to review unresolved sales invoices."
-        : carSaleAlert
-          ? event.body
-        : workshopAlert
-          ? "Open the protected workshop portal to review it."
-          : "Open PSI to view your private update.",
-      data: { url: event.deep_link },
-      badge: count ?? 0,
-      sound: preference?.sound_enabled === false ? null : "default",
-      channelId: workshopAlert ? "psi-workshop" : "psi-customer",
-      priority: "high",
-    }));
+    const messages = (devices as DeviceRow[]).map((device) => {
+      const cashSoundAvailable = workshopAlert && device.notification_sound === PSI_CASH_NOTIFICATION_SOUND;
+      return {
+        to: device.expo_push_token,
+        title: invoiceAttentionAlert ? "PSI invoices need attention" : carSaleAlert ? event.title : "PSI update received",
+        subtitle: workshopAlert ? "PSI workshop" : carSaleAlert ? "Customer Cars for Sale" : "Customer account",
+        body: invoiceAttentionAlert
+          ? "Open Imports & drafts to review unresolved sales invoices."
+          : carSaleAlert
+            ? event.body
+            : workshopAlert
+              ? "Open the protected workshop portal to review it."
+              : "Open PSI to view your private update.",
+        data: { url: event.deep_link },
+        badge: count ?? 0,
+        sound: preference?.sound_enabled === false ? null : cashSoundAvailable ? PSI_CASH_NOTIFICATION_SOUND : "default",
+        channelId: workshopAlert ? cashSoundAvailable ? PSI_WORKSHOP_CASH_CHANNEL : "psi-workshop" : "psi-customer",
+        priority: "high",
+      };
+    });
     const response = await fetch("https://exp.host/--/api/v2/push/send", { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json" }, body: JSON.stringify(messages) });
     const result = await response.json().catch(() => null) as { data?: Array<{ id?: string; status?: string; details?: { error?: string } }> } | null;
     const tickets = result?.data ?? [];

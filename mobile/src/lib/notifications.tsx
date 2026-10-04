@@ -21,7 +21,7 @@ import { createNotificationRequestScope, createNotificationResponseTracker } fro
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
 import { appModeRuntime, environmentStorageKey, REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
-type PushStatus = 'disabled' | 'not_enabled' | 'ready' | 'unsupported';
+type PushStatus = 'disabled' | 'not_enabled' | 'ready' | 'settings_required' | 'unsupported';
 type NotificationContextValue = {
   customerUnreadCount: number;
   disablePush: () => Promise<void>;
@@ -43,10 +43,17 @@ let registeredToken = '';
 const PUSH_TOKEN_STORAGE_KEY = environmentStorageKey('psi-notifications.expo-push-token');
 const PUSH_ENABLED_STORAGE_KEY = environmentStorageKey('psi-notifications.device-alerts-enabled');
 const EMPTY_EVENTS: NotificationEventRow[] = [];
+const PSI_CASH_NOTIFICATION_SOUND = 'psi-cash-receipt.wav';
+const PSI_WORKSHOP_CASH_CHANNEL = 'psi-workshop-cash-v1';
+
+function hasBundledCashNotificationSound() {
+  const [major = 0, minor = 0, patch = 0] = String(Constants.nativeAppVersion ?? '').split('.').map((part) => Number.parseInt(part, 10) || 0);
+  return major > 1 || (major === 1 && (minor > 0 || patch >= 2));
+}
 
 async function ensureAndroidNotificationChannels() {
   if (Platform.OS !== 'android') return;
-  await Promise.all([
+  const channels = [
     Notifications.setNotificationChannelAsync('psi-workshop', {
       name: 'PSI workshop enquiries',
       description: 'New customer enquiries and workshop actions.',
@@ -63,7 +70,34 @@ async function ensureAndroidNotificationChannels() {
       lightColor: '#D92D20',
       sound: 'default',
     }),
-  ]);
+  ];
+  if (hasBundledCashNotificationSound()) {
+    channels.push(Notifications.setNotificationChannelAsync(PSI_WORKSHOP_CASH_CHANNEL, {
+      name: 'PSI workshop enquiries',
+      description: 'New customer enquiries and workshop actions.',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 150, 250],
+      lightColor: '#65CFF8',
+      sound: PSI_CASH_NOTIFICATION_SOUND,
+    }));
+  }
+  await Promise.all(channels);
+}
+
+function pushPermissionStatus(permission: Notifications.NotificationPermissionsStatus): Extract<PushStatus, 'not_enabled' | 'ready' | 'settings_required'> {
+  if (Platform.OS === 'ios') {
+    const iosStatus = permission.ios?.status;
+    if (iosStatus === Notifications.IosAuthorizationStatus.NOT_DETERMINED || iosStatus === undefined) return 'not_enabled';
+    if (iosStatus !== Notifications.IosAuthorizationStatus.AUTHORIZED) return 'settings_required';
+    if (permission.ios?.allowsAlert === false || permission.ios?.allowsSound === false || permission.ios?.alertStyle === Notifications.IosAlertStyle.NONE) return 'settings_required';
+    return 'ready';
+  }
+  if (permission.status === 'granted') return 'ready';
+  return permission.canAskAgain ? 'not_enabled' : 'settings_required';
+}
+
+function pushIsRegistered(status: PushStatus) {
+  return status === 'ready' || status === 'settings_required';
 }
 
 function responseHref(data: Record<string, unknown> | undefined): Href | null {
@@ -159,8 +193,9 @@ export function NotificationProvider({ children }: PropsWithChildren) {
         await ensureAndroidNotificationChannels();
         const permission = await Notifications.getPermissionsAsync();
         if (!active || !isCurrent()) return;
+        const permissionState = pushPermissionStatus(permission);
         if (permission.status !== 'granted') {
-          setPushStatus('not_enabled');
+          setPushStatus(permissionState);
           return;
         }
         const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
@@ -171,7 +206,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
         const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
         if (!active || !isCurrent()) return;
         const { error } = await getSupabaseClient().functions.invoke('process-push-notifications', {
-          body: { action: 'register_device', expoPushToken: token, platform: Platform.OS },
+          body: { action: 'register_device', expoPushToken: token, notificationSound: hasBundledCashNotificationSound() ? PSI_CASH_NOTIFICATION_SOUND : null, platform: Platform.OS },
         });
         if (!active || !isCurrent()) return;
         if (error) throw error;
@@ -180,7 +215,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
           SecureStore.setItemAsync(PUSH_ENABLED_STORAGE_KEY, 'true'),
           SecureStore.setItemAsync(PUSH_TOKEN_STORAGE_KEY, token),
         ]);
-        if (active && isCurrent()) setPushStatus('ready');
+        if (active && isCurrent()) setPushStatus(permissionState);
       } catch {
         if (active && isCurrent()) setPushStatus('disabled');
       } finally {
@@ -232,7 +267,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   const staffUnreadCount = useMemo(() => events.filter((event) => !event.read_at && event.deep_link === '/staff').length, [events]);
   const customerUnreadCount = unreadCount - staffUnreadCount;
   useEffect(() => {
-    if (!REVIEW_ENVIRONMENT.enabled && Platform.OS !== 'web') void Notifications.setBadgeCountAsync(pushStatus === 'ready' ? unreadCount : 0).catch(() => undefined);
+    if (!REVIEW_ENVIRONMENT.enabled && Platform.OS !== 'web') void Notifications.setBadgeCountAsync(pushIsRegistered(pushStatus) ? unreadCount : 0).catch(() => undefined);
   }, [pushStatus, unreadCount]);
 
   const enablePush = useCallback(async () => {
@@ -254,13 +289,17 @@ export function NotificationProvider({ children }: PropsWithChildren) {
         ios: { allowAlert: true, allowBadge: true, allowSound: true },
       });
       if (!isCurrent()) throw new Error('ACCOUNT_CHANGED');
-      if (permission.status !== 'granted') throw new Error('NOTIFICATION_PERMISSION_DENIED');
+      const permissionState = pushPermissionStatus(permission);
+      if (permission.status !== 'granted') {
+        setPushStatus(permissionState);
+        throw new Error(permissionState === 'settings_required' ? 'NOTIFICATION_SETTINGS_REQUIRED' : 'NOTIFICATION_PERMISSION_DENIED');
+      }
       const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
       if (!projectId) throw new Error('EAS_PROJECT_ID_MISSING');
       const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
       if (!isCurrent()) throw new Error('ACCOUNT_CHANGED');
       const { error } = await getSupabaseClient().functions.invoke('process-push-notifications', {
-        body: { action: 'register_device', expoPushToken: token, platform: Platform.OS },
+        body: { action: 'register_device', expoPushToken: token, notificationSound: hasBundledCashNotificationSound() ? PSI_CASH_NOTIFICATION_SOUND : null, platform: Platform.OS },
       });
       if (!isCurrent()) throw new Error('ACCOUNT_CHANGED');
       if (error) throw error;
@@ -269,9 +308,14 @@ export function NotificationProvider({ children }: PropsWithChildren) {
         SecureStore.setItemAsync(PUSH_ENABLED_STORAGE_KEY, 'true'),
         SecureStore.setItemAsync(PUSH_TOKEN_STORAGE_KEY, token),
       ]);
-      if (isCurrent()) setPushStatus('ready');
+      if (isCurrent()) setPushStatus(permissionState);
     } catch (error) {
-      if (isCurrent()) setPushStatus(error instanceof Error && error.message === 'NOTIFICATION_PERMISSION_DENIED' ? 'not_enabled' : 'disabled');
+      if (isCurrent()) {
+        const message = error instanceof Error ? error.message : '';
+        setPushStatus(message === 'NOTIFICATION_SETTINGS_REQUIRED' ? 'settings_required'
+          : message === 'NOTIFICATION_PERMISSION_DENIED' ? 'not_enabled'
+            : 'disabled');
+      }
       throw error;
     } finally {
       manualPushOperations.current -= 1;

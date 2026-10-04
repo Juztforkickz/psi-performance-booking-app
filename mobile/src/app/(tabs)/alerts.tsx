@@ -3,6 +3,7 @@ import { type Href, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   Image,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,7 +23,7 @@ import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import type { NotificationEventRow } from '@/lib/database.types';
-import { useNotifications } from '@/lib/notifications';
+import { sendTestPushNotifications, useNotifications } from '@/lib/notifications';
 import { profileAlertLabel } from '@/lib/profile-alert-label';
 import { ThemePreference, useThemePreference } from '@/lib/theme-preference';
 
@@ -327,12 +328,21 @@ export default function AlertsScreen() {
             <View style={styles.howItWorksCopy}>
               <Text style={styles.howItWorksTitle}>Device alerts</Text>
               <Text style={styles.bodyCopy}>{notifications.pushStatus === 'ready'
-                ? 'Device notifications are enabled. Your phone controls banners, sounds and badges.'
-                : 'Enable alerts for banners, sound and badges. Updates still appear in the app.'}</Text>
+                ? 'Banners, sounds and badges are enabled on this phone.'
+                : notifications.pushStatus === 'settings_required'
+                  ? 'Your phone is allowing badges but banners or sounds need attention in notification settings.'
+                  : 'Enable alerts for banners, sound and badges. Updates still appear in the app.'}</Text>
             </View>
             {notificationFeedback ? <Text accessibilityRole="alert" style={styles.notificationFeedback}>{notificationFeedback}</Text> : null}
             <Pressable accessibilityRole="button" accessibilityState={{ busy: notificationSaving, disabled: notificationSaving }} disabled={notificationSaving} onPress={() => {
               setNotificationFeedback('');
+              if (notifications.pushStatus === 'settings_required') {
+                setNotificationSaving(true);
+                void Linking.openSettings()
+                  .catch(() => setNotificationFeedback('Open your phone settings, select PSI, then turn on Allow Notifications, Banners and Sounds.'))
+                  .finally(() => setNotificationSaving(false));
+                return;
+              }
               setNotificationSaving(true);
               const disabling = notifications.pushStatus === 'ready';
               void (disabling ? notifications.disablePush() : notifications.enablePush())
@@ -346,8 +356,25 @@ export default function AlertsScreen() {
             }} style={({ pressed }) => [styles.openBookings, pressed && !notificationSaving && styles.pressed]}>
               <Text style={styles.openBookingsText}>{notificationSaving
                 ? 'Updating device notifications'
-                : notifications.pushStatus === 'ready' ? 'Disable device notifications' : 'Enable device notifications'}</Text>
+                : notifications.pushStatus === 'ready' ? 'Disable device notifications'
+                  : notifications.pushStatus === 'settings_required' ? 'Open phone notification settings'
+                    : 'Enable device notifications'}</Text>
             </Pressable>
+            {staffMode && notifications.pushStatus === 'ready' ? (
+              <Pressable accessibilityRole="button" accessibilityState={{ busy: notificationSaving, disabled: notificationSaving }} disabled={notificationSaving} onPress={() => {
+                setNotificationFeedback('');
+                setNotificationSaving(true);
+                void sendTestPushNotifications()
+                  .then((result) => setNotificationFeedback(result.sent > 0
+                    ? 'Test alerts sent. Lock your phone or leave PSI open to check the banner and sound.'
+                    : 'No test alert was sent. Check that this phone is registered for device notifications.'))
+                  .catch(() => setNotificationFeedback('The test alert could not be sent yet. Wait one minute, then try again.'))
+                  .finally(() => setNotificationSaving(false));
+              }} style={({ pressed }) => [styles.openBookings, pressed && !notificationSaving && styles.pressed]}>
+                <Ionicons color={colors.white} name="notifications-outline" size={18} />
+                <Text style={styles.openBookingsText}>Send owner test alerts</Text>
+              </Pressable>
+            ) : null}
           </View>
         ) : null}
 
@@ -557,6 +584,7 @@ const styles = StyleSheet.create({
 function notificationErrorMessage(error: unknown) {
   const detail = error instanceof Error ? error.message : '';
   if (detail.includes('NATIVE_DEVICE_REQUIRED')) return 'External push alerts require the installed iPhone or Android app. This web view still receives private in-app notifications.';
+  if (detail.includes('SETTINGS_REQUIRED')) return 'Open your phone settings, select PSI, then turn on Allow Notifications, Banners and Sounds.';
   if (detail.includes('PERMISSION_DENIED')) return 'Notification permission was not granted. You can enable PSI notifications later in your phone settings.';
   return 'This device could not be registered yet. Your in-app notification centre and email updates still work.';
 }
