@@ -222,7 +222,13 @@ class Connection:
             self.set_session(self.call('/auth/v1/token?grant_type=refresh_token', 'POST', {'refresh_token': refresh}))
             self.validate_staff()
             return True
-        except Exception:
+        except RequestFailure as error:
+            if error.status not in (400, 401, 403):
+                raise
+            self.token, self.refresh, self.expires = '', '', 0
+            self.session_store.clear()
+            return False
+        except RuntimeError:
             self.token, self.refresh, self.expires = '', '', 0
             self.session_store.clear()
             return False

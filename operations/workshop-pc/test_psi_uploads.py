@@ -413,6 +413,37 @@ class WorkshopImporterTests(unittest.TestCase):
         store.clear()
         self.assertFalse(path.exists())
 
+    def test_restore_keeps_refresh_token_after_temporary_service_failure(self):
+        class FakeStore:
+            cleared = False
+            def load(inner):
+                return 'protected-refresh-token'
+            def clear(inner):
+                inner.cleared = True
+
+        store = FakeStore()
+        connection = Connection('https://test.supabase.co', 'sb_publishable_test', store)
+        connection.call = lambda *_args, **_kwargs: (_ for _ in ()).throw(RequestFailure(503))
+
+        with self.assertRaises(RequestFailure):
+            connection.restore()
+        self.assertFalse(store.cleared)
+
+    def test_restore_clears_refresh_token_after_real_authentication_failure(self):
+        class FakeStore:
+            cleared = False
+            def load(inner):
+                return 'invalid-refresh-token'
+            def clear(inner):
+                inner.cleared = True
+
+        store = FakeStore()
+        connection = Connection('https://test.supabase.co', 'sb_publishable_test', store)
+        connection.call = lambda *_args, **_kwargs: (_ for _ in ()).throw(RequestFailure(401))
+
+        self.assertFalse(connection.restore())
+        self.assertTrue(store.cleared)
+
     def test_recent_server_jobs_create_idempotent_verified_folders(self):
         job = {
             'id': self.manifest['job_id'], 'customer_id': self.manifest['customer_id'],
