@@ -163,6 +163,12 @@
       "ios": {
         "ascAppId": "6806902732"
       }
+    },
+    "android-play-internal": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "completed"
+      }
     }
   }
 }
