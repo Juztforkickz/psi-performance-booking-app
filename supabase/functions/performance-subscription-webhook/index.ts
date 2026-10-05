@@ -13,6 +13,16 @@ Deno.serve(async request => {
     const validIds = [...new Set(ids.filter(uuid))] as string[];
     if (!validIds.length || validIds.length > 10) return json({ error: 'account_review_required' }, 422);
     for (const id of validIds) await syncSubscription(id);
+    const supabaseUrl = env('SUPABASE_URL');
+    const serviceRoleKey = env('SUPABASE_SERVICE_ROLE_KEY');
+    if (supabaseUrl && serviceRoleKey) {
+      await fetch(`${supabaseUrl}/functions/v1/process-push-notifications`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${serviceRoleKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'process_queue' }),
+        signal: AbortSignal.timeout(10000),
+      }).catch(() => undefined);
+    }
     return json({ received: true });
   } catch { return json({ error: 'retry_subscription_sync' }, 503); }
 });

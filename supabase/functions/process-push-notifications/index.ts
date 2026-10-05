@@ -30,6 +30,7 @@ Deno.serve(async (request) => {
   const userClient = createClient(supabaseUrl, anonKey, { auth: { autoRefreshToken: false, persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
   let userId = "";
   let isAal2Staff = false;
+  let isProtectedOwner = false;
 
   if (isInternalServiceCall) {
     const dueReminderCall = body.action === "process_due_service_reminders" && Boolean(bookingId);
@@ -39,6 +40,7 @@ Deno.serve(async (request) => {
     const { data: userData, error: userError } = await userClient.auth.getUser(token);
     if (userError || !userData.user) return json({ error: "invalid_session" }, 401);
     userId = userData.user.id;
+    isProtectedOwner = userData.user.email?.trim().toLowerCase() === "matt@psiperformance.com.au";
     const [{ data: staff }, { data: claims }] = await Promise.all([
       userClient.from("staff_members").select("id").eq("user_id", userId).eq("status", "active").maybeSingle(),
       userClient.auth.getClaims(token),
@@ -52,7 +54,8 @@ Deno.serve(async (request) => {
     if (body.platform !== "ios" && body.platform !== "android") return json({ error: "invalid_platform" }, 400);
     if (body.notificationSound !== undefined && body.notificationSound !== null && body.notificationSound !== PSI_CASH_NOTIFICATION_SOUND) return json({ error: "invalid_notification_sound" }, 400);
     await admin.from("push_devices").update({ enabled: false, updated_at: new Date().toISOString() }).eq("expo_push_token", body.expoPushToken).neq("user_id", userId);
-    const { error } = await admin.from("push_devices").upsert({ user_id: userId, expo_push_token: body.expoPushToken, platform: body.platform, notification_sound: body.notificationSound === PSI_CASH_NOTIFICATION_SOUND ? PSI_CASH_NOTIFICATION_SOUND : null, enabled: true, last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: "expo_push_token" });
+    const notificationSound = isProtectedOwner && body.notificationSound === PSI_CASH_NOTIFICATION_SOUND ? PSI_CASH_NOTIFICATION_SOUND : null;
+    const { error } = await admin.from("push_devices").upsert({ user_id: userId, expo_push_token: body.expoPushToken, platform: body.platform, notification_sound: notificationSound, enabled: true, last_seen_at: new Date().toISOString(), updated_at: new Date().toISOString() }, { onConflict: "expo_push_token" });
     return error ? json({ error: "device_registration_failed" }, 500) : json({ registered: true });
   }
 
@@ -186,16 +189,17 @@ Deno.serve(async (request) => {
     }
     const workshopAlert = event.deep_link === "/staff";
     const invoiceAttentionAlert = event.kind === "xero_invoice_review";
+    const performanceSubscriptionAlert = event.kind === "performance_subscription_started";
     const carSaleAlert = event.kind === "car_sale_published";
     const messages = (devices as DeviceRow[]).map((device) => {
       const cashSoundAvailable = workshopAlert && device.notification_sound === PSI_CASH_NOTIFICATION_SOUND;
       return {
         to: device.expo_push_token,
-        title: invoiceAttentionAlert ? "PSI invoices need attention" : carSaleAlert ? event.title : "PSI update received",
+        title: invoiceAttentionAlert ? "PSI invoices need attention" : performanceSubscriptionAlert || carSaleAlert ? event.title : "PSI update received",
         subtitle: workshopAlert ? "PSI workshop" : carSaleAlert ? "Customer Cars for Sale" : "Customer account",
         body: invoiceAttentionAlert
           ? "Open Imports & drafts to review unresolved sales invoices."
-          : carSaleAlert
+          : performanceSubscriptionAlert || carSaleAlert
             ? event.body
             : workshopAlert
               ? "Open the protected workshop portal to review it."
