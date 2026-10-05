@@ -149,7 +149,12 @@ type VaultImportReview = {
   last_error_code: string | null;
 };
 
-export function StaffVaultReview({ snapshot, owner, previewMode = false }: { snapshot: StaffPortalSnapshot; owner: boolean; previewMode?: boolean }) {
+export function StaffVaultReview({ snapshot, owner, previewMode = false, onApproveAndInvite }: {
+  snapshot: StaffPortalSnapshot;
+  owner: boolean;
+  previewMode?: boolean;
+  onApproveAndInvite?: (email: string) => void;
+}) {
   const [imports, setImports] = useState<VaultImportReview[]>([]);
   const [drafts, setDrafts] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [busy, setBusy] = useState(!previewMode);
@@ -213,24 +218,65 @@ export function StaffVaultReview({ snapshot, owner, previewMode = false }: { sna
       </> : <>
         <Text style={styles.title}>Waiting for a customer account</Text>
         <Text style={styles.muted}>These files are saved privately for customers whose PSI account and vehicle have not been matched yet. Once they create an account and the details are securely matched, syncing continues automatically.</Text>
-        <Text style={styles.message}>No action needed here. These files do not send owner alerts. Do not upload them again.</Text>
-        {!waitingImports.length ? <Text style={styles.muted}>No files are waiting for a customer account.</Text> : waitingImports.map(item => <WaitingAccountCard item={item} key={item.id} />)}
+        <Text style={styles.message}>These files stay private and do not send owner alerts. Invite a verified workshop customer here, or leave the file waiting. Do not upload it again.</Text>
+        {!waitingImports.length ? <Text style={styles.muted}>No files are waiting for a customer account.</Text> : waitingImports.map(item => <WaitingAccountCard item={item} key={item.id} onApproveAndInvite={onApproveAndInvite} owner={owner} previewMode={previewMode} snapshot={snapshot} />)}
       </>}
     </> : null}
   </View>;
 }
 
-function WaitingAccountCard({ item }: { item: VaultImportReview }) {
+function normalizedEvidence(value: unknown) {
+  return typeof value === 'string' ? value.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '') : '';
+}
+
+function waitingAccountInviteEmail(item: VaultImportReview, snapshot: StaffPortalSnapshot) {
+  const details = item.identifiers;
+  const contactName = typeof details.contactName === 'string' ? details.contactName.trim().toUpperCase().replace(/\s+/g, ' ') : '';
+  const referenceTokens = typeof details.reference === 'string'
+    ? details.reference.toUpperCase().split(/[^A-Z0-9]+/g).filter(Boolean)
+    : [];
+  const descriptionRegistration = normalizedEvidence(details.descriptionRegistration);
+  if (!contactName) return null;
+
+  const emails = snapshot.workshopContacts
+    .filter(contact => contact.status === 'active'
+      && contact.display_name.trim().toUpperCase().replace(/\s+/g, ' ') === contactName
+      && typeof contact.email === 'string'
+      && /^\S+@\S+\.\S+$/.test(contact.email.trim()))
+    .filter(contact => snapshot.workshopVehicles.some(vehicle => {
+      if (vehicle.status !== 'active' || vehicle.workshop_contact_id !== contact.id) return false;
+      const registration = normalizedEvidence(vehicle.registration);
+      return Boolean(registration) && (referenceTokens.includes(registration) || descriptionRegistration === registration);
+    }))
+    .map(contact => contact.email!.trim().toLowerCase());
+  const uniqueEmails = [...new Set(emails)];
+  return uniqueEmails.length === 1 ? uniqueEmails[0] : null;
+}
+
+function WaitingAccountCard({ item, onApproveAndInvite, owner, previewMode, snapshot }: {
+  item: VaultImportReview;
+  onApproveAndInvite?: (email: string) => void;
+  owner: boolean;
+  previewMode: boolean;
+  snapshot: StaffPortalSnapshot;
+}) {
   const details = item.identifiers;
   const name = typeof details.contactName === 'string' && details.contactName.trim() ? details.contactName.trim() : 'Customer details not yet available';
   const invoice = typeof details.invoiceNumber === 'string' && details.invoiceNumber.trim() ? details.invoiceNumber.trim() : null;
   const reference = typeof details.reference === 'string' && details.reference.trim() ? details.reference.trim() : null;
+  const inviteEmail = waitingAccountInviteEmail(item, snapshot);
   return <View style={styles.card}>
     <Text style={styles.title}>{name}</Text>
     <Text style={styles.copy}>{item.source === 'xero' ? `Xero invoice${invoice ? ` ${invoice}` : ''}` : 'Workshop file'}</Text>
     {reference ? <Text style={styles.muted}>Vehicle / job: {reference}</Text> : null}
     {typeof details.totalCents === 'number' && details.currency === 'AUD' ? <Text style={styles.muted}>{aud(details.totalCents)}{details.invoiceStatus === 'PAID' ? ' · Paid in Xero' : ''}</Text> : null}
     <Text style={styles.importStatus}>Waiting for account match</Text>
+    {owner && inviteEmail ? <>
+      <Text style={styles.muted}>Verified workshop contact: {inviteEmail}</Text>
+      <PrimaryButton disabled={previewMode || !onApproveAndInvite} label={previewMode ? 'Approve and invite customer · Preview only' : 'Approve and invite customer'} onPress={() => onApproveAndInvite?.(inviteEmail)} />
+      <Text style={styles.muted}>Review the verified email before approving PSI access.</Text>
+    </> : null}
+    {owner && !inviteEmail ? <Text style={styles.muted}>No single workshop email matches both this customer name and registration. Check the workshop contact before inviting them.</Text> : null}
   </View>;
 }
 

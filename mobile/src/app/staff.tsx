@@ -485,7 +485,7 @@ export function StaffWorkspace({
     confirmDiscard(leave);
   }, [actionBusy, confirmDiscard, dirty]);
   useStaffExitGuard({ dirty, busy: actionBusy, onConfirmLeave: confirmLeaving });
-  const navigate = useCallback((next: StaffSection, extra: Record<string, string> = {}) => {
+  const navigate = useCallback((next: StaffSection, extra: Record<string, string> = {}, afterNavigate?: () => void) => {
     confirmLeaving(() => {
       if (next !== 'bookings' || extra.bookingId !== paramValue(params.bookingId)) {
         setBookingActionId(null);
@@ -497,8 +497,17 @@ export function StaffWorkspace({
       }
       const nextBookingView = bookingViewFromParam(extra.view ?? '');
       router.setParams({ section: next, bookingId: '', customerId: '', vehicleId: '', tool: '', ...extra, view: next === 'bookings' ? resetBookingView ? nextBookingView : bookingFilter : '' });
+      afterNavigate?.();
     });
   }, [bookingFilter, confirmLeaving, params.bookingId, router, section]);
+  const openVerifiedCustomerInvitation = useCallback((email: string) => {
+    navigate('invitations', {}, () => {
+      setInvitationEmail(email.trim().toLowerCase());
+      setInvitationError('');
+      setInvitationNotice('');
+      setLatestInvitation(null);
+    });
+  }, [navigate]);
   const openPortalAlert = useCallback((event: (typeof notifications.events)[number]) => {
     void notifications.markRead(event.id).catch(() => undefined);
     if (event.deep_link === '/staff') {
@@ -794,7 +803,7 @@ export function StaffWorkspace({
           <StaffRecordWorkflow previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} vehicleId={paramValue(params.vehicleId)} onBackHandlerChange={registerRecordBack} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} />
           {!recordHasSteps ? <WorkspaceLink title="Imports & drafts" icon="file-tray-outline" onPress={() => navigate('imports')} /> : null}
         </> : null}
-        {section === 'imports' ? <StaffVaultReview owner={role === 'owner'} previewMode={previewMode} snapshot={snapshot} /> : null}
+        {section === 'imports' ? <StaffVaultReview onApproveAndInvite={openVerifiedCustomerInvitation} owner={role === 'owner'} previewMode={previewMode} snapshot={snapshot} /> : null}
         {section === 'workshop_customers' ? <StaffWorkshopCustomers contacts={snapshot.workshopContacts} customerVehicles={snapshot.vehicles} customers={snapshot.customers} onRefresh={onRefresh} owner={role === 'owner'} workshopVehicles={snapshot.workshopVehicles} /> : null}
         {section === 'access' ? role === 'owner' ? <StaffPerformanceAccess previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} /> : <EmptyState>Owner access is required.</EmptyState> : null}
         {section === 'invitations' ? role === 'owner' ? <>

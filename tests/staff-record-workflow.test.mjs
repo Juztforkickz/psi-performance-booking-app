@@ -19,6 +19,8 @@ const snapshot = {
     { id: 'vehicle-a', customer_id: 'customer-a', year: 2020, make: 'Holden', model: 'Test A', registration: 'TEST-A' },
     { id: 'vehicle-b', customer_id: 'customer-b', year: 2022, make: 'Ford', model: 'Test B', registration: 'TEST-B' },
   ],
+  workshopContacts: [],
+  workshopVehicles: [],
 };
 
 // Exercise the actual TSX exports with a small host adapter. This tests workflow
@@ -383,6 +385,52 @@ test('waiting account files are separate and show customer details instead of in
   component.press('Review & drafts');
   assert.equal(component.find('Text', node => node.props.children === 'Vince Tavete'), undefined);
   assert(component.find('Text', node => node.props.children === 'Unpublished drafts'));
+});
+
+test('waiting account action only prefills an invite from one matching workshop name and registration', async () => {
+  const invited = [];
+  const waiting = { id: 'queue-private-id', source: 'xero', source_key: 'tenant-secret:invoice-secret', status: 'waiting_for_customer', identifiers: { contactName: 'Vince Tavete', invoiceNumber: 'INV-1640', reference: 'VZ OVERHAUL TYC767', totalCents: 2586000, currency: 'AUD', invoiceStatus: 'PAID' } };
+  const client = { from(table) {
+    const query = { select: () => query, in: () => query, is: () => query, not: () => query, order: () => query, limit: async () => ({ data: table === 'vault_import_queue' ? [waiting] : [], error: null }) };
+    return query;
+  } };
+  const inviteSnapshot = {
+    ...snapshot,
+    workshopContacts: [{ id: 'contact-vince', display_name: 'Vince Tavete', email: 'VINCE@example.test', status: 'active' }],
+    workshopVehicles: [{ id: 'vehicle-vince', workshop_contact_id: 'contact-vince', registration: 'TYC767', status: 'active' }],
+  };
+  const component = mountComponent('staff-vault-publisher.tsx', 'StaffVaultReview', { snapshot: inviteSnapshot, owner: true, onApproveAndInvite: email => invited.push(email) }, {
+    '@/lib/performance-plus': { vaultClient: () => client, aud: cents => `AUD ${(cents / 100).toFixed(2)}` },
+  });
+  component.render();
+  await new Promise(resolve => setTimeout(resolve, 20));
+  component.render();
+  component.press('Waiting for account');
+  assert(component.find('Text', node => node.children.join('') === 'Verified workshop contact: vince@example.test'));
+  component.press('Approve and invite customer');
+  assert.deepEqual(invited, ['vince@example.test']);
+});
+
+test('waiting account action stays hidden when the registration does not match the workshop vehicle', async () => {
+  const waiting = { id: 'queue-private-id', source: 'xero', source_key: 'tenant-secret:invoice-secret', status: 'waiting_for_customer', identifiers: { contactName: 'Vince Tavete', invoiceNumber: 'INV-1640', reference: 'VZ OVERHAUL WRONG1' } };
+  const client = { from(table) {
+    const query = { select: () => query, in: () => query, is: () => query, not: () => query, order: () => query, limit: async () => ({ data: table === 'vault_import_queue' ? [waiting] : [], error: null }) };
+    return query;
+  } };
+  const inviteSnapshot = {
+    ...snapshot,
+    workshopContacts: [{ id: 'contact-vince', display_name: 'Vince Tavete', email: 'vince@example.test', status: 'active' }],
+    workshopVehicles: [{ id: 'vehicle-vince', workshop_contact_id: 'contact-vince', registration: 'TYC767', status: 'active' }],
+  };
+  const component = mountComponent('staff-vault-publisher.tsx', 'StaffVaultReview', { snapshot: inviteSnapshot, owner: true }, {
+    '@/lib/performance-plus': { vaultClient: () => client, aud: () => 'AUD 0.00' },
+  });
+  component.render();
+  await new Promise(resolve => setTimeout(resolve, 20));
+  component.render();
+  component.press('Waiting for account');
+  assert.equal(component.find('Button', node => node.props.label === 'Approve and invite customer'), undefined);
+  assert(component.find('Text', node => node.children.join('').includes('No single workshop email matches')));
 });
 
 test('preview complimentary access explains customer-controlled trial without a staff grant action', () => {
