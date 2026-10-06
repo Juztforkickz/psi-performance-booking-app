@@ -356,6 +356,48 @@ test('failed fresh inspection preserves the selection and cannot create a job or
   assert(component.find('Text', node => node.children.join('').includes('sent Xero sales invoice in AUD')));
 });
 
+test('review invoice can move one registration matched workshop customer to awaiting account', async () => {
+  const calls = [];
+  const workshopSnapshot = {
+    ...snapshot,
+    workshopContacts: [{ id: 'contact-mazz', display_name: 'MAREK ZAWADZKI', email: 'mazz@example.test', status: 'active' }],
+    workshopVehicles: [{ id: 'workshop-ranger', workshop_contact_id: 'contact-mazz', registration: 'BSQ453', status: 'active' }],
+  };
+  const component = mountComponent('staff-vault-publisher.tsx', 'XeroImportReviewCard', {
+    disabled: false, owner: true, snapshot: workshopSnapshot,
+    item: { id: 'queue-mazz', status: 'needs_review', reason: 'verified_customer_link_required', identifiers: { contactName: 'Mazztek Performance', invoiceNumber: 'INV-1651', invoiceDate: '2026-09-30', reference: 'RANGER SERVICE MAJOR BSQ453 ALL FILTERS' } },
+    onDone: async () => { calls.push('review'); },
+    onMovedToWaiting: async () => { calls.push('waiting'); },
+  }, {
+    '@/lib/performance-plus': { aud: () => 'AUD 0.00', vaultClient: () => ({ rpc: async (name, args) => { calls.push([name, args]); return { error: null }; } }) },
+  });
+  component.render();
+  assert(component.find('Text', node => node.children.join('') === 'Workshop customer found: MAREK ZAWADZKI · BSQ453'));
+  component.press('Move to awaiting account');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(calls[0][0], 'queue_xero_import_for_customer_account');
+  assert.equal(calls[0][1].p_queue_id, 'queue-mazz');
+  assert.equal(calls[0][1].p_workshop_contact_id, 'contact-mazz');
+  assert.equal(calls[0][1].p_workshop_vehicle_id, 'workshop-ranger');
+  assert.equal(calls[1], 'waiting');
+});
+
+test('review invoice does not offer awaiting account without one exact workshop registration match', () => {
+  const workshopSnapshot = {
+    ...snapshot,
+    workshopContacts: [{ id: 'contact-mazz', display_name: 'MAREK ZAWADZKI', email: 'mazz@example.test', status: 'active' }],
+    workshopVehicles: [{ id: 'workshop-ranger', workshop_contact_id: 'contact-mazz', registration: 'OTHER1', status: 'active' }],
+  };
+  const component = mountComponent('staff-vault-publisher.tsx', 'XeroImportReviewCard', {
+    disabled: false, owner: true, snapshot: workshopSnapshot,
+    item: { id: 'queue-mazz', status: 'needs_review', reason: 'verified_customer_link_required', identifiers: { contactName: 'Mazztek Performance', invoiceNumber: 'INV-1651', invoiceDate: '2026-09-30', reference: 'RANGER SERVICE MAJOR BSQ453 ALL FILTERS' } },
+    onDone: async () => undefined,
+  });
+  component.render();
+  assert.equal(component.find('Button', node => node.props.label === 'Move to awaiting account'), undefined);
+  assert(component.find('Text', node => node.children.join('').includes('first add the workshop customer with the matching registration')));
+});
+
 test('imports hide archived duplicate repair records in both the query and client result', () => {
   const source = readFileSync(new URL('../mobile/src/components/staff-vault-publisher.tsx', import.meta.url), 'utf8');
   assert.match(source, /\.not\('title', 'like', 'ARCHIVED DUPLICATE%'\)/u);
@@ -409,6 +451,30 @@ test('waiting account action only prefills an invite from one matching workshop 
   assert(component.find('Text', node => node.children.join('') === 'Verified workshop contact: vince@example.test'));
   component.press('Approve and invite customer');
   assert.deepEqual(invited, ['vince@example.test']);
+});
+
+test('waiting account action uses the owner verified workshop link when Xero uses a business name', async () => {
+  const invited = [];
+  const waiting = { id: 'queue-private-id', source: 'xero', source_key: 'tenant-secret:invoice-secret', status: 'waiting_for_customer', identifiers: { xeroContactName: 'Mazztek Performance', contactName: 'MAREK ZAWADZKI', invoiceNumber: 'INV-1651', reference: 'RANGER SERVICE BSQ453', verifiedWorkshopContactId: 'contact-mazz', verifiedWorkshopVehicleId: 'vehicle-mazz' } };
+  const client = { from(table) {
+    const query = { select: () => query, in: () => query, is: () => query, not: () => query, order: () => query, limit: async () => ({ data: table === 'vault_import_queue' ? [waiting] : [], error: null }) };
+    return query;
+  } };
+  const inviteSnapshot = {
+    ...snapshot,
+    workshopContacts: [{ id: 'contact-mazz', display_name: 'MAREK ZAWADZKI', email: 'MAZZ@example.test', status: 'active' }],
+    workshopVehicles: [{ id: 'vehicle-mazz', workshop_contact_id: 'contact-mazz', registration: 'BSQ453', status: 'active' }],
+  };
+  const component = mountComponent('staff-vault-publisher.tsx', 'StaffVaultReview', { snapshot: inviteSnapshot, owner: true, onApproveAndInvite: email => invited.push(email) }, {
+    '@/lib/performance-plus': { vaultClient: () => client, aud: () => 'AUD 0.00' },
+  });
+  component.render();
+  await new Promise(resolve => setTimeout(resolve, 20));
+  component.render();
+  component.press('Waiting for account');
+  assert(component.find('Text', node => node.props.children === 'Mazztek Performance'));
+  component.press('Approve and invite customer');
+  assert.deepEqual(invited, ['mazz@example.test']);
 });
 
 test('waiting account action stays hidden when the registration does not match the workshop vehicle', async () => {

@@ -54,6 +54,7 @@ type VaultDatabase = { public: { Tables: {
   confirm_xero_organisation: { Args: { p_tenant_id: string }; Returns: undefined };
   confirm_xero_import_match: { Args: { p_queue_id: string; p_customer_id: string; p_job_id: string }; Returns: undefined };
   confirm_xero_parts_only_import: { Args: { p_queue_id: string; p_customer_id: string; p_vehicle_id: string }; Returns: undefined };
+  queue_xero_import_for_customer_account: { Args: { p_queue_id: string; p_workshop_contact_id: string; p_workshop_vehicle_id: string }; Returns: Record<string, unknown> };
   ignore_xero_import: { Args: { p_queue_id: string }; Returns: undefined };
 }; Enums: Record<never, never>; CompositeTypes: Record<never, never> } };
 // Same authenticated connection and RLS boundary as the existing app.

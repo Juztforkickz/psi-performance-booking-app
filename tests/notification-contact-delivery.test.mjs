@@ -18,16 +18,17 @@ test('push delivery distinguishes roles without exposing workshop enquiry detail
     read('../supabase/functions/process-push-notifications/index.ts'),
     read('../mobile/src/lib/notifications.tsx'),
   ]);
-  assert.match(worker, /channelId: workshopAlert \? "psi-workshop" : "psi-customer"/u);
-  assert.match(worker, /title: invoiceAttentionAlert \? "PSI invoices need attention" : "PSI update received"/u);
+  assert.match(worker, /channelId: workshopAlert \? cashSoundAvailable \? PSI_WORKSHOP_CASH_CHANNEL : "psi-workshop" : "psi-customer"/u);
+  assert.match(worker, /title: invoiceAttentionAlert \? "PSI invoices need attention" : performanceSubscriptionAlert \|\| carSaleAlert(?: \|\| messageAlert)? \? event\.title : "PSI update received"/u);
   assert.match(worker, /Open Imports & drafts to review unresolved sales invoices/u);
   assert.match(worker, /workshopAlert[\s\S]*?"Open the protected workshop portal to review it\."[\s\S]*?"Open PSI to view your private update\."/u);
   assert.doesNotMatch(worker, /bookingId: event\.booking_request_id/u);
   assert.doesNotMatch(worker, /eventId: event\.id/u);
-  assert.match(worker, /sound: preference\?\.sound_enabled === false \? null : "default"/u);
+  assert.match(worker, /cashSoundAvailable = workshopAlert && device\.notification_sound === PSI_CASH_NOTIFICATION_SOUND/u);
+  assert.match(worker, /sound: preference\?\.sound_enabled === false \? null : cashSoundAvailable \? PSI_CASH_NOTIFICATION_SOUND : "default"/u);
   assert.match(provider, /setNotificationChannelAsync\('psi-workshop'/u);
   assert.match(provider, /setNotificationChannelAsync\('psi-customer'/u);
-  assert.match(provider, /pathname: '\/staff', params: \{ bookingId, section: 'bookings' \}/u);
+  assert.match(provider, /pushNotificationHref/u);
   assert.match(worker, /body\.action === "send_test_alerts"/u);
   assert.match(worker, /if \(!isAal2Staff\) return json\(\{ error: "aal2_staff_access_required" \}, 403\)/u);
   assert.match(worker, /last_error_code: "test_superseded"/u);

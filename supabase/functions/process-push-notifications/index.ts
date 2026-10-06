@@ -192,7 +192,7 @@ Deno.serve(async (request) => {
     const performanceSubscriptionAlert = event.kind === "performance_subscription_started";
     const carSaleAlert = event.kind === "car_sale_published";
     const messages = (devices as DeviceRow[]).map((device) => {
-      const cashSoundAvailable = performanceSubscriptionAlert && device.notification_sound === PSI_CASH_NOTIFICATION_SOUND;
+      const cashSoundAvailable = workshopAlert && device.notification_sound === PSI_CASH_NOTIFICATION_SOUND;
       return {
         to: device.expo_push_token,
         title: invoiceAttentionAlert ? "PSI invoices need attention" : performanceSubscriptionAlert || carSaleAlert ? event.title : "PSI update received",

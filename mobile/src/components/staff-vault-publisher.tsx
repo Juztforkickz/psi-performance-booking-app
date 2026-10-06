@@ -219,7 +219,7 @@ export function StaffVaultReview({ snapshot, owner, focusImportId = '', previewM
       </View> : null}
       <Text style={styles.title}>Imports needing review</Text>
       {!imports.some(item => item.status !== 'waiting_for_customer') ? <Text style={styles.muted}>No imports need review.</Text> : imports.filter(item => item.status !== 'waiting_for_customer').map(item => item.source === 'xero'
-        ? <XeroImportReviewCard disabled={busy} focused={item.id === focusImportId} item={item} key={item.id} onDone={review} owner={owner} snapshot={snapshot} />
+        ? <XeroImportReviewCard disabled={busy} focused={item.id === focusImportId} item={item} key={item.id} onDone={review} onMovedToWaiting={async () => { await review(); setActiveTab('waiting'); }} owner={owner} snapshot={snapshot} />
         : <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.source} · {item.source_key}</Text><Text style={styles.muted}>{item.reason}</Text></View>)}
       {imports.length === 50 ? <Text style={styles.muted}>Showing the latest 50 imports.</Text> : null}
       <Text style={styles.title}>Unpublished drafts</Text>
@@ -239,8 +239,37 @@ function normalizedEvidence(value: unknown) {
   return typeof value === 'string' ? value.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '') : '';
 }
 
+function workshopAccountMatch(item: VaultImportReview, snapshot: StaffPortalSnapshot) {
+  const details = item.identifiers;
+  const referenceTokens = typeof details.reference === 'string'
+    ? details.reference.toUpperCase().split(/[^A-Z0-9]+/g).filter(Boolean)
+    : [];
+  const descriptionRegistration = normalizedEvidence(details.descriptionRegistration);
+  const matches = snapshot.workshopVehicles
+    .filter(vehicle => {
+      if (vehicle.status !== 'active') return false;
+      const registration = normalizedEvidence(vehicle.registration);
+      return Boolean(registration) && (referenceTokens.includes(registration) || descriptionRegistration === registration);
+    })
+    .map(vehicle => ({
+      contact: snapshot.workshopContacts.find(contact => contact.id === vehicle.workshop_contact_id && contact.status === 'active'),
+      vehicle,
+    }))
+    .filter((match): match is { contact: NonNullable<typeof match.contact>; vehicle: typeof match.vehicle } => Boolean(match.contact));
+  return matches.length === 1 ? matches[0] : null;
+}
+
 function waitingAccountInviteContact(item: VaultImportReview, snapshot: StaffPortalSnapshot) {
   const details = item.identifiers;
+  const verifiedContactId = typeof details.verifiedWorkshopContactId === 'string' ? details.verifiedWorkshopContactId : '';
+  const verifiedVehicleId = typeof details.verifiedWorkshopVehicleId === 'string' ? details.verifiedWorkshopVehicleId : '';
+  if (verifiedContactId && verifiedVehicleId) {
+    const contact = snapshot.workshopContacts.find(value => value.id === verifiedContactId && value.status === 'active');
+    const vehicle = snapshot.workshopVehicles.find(value => value.id === verifiedVehicleId && value.workshop_contact_id === verifiedContactId && value.status === 'active');
+    if (contact && vehicle && typeof contact.email === 'string' && /^\S+@\S+\.\S+$/.test(contact.email.trim())) {
+      return { id: contact.id, email: contact.email.trim().toLowerCase() };
+    }
+  }
   const contactName = typeof details.contactName === 'string' ? details.contactName.trim().toUpperCase().replace(/\s+/g, ' ') : '';
   const referenceTokens = typeof details.reference === 'string'
     ? details.reference.toUpperCase().split(/[^A-Z0-9]+/g).filter(Boolean)
@@ -271,7 +300,11 @@ function WaitingAccountCard({ item, onApproveAndInvite, owner, previewMode, snap
   snapshot: StaffPortalSnapshot;
 }) {
   const details = item.identifiers;
-  const name = typeof details.contactName === 'string' && details.contactName.trim() ? details.contactName.trim() : 'Customer details not yet available';
+  const name = typeof details.xeroContactName === 'string' && details.xeroContactName.trim()
+    ? details.xeroContactName.trim()
+    : typeof details.contactName === 'string' && details.contactName.trim()
+      ? details.contactName.trim()
+      : 'Customer details not yet available';
   const invoice = typeof details.invoiceNumber === 'string' && details.invoiceNumber.trim() ? details.invoiceNumber.trim() : null;
   const reference = typeof details.reference === 'string' && details.reference.trim() ? details.reference.trim() : null;
   const inviteContact = waitingAccountInviteContact(item, snapshot);
@@ -290,7 +323,7 @@ function WaitingAccountCard({ item, onApproveAndInvite, owner, previewMode, snap
   </View>;
 }
 
-function XeroImportReviewCard({ disabled, focused, item, onDone, owner, snapshot }: { disabled: boolean; focused: boolean; item: VaultImportReview; onDone: () => Promise<void>; owner: boolean; snapshot: StaffPortalSnapshot }) {
+function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaiting, owner, snapshot }: { disabled: boolean; focused: boolean; item: VaultImportReview; onDone: () => Promise<void>; onMovedToWaiting?: () => Promise<void>; owner: boolean; snapshot: StaffPortalSnapshot }) {
   const [customerId, setCustomerId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [importType, setImportType] = useState<'workshop_job' | 'parts_only'>('workshop_job');
@@ -306,7 +339,25 @@ function XeroImportReviewCard({ disabled, focused, item, onDone, owner, snapshot
   const amountDueCents = typeof identifiers.amountDueCents === 'number' ? identifiers.amountDueCents : null;
   const contactName = typeof identifiers.contactName === 'string' ? identifiers.contactName : 'Xero contact not loaded';
   const vehicles = snapshot.vehicles.filter(vehicle => vehicle.customer_id === customerId && !vehicle.archived_at);
+  const waitingMatch = workshopAccountMatch(item, snapshot);
   const canMatch = owner && item.status === 'needs_review' && Boolean(invoiceDate && customerId && vehicleId && confirmed);
+
+  const moveToWaiting = async () => {
+    if (!owner || !waitingMatch || disabled || working || !['needs_review', 'failed'].includes(item.status)) return;
+    setWorking(true); setMessage('');
+    try {
+      const result = await vaultClient().rpc('queue_xero_import_for_customer_account', {
+        p_queue_id: item.id,
+        p_workshop_contact_id: waitingMatch.contact.id,
+        p_workshop_vehicle_id: waitingMatch.vehicle.id,
+      });
+      if (result.error) throw result.error;
+      setMessage('Saved privately while this customer completes their PSI account.');
+      await (onMovedToWaiting ?? onDone)();
+    } catch {
+      setMessage('The invoice was not moved. Reopen owner security, check the workshop customer and registration, then try again.');
+    } finally { setWorking(false); }
+  };
 
   const keepInXeroOnly = async () => {
     if (!owner || disabled || working || !['needs_review', 'failed'].includes(item.status)) return;
@@ -370,6 +421,10 @@ function XeroImportReviewCard({ disabled, focused, item, onDone, owner, snapshot
     <Text style={styles.muted}>{reviewReason(item.reason)}{item.last_error_code ? ` · ${item.last_error_code.replaceAll('_', ' ')}` : ''}</Text>
     {item.status === 'pending' || item.status === 'matched' || item.status === 'processing' ? <Text style={styles.message}>Secure inspection is queued.</Text> : null}
     {item.status === 'needs_review' && owner ? <>
+      {waitingMatch ? <>
+        <Text style={styles.message}>Workshop customer found: {waitingMatch.contact.display_name} · {waitingMatch.vehicle.registration}</Text>
+        <PrimaryButton disabled={disabled || working} loading={working} label="Move to awaiting account" onPress={() => void moveToWaiting()} variant="outline" />
+      </> : <Text style={styles.muted}>To wait for a customer account, first add the workshop customer with the matching registration.</Text>}
       <StaffScrollSelect label="Customer" value={customerId} options={customerOptions(snapshot)} searchable onChange={value => { setCustomerId(value); setVehicleId(''); setConfirmed(false); setMessage(''); }} />
       <StaffScrollSelect label="Vehicle" value={vehicleId} options={vehicles.map(vehicle => ({ value: vehicle.id, label: `${vehicle.year} ${vehicle.make} ${vehicle.model}`, sublabel: vehicle.registration }))} searchable onChange={value => { setVehicleId(value); setConfirmed(false); setMessage(''); }} />
       <View accessibilityRole="radiogroup" style={styles.choices}>
