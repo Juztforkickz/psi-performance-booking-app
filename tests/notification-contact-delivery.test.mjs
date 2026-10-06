@@ -14,9 +14,10 @@ test('booking enquiries carry contact and context into staff email', async () =>
 });
 
 test('push delivery distinguishes roles without exposing workshop enquiry details', async () => {
-  const [worker, provider] = await Promise.all([
+  const [worker, provider, cashSoundMigration] = await Promise.all([
     read('../supabase/functions/process-push-notifications/index.ts'),
     read('../mobile/src/lib/notifications.tsx'),
+    read('../supabase/migrations/20261007001544_preserve_owner_ios_cash_notification_sound.sql'),
   ]);
   assert.match(worker, /channelId: workshopAlert \? cashSoundAvailable \? PSI_WORKSHOP_CASH_CHANNEL : "psi-workshop" : "psi-customer"/u);
   assert.match(worker, /title: invoiceAttentionAlert \? "PSI invoices need attention" : performanceSubscriptionAlert \|\| carSaleAlert(?: \|\| messageAlert)? \? event\.title : "PSI update received"/u);
@@ -34,6 +35,8 @@ test('push delivery distinguishes roles without exposing workshop enquiry detail
   assert.match(worker, /last_error_code: "test_superseded"/u);
   assert.match(worker, /testJobs = createdJobs as JobRow\[\]/u);
   assert.match(provider, /body: \{ action: 'send_test_alerts' \}/u);
+  assert.match(cashSoundMigration, /lower\(email\) = 'matt@psiperformance\.com\.au'/u);
+  assert.match(cashSoundMigration, /new\.platform = 'ios'[\s\S]*?new\.notification_sound := 'psi_cash_receipt\.wav'/u);
 });
 
 test('staff portal exposes split badges, alert setup and customer contact actions', async () => {
