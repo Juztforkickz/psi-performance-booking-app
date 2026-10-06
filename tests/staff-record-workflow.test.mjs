@@ -125,6 +125,14 @@ function mountComponent(filename, exportName, props, moduleOverrides = {}) {
       selector.props.onChange(value);
       render();
     },
+    input(label, value) {
+      const field = nodes().find(node => node.type === 'Field' && node.props.label === label);
+      assert(field, `Missing field: ${label}`);
+      const input = nodes(field.children).find(node => node.type === 'Input');
+      assert(input, `Missing input: ${label}`);
+      input.props.onChangeText(value);
+      render();
+    },
   };
 }
 
@@ -382,7 +390,7 @@ test('review invoice can move one registration matched workshop customer to awai
   assert.equal(calls[1], 'waiting');
 });
 
-test('review invoice does not offer awaiting account without one exact workshop registration match', () => {
+test('review invoice offers a checked waiting account workflow without an automatic registration match', () => {
   const workshopSnapshot = {
     ...snapshot,
     workshopContacts: [{ id: 'contact-mazz', display_name: 'MAREK ZAWADZKI', email: 'mazz@example.test', status: 'active' }],
@@ -395,7 +403,60 @@ test('review invoice does not offer awaiting account without one exact workshop 
   });
   component.render();
   assert.equal(component.find('Button', node => node.props.label === 'Move to awaiting account'), undefined);
-  assert(component.find('Text', node => node.children.join('').includes('first add the workshop customer with the matching registration')));
+  assert(component.find('Button', node => node.props.label === 'Move to waiting for account'));
+});
+
+test('owner can manually send an existing workshop customer invoice to waiting', async () => {
+  const calls = [];
+  const workshopSnapshot = {
+    ...snapshot,
+    workshopContacts: [{ id: 'contact-mazz', display_name: 'MAREK ZAWADZKI', email: 'mazz@example.test', mobile: null, status: 'active' }],
+    workshopVehicles: [{ id: 'workshop-ranger', workshop_contact_id: 'contact-mazz', registration: 'BSQ453', year: 2021, make: 'FORD', model: 'RANGER', status: 'active' }],
+  };
+  const component = mountComponent('staff-vault-publisher.tsx', 'XeroImportReviewCard', {
+    disabled: false, owner: true, snapshot: workshopSnapshot,
+    item: { id: 'queue-mazz', status: 'needs_review', reason: 'verified_customer_link_required', identifiers: { contactName: 'Mazztek Performance', invoiceNumber: 'INV-1651', invoiceDate: '2026-09-30', invoiceStatus: 'PAID', reference: 'RANGER SERVICE' } },
+    onDone: async () => undefined,
+    onMovedToWaiting: async () => { calls.push('waiting'); },
+  }, {
+    '@/lib/performance-plus': { aud: () => 'AUD 0.00', vaultClient: () => ({ rpc: async (name, args) => { calls.push([name, args]); return { error: null }; } }) },
+  });
+  component.render();
+  component.press('Move to waiting for account');
+  component.select('Waiting customer', 'contact-mazz');
+  component.select('Waiting vehicle', 'workshop-ranger');
+  component.press('I checked the Xero contact and registration');
+  component.press('Move selected invoice to waiting');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(calls[0][0], 'queue_xero_import_for_customer_account_confirmed');
+  assert.equal(calls[0][1].p_workshop_vehicle_id, 'workshop-ranger');
+  assert.equal(calls[1], 'waiting');
+});
+
+test('owner can create a workshop customer while moving an invoice to waiting', async () => {
+  const calls = [];
+  const component = mountComponent('staff-vault-publisher.tsx', 'XeroImportReviewCard', {
+    disabled: false, owner: true, snapshot,
+    item: { id: 'queue-new', status: 'needs_review', reason: 'verified_customer_link_required', identifiers: { contactName: 'New Customer', invoiceNumber: 'INV-1700', invoiceDate: '2026-10-07', invoiceStatus: 'PAID', reference: 'SERVICE NEW123' } },
+    onDone: async () => undefined,
+    onMovedToWaiting: async () => { calls.push('waiting'); },
+  }, {
+    '@/lib/performance-plus': { aud: () => 'AUD 0.00', vaultClient: () => ({ rpc: async (name, args) => { calls.push([name, args]); return { error: null }; } }) },
+  });
+  component.render();
+  component.press('Move to waiting for account');
+  component.press('Customer is not listed');
+  component.input('Email', 'new@example.test');
+  component.input('Registration', 'NEW123');
+  component.input('Year', '2020');
+  component.input('Make', 'Holden');
+  component.input('Model', 'Commodore');
+  component.press('I checked these details');
+  component.press('Save customer and move invoice to waiting');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(calls[0][0], 'create_xero_waiting_customer');
+  assert.equal(calls[0][1].p_registration, 'NEW123');
+  assert.equal(calls[1], 'waiting');
 });
 
 test('imports hide archived duplicate repair records in both the query and client result', () => {
@@ -424,7 +485,7 @@ test('waiting account files are separate and show customer details instead of in
   assert.equal(component.find('Text', node => JSON.stringify(node.props.children).includes('tenant-secret')), undefined);
   assert.equal(component.find('Text', node => node.props.children === 'Unpublished drafts'), undefined);
   assert.equal(component.find('Button', node => node.props.label === 'Match and import invoice'), undefined);
-  component.press('Review & drafts');
+  component.press('Needs action');
   assert.equal(component.find('Text', node => node.props.children === 'Vince Tavete'), undefined);
   assert(component.find('Text', node => node.props.children === 'Unpublished drafts'));
 });

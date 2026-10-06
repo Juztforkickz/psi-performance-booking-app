@@ -171,6 +171,7 @@ export const STAFF_PORTAL_PREVIEW_SNAPSHOT: StaffPortalSnapshot = {
   }],
   bookings,
   bookingHolding: [],
+  vaultImports: [],
   vehicleFiles: [],
   workshopContacts: [],
   workshopVehicles: [],

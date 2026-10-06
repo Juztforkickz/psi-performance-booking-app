@@ -19,6 +19,7 @@ import { getSupabaseClient } from '@/lib/supabase';
 import { dispatchBookingPushNotifications } from '@/lib/notifications';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { isVisibleStaffCustomer } from '@/lib/staff-customer-visibility';
+import { vaultClient, type VaultImportQueue } from '@/lib/performance-plus';
 
 export type StaffPortalAccess =
   | { kind: 'access_denied' }
@@ -60,6 +61,7 @@ export type StaffPortalSnapshot = {
   deletionCustomers: CustomerProfileRow[];
   invitations: CustomerInvitationRow[];
   integrationJobs: BookingIntegrationJobRow[];
+  vaultImports: VaultImportQueue[];
   vehicleFiles: VehicleFileRow[];
   vehicles: CustomerVehicleRow[];
   workshopContacts: WorkshopContactRow[];
@@ -141,7 +143,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     };
   }
 
-  const [customersResult, deletionCustomersResult, vehiclesResult, archivedVehiclesResult, bookingsResult, bookingHoldingResult, integrationJobsResult, auditEventsResult, vehicleFilesResult, accountDeletionRequestsResult, invitationsResult, workshopContactsResult, workshopVehiclesResult] = await Promise.all([
+  const [customersResult, deletionCustomersResult, vehiclesResult, archivedVehiclesResult, bookingsResult, bookingHoldingResult, integrationJobsResult, auditEventsResult, vehicleFilesResult, accountDeletionRequestsResult, invitationsResult, workshopContactsResult, workshopVehiclesResult, vaultImportsResult] = await Promise.all([
     supabase.from('customer_profiles').select('*').eq('account_state', 'active').order('last_name').order('first_name'),
     supabase.from('customer_profiles').select('*').order('last_name').order('first_name'),
     supabase.from('customer_vehicles').select('*').is('archived_at', null).order('updated_at', { ascending: false }),
@@ -155,6 +157,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     supabase.from('customer_invitations').select('*').order('invited_at', { ascending: false }).limit(100),
     supabase.from('workshop_contacts').select('*').order('created_at', { ascending: false }).limit(200),
     supabase.from('workshop_vehicles').select('*').order('created_at', { ascending: false }).limit(500),
+    vaultClient().from('vault_import_queue').select('*').order('created_at', { ascending: false }).limit(500),
   ]);
   const firstError = customersResult.error
     ?? deletionCustomersResult.error
@@ -168,7 +171,8 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
     ?? accountDeletionRequestsResult.error
     ?? invitationsResult.error
     ?? workshopContactsResult.error
-    ?? workshopVehiclesResult.error;
+    ?? workshopVehiclesResult.error
+    ?? vaultImportsResult.error;
   if (firstError) throw firstError;
 
   return {
@@ -184,6 +188,7 @@ export async function loadStaffPortalAccess(): Promise<StaffPortalAccess> {
       customers: (customersResult.data ?? []).filter(isVisibleStaffCustomer),
       deletionCustomers: deletionCustomersResult.data ?? [],
       integrationJobs: integrationJobsResult.data ?? [],
+      vaultImports: vaultImportsResult.data ?? [],
       invitations: invitationsResult.data ?? [],
       vehicleFiles: vehicleFilesResult.data ?? [],
       vehicles: vehiclesResult.data ?? [],

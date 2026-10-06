@@ -354,7 +354,7 @@ export function StaffWorkspace({
     };
   }, [liveNotifications, previewMode, previewReadIds]);
   const portalProfilePhotoUri = useCustomerProfilePhotoUri();
-  const params = useLocalSearchParams<{ section?: string; bookingId?: string; customerId?: string; importId?: string; vehicleId?: string; tool?: string; view?: string }>();
+  const params = useLocalSearchParams<{ section?: string; bookingId?: string; customerId?: string; importId?: string; importView?: string; vehicleId?: string; tool?: string; view?: string }>();
   const section = resolveStaffSection(params.section);
   const { registerNavigationHandler } = useStaffNavigation();
   const { confirmDiscard, discardDialog } = useStaffDiscardConfirmation();
@@ -421,6 +421,11 @@ export function StaffWorkspace({
   const [integrationPeriod, setIntegrationPeriod] = useState('');
   const holdingByBooking = new Map(snapshot.bookingHolding.map(entry => [entry.booking_request_id, entry]));
   const bookingQueues = organizeStaffBookings(snapshot.bookings, snapshot.bookingHolding, holdingClock);
+  const invoiceQueues = {
+    needs: snapshot.vaultImports.filter(item => ['failed', 'needs_review'].includes(item.status)),
+    waiting: snapshot.vaultImports.filter(item => item.status === 'waiting_for_customer'),
+    imported: snapshot.vaultImports.filter(item => item.status === 'imported'),
+  };
   const waitingIntegrationJobs = snapshot.integrationJobs.filter((job) => ['blocked_configuration', 'failed', 'pending', 'processing'].includes(job.status));
   const activeWorkshopContacts = snapshot.workshopContacts.filter(contact => contact.status === 'active');
   const completedIntegrationJobs = snapshot.integrationJobs.filter((job) => ['cancelled', 'succeeded'].includes(job.status));
@@ -497,7 +502,7 @@ export function StaffWorkspace({
         setBookingSearch(''); setBookingPage(0);
       }
       const nextBookingView = bookingViewFromParam(extra.view ?? '');
-      router.setParams({ section: next, bookingId: '', customerId: '', importId: '', vehicleId: '', tool: '', ...extra, view: next === 'bookings' ? resetBookingView ? nextBookingView : bookingFilter : '' });
+      router.setParams({ section: next, bookingId: '', customerId: '', importId: '', importView: '', vehicleId: '', tool: '', ...extra, view: next === 'bookings' ? resetBookingView ? nextBookingView : bookingFilter : '' });
       afterNavigate?.();
     });
   }, [bookingFilter, confirmLeaving, params.bookingId, router, section]);
@@ -636,10 +641,19 @@ export function StaffWorkspace({
 
         {section === 'dashboard' ? <>
           <PortalAlertSummary customerCount={notifications.customerUnreadCount} onPress={() => navigate('alerts')} statusLabel={previewMode ? 'Sample workshop and account updates' : Platform.OS === 'web' ? 'Workshop and account updates' : notifications.pushStatus === 'ready' ? 'Device registered' : 'Set up alerts on this phone'} staffCount={notifications.staffUnreadCount} />
+          <Text style={styles.groupLabel}>Booking requests</Text>
+          <Text style={styles.cardCopy}>These three stages contain customer booking requests only.</Text>
           <View style={styles.dashboardMetrics}>
             <DashboardMetric label="Needs action" value={bookingQueues.needs.length} onPress={() => navigate('bookings', { view: 'needs' })} />
             <DashboardMetric label="Actioned" value={bookingQueues.actioned.length} onPress={() => navigate('bookings', { view: 'actioned' })} />
             <DashboardMetric label="Booked" value={bookingQueues.booked.length} onPress={() => navigate('bookings', { view: 'booked' })} />
+          </View>
+          <Text style={styles.groupLabel}>Invoice records</Text>
+          <Text style={styles.cardCopy}>Xero invoices are tracked separately from bookings.</Text>
+          <View style={styles.dashboardMetrics}>
+            <DashboardMetric label="Needs review" value={invoiceQueues.needs.length} onPress={() => navigate('imports', { importView: 'review' })} />
+            <DashboardMetric label="Waiting account" value={invoiceQueues.waiting.length} onPress={() => navigate('imports', { importView: 'waiting' })} />
+            <DashboardMetric label="Imported" value={invoiceQueues.imported.length} onPress={() => navigate('imports', { importView: 'imported' })} />
           </View>
           <PrimaryButton label="Add vehicle record" onPress={() => navigate('records')} />
           <WorkspaceLink title="Find customer or vehicle" detail="Search name, email or registration" icon="search-outline" onPress={() => navigate('customers')} />
@@ -816,7 +830,7 @@ export function StaffWorkspace({
           <StaffRecordWorkflow previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} vehicleId={paramValue(params.vehicleId)} onBackHandlerChange={registerRecordBack} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} />
           {!recordHasSteps ? <WorkspaceLink title="Imports & drafts" icon="file-tray-outline" onPress={() => navigate('imports')} /> : null}
         </> : null}
-        {section === 'imports' ? <StaffVaultReview focusImportId={paramValue(params.importId)} onApproveAndInvite={openVerifiedCustomerInvitation} owner={role === 'owner'} previewMode={previewMode} snapshot={snapshot} /> : null}
+        {section === 'imports' ? <StaffVaultReview focusImportId={paramValue(params.importId)} initialTab={paramValue(params.importView)} onApproveAndInvite={openVerifiedCustomerInvitation} onRefresh={onRefresh} owner={role === 'owner'} previewMode={previewMode} snapshot={snapshot} /> : null}
         {section === 'workshop_customers' ? <StaffWorkshopCustomers contacts={snapshot.workshopContacts} customerVehicles={snapshot.vehicles} customers={snapshot.customers} onInvite={openVerifiedCustomerInvitation} onRefresh={onRefresh} owner={role === 'owner'} workshopVehicles={snapshot.workshopVehicles} /> : null}
         {section === 'access' ? role === 'owner' ? <StaffPerformanceAccess previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} /> : <EmptyState>Owner access is required.</EmptyState> : null}
         {section === 'invitations' ? role === 'owner' ? <>

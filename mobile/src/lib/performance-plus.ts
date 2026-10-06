@@ -38,6 +38,11 @@ export type ServiceCompletionCandidate = {
   suggested_completed_date: string; suggested_summary: string; state: 'pending' | 'completed';
   created_at: string; updated_at: string;
 };
+export type VaultImportQueue = {
+  id: string; source: string; source_key: string; status: string; identifiers: Record<string, unknown>;
+  job_id: string | null; record_id: string | null; reason: string; attempt_count: number;
+  last_error_code: string | null; created_at: string; updated_at: string;
+};
 export type VaultOverview = { plan: 'free' | 'performance_plus'; counts: Partial<Record<ReportKind, number>>; expires_at: string | null; is_permanent: boolean; is_trial: boolean; trial_days: number };
 type Table<T> = { Row: T; Insert: Partial<T>; Update: Partial<T>; Relationships: [] };
 type VaultDatabase = { public: { Tables: {
@@ -45,7 +50,7 @@ type VaultDatabase = { public: { Tables: {
   service_completion_candidates: Table<ServiceCompletionCandidate>;
   vault_updates: Table<{ job_id: string; customer_id: string; vehicle_id: string; updated_at: string; record_count: number }>;
   vehicle_display_preferences: Table<{ vehicle_id: string; customer_id: string; illustration_id: string }>;
-  vault_import_queue: Table<{ id: string; source: string; source_key: string; status: string; identifiers: Record<string, unknown>; job_id: string | null; record_id: string | null; reason: string; attempt_count: number; last_error_code: string | null; created_at: string; updated_at: string }>;
+  vault_import_queue: Table<VaultImportQueue>;
 }; Views: Record<never, never>; Functions: {
   performance_vault_overview: { Args: { p_vehicle_id: string }; Returns: VaultOverview };
   grant_performance_beta: { Args: { p_customer_id: string; p_days: number }; Returns: undefined };
@@ -55,6 +60,8 @@ type VaultDatabase = { public: { Tables: {
   confirm_xero_import_match: { Args: { p_queue_id: string; p_customer_id: string; p_job_id: string }; Returns: undefined };
   confirm_xero_parts_only_import: { Args: { p_queue_id: string; p_customer_id: string; p_vehicle_id: string }; Returns: undefined };
   queue_xero_import_for_customer_account: { Args: { p_queue_id: string; p_workshop_contact_id: string; p_workshop_vehicle_id: string }; Returns: Record<string, unknown> };
+  queue_xero_import_for_customer_account_confirmed: { Args: { p_queue_id: string; p_workshop_contact_id: string; p_workshop_vehicle_id: string }; Returns: Record<string, unknown> };
+  create_xero_waiting_customer: { Args: { p_queue_id: string; p_display_name: string; p_email: string; p_mobile: string; p_registration: string; p_year: number; p_make: string; p_model: string }; Returns: Record<string, unknown> };
   ignore_xero_import: { Args: { p_queue_id: string }; Returns: undefined };
 }; Enums: Record<never, never>; CompositeTypes: Record<never, never> } };
 // Same authenticated connection and RLS boundary as the existing app.
