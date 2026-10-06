@@ -44,6 +44,120 @@ export type Database = {
         Update: Record<never, never>;
         Relationships: [];
       };
+      ask_psi_attachments: {
+        Row: {
+          bucket_id: 'ask-psi-media';
+          created_at: string;
+          created_by: string;
+          file_size_bytes: number;
+          height: number | null;
+          id: string;
+          message_id: string;
+          mime_type: 'image/jpeg' | 'image/png' | 'image/webp';
+          object_path: string;
+          width: number | null;
+        };
+        Insert: {
+          bucket_id?: 'ask-psi-media';
+          created_at?: string;
+          created_by: string;
+          file_size_bytes: number;
+          height?: number | null;
+          id?: string;
+          message_id: string;
+          mime_type: 'image/jpeg' | 'image/png' | 'image/webp';
+          object_path: string;
+          width?: number | null;
+        };
+        Update: Record<never, never>;
+        Relationships: [];
+      };
+      ask_psi_conversations: {
+        Row: {
+          assigned_staff_id: string | null;
+          booking_request_id: string | null;
+          closed_at: string | null;
+          created_at: string;
+          created_by: string;
+          customer_id: string;
+          customer_last_read_at: string | null;
+          id: string;
+          last_message_at: string;
+          staff_last_read_at: string | null;
+          status: 'awaiting_customer' | 'awaiting_psi' | 'closed' | 'open';
+          topic: 'booking' | 'dyno' | 'other' | 'performance_build' | 'records' | 'sell_my_car' | 'service' | 'vehicle_fault';
+          updated_at: string;
+          vehicle_id: string | null;
+        };
+        Insert: {
+          assigned_staff_id?: string | null;
+          booking_request_id?: string | null;
+          closed_at?: string | null;
+          created_at?: string;
+          created_by: string;
+          customer_id: string;
+          customer_last_read_at?: string | null;
+          id?: string;
+          last_message_at?: string;
+          staff_last_read_at?: string | null;
+          status?: 'awaiting_customer' | 'awaiting_psi' | 'closed' | 'open';
+          topic: 'booking' | 'dyno' | 'other' | 'performance_build' | 'records' | 'sell_my_car' | 'service' | 'vehicle_fault';
+          updated_at?: string;
+          vehicle_id?: string | null;
+        };
+        Update: {
+          assigned_staff_id?: string | null;
+          closed_at?: string | null;
+          status?: 'awaiting_customer' | 'awaiting_psi' | 'closed' | 'open';
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      ask_psi_email_jobs: {
+        Row: {
+          attempt_count: number;
+          available_at: string;
+          completed_at: string | null;
+          conversation_id: string;
+          created_at: string;
+          id: string;
+          last_attempt_at: string | null;
+          last_error_code: string | null;
+          message_id: string;
+          provider: 'microsoft_365';
+          provider_reference: string | null;
+          recipient_user_id: string;
+          status: 'blocked_configuration' | 'cancelled' | 'failed' | 'pending' | 'processing' | 'succeeded';
+          updated_at: string;
+        };
+        Insert: Record<never, never>;
+        Update: Record<never, never>;
+        Relationships: [];
+      };
+      ask_psi_messages: {
+        Row: {
+          body: string | null;
+          client_nonce: string | null;
+          conversation_id: string;
+          created_at: string;
+          id: string;
+          message_kind: 'photo' | 'system' | 'text';
+          sender_kind: 'assistant' | 'customer' | 'staff' | 'system';
+          sender_user_id: string | null;
+        };
+        Insert: {
+          body?: string | null;
+          client_nonce?: string | null;
+          conversation_id: string;
+          created_at?: string;
+          id?: string;
+          message_kind?: 'photo' | 'system' | 'text';
+          sender_kind: 'assistant' | 'customer' | 'staff' | 'system';
+          sender_user_id?: string | null;
+        };
+        Update: Record<never, never>;
+        Relationships: [];
+      };
       booking_integration_jobs: {
         Row: {
           attempt_count: number;
@@ -555,13 +669,14 @@ export type Database = {
       };
       notification_events: {
         Row: {
+          ask_psi_conversation_id: string | null;
           body: string;
           booking_request_id: string | null;
           car_sale_listing_id: string | null;
           created_at: string;
-          deep_link: '/booking' | '/bookings' | '/customer-cars-for-sale' | '/events' | '/staff';
+          deep_link: '/booking' | '/bookings' | '/customer-cars-for-sale' | '/events' | '/messages' | '/staff';
           id: string;
-          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'car_sale_published' | 'new_booking_request' | 'performance_subscription_started' | 'psi_event_cancelled' | 'psi_event_published' | 'psi_event_updated' | 'service_reminder' | 'xero_invoice_review';
+          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'car_sale_published' | 'customer_message_received' | 'new_booking_request' | 'performance_subscription_started' | 'psi_event_cancelled' | 'psi_event_published' | 'psi_event_updated' | 'service_reminder' | 'staff_message_received' | 'xero_invoice_review';
           psi_event_id: string | null;
           read_at: string | null;
           recipient_user_id: string;
@@ -580,6 +695,8 @@ export type Database = {
           car_sale_emails_enabled: boolean;
           created_at: string;
           event_alerts_enabled: boolean;
+          message_alerts_enabled: boolean;
+          message_email_fallback_enabled: boolean;
           sound_enabled: boolean;
           updated_at: string;
           user_id: string;
@@ -591,6 +708,8 @@ export type Database = {
           car_sale_alerts_enabled?: boolean;
           car_sale_emails_enabled?: boolean;
           event_alerts_enabled?: boolean;
+          message_alerts_enabled?: boolean;
+          message_email_fallback_enabled?: boolean;
           sound_enabled?: boolean;
           updated_at?: string;
           user_id: string;
@@ -602,6 +721,8 @@ export type Database = {
           car_sale_alerts_enabled?: boolean;
           car_sale_emails_enabled?: boolean;
           event_alerts_enabled?: boolean;
+          message_alerts_enabled?: boolean;
+          message_email_fallback_enabled?: boolean;
           sound_enabled?: boolean;
           updated_at?: string;
           workshop_alerts_enabled?: boolean;
@@ -674,6 +795,7 @@ export type Database = {
       };
       push_notification_jobs: {
         Row: {
+          ask_psi_conversation_id: string | null;
           attempt_count: number;
           available_at: string;
           booking_request_id: string | null;
@@ -929,6 +1051,37 @@ export type Database = {
       };
     };
     Functions: {
+      mark_ask_psi_conversation_read: {
+        Args: { p_conversation_id: string };
+        Returns: string;
+      };
+      open_ask_psi_conversation: {
+        Args: {
+          p_body: string;
+          p_booking_request_id: string | null;
+          p_client_nonce: string;
+          p_topic: string;
+          p_vehicle_id: string | null;
+        };
+        Returns: { conversation_id: string; message_id: string }[];
+      };
+      send_ask_psi_message: {
+        Args: {
+          p_body: string | null;
+          p_client_nonce: string;
+          p_conversation_id: string;
+          p_message_kind?: string;
+        };
+        Returns: Database['public']['Tables']['ask_psi_messages']['Row'];
+      };
+      set_ask_psi_conversation_status: {
+        Args: {
+          p_assign_to_self?: boolean;
+          p_conversation_id: string;
+          p_status: string;
+        };
+        Returns: Database['public']['Tables']['ask_psi_conversations']['Row'];
+      };
       customer_archive_vehicle: {
         Args: { p_vehicle_id: string };
         Returns: void;
@@ -948,6 +1101,10 @@ export type Database = {
 };
 
 export type AccountDeletionRequestRow = Database['public']['Tables']['account_deletion_requests']['Row'];
+export type AskPsiAttachmentRow = Database['public']['Tables']['ask_psi_attachments']['Row'];
+export type AskPsiConversationRow = Database['public']['Tables']['ask_psi_conversations']['Row'];
+export type AskPsiEmailJobRow = Database['public']['Tables']['ask_psi_email_jobs']['Row'];
+export type AskPsiMessageRow = Database['public']['Tables']['ask_psi_messages']['Row'];
 export type CustomerInvitationRow = Database['public']['Tables']['customer_invitations']['Row'];
 export type CustomerProfileRow = Database['public']['Tables']['customer_profiles']['Row'];
 export type AuditEventRow = Database['public']['Tables']['audit_events']['Row'];
@@ -962,7 +1119,8 @@ export type CarSaleEmailJobRow = Database['public']['Tables']['car_sale_email_jo
 export type CustomerCarListingRow = Database['public']['Tables']['customer_car_listings']['Row'];
 export type DynoRecordRow = Database['public']['Tables']['dyno_records']['Row'];
 export type InvoiceRow = Database['public']['Tables']['invoices']['Row'];
-export type NotificationEventRow = Omit<Database['public']['Tables']['notification_events']['Row'], 'car_sale_listing_id'> & {
+export type NotificationEventRow = Omit<Database['public']['Tables']['notification_events']['Row'], 'ask_psi_conversation_id' | 'car_sale_listing_id'> & {
+  ask_psi_conversation_id?: string | null;
   car_sale_listing_id?: string | null;
 };
 export type NotificationPreferenceRow = Database['public']['Tables']['notification_preferences']['Row'];

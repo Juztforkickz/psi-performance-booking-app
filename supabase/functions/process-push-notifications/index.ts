@@ -4,10 +4,10 @@ import { createClient } from "@supabase/supabase-js";
 const cors = { "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Origin": "*" };
 const json = (body: unknown, status = 200) => Response.json(body, { status, headers: { ...cors, "Cache-Control": "no-store" } });
 const env = (name: string) => Deno.env.get(name)?.trim() ?? "";
-type ActionBody = { action?: unknown; bookingId?: unknown; carSaleListingId?: unknown; expoPushToken?: unknown; notificationSound?: unknown; platform?: unknown };
+type ActionBody = { action?: unknown; askPsiConversationId?: unknown; bookingId?: unknown; carSaleListingId?: unknown; expoPushToken?: unknown; notificationSound?: unknown; platform?: unknown };
 type DeviceRow = { expo_push_token: string; notification_sound: string | null };
 type EventRow = { body: string; deep_link: string; id: string; kind: string; recipient_user_id: string; source_event_key: string; title: string };
-type JobRow = { attempt_count: number; booking_request_id: string | null; event_id: string; id: string; recipient_user_id: string };
+type JobRow = { ask_psi_conversation_id: string | null; attempt_count: number; booking_request_id: string | null; event_id: string; id: string; recipient_user_id: string };
 const PSI_CASH_NOTIFICATION_SOUND = "psi_cash_receipt.wav";
 const PSI_WORKSHOP_CASH_CHANNEL = "psi-workshop-cash-v1";
 
@@ -25,7 +25,8 @@ Deno.serve(async (request) => {
   try { body = await request.json(); } catch { return json({ error: "invalid_json" }, 400); }
   const bookingId = typeof body.bookingId === "string" && /^[0-9a-f-]{36}$/iu.test(body.bookingId) ? body.bookingId : null;
   const carSaleListingId = typeof body.carSaleListingId === "string" && /^[0-9a-f-]{36}$/iu.test(body.carSaleListingId) ? body.carSaleListingId : null;
-  if (bookingId && carSaleListingId) return json({ error: "invalid_notification_scope" }, 400);
+  const askPsiConversationId = typeof body.askPsiConversationId === "string" && /^[0-9a-f-]{36}$/iu.test(body.askPsiConversationId) ? body.askPsiConversationId : null;
+  if ([bookingId, carSaleListingId, askPsiConversationId].filter(Boolean).length > 1) return json({ error: "invalid_notification_scope" }, 400);
   const isInternalServiceCall = token === serviceRoleKey;
   const userClient = createClient(supabaseUrl, anonKey, { auth: { autoRefreshToken: false, persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
   let userId = "";
@@ -34,7 +35,7 @@ Deno.serve(async (request) => {
 
   if (isInternalServiceCall) {
     const dueReminderCall = body.action === "process_due_service_reminders" && Boolean(bookingId);
-    const queueWorkerCall = body.action === "process_queue" && !bookingId;
+    const queueWorkerCall = body.action === "process_queue" && !bookingId && !carSaleListingId && !askPsiConversationId;
     if (!dueReminderCall && !queueWorkerCall) return json({ error: "invalid_internal_action" }, 400);
   } else {
     const { data: userData, error: userError } = await userClient.auth.getUser(token);
@@ -122,21 +123,29 @@ Deno.serve(async (request) => {
 
     const { data: createdJobs, error: testJobError } = await admin.from("push_notification_jobs").insert(
       testEvents.map((event) => ({ event_id: event.id, booking_request_id: null, recipient_user_id: event.recipient_user_id })),
-    ).select("id,event_id,booking_request_id,recipient_user_id,attempt_count");
+    ).select("id,event_id,booking_request_id,ask_psi_conversation_id,recipient_user_id,attempt_count");
     if (testJobError || !createdJobs || createdJobs.length !== 2) return json({ error: "notification_test_unavailable" }, 500);
     testJobs = createdJobs as JobRow[];
   }
   if (bookingId && !isInternalServiceCall) {
     const { data: owned } = await userClient.from("booking_requests").select("id").eq("id", bookingId).eq("customer_id", userId).maybeSingle();
     if (!owned && !isAal2Staff) return json({ error: "booking_access_denied" }, 403);
-  } else if (!bookingId && !isAal2Staff) {
+  } else if (askPsiConversationId && !isInternalServiceCall) {
+    const { data: accessibleConversation } = await userClient
+      .from("ask_psi_conversations")
+      .select("id")
+      .eq("id", askPsiConversationId)
+      .maybeSingle();
+    if (!accessibleConversation) return json({ error: "message_access_denied" }, 403);
+  } else if (!bookingId && !askPsiConversationId && !isAal2Staff) {
     return json({ error: "aal2_staff_access_required" }, 403);
   }
 
   let jobs: JobRow[] | null = testJobs;
   if (!jobs) {
-    let jobsQuery = admin.from("push_notification_jobs").select("id,event_id,booking_request_id,recipient_user_id,attempt_count").in("status", ["pending", "failed"]).lte("available_at", new Date().toISOString()).lt("attempt_count", 20).order("created_at", { ascending: true }).limit(25);
+    let jobsQuery = admin.from("push_notification_jobs").select("id,event_id,booking_request_id,ask_psi_conversation_id,recipient_user_id,attempt_count").in("status", ["pending", "failed"]).lte("available_at", new Date().toISOString()).lt("attempt_count", 20).order("created_at", { ascending: true }).limit(25);
     if (bookingId) jobsQuery = jobsQuery.eq("booking_request_id", bookingId);
+    if (askPsiConversationId) jobsQuery = jobsQuery.eq("ask_psi_conversation_id", askPsiConversationId);
     if (carSaleListingId) {
       const { data: carSaleEvents, error: carSaleEventsError } = await admin
         .from("notification_events")
@@ -171,13 +180,15 @@ Deno.serve(async (request) => {
     const [{ data: event }, { data: devices }, { data: preference }, { count }] = await Promise.all([
       admin.from("notification_events").select("id,recipient_user_id,title,body,deep_link,kind,source_event_key").eq("id", queued.event_id).single(),
       admin.from("push_devices").select("expo_push_token,notification_sound").eq("user_id", queued.recipient_user_id).eq("enabled", true),
-      admin.from("notification_preferences").select("booking_reminders_enabled,booking_updates_enabled,car_sale_alerts_enabled,event_alerts_enabled,workshop_alerts_enabled,sound_enabled").eq("user_id", queued.recipient_user_id).maybeSingle(),
+      admin.from("notification_preferences").select("booking_reminders_enabled,booking_updates_enabled,car_sale_alerts_enabled,event_alerts_enabled,message_alerts_enabled,workshop_alerts_enabled,sound_enabled").eq("user_id", queued.recipient_user_id).maybeSingle(),
       admin.from("notification_events").select("id", { count: "exact", head: true }).eq("recipient_user_id", queued.recipient_user_id).is("read_at", null),
     ]);
     const allowed = (event as EventRow | null)?.kind === "service_reminder"
       ? preference?.booking_reminders_enabled !== false
       : (event as EventRow | null)?.kind === "car_sale_published"
         ? preference?.car_sale_alerts_enabled !== false
+      : ["customer_message_received", "staff_message_received"].includes((event as EventRow | null)?.kind ?? "")
+        ? preference?.message_alerts_enabled !== false
       : (event as EventRow | null)?.deep_link === "/staff"
       ? preference?.workshop_alerts_enabled !== false
       : (event as EventRow | null)?.deep_link === "/events"
@@ -191,20 +202,21 @@ Deno.serve(async (request) => {
     const invoiceAttentionAlert = event.kind === "xero_invoice_review";
     const performanceSubscriptionAlert = event.kind === "performance_subscription_started";
     const carSaleAlert = event.kind === "car_sale_published";
+    const messageAlert = event.kind === "customer_message_received" || event.kind === "staff_message_received";
     const messages = (devices as DeviceRow[]).map((device) => {
       const cashSoundAvailable = workshopAlert && device.notification_sound === PSI_CASH_NOTIFICATION_SOUND;
       return {
         to: device.expo_push_token,
-        title: invoiceAttentionAlert ? "PSI invoices need attention" : performanceSubscriptionAlert || carSaleAlert ? event.title : "PSI update received",
-        subtitle: workshopAlert ? "PSI workshop" : carSaleAlert ? "Customer Cars for Sale" : "Customer account",
+        title: invoiceAttentionAlert ? "PSI invoices need attention" : performanceSubscriptionAlert || carSaleAlert || messageAlert ? event.title : "PSI update received",
+        subtitle: workshopAlert ? "PSI workshop" : carSaleAlert ? "Customer Cars for Sale" : messageAlert ? "Ask PSI" : "Customer account",
         body: invoiceAttentionAlert
           ? "Open Imports & drafts to review unresolved sales invoices."
-          : performanceSubscriptionAlert || carSaleAlert
+          : performanceSubscriptionAlert || carSaleAlert || messageAlert
             ? event.body
             : workshopAlert
               ? "Open the protected workshop portal to review it."
               : "Open PSI to view your private update.",
-        data: { bookingId: queued.booking_request_id, kind: event.kind, sourceEventKey: event.source_event_key, url: event.deep_link },
+        data: { askPsiConversationId: queued.ask_psi_conversation_id, bookingId: queued.booking_request_id, kind: event.kind, sourceEventKey: event.source_event_key, url: event.deep_link },
         badge: count ?? 0,
         sound: preference?.sound_enabled === false ? null : cashSoundAvailable ? PSI_CASH_NOTIFICATION_SOUND : "default",
         channelId: workshopAlert ? cashSoundAvailable ? PSI_WORKSHOP_CASH_CHANNEL : "psi-workshop" : "psi-customer",

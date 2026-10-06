@@ -1,8 +1,35 @@
 # Stage 5, Chat bot in app
 
-Status: Parked for later. No implementation is authorised yet.
+Status: Private backend foundation in progress. Nothing is live or visible in the app or website.
 
 Recorded 4 October 2026.
+
+Backend work authorised 6 October 2026.
+
+## Current private checkpoint
+
+The local project now contains a proposed Supabase messaging foundation for review and private testing. It has not been applied to the production Supabase project and no customer or workshop screen exposes it.
+
+The foundation includes:
+
+1. Customer and vehicle linked conversations.
+2. Immutable text and photo message records.
+3. Customer and PSI read timestamps.
+4. Unread conversation state for both sides.
+5. Customer and workshop push notification jobs using the existing Expo delivery system.
+6. A private ten megabyte photo bucket with customer isolation and MFA protected staff access.
+7. A fifteen minute unread email fallback queue designed only for Microsoft 365.
+8. Automatic cancellation of the email fallback when PSI reads the message first.
+9. Account deletion coverage for private chat photos.
+10. A separate SQL acceptance test for customer isolation, staff MFA, immutable history and read state.
+
+The Microsoft 365 fallback worker is fail closed until its Microsoft Graph application credentials, sender mailbox, recipient mailbox and workshop portal URL are deliberately configured. No email provider is substituted.
+
+## Website option
+
+The same private conversation records can support an Ask PSI control on the PSI website. The safest first version requires the customer to sign in with the same PSI account before a conversation opens. This preserves the customer and vehicle link and avoids a second disconnected inbox.
+
+A public guest enquiry may be added later as a separate intake path with spam protection and limited data collection. It should not receive access to private conversation history.
 
 ## Agreed direction
 
