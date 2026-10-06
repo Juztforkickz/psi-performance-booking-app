@@ -2,11 +2,11 @@ export type StaffTab = 'dashboard' | 'bookings' | 'customers' | 'records' | 'men
 
 export const STAFF_SECTIONS = {
   dashboard: { title: 'Workshop dashboard', description: 'Your workshop at a glance.', tab: 'dashboard' },
-  alerts: { title: 'Alerts', description: 'Workshop enquiries and customer-account updates.', tab: 'dashboard' },
+  alerts: { title: 'Workshop inbox', description: 'Workshop actions and your private account updates.', tab: 'dashboard' },
   bookings: { title: 'Bookings', description: 'Review requests and complete workshop visits.', tab: 'bookings' },
   customers: { title: 'Customers', description: 'Find customer contact details and vehicles.', tab: 'customers' },
   records: { title: 'Workshop records', description: 'Publish reports and manage private vehicle files.', tab: 'records' },
-  menu: { title: 'Workspace menu', description: 'Events, connections, history and workshop settings.', tab: 'menu' },
+  menu: { title: 'More', description: 'Events, workshop systems, history and settings.', tab: 'menu' },
   events: { title: 'PSI Events', description: 'Prepare event dates and customer announcements.', tab: 'menu' },
   car_sales: { title: 'Customer cars for sale', description: 'Prepare approved vehicle listings and customer alerts.', tab: 'menu' },
   connections: { title: 'Connections', description: 'Review workshop integrations and delivery queues.', tab: 'menu' },
@@ -16,7 +16,7 @@ export const STAFF_SECTIONS = {
   deletion: { title: 'Account deletion requests', description: 'Review customer requests for account removal.', tab: 'customers' },
   access: { title: 'Customer access', description: 'Review customer access to the PSI app.', tab: 'customers' },
   workshop_customers: { title: 'Workshop-only customers', description: 'Review phone and walk-in customers and transfer verified history.', tab: 'customers' },
-  imports: { title: 'Record imports', description: 'Review the available workshop record import tools.', tab: 'records' },
+  imports: { title: 'Imports & drafts', description: 'Review Xero invoices and workshop record imports.', tab: 'records' },
 } as const satisfies Record<string, { title: string; description: string; tab: StaffTab }>;
 
 export type StaffSection = keyof typeof STAFF_SECTIONS;

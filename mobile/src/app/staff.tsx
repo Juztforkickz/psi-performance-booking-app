@@ -24,9 +24,8 @@ import { accountDeletionErrorMessage } from '@/lib/deletion-errors';
 import { bookingArchiveStartedAt, bookingNextStep, bookingViewFromParam, organizeStaffBookings, STAFF_BOOKING_VIEWS, type StaffBookingView } from '@/lib/staff-booking-queue';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
-import { useCustomerAccount } from '@/lib/customer-account-context';
-import { profileAlertLabel } from '@/lib/profile-alert-label';
 import { useNotifications } from '@/lib/notifications';
+import { notificationDestination, staffNotificationDestination } from '@/lib/notification-navigation';
 import { STAFF_PORTAL_PREVIEW_NOTIFICATIONS } from '@/lib/staff-portal-preview';
 import { StaffEventsPreview } from '@/components/staff-events-preview';
 import { resolveStaffSection, STAFF_SECTIONS, staffTabForSection, type StaffSection } from '@/lib/staff-navigation';
@@ -340,8 +339,6 @@ export function StaffWorkspace({
 }) {
   const router = useRouter();
   const liveNotifications = useNotifications();
-  const { account } = useCustomerAccount();
-  const customerAlertLabel = previewMode ? 'Matt' : profileAlertLabel(account?.profile?.first_name);
   const [previewReadIds, setPreviewReadIds] = useState<string[]>([]);
   const notifications = useMemo(() => {
     if (!previewMode) return liveNotifications;
@@ -357,7 +354,7 @@ export function StaffWorkspace({
     };
   }, [liveNotifications, previewMode, previewReadIds]);
   const portalProfilePhotoUri = useCustomerProfilePhotoUri();
-  const params = useLocalSearchParams<{ section?: string; bookingId?: string; customerId?: string; vehicleId?: string; tool?: string; view?: string }>();
+  const params = useLocalSearchParams<{ section?: string; bookingId?: string; customerId?: string; importId?: string; vehicleId?: string; tool?: string; view?: string }>();
   const section = resolveStaffSection(params.section);
   const { registerNavigationHandler } = useStaffNavigation();
   const { confirmDiscard, discardDialog } = useStaffDiscardConfirmation();
@@ -496,7 +493,7 @@ export function StaffWorkspace({
         setBookingSearch(''); setBookingPage(0);
       }
       const nextBookingView = bookingViewFromParam(extra.view ?? '');
-      router.setParams({ section: next, bookingId: '', customerId: '', vehicleId: '', tool: '', ...extra, view: next === 'bookings' ? resetBookingView ? nextBookingView : bookingFilter : '' });
+      router.setParams({ section: next, bookingId: '', customerId: '', importId: '', vehicleId: '', tool: '', ...extra, view: next === 'bookings' ? resetBookingView ? nextBookingView : bookingFilter : '' });
       afterNavigate?.();
     });
   }, [bookingFilter, confirmLeaving, params.bookingId, router, section]);
@@ -510,8 +507,9 @@ export function StaffWorkspace({
   }, [navigate]);
   const openPortalAlert = useCallback((event: (typeof notifications.events)[number]) => {
     void notifications.markRead(event.id).catch(() => undefined);
-    if (event.deep_link === '/staff') {
-      navigate('bookings', event.booking_request_id ? { bookingId: event.booking_request_id } : { view: 'review' });
+    const staffDestination = staffNotificationDestination(event);
+    if (staffDestination) {
+      navigate(staffDestination.section, staffDestination.params);
     } else if (previewMode) {
       navigate(event.deep_link === '/events' ? 'events' : 'bookings', event.booking_request_id ? { bookingId: event.booking_request_id } : {});
     } else if (event.deep_link === '/events') {
@@ -531,7 +529,7 @@ export function StaffWorkspace({
     else navigate('dashboard');
   }, [bookingFilter, connectionTool, hasSelectedBooking, navigate, params.customerId, section]);
   useFocusEffect(useCallback(() => registerNavigationHandler(navigate), [navigate, registerNavigationHandler]));
-  useEffect(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [section, params.bookingId, params.customerId, params.tool, bookingPage, customerPage, auditPage, deletionPage, alertPage]);
+  useEffect(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [section, params.bookingId, params.customerId, params.importId, params.tool, bookingPage, customerPage, auditPage, deletionPage, alertPage]);
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -622,7 +620,7 @@ export function StaffWorkspace({
         {actionNotice ? <Text accessibilityRole="alert" style={styles.cardMeta}>{actionNotice}</Text> : null}
 
         {section === 'dashboard' ? <>
-          <PortalAlertSummary customerLabel={customerAlertLabel} customerCount={notifications.customerUnreadCount} onPress={() => navigate('alerts')} statusLabel={previewMode ? 'Sample workshop and account updates' : Platform.OS === 'web' ? 'Workshop and account updates' : notifications.pushStatus === 'ready' ? 'Device registered' : 'Set up alerts on this phone'} staffCount={notifications.staffUnreadCount} />
+          <PortalAlertSummary customerCount={notifications.customerUnreadCount} onPress={() => navigate('alerts')} statusLabel={previewMode ? 'Sample workshop and account updates' : Platform.OS === 'web' ? 'Workshop and account updates' : notifications.pushStatus === 'ready' ? 'Device registered' : 'Set up alerts on this phone'} staffCount={notifications.staffUnreadCount} />
           <View style={styles.dashboardMetrics}>
             <DashboardMetric label="Needs action" value={bookingQueues.needs.length} onPress={() => navigate('bookings', { view: 'needs' })} />
             <DashboardMetric label="Actioned" value={bookingQueues.actioned.length} onPress={() => navigate('bookings', { view: 'actioned' })} />
@@ -654,7 +652,7 @@ export function StaffWorkspace({
               .catch((error) => setActionNotice(portalNotificationError(error)))
               .finally(() => setNotificationSaving(false));
           }} /> : null}
-          <View accessibilityRole="tablist" accessibilityLabel="Alert inbox" style={styles.filterRow}>{(['workshop', 'customer'] as const).map(inbox => <Pressable key={inbox} accessibilityRole="tab" accessibilityState={{ selected: alertRole === inbox }} accessibilityLabel={inbox === 'workshop' ? `PSI workshop alerts, ${notifications.staffUnreadCount} unread` : `${customerAlertLabel} customer alerts, ${notifications.customerUnreadCount} unread`} onPress={() => { setAlertRole(inbox); setAlertPage(0); }} style={[styles.filterButton, styles.alertInboxTab, alertRole === inbox && styles.filterSelected]}><AlertCountBadge color={inbox === 'workshop' ? '#2D9CDB' : '#D92D20'} label={inbox === 'workshop' ? 'PSI' : customerAlertLabel} value={inbox === 'workshop' ? notifications.staffUnreadCount : notifications.customerUnreadCount} compact /></Pressable>)}</View>
+          <View accessibilityRole="tablist" accessibilityLabel="Alert inbox" style={styles.filterRow}>{(['workshop', 'customer'] as const).map(inbox => <Pressable key={inbox} accessibilityRole="tab" accessibilityState={{ selected: alertRole === inbox }} accessibilityLabel={inbox === 'workshop' ? `Workshop alerts, ${notifications.staffUnreadCount} unread` : `My account alerts, ${notifications.customerUnreadCount} unread`} onPress={() => { setAlertRole(inbox); setAlertPage(0); }} style={[styles.filterButton, styles.alertInboxTab, alertRole === inbox && styles.filterSelected]}><AlertCountBadge color={inbox === 'workshop' ? '#2D9CDB' : '#D92D20'} label={inbox === 'workshop' ? 'Workshop' : 'My account'} value={inbox === 'workshop' ? notifications.staffUnreadCount : notifications.customerUnreadCount} compact /></Pressable>)}</View>
           <View style={styles.sectionHeadingRow}>
             <Text style={styles.cardCopy}>{filteredAlerts.length} unread</Text>
             {filteredAlerts.length ? <Pressable accessibilityRole="button" style={styles.inlineAction} onPress={() => void Promise.all(filteredAlerts.map(event => notifications.markRead(event.id))).catch(() => setActionNotice('Could not update read status. Please try again.'))}><Text style={styles.inlineActionText}>Mark inbox read</Text></Pressable> : null}
@@ -803,7 +801,7 @@ export function StaffWorkspace({
           <StaffRecordWorkflow previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} vehicleId={paramValue(params.vehicleId)} onBackHandlerChange={registerRecordBack} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} />
           {!recordHasSteps ? <WorkspaceLink title="Imports & drafts" icon="file-tray-outline" onPress={() => navigate('imports')} /> : null}
         </> : null}
-        {section === 'imports' ? <StaffVaultReview onApproveAndInvite={openVerifiedCustomerInvitation} owner={role === 'owner'} previewMode={previewMode} snapshot={snapshot} /> : null}
+        {section === 'imports' ? <StaffVaultReview focusImportId={paramValue(params.importId)} onApproveAndInvite={openVerifiedCustomerInvitation} owner={role === 'owner'} previewMode={previewMode} snapshot={snapshot} /> : null}
         {section === 'workshop_customers' ? <StaffWorkshopCustomers contacts={snapshot.workshopContacts} customerVehicles={snapshot.vehicles} customers={snapshot.customers} onRefresh={onRefresh} owner={role === 'owner'} workshopVehicles={snapshot.workshopVehicles} /> : null}
         {section === 'access' ? role === 'owner' ? <StaffPerformanceAccess previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} /> : <EmptyState>Owner access is required.</EmptyState> : null}
         {section === 'invitations' ? role === 'owner' ? <>
@@ -908,12 +906,16 @@ export function StaffWorkspace({
         {section === 'car_sales' ? previewMode ? <EmptyState>Car sale publishing is disabled in the review preview.</EmptyState> : <StaffCarSalesManager onDirtyChange={setCarSaleDirty} onBusyChange={setCarSaleBusy} /> : null}
 
         {section === 'menu' ? <>
+          <Text style={styles.groupLabel}>Customer updates</Text>
           <WorkspaceLink title="PSI events" detail="Upcoming events and customer announcements" icon="flag-outline" onPress={() => navigate('events')} />
           <WorkspaceLink title="Customer cars for sale" detail="Create listings and notify customers" icon="car-sport-outline" onPress={() => navigate('car_sales')} />
+          <Text style={styles.groupLabel}>Workshop systems</Text>
+          <WorkspaceLink title="Imports & drafts" detail="Review Xero invoices and record imports" icon="file-tray-outline" onPress={() => navigate('imports')} />
           <WorkspaceLink title="Connections" detail="Xero, payments, email and Calendar" icon="link-outline" onPress={() => navigate('connections')} />
           <WorkspaceLink title="Activity history" icon="time-outline" onPress={() => navigate('history')} />
-          <WorkspaceLink title="Return to customer app" icon="phone-portrait-outline" onPress={() => confirmLeaving(() => router.replace('/'))} />
+          <Text style={styles.groupLabel}>Account</Text>
           <WorkspaceLink title="Settings" detail="Account and authenticator security" icon="settings-outline" onPress={() => navigate('settings')} />
+          <WorkspaceLink title="Return to customer app" icon="phone-portrait-outline" onPress={() => confirmLeaving(() => router.replace('/'))} />
         </> : null}
 
         {section === 'connections' ? !connectionTool ? <>
@@ -1096,11 +1098,11 @@ function DashboardMetric({ label, value, onPress }: { label: string; value: numb
   return <Pressable accessibilityRole="button" accessibilityLabel={`${value} ${label}`} style={[styles.dashboardMetric, largeText && styles.metricStacked]} onPress={onPress}><Text style={styles.dashboardValue}>{value}</Text><Text style={styles.linkDetail}>{label}</Text></Pressable>;
 }
 
-function PortalAlertSummary({ customerCount, customerLabel, onPress, statusLabel, staffCount }: { customerCount: number; customerLabel: string; onPress: () => void; statusLabel: string; staffCount: number }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={`Alerts. PSI: ${staffCount} unread. ${customerLabel}: ${customerCount} unread.`} onPress={onPress} style={({ pressed }) => [styles.alertSummary, pressed && styles.pressed]}>
+function PortalAlertSummary({ customerCount, onPress, statusLabel, staffCount }: { customerCount: number; onPress: () => void; statusLabel: string; staffCount: number }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Workshop inbox. Workshop: ${staffCount} unread. My account: ${customerCount} unread.`} onPress={onPress} style={({ pressed }) => [styles.alertSummary, pressed && styles.pressed]}>
     <View style={styles.alertSummaryIcon}><Ionicons color={colors.accent} name="notifications-outline" size={22} /></View>
-    <View style={styles.flex}><Text style={styles.cardTitle}>Alerts</Text><Text style={styles.linkDetail}>{statusLabel}</Text></View>
-    <View style={styles.alertSummaryCounts}><AlertCountBadge color="#2D9CDB" label="PSI" value={staffCount} compact /><AlertCountBadge color="#D92D20" label={customerLabel} value={customerCount} compact /></View>
+    <View style={styles.flex}><Text style={styles.cardTitle}>Workshop inbox</Text><Text style={styles.linkDetail}>{statusLabel}</Text></View>
+    <View style={styles.alertSummaryCounts}><AlertCountBadge color="#2D9CDB" label="Workshop" value={staffCount} compact /><AlertCountBadge color="#D92D20" label="My account" value={customerCount} compact /></View>
     <Ionicons color={colors.accent} name="chevron-forward" size={19} />
   </Pressable>;
 }
@@ -1110,7 +1112,8 @@ function AlertCountBadge({ color, compact = false, label, value }: { color: stri
 }
 
 function PortalAlertRow({ color, event, onPress }: { color: string; event: (ReturnType<typeof useNotifications>)['events'][number]; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.portalAlertRow, { borderLeftColor: color }, pressed && styles.pressed]}><View style={styles.flex}><Text style={styles.portalAlertTitle}>{event.title}</Text><Text numberOfLines={2} style={styles.cardCopy}>{event.body}</Text><Text style={styles.cardMeta}>{formatAustralianDateTime(event.created_at, true)}</Text></View><Ionicons color={color} name="chevron-forward" size={18} /></Pressable>;
+  const destination = notificationDestination(event);
+  return <Pressable accessibilityHint={destination.label} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.portalAlertRow, { borderLeftColor: color }, pressed && styles.pressed]}><View style={styles.flex}><Text style={styles.portalAlertTitle}>{event.title}</Text><Text numberOfLines={2} style={styles.cardCopy}>{event.body}</Text><Text style={[styles.cardMeta, { color }]}>{destination.label}</Text><Text style={styles.cardMeta}>{formatAustralianDateTime(event.created_at, true)}</Text></View><Ionicons color={color} name="chevron-forward" size={18} /></Pressable>;
 }
 
 function ContactAction({ icon, label, onPress, disabled = false }: { icon: ComponentProps<typeof Ionicons>['name']; label: string; onPress: () => void; disabled?: boolean }) {

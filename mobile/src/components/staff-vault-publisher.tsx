@@ -149,9 +149,10 @@ type VaultImportReview = {
   last_error_code: string | null;
 };
 
-export function StaffVaultReview({ snapshot, owner, previewMode = false, onApproveAndInvite }: {
+export function StaffVaultReview({ snapshot, owner, focusImportId = '', previewMode = false, onApproveAndInvite }: {
   snapshot: StaffPortalSnapshot;
   owner: boolean;
+  focusImportId?: string;
   previewMode?: boolean;
   onApproveAndInvite?: (email: string) => void;
 }) {
@@ -171,12 +172,19 @@ export function StaffVaultReview({ snapshot, owner, previewMode = false, onAppro
         vaultClient().from('vault_records').select('id,title,created_at').is('published_at', null).not('title', 'like', 'ARCHIVED DUPLICATE%').order('created_at', { ascending: false }).limit(50),
       ]);
       if (queue.error || records.error) throw queue.error ?? records.error;
-      setImports(queue.data ?? []);
-      setDrafts((records.data ?? []).filter(record => !record.title.toUpperCase().startsWith('ARCHIVED DUPLICATE')));
+      let queueItems = (queue.data ?? []) as VaultImportReview[];
+      if (focusImportId && !queueItems.some(item => item.id === focusImportId)) {
+        const focused = await vaultClient().from('vault_import_queue').select('id,reason,source,source_key,status,identifiers,attempt_count,last_error_code').eq('id', focusImportId).maybeSingle();
+        if (focused.error) throw focused.error;
+        if (focused.data) queueItems = [focused.data, ...queueItems];
+      }
+      if (focusImportId) queueItems = queueItems.slice().sort((left, right) => Number(right.id === focusImportId) - Number(left.id === focusImportId));
+      setImports(queueItems);
+      setDrafts(((records.data ?? []) as { id: string; title: string; created_at: string }[]).filter(record => !record.title.toUpperCase().startsWith('ARCHIVED DUPLICATE')));
       setLoaded(true);
     } catch { setError('Imports and drafts could not be loaded. Check your staff session and try again.'); }
     finally { setBusy(false); }
-  }, [previewMode]);
+  }, [focusImportId, previewMode]);
   const processXero = async () => {
     if (previewMode || busy || !owner) return;
     setBusy(true); setError('');
@@ -209,7 +217,7 @@ export function StaffVaultReview({ snapshot, owner, previewMode = false, onAppro
       </View> : null}
       <Text style={styles.title}>Imports needing review</Text>
       {!imports.some(item => item.status !== 'waiting_for_customer') ? <Text style={styles.muted}>No imports need review.</Text> : imports.filter(item => item.status !== 'waiting_for_customer').map(item => item.source === 'xero'
-        ? <XeroImportReviewCard disabled={busy} item={item} key={item.id} onDone={review} owner={owner} snapshot={snapshot} />
+        ? <XeroImportReviewCard disabled={busy} focused={item.id === focusImportId} item={item} key={item.id} onDone={review} owner={owner} snapshot={snapshot} />
         : <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.source} · {item.source_key}</Text><Text style={styles.muted}>{item.reason}</Text></View>)}
       {imports.length === 50 ? <Text style={styles.muted}>Showing the latest 50 imports.</Text> : null}
       <Text style={styles.title}>Unpublished drafts</Text>
@@ -280,7 +288,7 @@ function WaitingAccountCard({ item, onApproveAndInvite, owner, previewMode, snap
   </View>;
 }
 
-function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { disabled: boolean; item: VaultImportReview; onDone: () => Promise<void>; owner: boolean; snapshot: StaffPortalSnapshot }) {
+function XeroImportReviewCard({ disabled, focused, item, onDone, owner, snapshot }: { disabled: boolean; focused: boolean; item: VaultImportReview; onDone: () => Promise<void>; owner: boolean; snapshot: StaffPortalSnapshot }) {
   const [customerId, setCustomerId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [importType, setImportType] = useState<'workshop_job' | 'parts_only'>('workshop_job');
@@ -350,7 +358,8 @@ function XeroImportReviewCard({ disabled, item, onDone, owner, snapshot }: { dis
     finally { setWorking(false); }
   };
 
-  return <View style={styles.card}>
+  return <View style={[styles.card, focused && styles.focusedImportCard]}>
+    {focused ? <Text style={styles.importStatus}>Opened from workshop alert</Text> : null}
     <View style={styles.importHeading}><Text style={styles.copy}>Xero invoice · {invoiceNumber}</Text><Text style={styles.importStatus}>{item.status.replaceAll('_', ' ')}</Text></View>
     <Text style={styles.muted}>{contactName}{invoiceDate ? ` · ${invoiceDate}` : ''}{totalCents !== null ? ` · ${aud(totalCents)}` : ''}</Text>
     {invoiceStatus ? <Text style={styles.importStatus}>Xero · {invoiceStatus}{amountDueCents !== null ? ` · ${aud(amountDueCents)} due` : ''}</Text> : null}
@@ -417,6 +426,7 @@ const styles = StyleSheet.create({
   reviewTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   reviewTab: { flexGrow: 1, flexBasis: 140, minHeight: 48, borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: spacing.sm, justifyContent: 'center' },
   card: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: colors.panel, padding: spacing.md, gap: spacing.md },
+  focusedImportCard: { borderColor: colors.accent, borderWidth: 2 },
   reviewAlert: { borderWidth: 1, borderColor: colors.danger, borderLeftWidth: 4, borderRadius: 12, backgroundColor: colors.panel, padding: spacing.md, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   reviewAlertCopy: { flex: 1, minWidth: 0, gap: 3 },
   reviewAlertTitle: { color: colors.danger, fontSize: 15, lineHeight: 21, fontWeight: '900' },

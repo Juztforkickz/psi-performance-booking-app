@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
-import { type Href, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import {
   createContext,
   type PropsWithChildren,
@@ -18,6 +18,7 @@ import { AppState, Platform } from 'react-native';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import type { NotificationEventRow, NotificationPreferenceRow } from '@/lib/database.types';
 import { createNotificationRequestScope, createNotificationResponseTracker } from '@/lib/notification-lifecycle';
+import { pushNotificationHref } from '@/lib/notification-navigation';
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
 import { appModeRuntime, environmentStorageKey, REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
@@ -98,14 +99,6 @@ function pushPermissionStatus(permission: Notifications.NotificationPermissionsS
 
 function pushIsRegistered(status: PushStatus) {
   return status === 'ready' || status === 'settings_required';
-}
-
-function responseHref(data: Record<string, unknown> | undefined): Href | null {
-  const url = data?.url;
-  const bookingId = typeof data?.bookingId === 'string' ? data.bookingId : '';
-  if (url === '/staff') return bookingId ? { pathname: '/staff', params: { bookingId, section: 'bookings' } } : { pathname: '/staff', params: { section: 'alerts' } };
-  if (url === '/booking' || url === '/bookings' || url === '/customer-cars-for-sale' || url === '/events') return url;
-  return null;
 }
 
 if (Platform.OS !== 'web') {
@@ -241,7 +234,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     const received = Notifications.addNotificationReceivedListener(() => { void refresh().catch(() => undefined); });
     const handleResponse = (response: Notifications.NotificationResponse | null) => {
       if (!active || !response || !responseTracker.consume(response.notification.request.identifier, response.actionIdentifier)) return;
-      const href = responseHref(response.notification.request.content.data);
+      const href = pushNotificationHref(response.notification.request.content.data);
       if (href) router.push(href);
       void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
       void refresh().catch(() => undefined);

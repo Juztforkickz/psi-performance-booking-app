@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { type Href, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   Image,
@@ -23,6 +23,7 @@ import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import type { NotificationEventRow } from '@/lib/database.types';
+import { notificationDestination } from '@/lib/notification-navigation';
 import { sendTestPushNotifications, useNotifications } from '@/lib/notifications';
 import { profileAlertLabel } from '@/lib/profile-alert-label';
 import { ThemePreference, useThemePreference } from '@/lib/theme-preference';
@@ -219,7 +220,7 @@ export default function AlertsScreen() {
               ? currentSecureEvents.length
                 ? currentSecureEvents.map((event) => <SecureAlertCard event={event} key={event.id} onPress={() => {
                   void notifications.markRead(event.id);
-                  router.push(notificationHref(event));
+                  router.push(notificationDestination(event).href);
                 }} />)
                 : <View style={styles.emptyState}><Text style={styles.bodyCopy}>{notifications.events.length ? 'You’re up to date. Read notifications are in the 30-day archive below.' : 'No notifications yet.'}</Text></View>
               : <View style={styles.emptyState}><Text style={styles.bodyCopy}>Sign in through Account to see your notifications.</Text></View>
@@ -246,7 +247,7 @@ export default function AlertsScreen() {
             {archiveOpen ? (
               <View style={styles.alertList}>
                 {archiveCount === 0 ? <Text style={styles.archiveEmpty}>No read notifications are currently archived.</Text> : privateMode
-                  ? archivedSecureEvents.map((event) => <SecureAlertCard event={event} key={event.id} onPress={() => router.push(notificationHref(event))} />)
+                  ? archivedSecureEvents.map((event) => <SecureAlertCard event={event} key={event.id} onPress={() => router.push(notificationDestination(event).href)} />)
                   : archivedPreviewAlerts.map((alert) => <AlertCard alert={alert} key={alert.id} onPress={() => undefined} read />)}
               </View>
             ) : null}
@@ -431,9 +432,10 @@ function SecureAlertCard({ event, onPress }: { event: NotificationEventRow; onPr
   const eventNotification = event.deep_link === '/events';
   const carSaleNotification = event.deep_link === '/customer-cars-for-sale';
   const roleColor = staffNotification ? WORKSHOP_ALERT_COLOR : CUSTOMER_ALERT_COLOR;
+  const destination = notificationDestination(event);
   return (
     <Pressable
-      accessibilityHint={`Marks this notification as read and opens ${carSaleNotification ? 'Customer Cars for Sale' : eventNotification ? 'PSI Events' : staffNotification ? 'the staff portal' : 'Bookings'}`}
+      accessibilityHint={`Marks this notification as read. ${destination.label}.`}
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.alertCard, !read && styles.alertCardUnread, { borderLeftColor: roleColor, borderLeftWidth: 4 }, pressed && styles.pressed]}
@@ -454,18 +456,11 @@ function SecureAlertCard({ event, onPress }: { event: NotificationEventRow; onPr
         </View>
         <Text style={styles.alertTitle}>{event.title}</Text>
         <Text style={styles.bodyCopy}>{event.body}</Text>
+        <Text style={[styles.eventDate, { color: roleColor }]}>{destination.label}</Text>
         <Text style={styles.eventDate}>{formatAustralianDateTime(event.created_at, true)}</Text>
       </View>
     </Pressable>
   );
-}
-
-function notificationHref(event: NotificationEventRow): Href {
-  if (event.deep_link === '/staff') return event.booking_request_id
-    ? { pathname: '/staff', params: { section: 'bookings', bookingId: event.booking_request_id } }
-    : { pathname: '/staff', params: { section: 'bookings', view: 'review' } };
-  if (event.deep_link === '/customer-cars-for-sale') return '/customer-cars-for-sale';
-  return event.deep_link === '/events' ? '/events' : '/bookings';
 }
 
 function PreferenceRow({

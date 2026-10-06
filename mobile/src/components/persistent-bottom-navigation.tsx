@@ -74,7 +74,7 @@ const STAFF_NAVIGATION_ITEMS: readonly {
   { accessibilityLabel: 'Staff bookings', activeIcon: 'calendar', inactiveIcon: 'calendar-outline', label: 'Bookings', section: 'bookings' },
   { accessibilityLabel: 'Staff customers', activeIcon: 'people', inactiveIcon: 'people-outline', label: 'Customers', section: 'customers' },
   { accessibilityLabel: 'Staff records', activeIcon: 'document-text', inactiveIcon: 'document-text-outline', label: 'Records', section: 'records' },
-  { accessibilityLabel: 'Staff workspace menu', activeIcon: 'menu', inactiveIcon: 'menu-outline', label: 'Menu', section: 'menu' },
+  { accessibilityLabel: 'More workshop tools', activeIcon: 'menu', inactiveIcon: 'menu-outline', label: 'More', section: 'menu' },
 ];
 
 export function PersistentBottomNavigation() {

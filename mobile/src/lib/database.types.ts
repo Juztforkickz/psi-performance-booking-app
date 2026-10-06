@@ -546,7 +546,7 @@ export type Database = {
           created_at: string;
           deep_link: '/booking' | '/bookings' | '/customer-cars-for-sale' | '/events' | '/staff';
           id: string;
-          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'car_sale_published' | 'new_booking_request' | 'psi_event_cancelled' | 'psi_event_published' | 'psi_event_updated' | 'service_reminder' | 'xero_invoice_review';
+          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'car_sale_published' | 'new_booking_request' | 'performance_subscription_started' | 'psi_event_cancelled' | 'psi_event_published' | 'psi_event_updated' | 'service_reminder' | 'xero_invoice_review';
           psi_event_id: string | null;
           read_at: string | null;
           recipient_user_id: string;
