@@ -12,7 +12,7 @@ export const STAFF_SECTIONS = {
   connections: { title: 'Connections', description: 'Review workshop integrations and delivery queues.', tab: 'menu' },
   history: { title: 'Activity history', description: 'Review protected workshop activity.', tab: 'menu' },
   settings: { title: 'Workspace settings', description: 'Manage account and authenticator security.', tab: 'menu' },
-  invitations: { title: 'Customer invitations', description: 'Approve customer access and review invitations.', tab: 'customers' },
+  invitations: { title: 'Customer invitations', description: 'Send app download invitations and track customer setup.', tab: 'customers' },
   deletion: { title: 'Account deletion requests', description: 'Review customer requests for account removal.', tab: 'customers' },
   access: { title: 'Customer access', description: 'Review customer access to the PSI app.', tab: 'customers' },
   workshop_customers: { title: 'Workshop-only customers', description: 'Review phone and walk-in customers and transfer verified history.', tab: 'customers' },

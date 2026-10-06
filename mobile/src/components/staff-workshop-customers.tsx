@@ -21,6 +21,7 @@ export function StaffWorkshopCustomers({
   contacts,
   customerVehicles,
   customers,
+  onInvite,
   onRefresh,
   owner,
   workshopVehicles,
@@ -28,6 +29,7 @@ export function StaffWorkshopCustomers({
   contacts: WorkshopContactRow[];
   customerVehicles: CustomerVehicleRow[];
   customers: CustomerProfileRow[];
+  onInvite?: (email: string, workshopContactId: string) => void;
   onRefresh: () => void;
   owner: boolean;
   workshopVehicles: WorkshopVehicleRow[];
@@ -89,6 +91,8 @@ export function StaffWorkshopCustomers({
             <Text style={styles.title}>{contact.display_name}</Text>
             <Text selectable style={styles.copy}>{contact.email || 'No email'} · {contact.mobile || 'No mobile'}</Text>
             {vehicles.map(vehicle => <Text key={vehicle.id} style={styles.vehicle}>{vehicle.year} {vehicle.make} {vehicle.model} · {vehicle.registration}</Text>)}
+            {owner && contact.email ? <PrimaryButton disabled={Boolean(workingId)} label="Invite to the PSI app" onPress={() => onInvite?.(contact.email!, contact.id)} /> : null}
+            {owner && !contact.email ? <Text style={styles.copy}>Add a verified email before sending an app invitation.</Text> : null}
             <Text style={styles.kicker}>{matches.length ? `${matches.length} possible app match${matches.length === 1 ? '' : 'es'} — owner review required` : 'No automatic app-account match yet'}</Text>
             {matches.map(match => (
               <View key={match.customer.user_id} style={styles.match}>

@@ -413,6 +413,7 @@ export function StaffWorkspace({
   const [invitationError, setInvitationError] = useState('');
   const [invitationNotice, setInvitationNotice] = useState('');
   const [latestInvitation, setLatestInvitation] = useState<CustomerInvitationResult['invitation'] | null>(null);
+  const [selectedInvitationContactId, setSelectedInvitationContactId] = useState('');
   const [vehiclePhotoUris, setVehiclePhotoUris] = useState<Record<string, string>>({});
   const [auditPeriod, setAuditPeriod] = useState('');
   const [integrationHistoryOpen, setIntegrationHistoryOpen] = useState(false);
@@ -436,6 +437,9 @@ export function StaffWorkspace({
     .slice()
     .sort((left, right) => invitationCustomerLabel(left.email, snapshot.customers).localeCompare(invitationCustomerLabel(right.email, snapshot.customers), 'en-AU'));
   const matchingInvitations = visibleInvitations.filter(invitation => matchesSearch(`${invitationCustomerLabel(invitation.email, snapshot.customers)} ${invitation.email}`, invitationSearch));
+  const awaitingInvitations = matchingInvitations.filter(invitation => invitation.status === 'pending_profile');
+  const readyInvitations = matchingInvitations.filter(invitation => invitation.status === 'profile_complete');
+  const selectedInvitationContact = activeWorkshopContacts.find(contact => contact.id === selectedInvitationContactId);
   const vehiclesByCustomer = useMemo(() => {
     const grouped = new Map<string, StaffPortalSnapshot['vehicles']>();
     snapshot.vehicles.forEach((vehicle) => grouped.set(vehicle.customer_id, [...(grouped.get(vehicle.customer_id) ?? []), vehicle]));
@@ -477,7 +481,7 @@ export function StaffWorkspace({
       setActionNotice('Please wait for the current action to finish.');
       return;
     }
-    const leave = () => { setRecordDirty(false); setBookingDirty(false); setCompletionDirty(false); setEventDirty(false); setCarSaleDirty(false); setInvitationEmail(''); setDeletionDrafts({}); setActionNotice(''); action(); };
+    const leave = () => { setRecordDirty(false); setBookingDirty(false); setCompletionDirty(false); setEventDirty(false); setCarSaleDirty(false); setInvitationEmail(''); setSelectedInvitationContactId(''); setDeletionDrafts({}); setActionNotice(''); action(); };
     if (!dirty) { leave(); return; }
     confirmDiscard(leave);
   }, [actionBusy, confirmDiscard, dirty]);
@@ -497,9 +501,10 @@ export function StaffWorkspace({
       afterNavigate?.();
     });
   }, [bookingFilter, confirmLeaving, params.bookingId, router, section]);
-  const openVerifiedCustomerInvitation = useCallback((email: string) => {
+  const openVerifiedCustomerInvitation = useCallback((email: string, workshopContactId = '') => {
     navigate('invitations', {}, () => {
       setInvitationEmail(email.trim().toLowerCase());
+      setSelectedInvitationContactId(workshopContactId);
       setInvitationError('');
       setInvitationNotice('');
       setLatestInvitation(null);
@@ -580,14 +585,24 @@ export function StaffWorkspace({
     setInvitationError('');
     setInvitationNotice('');
     try {
-      const result = await inviteCustomer(normalizedEmail);
-      setInvitationEmail('');
+      const result = await inviteCustomer(normalizedEmail, selectedInvitationContact?.id);
       setLatestInvitation(result.invitation);
-      setInvitationNotice(
-        REVIEW_ENVIRONMENT.enabled ? `${result.invitation.email} recorded in the sandbox. No email or TestFlight invitation was sent. Use the supplied review customer credentials to inspect customer functionality.` : result.invitation.status === 'profile_complete'
-          ? `${result.invitation.email} already has a completed PSI profile. Their account remains approved.`
-          : `${result.invitation.email} can now request their own six-digit PSI sign-in code. Add the same email to TestFlight next.`,
-      );
+      if (REVIEW_ENVIRONMENT.enabled) {
+        setInvitationEmail('');
+        setSelectedInvitationContactId('');
+        setInvitationNotice(`${result.invitation.email} was recorded in the sandbox. No email was sent.`);
+      } else if (result.invitation.status === 'profile_complete') {
+        setInvitationEmail('');
+        setSelectedInvitationContactId('');
+        setInvitationNotice(`${result.invitation.email} already has a completed PSI account. Any selected workshop history has been linked.`);
+      } else if (result.emailDelivery.status === 'sent') {
+        setInvitationEmail('');
+        setSelectedInvitationContactId('');
+        setInvitationNotice(`Invitation email sent to ${result.invitation.email}. They will remain in Awaiting setup until they complete their PSI account.`);
+      } else {
+        setInvitationError('PSI access was approved, but the invitation email was not delivered. Check the email service, then press Send app invitation again.');
+      }
+      onRefresh();
     } catch {
       setInvitationError(REVIEW_ENVIRONMENT.enabled ? 'Use demo1@example.invalid through demo5@example.invalid for fictional invitations. No real email is sent.' : 'Customer access could not be approved. Check the email, confirm your authenticator session is current, then try again. No public registration was opened.');
     } finally {
@@ -802,14 +817,35 @@ export function StaffWorkspace({
           {!recordHasSteps ? <WorkspaceLink title="Imports & drafts" icon="file-tray-outline" onPress={() => navigate('imports')} /> : null}
         </> : null}
         {section === 'imports' ? <StaffVaultReview focusImportId={paramValue(params.importId)} onApproveAndInvite={openVerifiedCustomerInvitation} owner={role === 'owner'} previewMode={previewMode} snapshot={snapshot} /> : null}
-        {section === 'workshop_customers' ? <StaffWorkshopCustomers contacts={snapshot.workshopContacts} customerVehicles={snapshot.vehicles} customers={snapshot.customers} onRefresh={onRefresh} owner={role === 'owner'} workshopVehicles={snapshot.workshopVehicles} /> : null}
+        {section === 'workshop_customers' ? <StaffWorkshopCustomers contacts={snapshot.workshopContacts} customerVehicles={snapshot.vehicles} customers={snapshot.customers} onInvite={openVerifiedCustomerInvitation} onRefresh={onRefresh} owner={role === 'owner'} workshopVehicles={snapshot.workshopVehicles} /> : null}
         {section === 'access' ? role === 'owner' ? <StaffPerformanceAccess previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} /> : <EmptyState>Owner access is required.</EmptyState> : null}
         {section === 'invitations' ? role === 'owner' ? <>
                   {role === 'owner' ? (
           <>
-            <Text style={styles.cardCopy}>Approve their email, then invite them to TestFlight.</Text>
+            <Text style={styles.cardCopy}>Send the customer an email with the iPhone and Android download links. They remain in Awaiting setup until they sign in and complete their PSI account.</Text>
+            {activeWorkshopContacts.length ? <>
+              <Text style={styles.groupLabel}>Select a workshop customer</Text>
+              <Text style={styles.cardCopy}>Choose someone already saved in the workshop, including customers who do not have an app account yet. Their saved vehicle and workshop history will link automatically after account setup.</Text>
+              {activeWorkshopContacts.map(contact => {
+                const vehicles = snapshot.workshopVehicles.filter(vehicle => vehicle.workshop_contact_id === contact.id && vehicle.status === 'active');
+                const detail = [contact.email || 'Email required', ...vehicles.map(vehicle => `${vehicle.registration} · ${vehicle.year} ${vehicle.make} ${vehicle.model}`)].join(' · ');
+                return <WorkspaceLink key={contact.id} title={contact.display_name} detail={detail} icon={selectedInvitationContactId === contact.id ? 'checkmark-circle' : 'person-add-outline'} onPress={() => {
+                  setSelectedInvitationContactId(contact.id);
+                  setInvitationEmail(contact.email ?? '');
+                  setInvitationError('');
+                  setInvitationNotice('');
+                }} />;
+              })}
+            </> : null}
             <View style={styles.invitationPanel}>
-              <Field error={invitationError} hint={REVIEW_ENVIRONMENT.enabled ? 'Demo only: demo1@example.invalid through demo5@example.invalid' : 'Use the same email for PSI access and the Apple TestFlight invitation'} label="Customer email">
+              {selectedInvitationContact ? <View style={styles.testFlightStep}>
+                <Ionicons color={colors.accent} name="link-outline" size={22} />
+                <View style={styles.flex}>
+                  <Text style={styles.securityTitle}>Workshop history selected</Text>
+                  <Text style={styles.securityCopy}>{selectedInvitationContact.display_name} · {selectedInvitationContact.email}</Text>
+                </View>
+              </View> : null}
+              <Field error={invitationError} hint={REVIEW_ENVIRONMENT.enabled ? 'Demo only: demo1@example.invalid through demo5@example.invalid' : selectedInvitationContact ? 'This verified workshop email will receive the app invitation.' : 'Use the exact email the customer will use to sign in.'} label="Customer email">
                 <FormInput
                   editable={!invitationBusy}
                   autoCapitalize="none"
@@ -819,6 +855,7 @@ export function StaffWorkspace({
                   maxLength={160}
                   onChangeText={(value) => {
                     setInvitationEmail(value);
+                    if (selectedInvitationContact && value.trim().toLowerCase() !== selectedInvitationContact.email?.trim().toLowerCase()) setSelectedInvitationContactId('');
                     setInvitationError('');
                     setInvitationNotice('');
                   }}
@@ -826,41 +863,41 @@ export function StaffWorkspace({
                   value={invitationEmail}
                 />
               </Field>
-              <PrimaryButton disabled={previewMode} label={previewMode ? 'Approve account · Preview only' : 'Approve PSI account'} loading={invitationBusy} onPress={() => void approveCustomerAccess()} />
+              <PrimaryButton disabled={previewMode} label={previewMode ? 'Send app invitation · Preview only' : 'Send app invitation'} loading={invitationBusy} onPress={() => void approveCustomerAccess()} />
               {invitationNotice ? <Text accessibilityLiveRegion="polite" style={styles.invitationNotice}>{invitationNotice}</Text> : null}
-              {!REVIEW_ENVIRONMENT.enabled ? <><View style={styles.testFlightStep}>
-                <Ionicons color={colors.accent} name="logo-apple" size={22} />
-                <View style={styles.flex}>
-                  <Text style={styles.securityTitle}>TestFlight invitation</Text>
-                  <Text style={styles.securityCopy}>Use the same email in App Store Connect so the customer can install PSI.</Text>
-                </View>
-              </View>
-              <PrimaryButton
-                disabled={previewMode}
-                label="Open TestFlight setup"
-                onPress={() => void Linking.openURL('https://appstoreconnect.apple.com/apps/6806902732/testflight')}
-                variant="outline"
-              />
-              </> : null}
             </View>
             <View style={styles.approvedAccountsPanel}>
+              <Field label="Find invitation or account"><FormInput value={invitationSearch} onChangeText={value => { setInvitationSearch(value); setInvitationPage(0); }} placeholder="Name or email" /></Field>
+              <Text style={styles.historyTitle}>Awaiting setup</Text>
+              <Text style={styles.cardCopy}>These customers stay here until they sign in and complete their account. Email delivery is shown separately from account completion.</Text>
+              {awaitingInvitations.map((invitation) => {
+                const profileLabel = invitationCustomerLabel(invitation.email, snapshot.customers);
+                return <View key={invitation.id} style={styles.invitationRow}>
+                  <View style={styles.flex}>
+                    <Text style={styles.cardTitle}>{profileLabel}</Text>
+                    {profileLabel !== invitation.email ? <Text style={styles.cardCopy}>{invitation.email}</Text> : null}
+                    <Text style={styles.cardMeta}>Invited {formatDateTime(invitation.invited_at)}</Text>
+                  </View>
+                  <Text style={styles.badge}>{invitation.email_delivery_status === 'sent' ? 'Email sent · Awaiting setup' : invitation.email_delivery_status === 'failed' ? 'Email failed · Retry' : 'Awaiting email'}</Text>
+                </View>;
+              })}
+              {awaitingInvitations.length === 0 ? <Text style={styles.cardCopy}>No customers are awaiting account setup.</Text> : null}
               <Pressable
-                accessibilityLabel={`${visibleInvitations.length} approved customer accounts`}
+                accessibilityLabel={`${readyInvitations.length} completed customer accounts`}
                 accessibilityRole="button"
                 accessibilityState={{ expanded: invitationListOpen }}
                 onPress={() => setInvitationListOpen((current) => !current)}
                 style={({ pressed }) => [styles.historyHeading, pressed && styles.pressed]}
               >
                 <View style={styles.flex}>
-                  <Text style={styles.historyTitle}>Approved customer accounts</Text>
-                  <Text style={styles.historyMeta}>{visibleInvitations.length} account{visibleInvitations.length === 1 ? '' : 's'} · alphabetical</Text>
+                  <Text style={styles.historyTitle}>Completed app accounts</Text>
+                  <Text style={styles.historyMeta}>{readyInvitations.length} account{readyInvitations.length === 1 ? '' : 's'} · alphabetical</Text>
                 </View>
                 <Ionicons color={colors.accent} name={invitationListOpen ? 'chevron-up' : 'chevron-down'} size={22} />
               </Pressable>
               {invitationListOpen ? <>
-              <Field label="Find approved account"><FormInput value={invitationSearch} onChangeText={value => { setInvitationSearch(value); setInvitationPage(0); }} placeholder="Name or email" /></Field>
-              <Pagination page={invitationPage} total={matchingInvitations.length} onChange={setInvitationPage} />
-              {matchingInvitations.slice(invitationPage * 8, invitationPage * 8 + 8).map((invitation) => {
+              <Pagination page={invitationPage} total={readyInvitations.length} onChange={setInvitationPage} />
+              {readyInvitations.slice(invitationPage * 8, invitationPage * 8 + 8).map((invitation) => {
                 const profileLabel = invitationCustomerLabel(invitation.email, snapshot.customers);
                 return (
                   <View key={invitation.id} style={styles.invitationRow}>
@@ -869,11 +906,11 @@ export function StaffWorkspace({
                       {profileLabel !== invitation.email ? <Text style={styles.cardCopy}>{invitation.email}</Text> : null}
                       <Text style={styles.cardMeta}>Approved {formatDateTime(invitation.invited_at)}</Text>
                     </View>
-                    <Text style={styles.badge}>{invitation.status === 'profile_complete' ? 'Profile ready' : 'Profile pending'}</Text>
+                    <Text style={styles.badge}>Account ready</Text>
                   </View>
                 );
               })}
-              {matchingInvitations.length === 0 ? <Text style={styles.cardCopy}>No approved accounts match.</Text> : null}
+              {readyInvitations.length === 0 ? <Text style={styles.cardCopy}>No completed accounts match.</Text> : null}
               </> : null}
             </View>
           </>

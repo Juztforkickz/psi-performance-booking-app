@@ -149,12 +149,14 @@ type VaultImportReview = {
   last_error_code: string | null;
 };
 
+const REVIEWABLE_IMPORT_STATUSES = ['pending', 'processing', 'needs_review', 'waiting_for_customer', 'matched', 'failed'] as const;
+
 export function StaffVaultReview({ snapshot, owner, focusImportId = '', previewMode = false, onApproveAndInvite }: {
   snapshot: StaffPortalSnapshot;
   owner: boolean;
   focusImportId?: string;
   previewMode?: boolean;
-  onApproveAndInvite?: (email: string) => void;
+  onApproveAndInvite?: (email: string, workshopContactId?: string) => void;
 }) {
   const [imports, setImports] = useState<VaultImportReview[]>([]);
   const [drafts, setDrafts] = useState<{ id: string; title: string; created_at: string }[]>([]);
@@ -168,13 +170,13 @@ export function StaffVaultReview({ snapshot, owner, focusImportId = '', previewM
     setBusy(true); setError('');
     try {
       const [queue, records] = await Promise.all([
-        vaultClient().from('vault_import_queue').select('id,reason,source,source_key,status,identifiers,attempt_count,last_error_code').in('status', ['pending', 'processing', 'needs_review', 'waiting_for_customer', 'matched', 'failed']).order('created_at', { ascending: false }).limit(50),
+        vaultClient().from('vault_import_queue').select('id,reason,source,source_key,status,identifiers,attempt_count,last_error_code').in('status', REVIEWABLE_IMPORT_STATUSES).order('created_at', { ascending: false }).limit(50),
         vaultClient().from('vault_records').select('id,title,created_at').is('published_at', null).not('title', 'like', 'ARCHIVED DUPLICATE%').order('created_at', { ascending: false }).limit(50),
       ]);
       if (queue.error || records.error) throw queue.error ?? records.error;
       let queueItems = (queue.data ?? []) as VaultImportReview[];
       if (focusImportId && !queueItems.some(item => item.id === focusImportId)) {
-        const focused = await vaultClient().from('vault_import_queue').select('id,reason,source,source_key,status,identifiers,attempt_count,last_error_code').eq('id', focusImportId).maybeSingle();
+        const focused = await vaultClient().from('vault_import_queue').select('id,reason,source,source_key,status,identifiers,attempt_count,last_error_code').eq('id', focusImportId).in('status', REVIEWABLE_IMPORT_STATUSES).maybeSingle();
         if (focused.error) throw focused.error;
         if (focused.data) queueItems = [focused.data, ...queueItems];
       }
@@ -237,7 +239,7 @@ function normalizedEvidence(value: unknown) {
   return typeof value === 'string' ? value.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '') : '';
 }
 
-function waitingAccountInviteEmail(item: VaultImportReview, snapshot: StaffPortalSnapshot) {
+function waitingAccountInviteContact(item: VaultImportReview, snapshot: StaffPortalSnapshot) {
   const details = item.identifiers;
   const contactName = typeof details.contactName === 'string' ? details.contactName.trim().toUpperCase().replace(/\s+/g, ' ') : '';
   const referenceTokens = typeof details.reference === 'string'
@@ -256,14 +258,14 @@ function waitingAccountInviteEmail(item: VaultImportReview, snapshot: StaffPorta
       const registration = normalizedEvidence(vehicle.registration);
       return Boolean(registration) && (referenceTokens.includes(registration) || descriptionRegistration === registration);
     }))
-    .map(contact => contact.email!.trim().toLowerCase());
-  const uniqueEmails = [...new Set(emails)];
-  return uniqueEmails.length === 1 ? uniqueEmails[0] : null;
+    .map(contact => ({ id: contact.id, email: contact.email!.trim().toLowerCase() }));
+  const uniqueContacts = emails.filter((contact, index, all) => all.findIndex(value => value.id === contact.id) === index);
+  return uniqueContacts.length === 1 ? uniqueContacts[0] : null;
 }
 
 function WaitingAccountCard({ item, onApproveAndInvite, owner, previewMode, snapshot }: {
   item: VaultImportReview;
-  onApproveAndInvite?: (email: string) => void;
+  onApproveAndInvite?: (email: string, workshopContactId?: string) => void;
   owner: boolean;
   previewMode: boolean;
   snapshot: StaffPortalSnapshot;
@@ -272,19 +274,19 @@ function WaitingAccountCard({ item, onApproveAndInvite, owner, previewMode, snap
   const name = typeof details.contactName === 'string' && details.contactName.trim() ? details.contactName.trim() : 'Customer details not yet available';
   const invoice = typeof details.invoiceNumber === 'string' && details.invoiceNumber.trim() ? details.invoiceNumber.trim() : null;
   const reference = typeof details.reference === 'string' && details.reference.trim() ? details.reference.trim() : null;
-  const inviteEmail = waitingAccountInviteEmail(item, snapshot);
+  const inviteContact = waitingAccountInviteContact(item, snapshot);
   return <View style={styles.card}>
     <Text style={styles.title}>{name}</Text>
     <Text style={styles.copy}>{item.source === 'xero' ? `Xero invoice${invoice ? ` ${invoice}` : ''}` : 'Workshop file'}</Text>
     {reference ? <Text style={styles.muted}>Vehicle / job: {reference}</Text> : null}
     {typeof details.totalCents === 'number' && details.currency === 'AUD' ? <Text style={styles.muted}>{aud(details.totalCents)}{details.invoiceStatus === 'PAID' ? ' · Paid in Xero' : ''}</Text> : null}
     <Text style={styles.importStatus}>Waiting for account match</Text>
-    {owner && inviteEmail ? <>
-      <Text style={styles.muted}>Verified workshop contact: {inviteEmail}</Text>
-      <PrimaryButton disabled={previewMode || !onApproveAndInvite} label={previewMode ? 'Approve and invite customer · Preview only' : 'Approve and invite customer'} onPress={() => onApproveAndInvite?.(inviteEmail)} />
+    {owner && inviteContact ? <>
+      <Text style={styles.muted}>Verified workshop contact: {inviteContact.email}</Text>
+      <PrimaryButton disabled={previewMode || !onApproveAndInvite} label={previewMode ? 'Approve and invite customer · Preview only' : 'Approve and invite customer'} onPress={() => onApproveAndInvite?.(inviteContact.email, inviteContact.id)} />
       <Text style={styles.muted}>Review the verified email before approving PSI access.</Text>
     </> : null}
-    {owner && !inviteEmail ? <Text style={styles.muted}>No single workshop email matches both this customer name and registration. Check the workshop contact before inviting them.</Text> : null}
+    {owner && !inviteContact ? <Text style={styles.muted}>No single workshop email matches both this customer name and registration. Check the workshop contact before inviting them.</Text> : null}
   </View>;
 }
 

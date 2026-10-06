@@ -68,8 +68,14 @@ export type StaffPortalSnapshot = {
 
 export type CustomerInvitationResult = {
   created: boolean;
-  invitation: Pick<CustomerInvitationRow, 'accepted_at' | 'email' | 'id' | 'invited_at' | 'status'>;
-  nextStep: 'send_testflight_invitation';
+  emailDelivery: {
+    errorCode?: string;
+    providerReference?: string;
+    sentAt?: string;
+    status: 'failed' | 'not_required' | 'sent';
+  };
+  invitation: Pick<CustomerInvitationRow, 'accepted_at' | 'email' | 'email_delivery_status' | 'email_last_error_code' | 'email_sent_at' | 'id' | 'invited_at' | 'status' | 'workshop_contact_id'>;
+  nextStep: 'await_customer_setup' | 'customer_ready';
 };
 
 export type AccountDeletionCompletionResult = {
@@ -226,17 +232,18 @@ export async function completeCustomerAccountDeletion(input: {
   return data;
 }
 
-export async function inviteCustomer(email: string): Promise<CustomerInvitationResult> {
+export async function inviteCustomer(email: string, workshopContactId?: string): Promise<CustomerInvitationResult> {
   const normalizedEmail = email.trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(normalizedEmail) || normalizedEmail.length > 160) throw new Error('INVALID_CUSTOMER_EMAIL');
+  if (workshopContactId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(workshopContactId)) throw new Error('INVALID_WORKSHOP_CONTACT');
   const access = await loadStaffMfaSecurityAccess();
   if (access.kind !== 'ready' || access.staff.role !== 'owner') throw new Error('STAFF_OWNER_AAL2_REQUIRED');
 
   const { data, error } = await getSupabaseClient().functions.invoke<CustomerInvitationResult>('invite-customer', {
-    body: { email: normalizedEmail },
+    body: { email: normalizedEmail, workshopContactId: workshopContactId || undefined },
   });
   if (error) throw error;
-  if (!data?.invitation || data.nextStep !== 'send_testflight_invitation') throw new Error('CUSTOMER_INVITATION_RESPONSE_INVALID');
+  if (!data?.invitation || !['await_customer_setup', 'customer_ready'].includes(data.nextStep) || !data.emailDelivery) throw new Error('CUSTOMER_INVITATION_RESPONSE_INVALID');
   return data;
 }
 

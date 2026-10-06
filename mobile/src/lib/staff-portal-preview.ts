@@ -190,8 +190,13 @@ export const STAFF_PORTAL_PREVIEW_SNAPSHOT: StaffPortalSnapshot = {
     status: 'profile_complete',
     invited_at: '2026-08-17T00:00:00.000Z',
     accepted_at: profile.created_at,
+    email_delivery_status: 'sent',
+    email_last_error_code: null,
+    email_provider_reference: `preview-email-${index + 1}`,
+    email_sent_at: '2026-08-17T00:00:00.000Z',
     invited_by: sampleOwner,
     updated_at: profile.updated_at,
+    workshop_contact_id: null,
   })),
   integrationJobs: [
     { kind: 'notify_psi_request_received', bookingIndex: 0 },
