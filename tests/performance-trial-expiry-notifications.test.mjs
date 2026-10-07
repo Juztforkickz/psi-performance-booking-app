@@ -33,14 +33,19 @@ test('trial expiry delivery is one time and opens the Performance+ purchase scre
 });
 
 test('customer email contains the approved hook, AUD pricing and verified Tori banner', async () => {
-  const [worker, bannerModule] = await Promise.all([
+  const [worker, bannerModule, bannerPartA, bannerPartB] = await Promise.all([
     read('../supabase/functions/process-performance-trial-notifications/index.ts'),
     read('../supabase/functions/process-performance-trial-notifications/tori-signature-banner.ts'),
+    read('../supabase/functions/process-performance-trial-notifications/tori-signature-banner-a.ts'),
+    read('../supabase/functions/process-performance-trial-notifications/tori-signature-banner-b.ts'),
   ]);
-  const encoded = bannerModule.match(/TORI_SIGNATURE_BANNER_BASE64 = "([A-Za-z0-9+/=]+)";/u)?.[1];
+  const encodedA = bannerPartA.match(/TORI_SIGNATURE_BANNER_BASE64_A = "([A-Za-z0-9+/=]+)";/u)?.[1];
+  const encodedB = bannerPartB.match(/TORI_SIGNATURE_BANNER_BASE64_B = "([A-Za-z0-9+/=]+)";/u)?.[1];
+  const encoded = encodedA && encodedB ? encodedA + encodedB : null;
   assert.ok(encoded, 'approved signature banner must be embedded');
   const digest = createHash('sha256').update(Buffer.from(encoded, 'base64')).digest('hex');
   assert.equal(digest, 'c7a33dbd43daa2bdfc0eef4e629bcb8385938465d672d88921b15c046c3ac1b2');
+  assert.match(bannerModule, /TORI_SIGNATURE_BANNER_BASE64_A \+ TORI_SIGNATURE_BANNER_BASE64_B/u);
   assert.match(worker, /Your PSI vehicle history is worth keeping close/u);
   assert.match(worker, /From \$9\.99 AUD per month or \$99 AUD per year/u);
   assert.match(worker, /Authorised assistant for Matthew Ebert/u);
