@@ -77,7 +77,8 @@ test('Ask PSI screens remain private and disabled in public builds', async () =>
   ]);
   const easConfig = JSON.parse(easConfigText);
 
-  assert.match(stage, /privatePreviewRequested && \(__DEV__ \|\| REVIEW_ENVIRONMENT\.enabled\)/u);
+  assert.match(stage, /privatePreviewRequested && REVIEW_ENVIRONMENT\.enabled/u);
+  assert.doesNotMatch(stage, /__DEV__/u);
   assert.match(stage, /EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW/u);
   assert.match(launcher, /ASK_PSI_STAGE\.privatePreviewEnabled/u);
   assert.match(launcher, /boost-assistant\.png/u);

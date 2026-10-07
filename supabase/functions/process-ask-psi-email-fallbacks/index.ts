@@ -1,5 +1,9 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "@supabase/supabase-js";
+import { TORI_SIGNATURE_BANNER_BASE64 } from "../process-performance-trial-notifications/tori-signature-banner.ts";
+
+const TORI_BANNER_SHA256 = "c7a33dbd43daa2bdfc0eef4e629bcb8385938465d672d88921b15c046c3ac1b2";
+const TORI_BANNER_CONTENT_ID = "psi-tori-laurent-signature";
 
 const cors = {
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -13,6 +17,14 @@ const json = (body: unknown, status = 200) => Response.json(body, {
 });
 
 const env = (name: string) => Deno.env.get(name)?.trim() ?? "";
+
+async function bannerIsApproved() {
+  if (TORI_SIGNATURE_BANNER_BASE64.length < 100_000) return false;
+  const decoded = atob(TORI_SIGNATURE_BANNER_BASE64);
+  const bytes = Uint8Array.from(decoded, (character) => character.charCodeAt(0));
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("") === TORI_BANNER_SHA256;
+}
 
 type JobRow = {
   attempt_count: number;
@@ -32,6 +44,7 @@ type ConversationRow = {
 type MessageRow = {
   created_at: string;
   id: string;
+  recipient_read_at: string | null;
   sender_kind: string;
 };
 
@@ -43,6 +56,7 @@ async function acquireMicrosoftGraphToken() {
 
   const response = await fetch(`https://login.microsoftonline.com/${encodeURIComponent(tenantId)}/oauth2/v2.0/token`, {
     method: "POST",
+    signal: AbortSignal.timeout(15_000),
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: clientId,
@@ -71,6 +85,7 @@ async function sendMicrosoft365Fallback(input: {
     `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(sender)}/sendMail`,
     {
       method: "POST",
+      signal: AbortSignal.timeout(15_000),
       headers: {
         Authorization: `Bearer ${input.accessToken}`,
         "Content-Type": "application/json",
@@ -86,9 +101,18 @@ async function sendMicrosoft365Fallback(input: {
               input.registration ? `<p><strong>Vehicle:</strong> ${escapeHtml(input.registration)}</p>` : "",
               `<p><a href="${escapeHtml(portalUrl)}">Open PSI Workshop Messages</a></p>`,
               "<p>The private message content is available only after signing in to the PSI portal.</p>",
+              `<img src="cid:${TORI_BANNER_CONTENT_ID}" alt="PSI Performance. Tori Laurent. Authorised assistant for Matthew Ebert. Workshop contacts: 0433 431 781; info@psiperformance.com.au; psiperformance.com.au." width="452" height="226" style="display:block;width:452px;max-width:100%;height:auto;border:0;margin-top:18px">`,
             ].join(""),
           },
           toRecipients: [{ emailAddress: { address: recipient } }],
+          attachments: [{
+            "@odata.type": "#microsoft.graph.fileAttachment",
+            name: "PSI-Tori-Laurent-authorised-assistant.jpg",
+            contentType: "image/jpeg",
+            contentId: TORI_BANNER_CONTENT_ID,
+            isInline: true,
+            contentBytes: TORI_SIGNATURE_BANNER_BASE64,
+          }],
         },
         saveToSentItems: true,
       }),
@@ -123,18 +147,41 @@ Deno.serve(async (request) => {
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+  // Private preparation must never start sending merely because shared Graph
+  // credentials are added for some other PSI integration.
+  const configured = env("PSI_ASK_PSI_EMAIL_DELIVERY_ENABLED") === "true"
+    && ["MICROSOFT_365_TENANT_ID", "MICROSOFT_365_CLIENT_ID", "MICROSOFT_365_CLIENT_SECRET",
+      "PSI_MICROSOFT_365_SENDER_EMAIL", "PSI_OWNER_NOTIFICATION_EMAIL", "PSI_WORKSHOP_PORTAL_URL"]
+      .every((name) => Boolean(env(name)));
+  if (!configured) return json({ configured: false, processed: 0, sent: 0 });
+  if (!(await bannerIsApproved())) return json({ error: "approved_tori_banner_unavailable", processed: 0, sent: 0 }, 503);
+
+  let accessToken: string | null;
+  try {
+    accessToken = await acquireMicrosoftGraphToken();
+  } catch {
+    return json({ error: "microsoft_365_authentication_unavailable", processed: 0, sent: 0 }, 503);
+  }
+  if (!accessToken) return json({ error: "microsoft_365_authentication_unavailable", processed: 0, sent: 0 }, 503);
   const now = new Date().toISOString();
+  // A terminated worker may already have reached Microsoft. Hold these jobs for
+  // inspection instead of risking a second email after an unknown outcome.
+  await admin.from("ask_psi_email_jobs").update({
+    last_error_code: "delivery_outcome_unknown",
+    status: "failed",
+    updated_at: now,
+  }).eq("status", "processing").lt("last_attempt_at", new Date(Date.now() - 10 * 60_000).toISOString());
   const { data, error } = await admin
     .from("ask_psi_email_jobs")
     .select("id,conversation_id,message_id,recipient_user_id,attempt_count")
     .in("status", ["pending", "failed", "blocked_configuration"])
+    .or("last_error_code.is.null,last_error_code.neq.delivery_outcome_unknown")
     .lte("available_at", now)
     .lt("attempt_count", 20)
     .order("created_at", { ascending: true })
     .limit(10);
   if (error) return json({ error: "message_email_queue_unavailable" }, 503);
 
-  const accessToken = await acquireMicrosoftGraphToken();
   let cancelled = 0;
   let sent = 0;
 
@@ -153,7 +200,7 @@ Deno.serve(async (request) => {
       .maybeSingle();
     if (!claimed) continue;
 
-    const [conversationResult, messageResult] = await Promise.all([
+    const [conversationResult, messageResult, recipientResult, preferenceResult] = await Promise.all([
       admin
         .from("ask_psi_conversations")
         .select("id,customer_id,vehicle_id,staff_last_read_at")
@@ -161,13 +208,24 @@ Deno.serve(async (request) => {
         .single(),
       admin
         .from("ask_psi_messages")
-        .select("id,created_at,sender_kind")
+        .select("id,created_at,sender_kind,recipient_read_at")
         .eq("id", job.message_id)
         .single(),
+      admin.from("staff_members").select("status,role").eq("user_id", job.recipient_user_id).maybeSingle(),
+      admin.from("notification_preferences").select("message_email_fallback_enabled").eq("user_id", job.recipient_user_id).maybeSingle(),
     ]);
+    if (conversationResult.error || messageResult.error || recipientResult.error || preferenceResult.error) {
+      await admin.from("ask_psi_email_jobs").update({
+        available_at: new Date(Date.now() + 5 * 60_000).toISOString(),
+        last_error_code: "message_context_query_failed", status: "failed", updated_at: now,
+      }).eq("id", job.id).eq("status", "processing");
+      continue;
+    }
     const conversation = conversationResult.data as ConversationRow | null;
     const message = messageResult.data as MessageRow | null;
-    if (!conversation || !message || message.sender_kind !== "customer") {
+    if (!conversation || !message || message.sender_kind !== "customer"
+      || recipientResult.data?.status !== "active" || recipientResult.data?.role !== "owner"
+      || preferenceResult.data?.message_email_fallback_enabled === false) {
       await admin.from("ask_psi_email_jobs").update({
         completed_at: now,
         last_error_code: "message_context_unavailable",
@@ -179,8 +237,7 @@ Deno.serve(async (request) => {
     }
 
     if (
-      conversation.staff_last_read_at
-      && new Date(conversation.staff_last_read_at).getTime() >= new Date(message.created_at).getTime()
+      message.recipient_read_at
     ) {
       await admin.from("ask_psi_email_jobs").update({
         completed_at: now,
@@ -189,16 +246,6 @@ Deno.serve(async (request) => {
         updated_at: now,
       }).eq("id", job.id);
       cancelled += 1;
-      continue;
-    }
-
-    if (!accessToken) {
-      await admin.from("ask_psi_email_jobs").update({
-        available_at: new Date(Date.now() + 15 * 60_000).toISOString(),
-        last_error_code: "microsoft_365_not_configured",
-        status: "blocked_configuration",
-        updated_at: now,
-      }).eq("id", job.id);
       continue;
     }
 
@@ -216,11 +263,25 @@ Deno.serve(async (request) => {
     const customerDisplay = [profile?.first_name, profile?.last_name].filter(Boolean).join(" ")
       || profile?.email
       || "Customer";
-    const result = await sendMicrosoft365Fallback({
-      accessToken,
-      customerDisplay,
-      registration: vehicleResult.data?.registration ?? null,
-    });
+    // Recheck after preparing the email in case PSI opened the conversation.
+    const { data: latestMessage, error: latestReadError } = await admin.from("ask_psi_messages")
+      .select("recipient_read_at").eq("id", job.message_id).maybeSingle();
+    if (latestReadError) {
+      await admin.from("ask_psi_email_jobs").update({ status: "failed", last_error_code: "message_read_check_failed", available_at: new Date(Date.now() + 5 * 60_000).toISOString() }).eq("id", job.id).eq("status", "processing");
+      continue;
+    }
+    if (!latestMessage || latestMessage.recipient_read_at) {
+      await admin.from("ask_psi_email_jobs").update({ status: "cancelled", completed_at: now, last_error_code: "read_before_email_fallback" }).eq("id", job.id).eq("status", "processing");
+      cancelled += 1;
+      continue;
+    }
+    let result: { configured: boolean; sent: boolean };
+    try {
+      result = await sendMicrosoft365Fallback({ accessToken, customerDisplay, registration: vehicleResult.data?.registration ?? null });
+    } catch {
+      await admin.from("ask_psi_email_jobs").update({ status: "failed", last_error_code: "delivery_outcome_unknown", updated_at: now }).eq("id", job.id).eq("status", "processing");
+      continue;
+    }
 
     if (!result.configured) {
       await admin.from("ask_psi_email_jobs").update({

@@ -1,20 +1,31 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type Href, usePathname, useRouter } from 'expo-router';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Image, Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '@/constants/brand';
 import { ASK_PSI_STAGE } from '@/lib/ask-psi-stage';
 
-const HIDDEN_ROUTES = ['/messages', '/staff', '/staff-security', '/portal-preview'];
+const HIDDEN_ROUTES = ['/messages', '/staff', '/staff-security', '/staff-messages', '/portal-preview'];
 const BOOST_ASSISTANT = require('../../assets/images/boost-assistant.png');
 
 export function AskPsiLauncher() {
   const pathname = usePathname();
   const router = useRouter();
-  if (!ASK_PSI_STAGE.privatePreviewEnabled || HIDDEN_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`))) return null;
+  const insets = useSafeAreaInsets();
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
+    const hidden = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
+    return () => { shown.remove(); hidden.remove(); };
+  }, []);
+
+  if (!ASK_PSI_STAGE.privatePreviewEnabled || keyboardVisible || HIDDEN_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`))) return null;
 
   return (
-    <View pointerEvents="box-none" style={styles.layer}>
+    <View pointerEvents="box-none" style={[styles.layer, { bottom: 78 + insets.bottom, right: 14 + insets.right }]}>
       <Pressable accessibilityLabel="Ask PSI" accessibilityRole="button" onPress={() => router.push('/messages' as Href)} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
         <View style={styles.mark}>
           <Image accessibilityLabel="Boost, the Ask PSI assistant" resizeMode="contain" source={BOOST_ASSISTANT} style={styles.boostImage} />

@@ -6,7 +6,7 @@ const json = (body: unknown, status = 200) => Response.json(body, { status, head
 const env = (name: string) => Deno.env.get(name)?.trim() ?? "";
 type ActionBody = { action?: unknown; askPsiConversationId?: unknown; bookingId?: unknown; carSaleListingId?: unknown; expoPushToken?: unknown; notificationSound?: unknown; platform?: unknown };
 type DeviceRow = { expo_push_token: string; notification_sound: string | null };
-type EventRow = { body: string; deep_link: string; id: string; kind: string; recipient_user_id: string; source_event_key: string; title: string };
+type EventRow = { body: string; deep_link: string; id: string; kind: string; read_at: string | null; recipient_user_id: string; source_event_key: string; title: string };
 type JobRow = { ask_psi_conversation_id: string | null; attempt_count: number; booking_request_id: string | null; event_id: string; id: string; recipient_user_id: string };
 const PSI_CASH_NOTIFICATION_SOUND = "psi_cash_receipt.wav";
 const PSI_WORKSHOP_CASH_CHANNEL = "psi-workshop-cash-v1";
@@ -137,7 +137,7 @@ Deno.serve(async (request) => {
       .eq("id", askPsiConversationId)
       .maybeSingle();
     if (!accessibleConversation) return json({ error: "message_access_denied" }, 403);
-  } else if (!bookingId && !askPsiConversationId && !isAal2Staff) {
+  } else if (!isInternalServiceCall && !bookingId && !askPsiConversationId && !isAal2Staff) {
     return json({ error: "aal2_staff_access_required" }, 403);
   }
 
@@ -177,12 +177,22 @@ Deno.serve(async (request) => {
     const now = new Date().toISOString();
     const { data: claimed } = await admin.from("push_notification_jobs").update({ status: "processing", attempt_count: queued.attempt_count + 1, last_attempt_at: now, updated_at: now }).eq("id", queued.id).in("status", ["pending", "failed"]).select("id").maybeSingle();
     if (!claimed) continue;
-    const [{ data: event }, { data: devices }, { data: preference }, { count }] = await Promise.all([
-      admin.from("notification_events").select("id,recipient_user_id,title,body,deep_link,kind,source_event_key").eq("id", queued.event_id).single(),
+    const [eventResult, devicesResult, preferenceResult, countResult] = await Promise.all([
+      admin.from("notification_events").select("id,recipient_user_id,title,body,deep_link,kind,source_event_key,read_at").eq("id", queued.event_id).single(),
       admin.from("push_devices").select("expo_push_token,notification_sound").eq("user_id", queued.recipient_user_id).eq("enabled", true),
       admin.from("notification_preferences").select("booking_reminders_enabled,booking_updates_enabled,car_sale_alerts_enabled,event_alerts_enabled,message_alerts_enabled,workshop_alerts_enabled,sound_enabled").eq("user_id", queued.recipient_user_id).maybeSingle(),
       admin.from("notification_events").select("id", { count: "exact", head: true }).eq("recipient_user_id", queued.recipient_user_id).is("read_at", null),
     ]);
+    // An unavailable preference or device query must not silently cancel a
+    // notification or send it without knowing the recipient's preferences.
+    if (eventResult.error || devicesResult.error || preferenceResult.error || countResult.error) {
+      await admin.from("push_notification_jobs").update({ status: "failed", available_at: new Date(Date.now() + 300000).toISOString(), completed_at: null, last_error_code: "notification_lookup_failed", updated_at: now }).eq("id", queued.id);
+      continue;
+    }
+    const event = eventResult.data;
+    const devices = devicesResult.data;
+    const preference = preferenceResult.data;
+    const count = countResult.count;
     const allowed = (event as EventRow | null)?.kind === "service_reminder"
       ? preference?.booking_reminders_enabled !== false
       : (event as EventRow | null)?.kind === "car_sale_published"
@@ -203,6 +213,10 @@ Deno.serve(async (request) => {
     const performanceSubscriptionAlert = event.kind === "performance_subscription_started";
     const carSaleAlert = event.kind === "car_sale_published";
     const messageAlert = event.kind === "customer_message_received" || event.kind === "staff_message_received";
+    if (messageAlert && event.read_at) {
+      await admin.from("push_notification_jobs").update({ status: "cancelled", completed_at: now, last_error_code: "message_already_read", updated_at: now }).eq("id", queued.id);
+      continue;
+    }
     const messages = (devices as DeviceRow[]).map((device) => {
       const cashSoundAvailable = workshopAlert && device.notification_sound === PSI_CASH_NOTIFICATION_SOUND;
       return {

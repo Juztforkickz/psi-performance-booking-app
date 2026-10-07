@@ -118,7 +118,8 @@ select set_config(
 );
 
 select public.mark_ask_psi_conversation_read(
-  (select conversation_id from ask_psi_test_ids)
+  (select conversation_id from ask_psi_test_ids),
+  (select message_id from ask_psi_test_ids)
 );
 
 select public.send_ask_psi_message(
@@ -161,7 +162,8 @@ select set_config(
 );
 
 select public.mark_ask_psi_conversation_read(
-  (select conversation_id from ask_psi_test_ids)
+  (select conversation_id from ask_psi_test_ids),
+  (select id from public.ask_psi_messages where client_nonce = 'a7777777-7777-4777-8777-777777777777')
 );
 
 do $$

@@ -142,6 +142,7 @@ export type Database = {
           created_at: string;
           id: string;
           message_kind: 'photo' | 'system' | 'text';
+          recipient_read_at: string | null;
           sender_kind: 'assistant' | 'customer' | 'staff' | 'system';
           sender_user_id: string | null;
         };
@@ -1052,7 +1053,7 @@ export type Database = {
     };
     Functions: {
       mark_ask_psi_conversation_read: {
-        Args: { p_conversation_id: string };
+        Args: { p_conversation_id: string; p_read_through_message_id?: string | null };
         Returns: string;
       };
       open_ask_psi_conversation: {
