@@ -15,6 +15,7 @@ const reviewOrigins = new Set([origin, staffOrigin]);
 const sandboxUrl = 'https://jwikoldibbpxyhbdrsow.supabase.co';
 const key = 'sb_publishable_ehO9_cXAkXQ6fffoDmzvZA_c8erSaqP';
 const config = JSON.parse(await readFile(path.join(exportRoot, '..', 'review-build.json'), 'utf8'));
+const refinedHomeCss = await readFile(path.join(repoRoot, 'output', 'refined-black-home-preview', 'refined.css'), 'utf8');
 if (config.project !== 'jwikoldibbpxyhbdrsow' || config.privatePreview !== true) throw new Error('Verified private sandbox export required');
 let input = '';
 for await (const chunk of process.stdin) input += chunk;
@@ -42,8 +43,12 @@ function createReviewServer(listenPort) {
 return http.createServer(async (request, response) => {
   try {
     if (request.headers.host !== `127.0.0.1:${listenPort}` || (request.headers.origin && !reviewOrigins.has(request.headers.origin))) return html(response, 'Local review access only.', 403);
-    const pathname = decodeURIComponent(new URL(request.url, origin).pathname);
+    const requestUrl = new URL(request.url, origin);
+    const pathname = decodeURIComponent(requestUrl.pathname);
     if (pathname === '/__review' || pathname === '/__review/') return html(response, landing);
+    if (pathname === '/__review/home' && request.method === 'GET' && listenPort === port) {
+      return html(response, `<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PSI Home, Refined black preview</title><style>body{margin:0;background:#10161C;color:#F4F7FA;font:15px/1.5 Arial,sans-serif}header{text-align:center;padding:18px 12px}h1{font-size:22px;margin:0 0 6px}p{margin:0 0 14px;color:#CAD2D8}button{font:inherit;padding:10px 16px;border:1px solid #879AA8;background:#252B31;color:white;margin:0 4px 8px;min-height:44px}button[aria-pressed=true]{border-color:#65CFF8;color:#65CFF8}iframe{display:block;width:390px;height:844px;max-width:calc(100% - 24px);margin:0 auto 24px;border:1px solid #687B89;background:#090B0E}a{color:#65CFF8}</style><header><h1>Home, Refined black</h1><p>Actual app layout, private colour preview. 390 × 844 phone proportions.</p><button type="button" aria-pressed="false" data-view="/">Current</button><button type="button" aria-pressed="true" data-view="/?home-look=refined">Refined black</button><br><a href="/?home-look=refined">Open full size</a></header><iframe title="PSI Home colour preview" src="/?home-look=refined"></iframe><script>const frame=document.querySelector('iframe');document.querySelectorAll('button[data-view]').forEach(button=>button.addEventListener('click',()=>{frame.src=button.dataset.view;document.querySelectorAll('button[data-view]').forEach(other=>other.setAttribute('aria-pressed',String(other===button)));}));</script></html>`);
+    }
     if (pathname === '/__review/phone' && request.method === 'GET') {
       const route = listenPort === staffPort ? '/staff-messages' : '/messages';
       return html(response, `<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ask PSI phone layout</title><style>body{margin:0;background:#091116;color:white;font:15px/1.5 Arial,sans-serif}header{text-align:center;padding:16px}a{color:#63d4f7}iframe{display:block;width:390px;height:844px;max-width:100%;margin:0 auto 24px;border:1px solid #365563;border-radius:16px;background:black}</style><header>Private ${listenPort === staffPort ? 'workshop' : 'customer'} inspection. Phone layout, not a native device test.<br><a href="${route}">Open full browser view</a> · <a href="/__review">Switch inspection view</a></header><iframe title="Ask PSI phone layout" src="${route}"></iframe></html>`);
@@ -77,7 +82,12 @@ return http.createServer(async (request, response) => {
     target = await realpath(target);
     if (pathname !== '/__review/boost.png' && !target.startsWith(`${exportRoot}${path.sep}`)) return html(response, 'Not found.', 404);
     response.writeHead(200, { 'Content-Type': types[path.extname(target)] ?? 'application/octet-stream', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
-    response.end(request.method === 'HEAD' ? undefined : await readFile(target));
+    if (request.method === 'HEAD') return response.end();
+    const content = await readFile(target);
+    if (path.extname(target) === '.html' && listenPort === port && requestUrl.searchParams.get('home-look') === 'refined') {
+      return response.end(content.toString('utf8').replace('</head>', `<style id="psi-refined-home-preview">${refinedHomeCss}</style></head>`));
+    }
+    response.end(content);
   } catch {
     if (!response.headersSent) html(response, 'The local review could not load. Restart the private review launcher.', 500);
     else response.end();

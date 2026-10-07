@@ -1,0 +1,34 @@
+/* Local review overlay only. Never imported by the mobile app or public build. */
+:root {
+  --psi-ink: #090B0E !important;
+  --psi-ink-soft: #161C22 !important;
+  --psi-panel: #252B31 !important;
+  --psi-panel-raised: #303942 !important;
+  --psi-line: #657580 !important;
+  --psi-line-light: #879AA8 !important;
+  --psi-silver: #DCE5EB !important;
+  --psi-white: #FFFFFF !important;
+  --psi-muted: #CAD2D8 !important;
+  --psi-muted-dark: #A9B7C1 !important;
+  --psi-accent: #65CFF8 !important;
+}
+[style*="background-color: rgb(5, 5, 5)"], [style*="background-color:rgba(5,5,5,"], [style*="background-color: rgba(5, 5, 5,"] { background-color: #090B0E !important; }
+[style*="background-color: rgb(13, 13, 13)"], [style*="background-color:rgba(13,13,13,"], [style*="background-color: rgba(13, 13, 13,"] { background-color: #252B31 !important; }
+[style*="background-color: rgb(16, 16, 16)"],
+[style*="background-color: rgb(17, 17, 17)"], [style*="background-color:rgba(16,16,16,"], [style*="background-color:rgba(17,17,17,"] { background-color: #202830 !important; }
+[style*="color: rgb(143, 153, 158)"], [style*="color:rgba(143,153,158,"], [style*="color: rgba(143, 153, 158,"] { color: #CAD2D8 !important; }
+[style*="color: rgb(170, 177, 181)"], [style*="color:rgba(170,177,181,"] { color: #CAD2D8 !important; }
+[style*="color: rgb(85, 93, 97)"], [style*="color:rgba(85,93,97,"] { color: #A9B7C1 !important; }
+button:is([aria-label="My Garage"], [aria-label="My Bookings"], [aria-label="Book Ahead"], [aria-label="PSI Events"], [aria-label="Performance+"], [aria-label="Settings & Notifications"], [aria-label="Dyno Tuning"], [aria-label="Vehicle Reports"], [aria-label="Plan & Build"], [aria-label="Trusted Partners"], [aria-label="Customer Cars for Sale"]) {
+  border: 1.5px solid #879AA8 !important;
+  background-color: #161C22 !important;
+}
+button:is([aria-label="My Garage"], [aria-label="My Bookings"], [aria-label="Book Ahead"], [aria-label="PSI Events"], [aria-label="Performance+"], [aria-label="Settings & Notifications"], [aria-label="Dyno Tuning"], [aria-label="Vehicle Reports"], [aria-label="Plan & Build"], [aria-label="Trusted Partners"], [aria-label="Customer Cars for Sale"]) > div:first-child {
+  filter: brightness(1.18);
+}
+button:is([aria-label="My Garage"], [aria-label="My Bookings"], [aria-label="Book Ahead"], [aria-label="PSI Events"], [aria-label="Performance+"], [aria-label="Settings & Notifications"], [aria-label="Dyno Tuning"], [aria-label="Vehicle Reports"], [aria-label="Plan & Build"], [aria-label="Trusted Partners"], [aria-label="Customer Cars for Sale"]) > div:last-child {
+  border-top: 1.5px solid #687B89 !important;
+  background-color: #252B31 !important;
+}
+button[aria-label="Customise Home shortcuts"] { border-width: 1.5px !important; background-color: #202830 !important; }
+[aria-label="Customer app navigation"] { border-top-color: #687B89 !important; background-color: #202830 !important; }
