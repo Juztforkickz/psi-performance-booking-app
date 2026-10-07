@@ -1158,7 +1158,11 @@ function DashboardMetric({ label, value, onPress }: { label: string; value: numb
 function PortalAlertSummary({ customerCount, onPress, statusLabel, staffCount }: { customerCount: number; onPress: () => void; statusLabel: string; staffCount: number }) {
   return <Pressable accessibilityRole="button" accessibilityLabel={`Workshop inbox. Workshop: ${staffCount} unread. My account: ${customerCount} unread.`} onPress={onPress} style={({ pressed }) => [styles.alertSummary, pressed && styles.pressed]}>
     <View style={styles.alertSummaryIcon}><Ionicons color={colors.accent} name="notifications-outline" size={22} /></View>
-    <View style={styles.flex}><Text style={styles.cardTitle}>Workshop inbox</Text><Text style={styles.linkDetail}>{statusLabel}</Text></View>
+    <View style={styles.flex}>
+      <Text adjustsFontSizeToFit maxFontSizeMultiplier={1.4} minimumFontScale={0.78} numberOfLines={1} style={styles.alertSummaryTitle}>Workshop</Text>
+      <Text adjustsFontSizeToFit maxFontSizeMultiplier={1.4} minimumFontScale={0.78} numberOfLines={1} style={styles.alertSummaryTitle}>inbox</Text>
+      <Text style={styles.linkDetail}>{statusLabel}</Text>
+    </View>
     <View style={styles.alertSummaryCounts}><AlertCountBadge color="#2D9CDB" label="Workshop" value={staffCount} compact /><AlertCountBadge color="#D92D20" label="My account" value={customerCount} compact /></View>
     <Ionicons color={colors.accent} name="chevron-forward" size={19} />
   </Pressable>;
@@ -1481,6 +1485,7 @@ const styles = StyleSheet.create({
   dashboardValue: { color: colors.accent, fontSize: 26, fontWeight: '900' },
   alertSummary: { ...portalFrame, alignItems: 'center', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.sm, minHeight: 72, padding: spacing.md },
   alertSummaryIcon: { alignItems: 'center', backgroundColor: colors.inkSoft, borderRadius: 20, height: 40, justifyContent: 'center', width: 40 },
+  alertSummaryTitle: { color: colors.white, fontSize: 17, fontWeight: '700', lineHeight: 20 },
   alertSummaryCounts: { alignItems: 'flex-end', gap: 5, maxWidth: '42%' },
   alertLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   alertCountBadge: { alignItems: 'center', backgroundColor: colors.panel, borderWidth: 1, borderRadius: 18, flexDirection: 'row', gap: 7, maxWidth: '100%', minHeight: 38, paddingHorizontal: 12 },
