@@ -26,7 +26,7 @@ import { bookingArchiveStartedAt, bookingNextStep, bookingViewFromParam, organiz
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useNotifications } from '@/lib/notifications';
-import { notificationDestination, staffNotificationDestination } from '@/lib/notification-navigation';
+import { isWorkshopNotification, notificationDestination, staffNotificationDestination } from '@/lib/notification-navigation';
 import { STAFF_PORTAL_PREVIEW_NOTIFICATIONS } from '@/lib/staff-portal-preview';
 import { StaffEventsPreview } from '@/components/staff-events-preview';
 import { resolveStaffSection, STAFF_SECTIONS, staffTabForSection, type StaffSection } from '@/lib/staff-navigation';
@@ -347,8 +347,8 @@ export function StaffWorkspace({
     return {
       ...liveNotifications,
       events: previewEvents,
-      staffUnreadCount: previewEvents.filter(event => !event.read_at && event.deep_link === '/staff').length,
-      customerUnreadCount: previewEvents.filter(event => !event.read_at && event.deep_link !== '/staff').length,
+      staffUnreadCount: previewEvents.filter(event => !event.read_at && isWorkshopNotification(event)).length,
+      customerUnreadCount: previewEvents.filter(event => !event.read_at && !isWorkshopNotification(event)).length,
       pushStatus: 'unsupported' as const,
       markRead: async (id: string) => { setPreviewReadIds(ids => ids.includes(id) ? ids : [...ids, id]); },
       refresh: async () => {},
@@ -464,8 +464,8 @@ export function StaffWorkspace({
   const selectedLookupCustomer = section === 'customers' ? snapshot.customers.find(customer => customer.user_id === paramValue(params.customerId)) : undefined;
   const selectedLookupVehicles = selectedLookupCustomer ? vehiclesByCustomer.get(selectedLookupCustomer.user_id) ?? [] : [];
   const selectedArchivedVehicles = selectedLookupCustomer ? archivedVehiclesByCustomer.get(selectedLookupCustomer.user_id) ?? [] : [];
-  const workshopAlerts = notifications.events.filter(event => !event.read_at && event.deep_link === '/staff');
-  const customerAlerts = notifications.events.filter(event => !event.read_at && event.deep_link !== '/staff');
+  const workshopAlerts = notifications.events.filter(event => !event.read_at && isWorkshopNotification(event));
+  const customerAlerts = notifications.events.filter(event => !event.read_at && !isWorkshopNotification(event));
   const filteredAlerts = alertRole === 'workshop' ? workshopAlerts : customerAlerts;
   const alertPage = Math.min(requestedAlertPage, Math.max(0, Math.ceil(filteredAlerts.length / 4) - 1));
   const pendingDeletions = snapshot.accountDeletionRequests.filter(request => request.status !== 'completed');
@@ -518,6 +518,10 @@ export function StaffWorkspace({
   }, [navigate]);
   const openPortalAlert = useCallback((event: (typeof notifications.events)[number]) => {
     void notifications.markRead(event.id).catch(() => undefined);
+    if (event.ask_psi_conversation_id && !previewMode) {
+      confirmLeaving(() => router.push(notificationDestination(event).href));
+      return;
+    }
     const staffDestination = staffNotificationDestination(event);
     if (staffDestination) {
       navigate(staffDestination.section, staffDestination.params);

@@ -18,7 +18,8 @@ import { AppState, Platform } from 'react-native';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import type { NotificationEventRow, NotificationPreferenceRow } from '@/lib/database.types';
 import { createNotificationRequestScope, createNotificationResponseTracker } from '@/lib/notification-lifecycle';
-import { pushNotificationHref } from '@/lib/notification-navigation';
+import { isWorkshopNotification, pushNotificationHref } from '@/lib/notification-navigation';
+import { ASK_PSI_DEVICE_QA, isAskPsiPush, notificationWorkerName } from '@/lib/ask-psi-device-qa';
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
 import { appModeRuntime, environmentStorageKey, REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
@@ -41,8 +42,9 @@ type PreferenceKey = 'booking_reminders_enabled' | 'booking_updates_enabled' | '
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 let registeredToken = '';
-const PUSH_TOKEN_STORAGE_KEY = environmentStorageKey('psi-notifications.expo-push-token');
-const PUSH_ENABLED_STORAGE_KEY = environmentStorageKey('psi-notifications.device-alerts-enabled');
+let foregroundQaUserId: string | null = null;
+const PUSH_TOKEN_STORAGE_KEY = environmentStorageKey(ASK_PSI_DEVICE_QA.enabled ? 'psi-notifications.qa-expo-push-token' : 'psi-notifications.expo-push-token');
+const PUSH_ENABLED_STORAGE_KEY = environmentStorageKey(ASK_PSI_DEVICE_QA.enabled ? 'psi-notifications.qa-device-alerts-enabled' : 'psi-notifications.device-alerts-enabled');
 const EMPTY_EVENTS: NotificationEventRow[] = [];
 const PSI_CASH_NOTIFICATION_SOUND = 'psi_cash_receipt.wav';
 const PSI_WORKSHOP_CASH_CHANNEL = 'psi-workshop-cash-v1';
@@ -54,6 +56,15 @@ function hasBundledCashNotificationSound() {
 
 async function ensureAndroidNotificationChannels() {
   if (Platform.OS !== 'android') return;
+  if (ASK_PSI_DEVICE_QA.enabled) {
+    await Promise.all([true, false].map(sound => Notifications.setNotificationChannelAsync(sound ? 'psi-message-test' : 'psi-message-test-silent', {
+      name: sound ? 'Private PSI message test' : 'Private PSI message test, silent',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: sound ? [0, 250, 150, 250] : [0],
+      sound: sound ? 'default' : null,
+    })));
+    return;
+  }
   const channels = [
     Notifications.setNotificationChannelAsync('psi-workshop', {
       name: 'PSI workshop enquiries',
@@ -104,7 +115,7 @@ function pushIsRegistered(status: PushStatus) {
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
     handleNotification: async (notification) => {
-      const normalMode = appModeRuntime.ready && !REVIEW_ENVIRONMENT.enabled;
+      const normalMode = appModeRuntime.ready && (!REVIEW_ENVIRONMENT.enabled || (ASK_PSI_DEVICE_QA.allowsUser(foregroundQaUserId) && isAskPsiPush(notification.request.content.data)));
       return { shouldPlaySound: normalMode && notification.request.content.sound != null, shouldSetBadge: normalMode, shouldShowBanner: normalMode, shouldShowList: normalMode };
     },
   });
@@ -114,6 +125,8 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   const auth = useCustomerAuth();
   const router = useRouter();
   const userId = auth.status === 'signed_in' && SUPABASE_CONNECTION.authEnabled ? auth.user?.id ?? null : null;
+  const reviewPushBlocked = REVIEW_ENVIRONMENT.enabled && !ASK_PSI_DEVICE_QA.allowsUser(userId);
+  useEffect(() => { foregroundQaUserId = userId; return () => { foregroundQaUserId = null; }; }, [userId]);
   const [snapshot, setSnapshot] = useState<{ scope: ReturnType<typeof createNotificationRequestScope> | null; events: NotificationEventRow[]; preferences: NotificationPreferenceRow | null }>({ scope: null, events: [], preferences: null });
   const [pushSnapshot, setPushSnapshot] = useState<{ scope: ReturnType<typeof createNotificationRequestScope> | null; status: PushStatus }>({ scope: null, status: 'not_enabled' });
   const scope = useMemo(() => ({ userId, data: createNotificationRequestScope(), push: createNotificationRequestScope() }), [userId]);
@@ -122,7 +135,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   const responseTracker = useMemo(() => createNotificationResponseTracker(), []);
   const events = userId && snapshot.scope === scope.data ? snapshot.events : EMPTY_EVENTS;
   const preferences = userId && snapshot.scope === scope.data ? snapshot.preferences : null;
-  const pushStatus: PushStatus = Platform.OS === 'web' ? 'unsupported' : REVIEW_ENVIRONMENT.enabled ? 'disabled'
+  const pushStatus: PushStatus = Platform.OS === 'web' ? 'unsupported' : reviewPushBlocked ? 'disabled'
     : userId && pushSnapshot.scope === scope.push ? pushSnapshot.status : 'not_enabled';
   const setPushStatus = useCallback((status: PushStatus) => setPushSnapshot({ scope: scope.push, status }), [scope]);
 
@@ -162,7 +175,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   }, [refresh, auth.sessionRevision]);
 
   useEffect(() => {
-    if (REVIEW_ENVIRONMENT.enabled || Platform.OS === 'web' || !userId) return;
+    if (reviewPushBlocked || Platform.OS === 'web' || !userId) return;
     let active = true;
     let syncing = false;
     const syncRegistration = async () => {
@@ -198,7 +211,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
         }
         const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
         if (!active || !isCurrent()) return;
-        const { error } = await getSupabaseClient().functions.invoke('process-push-notifications', {
+        const { error } = await getSupabaseClient().functions.invoke(notificationWorkerName(), {
           body: { action: 'register_device', expoPushToken: token, notificationSound: hasBundledCashNotificationSound() ? PSI_CASH_NOTIFICATION_SOUND : null, platform: Platform.OS },
         });
         if (!active || !isCurrent()) return;
@@ -226,14 +239,15 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       if (state === 'active') startSync();
     });
     return () => { active = false; subscription.remove(); };
-  }, [auth.sessionRevision, scope, setPushStatus, userId]);
+  }, [auth.sessionRevision, reviewPushBlocked, scope, setPushStatus, userId]);
 
   useEffect(() => {
-    if (REVIEW_ENVIRONMENT.enabled || Platform.OS === 'web' || !userId) return;
+    if (reviewPushBlocked || Platform.OS === 'web' || !userId) return;
     let active = true;
     const received = Notifications.addNotificationReceivedListener(() => { void refresh().catch(() => undefined); });
     const handleResponse = (response: Notifications.NotificationResponse | null) => {
       if (!active || !response || !responseTracker.consume(response.notification.request.identifier, response.actionIdentifier)) return;
+      if (REVIEW_ENVIRONMENT.enabled && !isAskPsiPush(response.notification.request.content.data)) return;
       const href = pushNotificationHref(response.notification.request.content.data);
       if (href) router.push(href);
       void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
@@ -242,7 +256,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     const responded = Notifications.addNotificationResponseReceivedListener(handleResponse);
     void Notifications.getLastNotificationResponseAsync().then(handleResponse).catch(() => undefined);
     return () => { active = false; received.remove(); responded.remove(); };
-  }, [refresh, responseTracker, router, userId]);
+  }, [refresh, responseTracker, reviewPushBlocked, router, userId]);
 
   useEffect(() => {
     if (auth.status !== 'signed_in') return;
@@ -257,14 +271,14 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   }, [auth.status, refresh]);
 
   const unreadCount = useMemo(() => events.filter((event) => !event.read_at).length, [events]);
-  const staffUnreadCount = useMemo(() => events.filter((event) => !event.read_at && event.deep_link === '/staff').length, [events]);
+  const staffUnreadCount = useMemo(() => events.filter((event) => !event.read_at && isWorkshopNotification(event)).length, [events]);
   const customerUnreadCount = unreadCount - staffUnreadCount;
   useEffect(() => {
-    if (!REVIEW_ENVIRONMENT.enabled && Platform.OS !== 'web') void Notifications.setBadgeCountAsync(pushIsRegistered(pushStatus) ? unreadCount : 0).catch(() => undefined);
-  }, [pushStatus, unreadCount]);
+    if (!reviewPushBlocked && Platform.OS !== 'web') void Notifications.setBadgeCountAsync(pushIsRegistered(pushStatus) ? REVIEW_ENVIRONMENT.enabled ? events.filter(event => !event.read_at && event.ask_psi_conversation_id).length : unreadCount : 0).catch(() => undefined);
+  }, [events, pushStatus, reviewPushBlocked, unreadCount]);
 
   const enablePush = useCallback(async () => {
-    if (REVIEW_ENVIRONMENT.enabled) throw new Error('REVIEW_EXTERNAL_PUSH_DISABLED');
+    if (reviewPushBlocked) throw new Error('REVIEW_EXTERNAL_PUSH_DISABLED');
     if (Platform.OS === 'web' || !Device.isDevice) {
       setPushStatus('unsupported');
       throw new Error('NATIVE_DEVICE_REQUIRED');
@@ -291,7 +305,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       if (!projectId) throw new Error('EAS_PROJECT_ID_MISSING');
       const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
       if (!isCurrent()) throw new Error('ACCOUNT_CHANGED');
-      const { error } = await getSupabaseClient().functions.invoke('process-push-notifications', {
+      const { error } = await getSupabaseClient().functions.invoke(notificationWorkerName(), {
         body: { action: 'register_device', expoPushToken: token, notificationSound: hasBundledCashNotificationSound() ? PSI_CASH_NOTIFICATION_SOUND : null, platform: Platform.OS },
       });
       if (!isCurrent()) throw new Error('ACCOUNT_CHANGED');
@@ -313,10 +327,10 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     } finally {
       manualPushOperations.current -= 1;
     }
-  }, [scope, setPushStatus, userId]);
+  }, [reviewPushBlocked, scope, setPushStatus, userId]);
 
   const disablePush = useCallback(async () => {
-    if (REVIEW_ENVIRONMENT.enabled) return;
+    if (reviewPushBlocked) return;
     if (Platform.OS === 'web') {
       setPushStatus('unsupported');
       throw new Error('NATIVE_DEVICE_REQUIRED');
@@ -331,7 +345,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       const token = registeredToken || await SecureStore.getItemAsync(PUSH_TOKEN_STORAGE_KEY) || '';
       if (!isCurrent()) throw new Error('ACCOUNT_CHANGED');
       if (token) {
-        const { error } = await getSupabaseClient().functions.invoke('process-push-notifications', {
+        const { error } = await getSupabaseClient().functions.invoke(notificationWorkerName(), {
           body: { action: 'unregister_device', expoPushToken: token },
         });
         if (!isCurrent()) throw new Error('ACCOUNT_CHANGED');
@@ -347,7 +361,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     } finally {
       manualPushOperations.current -= 1;
     }
-  }, [scope, setPushStatus, userId]);
+  }, [reviewPushBlocked, scope, setPushStatus, userId]);
 
   const setPreference = useCallback(async (key: PreferenceKey, value: boolean) => {
     if (!userId || !scope.data.isActive()) throw new Error('SIGN_IN_REQUIRED');
@@ -357,6 +371,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
           : key === 'car_sale_emails_enabled' ? { car_sale_emails_enabled: value }
         : key === 'event_alerts_enabled' ? { event_alerts_enabled: value }
           : key === 'workshop_alerts_enabled' ? { workshop_alerts_enabled: value }
+            : key === 'message_alerts_enabled' ? { message_alerts_enabled: value }
             : { sound_enabled: value };
     const { data, error } = await getSupabaseClient().from('notification_preferences').update({ ...update, updated_at: new Date().toISOString() }).eq('user_id', userId).select('*').single();
     if (error) throw error;
@@ -433,11 +448,15 @@ export async function sendTestPushNotifications() {
 }
 
 export async function unregisterCurrentPushDevice() {
-  if (REVIEW_ENVIRONMENT.enabled) return;
+  if (REVIEW_ENVIRONMENT.enabled) {
+    if (!ASK_PSI_DEVICE_QA.enabled) return;
+    const { data } = await getSupabaseClient().auth.getUser();
+    if (!ASK_PSI_DEVICE_QA.allowsUser(data.user?.id)) return;
+  }
   if (Platform.OS !== 'web' && !registeredToken) registeredToken = await SecureStore.getItemAsync(PUSH_TOKEN_STORAGE_KEY) ?? '';
   if (!registeredToken || !SUPABASE_CONNECTION.authEnabled) return;
   try {
-    await getSupabaseClient().functions.invoke('process-push-notifications', { body: { action: 'unregister_device', expoPushToken: registeredToken } });
+    await getSupabaseClient().functions.invoke(notificationWorkerName(), { body: { action: 'unregister_device', expoPushToken: registeredToken } });
   } finally {
     registeredToken = '';
   }

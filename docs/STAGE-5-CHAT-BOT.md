@@ -88,6 +88,8 @@ Existing bookings, customer records, Xero invoices, Performance+, vehicle sales,
 
 ## Remaining preparation
 
+The workshop message alert count, conversation notification links and message preference mapping are corrected. A restricted internal phone profile and separate sandbox message notification worker are prepared, with delivery disabled and no devices registered. Read `docs/ASK-PSI-PRIVATE-DEVICE-QA.md` before preparing signed builds or starting a private delivery test. No phone build upload, public messaging launch or OTA has been authorised by this preparation.
+
 Complete Matt's private inspection, the iOS and Android device checks, notification delivery checks and any resulting fixes. Microsoft 365 fallback remains disabled until its separate configuration and authorised delivery tests pass. The browser preview and compiled bundles do not establish native device behaviour.
 
 Review the release route and store requirements after private testing. Store privacy information and Google Data Safety answers must accurately cover messages, photos and enabled processing. The inspection document contains a draft declaration only; it has not been submitted. Public release still requires Matt's inspection and approval.

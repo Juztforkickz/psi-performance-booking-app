@@ -3,6 +3,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 
 import type { AskPsiAttachmentRow, AskPsiConversationRow, AskPsiMessageRow } from '@/lib/database.types';
 import { ASK_PSI_STAGE } from '@/lib/ask-psi-stage';
+import { ASK_PSI_DEVICE_QA, notificationWorkerName } from '@/lib/ask-psi-device-qa';
 import { getSupabaseClient } from '@/lib/supabase';
 
 export type AskPsiTopic = AskPsiConversationRow['topic'];
@@ -235,8 +236,8 @@ export function subscribeToAskPsiInbox(onChange: () => void) {
 }
 
 async function dispatchAskPsiNotifications(conversationId: string) {
-  const { error } = await getAskPsiClient().functions.invoke('process-push-notifications', {
-    body: { askPsiConversationId: conversationId },
+  const { error } = await getAskPsiClient().functions.invoke(notificationWorkerName(), {
+    body: { action: ASK_PSI_DEVICE_QA.enabled ? 'dispatch' : undefined, askPsiConversationId: conversationId },
   });
   if (error) throw error;
 }

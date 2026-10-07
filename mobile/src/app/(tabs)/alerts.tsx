@@ -20,11 +20,12 @@ import { formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_PREVIEW, type PreviewAlert } from '@/lib/customer-preview';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { ASK_PSI_STAGE } from '@/lib/ask-psi-stage';
+import { ASK_PSI_DEVICE_QA } from '@/lib/ask-psi-device-qa';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import type { NotificationEventRow } from '@/lib/database.types';
-import { notificationDestination } from '@/lib/notification-navigation';
+import { isWorkshopNotification, notificationDestination } from '@/lib/notification-navigation';
 import { sendTestPushNotifications, useNotifications } from '@/lib/notifications';
 import { profileAlertLabel } from '@/lib/profile-alert-label';
 import { ThemePreference, useThemePreference } from '@/lib/theme-preference';
@@ -140,7 +141,7 @@ export default function AlertsScreen() {
           <Text style={styles.previewNoticeTitle}>{privateMode ? 'Your notifications' : 'Demo notifications'}</Text>
           <Text style={styles.previewNoticeCopy}>
             {privateMode
-              ? REVIEW_ENVIRONMENT.enabled ? 'Sandbox booking and event updates appear here. External push delivery is disabled; no live devices are registered.' : signedIn
+              ? REVIEW_ENVIRONMENT.enabled ? ASK_PSI_DEVICE_QA.allowsUser(auth.user?.id) ? 'Private message testing. Enable this phone below to test Ask PSI banners and sounds.' : 'Sandbox booking and event updates appear here. External push delivery is disabled; no live devices are registered.' : signedIn
                 ? 'Booking updates appear here. Enable device alerts below for banners, sound and badges.'
                 : 'Sign in to see your notifications and preferences.'
               : 'Example alerts only. This demo does not register or notify your device.'}
@@ -333,7 +334,7 @@ export default function AlertsScreen() {
           ) : null}
         </View>
 
-        {privateMode && signedIn && !REVIEW_ENVIRONMENT.enabled ? (
+        {privateMode && signedIn && (!REVIEW_ENVIRONMENT.enabled || ASK_PSI_DEVICE_QA.allowsUser(auth.user?.id)) ? (
           <View style={styles.howItWorks}>
             <Ionicons color={colors.accent} name="phone-portrait-outline" size={30} />
             <View style={styles.howItWorksCopy}>
@@ -358,7 +359,7 @@ export default function AlertsScreen() {
               const disabling = notifications.pushStatus === 'ready';
               void (disabling ? notifications.disablePush() : notifications.enablePush())
                 .then(() => setNotificationFeedback(disabling
-                  ? 'Device notifications are disabled. In-app and email updates still work.'
+                  ? REVIEW_ENVIRONMENT.enabled ? 'Private device alerts are disabled. Messages remain in Ask PSI. Email delivery is off.' : 'Device notifications are disabled. In-app and email updates still work.'
                   : 'Device notifications are enabled.'))
                 .catch((error) => setNotificationFeedback(disabling
                   ? 'Device notifications could not be disabled yet. Try again while connected to the internet.'
@@ -371,7 +372,7 @@ export default function AlertsScreen() {
                   : notifications.pushStatus === 'settings_required' ? 'Open phone notification settings'
                     : 'Enable device notifications'}</Text>
             </Pressable>
-            {staffMode && notifications.pushStatus === 'ready' ? (
+            {staffMode && !REVIEW_ENVIRONMENT.enabled && notifications.pushStatus === 'ready' ? (
               <Pressable accessibilityRole="button" accessibilityState={{ busy: notificationSaving, disabled: notificationSaving }} disabled={notificationSaving} onPress={() => {
                 setNotificationFeedback('');
                 setNotificationSaving(true);
@@ -438,7 +439,7 @@ function AlertCard({
 
 function SecureAlertCard({ event, onPress }: { event: NotificationEventRow; onPress: () => void }) {
   const read = Boolean(event.read_at);
-  const staffNotification = event.deep_link === '/staff';
+  const staffNotification = isWorkshopNotification(event);
   const eventNotification = event.deep_link === '/events';
   const carSaleNotification = event.deep_link === '/customer-cars-for-sale';
   const roleColor = staffNotification ? WORKSHOP_ALERT_COLOR : CUSTOMER_ALERT_COLOR;

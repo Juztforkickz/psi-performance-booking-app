@@ -2,13 +2,14 @@ import { StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
+import { ASK_PSI_DEVICE_QA } from '@/lib/ask-psi-device-qa';
 import { DemoModeControl } from '@/components/demo-mode-control';
 
 export function AppleReviewBanner() {
   if (!REVIEW_ENVIRONMENT.enabled) return null;
   return (
     <SafeAreaView edges={['top']} style={styles.banner}>
-      <Text style={styles.title}>APP REVIEW DEMONSTRATION · FICTIONAL DATA</Text>
+      <Text style={styles.title}>{ASK_PSI_DEVICE_QA.enabled ? 'PRIVATE MESSAGE DEVICE TEST · FICTIONAL DATA' : 'APP REVIEW DEMONSTRATION · FICTIONAL DATA'}</Text>
       <Text style={styles.copy}>No real bookings, payments, emails or calendar changes.</Text>
       <DemoModeControl />
     </SafeAreaView>

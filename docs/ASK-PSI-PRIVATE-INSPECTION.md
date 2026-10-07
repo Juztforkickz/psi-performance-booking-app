@@ -47,6 +47,8 @@ Evidence and screenshots are retained locally in `artifacts/ask-psi-private-revi
 
 ## Remaining device and delivery checks
 
+The restricted private phone profile and disabled sandbox notification worker are now prepared. See [private phone testing](ASK-PSI-PRIVATE-DEVICE-QA.md) for the exact isolation, checks completed, signing and installation steps, and delivery activation boundary. Native phone inspection and actual delivery tests remain pending.
+
 These require private iOS and Android builds and suitable test devices. A compiled bundle or browser preview does not establish that they pass.
 
 1. Test long messages, small screens, larger system text, keyboard scrolling, keyboard dismissal and the composer on both platforms.

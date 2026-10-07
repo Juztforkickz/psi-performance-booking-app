@@ -104,9 +104,12 @@ test('native review config keeps the existing app identity but isolates its runt
 test('review mode cannot register, unregister or dispatch live device pushes', () => {
   const notifications = readFileSync(require.resolve('../src/lib/notifications.tsx'), 'utf8');
   assert.match(notifications, /if \(REVIEW_ENVIRONMENT.enabled\) throw new Error\('REVIEW_EXTERNAL_PUSH_DISABLED'\)/);
-  for (const name of ['dispatchBookingPushNotifications', 'dispatchPsiEventPushNotifications', 'unregisterCurrentPushDevice']) {
+  for (const name of ['dispatchBookingPushNotifications', 'dispatchPsiEventPushNotifications', 'dispatchCustomerCarSalePushNotifications']) {
     assert.match(notifications, new RegExp(`function ${name}\\([^)]*\\) \\{\\s+if \\(REVIEW_ENVIRONMENT.enabled\\) return;`));
   }
+  assert.match(notifications, /function unregisterCurrentPushDevice\([^)]*\) \{\s+if \(REVIEW_ENVIRONMENT.enabled\) \{\s+if \(!ASK_PSI_DEVICE_QA.enabled\) return;/);
+  assert.match(notifications, /if \(!ASK_PSI_DEVICE_QA.allowsUser\(data.user\?\.id\)\) return;/);
+  assert.match(notifications, /const reviewPushBlocked = REVIEW_ENVIRONMENT.enabled && !ASK_PSI_DEVICE_QA.allowsUser\(userId\)/);
   assert.match(notifications, /const PUSH_TOKEN_STORAGE_KEY = environmentStorageKey/);
 });
 

@@ -53,3 +53,13 @@ approval. Never remove live users as part of sandbox cleanup.
 
 See `docs/APPLE-REVIEW-SANDBOX.md` for configuration, tested scope and remaining
 native/App Store Connect handover steps. No passwords belong in this document.
+
+## Private Ask PSI phone tests
+
+The additive `ask_psi_private_device_qa` migration and dedicated
+`process-ask-psi-device-qa` worker belong only to this existing sandbox.
+The worker keeps `verify_jwt=true`, validates sessions and nominated accounts,
+and defaults to delivery disabled. Its isolated device registry is not used
+by the normal push queue. Read `docs/ASK-PSI-PRIVATE-DEVICE-QA.md` for the
+verified disabled state, internal build profile and remaining device checks.
+Do not copy this worker or migration into production deployment directories.

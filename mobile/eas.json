@@ -158,6 +158,21 @@
       "autoIncrement": true,
       "channel": "production",
       "environment": "production"
+    },
+    "ask-psi-device-test": {
+      "extends": "apple-review",
+      "env": {
+        "EXPO_PUBLIC_ASK_PSI_DEVICE_QA": "true",
+        "EXPO_PUBLIC_ASK_PSI_DEVICE_QA_USERS": "060ecb89-838d-4034-b408-3ee7782a6a89,88f9d90b-0452-4478-940d-5cb96a298184",
+        "EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST": "false",
+        "EXPO_PUBLIC_PSI_GOOGLE_REVIEW": "false",
+        "EXPO_PUBLIC_PSI_DEMO_MODE_ENABLED": "false"
+      },
+      "autoIncrement": false,
+      "android": {
+        "buildType": "apk"
+      },
+      "distribution": "internal"
     }
   },
   "submit": {

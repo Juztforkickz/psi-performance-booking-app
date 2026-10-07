@@ -39,6 +39,7 @@ function harness({ enabled = true, userId = 'customer', rows = {}, rpcError = nu
       if (name === 'expo-crypto') return { randomUUID: () => 'random-uuid' };
       if (name === 'expo-image-manipulator') return { SaveFormat: { JPEG: 'jpeg' }, manipulateAsync: async () => { calls.push({ name: 'convert' }); return { uri: 'file:///converted.jpg', width: 1600, height: 1200 }; } };
       if (name === '@/lib/ask-psi-stage') return { ASK_PSI_STAGE: { privatePreviewEnabled: enabled } };
+      if (name === '@/lib/ask-psi-device-qa') return { ASK_PSI_DEVICE_QA: { enabled: false }, notificationWorkerName: () => 'process-push-notifications' };
       if (name === '@/lib/supabase') return { getSupabaseClient: () => { calls.push({ name: 'client' }); return client; } };
       throw new Error(`Unexpected import ${name}`);
     },
