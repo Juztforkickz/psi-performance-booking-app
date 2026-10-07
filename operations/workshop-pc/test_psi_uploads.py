@@ -15,12 +15,65 @@ from psi_uploads import (
     _remove_legacy_vehicle_index,
     create_folder_from_manifest, create_job_folder, create_manual_job,
     ensure_object, folder_label_for, import_manifest_inbox, invoice_identity, manifest_for,
-    local_folder_scan, linked_job_manifests, prepare_file, process_job, published_invoice_for_job,
+    local_folder_scan, linked_job_manifests, archive_exact_source_duplicates, update_duplicate_review, mark_folder_review,
+    prepare_file, process_job, published_invoice_for_job,
     sync_job_folders,
 )
 
 
 class WorkshopImporterTests(unittest.TestCase):
+    def test_folder_review_does_not_erase_completed_upload_receipts(self):
+        path = self.folder / '.psi-upload-status.json'
+        path.write_text(json.dumps({'photos/car.jpg': {'status': 'uploaded', 'record_id': 'protected'}}))
+        mark_folder_review(self.folder, 'Locked file')
+        state = json.loads(path.read_text())
+        self.assertEqual(state['photos/car.jpg']['record_id'], 'protected')
+        self.assertEqual(state['status'], 'needs_review')
+
+    def test_exact_duplicates_archived_preserving_uploaded_source_and_bytes(self):
+        first = self.image(category='Workshop photos')
+        copy = first.parent / 'another-name.jpg'
+        copy.write_bytes(first.read_bytes())
+        os.utime(copy, (time.time() - 10, time.time() - 10))
+        state = {str(first.relative_to(self.folder)): {'status': 'uploaded', 'record_id': 'saved'}}
+        changes = archive_exact_source_duplicates(self.folder, state)
+        self.assertEqual(len(changes), 1)
+        self.assertTrue(first.exists())
+        self.assertFalse(copy.exists())
+        self.assertEqual((self.folder / changes[0]['archived']).read_bytes(), first.read_bytes())
+        self.assertEqual(state[str(first.relative_to(self.folder))]['record_id'], 'saved')
+        self.assertEqual(archive_exact_source_duplicates(self.folder, state), [])
+
+    def test_different_content_categories_and_unfinished_sources_preserved(self):
+        first = self.image(category='Workshop photos')
+        other = first.parent / 'different.jpg'
+        Image.new('RGB', (20, 20), 'red').save(other)
+        docs = self.folder / "Documents + DTC's"
+        docs.mkdir()
+        (docs / first.name).write_bytes(first.read_bytes())
+        new_copy = first.parent / 'still-copying.jpg'
+        new_copy.write_bytes(first.read_bytes())
+        self.assertEqual(archive_exact_source_duplicates(self.folder, {}), [])
+        self.assertTrue(other.exists())
+        self.assertTrue(new_copy.exists())
+        self.assertTrue((docs / first.name).exists())
+
+    def test_duplicate_invoice_review_uses_ids_and_respects_approved_link(self):
+        root, primary, linked, connection = self.linked_workspace_fixture()
+        primary_job = {'id': self.manifest['job_id'], 'customer_id': self.manifest['customer_id'],
+                       'vehicle_id': self.manifest['vehicle_id'], 'job_date': self.manifest['job_date'], 'reference': 'PSI-TEST'}
+        invoice_job = {**primary_job, 'id': linked['job_id'], 'reference': 'XERO INV-1649'}
+        update_duplicate_review(root, [primary_job, invoice_job], [])
+        report = json.loads((root / '.psi-duplicate-review.json').read_text())
+        self.assertEqual(report['same_visit_invoice_candidates'], [])
+        (primary / '.psi-linked-jobs.json').unlink()
+        update_duplicate_review(root, [primary_job, invoice_job], [])
+        report = json.loads((root / '.psi-duplicate-review.json').read_text())
+        self.assertEqual(len(report['same_visit_invoice_candidates']), 1)
+        invoice_job['vehicle_id'] = 'other-vehicle'
+        update_duplicate_review(root, [primary_job, invoice_job], [])
+        self.assertEqual(json.loads((root / '.psi-duplicate-review.json').read_text())['same_visit_invoice_candidates'], [])
+
     def linked_workspace_fixture(self):
         root = self.folder / 'root'
         primary = create_folder_from_manifest(root, {**self.manifest, 'customer_name': 'Daniel'})

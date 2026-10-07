@@ -768,7 +768,8 @@ def sync_job_folders(root, connection, days_back=30):
         _remove_legacy_vehicle_index(root)
     except Exception as error:
         errors.append('Old customer vehicle index: ' + str(error))
-    for job in connection.call(path):
+    live_jobs = connection.call(path)
+    for job in live_jobs:
         try:
             vehicle = vehicles_by_id.get(job.get('vehicle_id')) if job.get('vehicle_id') else workshop_vehicles_by_id.get(job.get('workshop_vehicle_id'))
             customer_name = customer_names.get(job.get('customer_id')) if job.get('customer_id') else workshop_names.get(job.get('workshop_contact_id'))
@@ -778,7 +779,38 @@ def sync_job_folders(root, connection, days_back=30):
             created.append(folder)
         except Exception as error:
             errors.append(f'{job.get("reference", "Unknown job")}: {error}')
+    update_duplicate_review(root, live_jobs, errors)
     return created, errors
+
+
+def update_duplicate_review(root, live_jobs, errors):
+    """Persist uncertain same-visit job candidates, never silently merge visits."""
+    folders, _ = local_folder_scan(root)
+    linked_ids = set()
+    for folder in folders:
+        link_path = folder / '.psi-linked-jobs.json'
+        if link_path.is_file() and not link_path.is_symlink():
+            links = json.loads(link_path.read_text(encoding='utf-8-sig'))
+            linked_ids.update(item['job_id'] for item in links.get('jobs', []))
+    groups = {}
+    for job in live_jobs:
+        if not job.get('customer_id') or not job.get('vehicle_id') or job['id'] in linked_ids:
+            continue
+        key = (job['customer_id'], job['vehicle_id'], job['job_date'])
+        groups.setdefault(key, []).append(job)
+    candidates = []
+    for (customer_id, vehicle_id, visit_date), jobs in sorted(groups.items()):
+        if len(jobs) > 1 and any(job.get('reference', '').startswith('XERO INV-') for job in jobs):
+            candidates.append({'customer_id': customer_id, 'vehicle_id': vehicle_id, 'date': visit_date,
+                               'jobs': [{'job_id': job['id'], 'reference': job['reference']} for job in jobs]})
+    data = {'schema': 1, 'same_visit_invoice_candidates': candidates, 'sync_errors': errors}
+    path = root / '.psi-duplicate-review.json'
+    if path.is_symlink():
+        raise ValueError('Duplicate review report must not be a symlink')
+    current = json.loads(path.read_text(encoding='utf-8-sig')) if path.exists() else None
+    if current != data:
+        atomic_json(path, data)
+    hide_windows_folder(path)
 
 
 def local_folder_scan(root):
@@ -1353,6 +1385,79 @@ def published_invoice_for_job(connection, job_id, filename):
         raise ValueError('More than one published copy of this invoice needs PSI review')
     return matches[0] if matches else None
 
+
+def archive_exact_source_duplicates(folder, state):
+    """Keep one identical source per job/category; retain every extra in recovery."""
+    recovery = folder / '.psi-duplicate-originals'
+    if recovery.is_symlink():
+        raise ValueError('Duplicate recovery folder must not be a symlink')
+    index_path = recovery / 'index.json'
+    if index_path.is_symlink():
+        raise ValueError('Duplicate recovery index must not be a symlink')
+    prior_index = json.loads(index_path.read_text(encoding='utf-8-sig')) if index_path.exists() else []
+    if not isinstance(prior_index, list):
+        raise ValueError('Invalid duplicate recovery index')
+    changes = []
+    for category in CATEGORIES:
+        category_path = folder / category
+        if not category_path.is_dir() or category_path.is_symlink():
+            continue
+        groups = {}
+        for source in sorted(category_path.iterdir()):
+            if not source.is_file() or source.is_symlink():
+                continue
+            if source.suffix.lower() not in IMAGE_SUFFIXES + ('.pdf', '.txt'):
+                continue
+            before = (source.stat().st_size, source.stat().st_mtime_ns)
+            if before[0] > 40 * 1024 * 1024 or time.time() - source.stat().st_mtime < 5:
+                continue
+            digest = hashlib.sha256(source.read_bytes()).hexdigest()
+            if before != (source.stat().st_size, source.stat().st_mtime_ns):
+                continue
+            groups.setdefault((before[0], digest), []).append(source)
+        for (_, digest), sources in groups.items():
+            if len(sources) < 2:
+                continue
+            sources.sort(key=lambda source: (
+                state.get(str(source.relative_to(folder)), {}).get('status') != 'uploaded', source.name))
+            keep = sources[0]
+            for source in sources[1:]:
+                relative = str(source.relative_to(folder))
+                destination_folder = recovery / category
+                if destination_folder.is_symlink():
+                    raise ValueError('Duplicate recovery category must not be a symlink')
+                destination_folder.mkdir(parents=True, exist_ok=True)
+                destination = _available_destination(destination_folder, source.name)
+                # Recheck immediately before archiving; never overwrite an original.
+                if hashlib.sha256(source.read_bytes()).hexdigest() != digest or hashlib.sha256(keep.read_bytes()).hexdigest() != digest:
+                    raise ValueError('Duplicate source changed while checking; preserved for review')
+                prior = state.get(relative, {})
+                source.rename(destination)
+                state.pop(relative, None)
+                changes.append({'source': relative, 'retained': str(keep.relative_to(folder)),
+                                'archived': str(destination.relative_to(folder)), 'sha256': digest, 'prior_status': prior})
+    if changes:
+        atomic_json(index_path, prior_index + changes)
+        atomic_json(folder / '.psi-upload-status.json', state)
+        hide_windows_folder(recovery)
+    return changes
+
+
+def mark_folder_review(folder, error):
+    """An identity/locked-file error must not erase completed file receipts."""
+    path = folder / '.psi-upload-status.json'
+    try:
+        state = json.loads(path.read_text(encoding='utf-8-sig')) if path.exists() else {}
+        if not isinstance(state, dict):
+            raise ValueError('Invalid status')
+    except (OSError, UnicodeError, ValueError):
+        # Preserve malformed evidence instead of replacing it.
+        if path.exists():
+            path.rename(_available_destination(folder, '.psi-upload-status-recovery.json'))
+        state = {}
+    state.update({'status': 'needs_review', 'error': str(error)})
+    atomic_json(path, state)
+
 def process_job(folder, connection=None):
     manifest = manifest_for(folder, connection)
     linked = linked_job_manifests(folder, manifest, connection)
@@ -1367,6 +1472,8 @@ def process_job(folder, connection=None):
     removed_folder_error = state.pop('error', None) is not None or removed_folder_error
     if removed_folder_error:
         atomic_json(state_path, state)
+    if connection:
+        archive_exact_source_duplicates(folder, state)
     for category, (kind, phase, category_key) in CATEGORIES.items():
         category_path = folder / category
         if not category_path.is_dir() or category_path.is_symlink():
@@ -1545,7 +1652,7 @@ def main():
                 try:
                     process_job(folder, connection)
                 except Exception as error:
-                    atomic_json(folder / '.psi-upload-status.json', {'status': 'needs_review', 'error': str(error)})
+                    mark_folder_review(folder, error)
             print('Scan complete. Check each job folder’s .psi-upload-status.json for results.')
             if not args.watch:
                 break
