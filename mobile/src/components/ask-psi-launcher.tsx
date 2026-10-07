@@ -23,7 +23,7 @@ export function AskPsiLauncher() {
   if (!ASK_PSI_STAGE.privatePreviewEnabled || keyboardVisible || HIDDEN_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`))) return null;
 
   return (
-    <View pointerEvents="box-none" style={[styles.layer, { bottom: 78 + insets.bottom, right: 14 + insets.right }]}>
+    <View pointerEvents="box-none" style={[styles.layer, { paddingRight: 14 + insets.right }]}>
       <Pressable accessibilityLabel="Ask PSI" accessibilityHint="Open messages with PSI" accessibilityRole="button" onPress={() => router.push('/messages' as Href)} style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
         <Image accessible={false} resizeMode="contain" source={BOOST_ASSISTANT} style={styles.boostImage} />
       </Pressable>
@@ -32,7 +32,7 @@ export function AskPsiLauncher() {
 }
 
 const styles = StyleSheet.create({
-  layer: { position: 'absolute', right: 14, bottom: 78, zIndex: 50 },
+  layer: { height: 80, flexShrink: 0, alignItems: 'flex-end', justifyContent: 'center' },
   button: { width: 76, height: 76, alignItems: 'center', justifyContent: 'center' },
   boostImage: { width: 76, height: 76 },
   pressed: { opacity: 0.75, transform: [{ scale: 0.98 }] },

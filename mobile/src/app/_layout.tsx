@@ -46,7 +46,7 @@ function ThemeAwareRootShell() {
               <StaffNavigationProvider>
                 <UiToneProvider tone={pathname === '/staff' || pathname === '/staff-security' || pathname === '/staff-messages' || pathname === '/portal-preview' ? 'staff' : 'brand'}>
                 <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
-                <View style={styles.shell}>
+                <View style={[styles.shell, { backgroundColor: theme.ink }]}>
                   <AppleReviewBanner />
                   <View style={styles.content}>
                     <Stack

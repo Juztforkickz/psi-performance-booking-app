@@ -328,13 +328,20 @@ test('New question supports keyboard dismissal, realtime unread counts and a saf
   assert.ok(app.find('AskPsiThread', props => props.conversationId === 'conversation-new'));
 });
 
-test('Boost stays out of staff inbox and keyboard controls', async () => {
+test('Boost reserves space clear of page controls and hides for staff and keyboard', async () => {
   const staff = mount('launcher', 'AskPsiLauncher', {}, { path: '/staff-messages' });
   staff.render();
   assert.equal(staff.tree(), null);
   const app = mount('launcher', 'AskPsiLauncher');
   app.render();
-  assert.equal(app.tree().props.style[1].bottom, 112);
+  assert.equal(app.tree().props.style[0].position, undefined, 'Launcher must take its own space instead of overlaying page controls');
+  assert.equal(app.tree().props.style[0].flexShrink, 0, 'Reserved space must not collapse over nearby controls');
+  assert.ok(app.tree().props.style[0].height >= app.find('Image').props.style.height);
   app.keyboard('keyboardDidShow'); app.render();
   assert.equal(app.tree(), null);
+  app.keyboard('keyboardDidHide'); app.render();
+  assert.ok(app.find('Pressable', props => props.accessibilityLabel === 'Ask PSI'));
+  const publicApp = mount('launcher', 'AskPsiLauncher', {}, { privatePreview: false });
+  publicApp.render();
+  assert.equal(publicApp.tree(), null, 'Public builds must not reserve any launcher space');
 });
