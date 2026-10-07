@@ -674,9 +674,9 @@ export type Database = {
           booking_request_id: string | null;
           car_sale_listing_id: string | null;
           created_at: string;
-          deep_link: '/booking' | '/bookings' | '/customer-cars-for-sale' | '/events' | '/messages' | '/staff';
+          deep_link: '/booking' | '/bookings' | '/customer-cars-for-sale' | '/events' | '/messages' | '/performance-plus' | '/staff';
           id: string;
-          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'car_sale_published' | 'customer_message_received' | 'new_booking_request' | 'performance_subscription_started' | 'psi_event_cancelled' | 'psi_event_published' | 'psi_event_updated' | 'service_reminder' | 'staff_message_received' | 'xero_invoice_review';
+          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'car_sale_published' | 'customer_message_received' | 'new_booking_request' | 'performance_subscription_started' | 'performance_trial_ended' | 'psi_event_cancelled' | 'psi_event_published' | 'psi_event_updated' | 'service_reminder' | 'staff_message_received' | 'xero_invoice_review';
           psi_event_id: string | null;
           read_at: string | null;
           recipient_user_id: string;

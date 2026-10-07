@@ -439,6 +439,12 @@ verify_jwt = true
 import_map = "./functions/process-car-sale-notifications/deno.json"
 entrypoint = "./functions/process-car-sale-notifications/index.ts"
 
+[functions.process-performance-trial-notifications]
+enabled = true
+verify_jwt = true
+import_map = "./functions/process-performance-trial-notifications/deno.json"
+entrypoint = "./functions/process-performance-trial-notifications/index.ts"
+
 [functions.invite-customer]
 enabled = true
 verify_jwt = true

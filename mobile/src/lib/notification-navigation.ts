@@ -49,12 +49,13 @@ export function notificationDestination(event: NotificationNavigationEvent): { h
   }
   if (event.deep_link === '/customer-cars-for-sale') return { href: '/customer-cars-for-sale', label: 'Open Customer Cars for Sale' };
   if (event.deep_link === '/events') return { href: '/events', label: 'Open PSI Events' };
+  if (event.deep_link === '/performance-plus') return { href: '/performance-plus', label: 'Continue with Performance+' };
   return { href: '/bookings', label: 'Open Bookings' };
 }
 
 export function pushNotificationHref(data: Record<string, unknown> | undefined): Href | null {
   const deepLink = typeof data?.url === 'string' ? data.url : '';
-  if (!['/staff', '/booking', '/bookings', '/customer-cars-for-sale', '/events'].includes(deepLink)) return null;
+  if (!['/staff', '/booking', '/bookings', '/customer-cars-for-sale', '/events', '/performance-plus'].includes(deepLink)) return null;
   const kind = typeof data?.kind === 'string' ? data.kind : '';
   const bookingRequestId = typeof data?.bookingId === 'string' ? data.bookingId : null;
   const sourceEventKey = typeof data?.sourceEventKey === 'string' ? data.sourceEventKey : '';
