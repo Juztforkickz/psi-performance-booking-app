@@ -75,6 +75,8 @@ Add `--watch`, `--session-file` and `--manifest-inbox` to match the installed au
 
 ## Behaviour and recovery
 
+- An owner-approved `.psi-linked-jobs.json` groups existing published invoice jobs into one primary desktop job workspace. The watcher verifies every linked job against live project, account, vehicle, registration and visit date before reusing the folder. It never guesses links from names and never changes published record IDs or storage objects. A linked invoice PDF placed in the primary `Invoice archive` is matched across these verified jobs rather than uploaded again. A stale link or an existing second folder stops for review. The original job associations remain protected in the app. Separate visits are not grouped automatically.
+
 - Folder names and filenames are labels. No customer name, partial registration or filename can authorize a match. The portal manifest's project, job, customer, vehicle, registration and date must match live records. A changed registration requires a new verified manifest.
 - JPEG, PNG, WebP, TIFF, HEIC and HEIF photographs are oriented correctly, converted to upload-safe JPEG and resized to at most 1600 pixels on the longest edge; JPEG quality 82. Thumbnails use a maximum 360-pixel edge and quality 72. EXIF/GPS is removed. The original workshop file remains untouched. Video is not supported and should not be placed in an upload category.
 - PDF originals stay byte-for-byte intact. Save a Mainline result as PDF into the job's `Dyno results & graphs` folder; it uploads to that vehicle's Dyno results section. There is no assumed Mainline API or automatic numerical extraction, so enter verified HP/Nm in the portal when needed.

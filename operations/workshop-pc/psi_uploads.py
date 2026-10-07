@@ -258,6 +258,10 @@ class Connection:
 
 def manifest_for(folder, connection=None):
     manifest = json.loads((folder / 'psi-job.json').read_text(encoding='utf-8-sig'))
+    return verify_manifest(manifest, connection)
+
+
+def verify_manifest(manifest, connection=None):
     schema = manifest.get('schema')
     identity_fields = ('job_id', 'customer_id', 'vehicle_id') if schema == 1 else ('job_id', 'workshop_contact_id', 'workshop_vehicle_id')
     if schema not in (1, 2):
@@ -583,8 +587,63 @@ def migrate_category_folders(folder):
         atomic_json(state_path, state)
 
 
-def create_folder_from_manifest(root, manifest, allow_workshop_identity_repair=False):
+def linked_job_manifests(folder, primary, connection):
+    """Owner-approved desktop grouping never changes protected published records."""
+    path = folder / '.psi-linked-jobs.json'
+    if not path.exists():
+        return []
+    if path.is_symlink() or not connection:
+        raise ValueError('Linked job workspace requires live staff verification')
+    data = json.loads(path.read_text(encoding='utf-8-sig'))
+    if data.get('schema') != 1 or data.get('primary_job_id') != primary['job_id']:
+        raise ValueError('Invalid linked job workspace')
+    verify_manifest(primary, connection)
+    seen = {primary['job_id']}
+    linked = data.get('jobs')
+    if not isinstance(linked, list) or not linked:
+        raise ValueError('Invalid linked job list')
+    for item in linked:
+        verify_manifest(item, connection)
+        if item['job_id'] in seen or primary.get('schema') != 1 or item.get('schema') != 1:
+            raise ValueError('Invalid linked job identity')
+        if any(item.get(key) != primary.get(key) for key in (
+            'project_ref', 'customer_id', 'vehicle_id', 'registration', 'job_date'
+        )):
+            raise ValueError('Linked jobs must belong to the exact account, vehicle and visit date')
+        seen.add(item['job_id'])
+    hide_windows_folder(path)
+    return linked
+
+
+def _linked_workspace(root, manifest, connection):
+    matches = []
+    jobs, _ = local_folder_scan(root)
+    for folder in jobs:
+        path = folder / '.psi-linked-jobs.json'
+        if not path.exists():
+            continue
+        data = json.loads(path.read_text(encoding='utf-8-sig'))
+        if not any(item.get('job_id') == manifest['job_id'] for item in data.get('jobs', [])):
+            continue
+        primary = manifest_for(folder, connection)
+        linked = linked_job_manifests(folder, primary, connection)
+        item = next(item for item in linked if item['job_id'] == manifest['job_id'])
+        if not _manifest_update_allowed(item, manifest):
+            raise ValueError('Linked job changed; PSI review required')
+        existing, _ = _existing_job_folder(root, manifest['job_id'])
+        if existing is not None:
+            raise ValueError('Linked job still has a second folder; preserve and review it')
+        matches.append(folder)
+    if len(matches) > 1:
+        raise ValueError('More than one workspace links this job; PSI review required')
+    return matches[0] if matches else None
+
+
+def create_folder_from_manifest(root, manifest, allow_workshop_identity_repair=False, connection=None):
     root.mkdir(parents=True, exist_ok=True)
+    linked_folder = _linked_workspace(root, manifest, connection)
+    if linked_folder is not None:
+        return linked_folder
     folder, existing = _existing_job_folder(root, manifest['job_id'])
     previous_parent = folder.parent if folder else None
     customer_folder = _customer_folder_for(root, manifest, folder, existing)
@@ -630,7 +689,7 @@ def create_job_folder(root, manifest_path, connection=None):
     finally:
         (temporary / 'psi-job.json').unlink(missing_ok=True)
         temporary.rmdir()
-    return create_folder_from_manifest(root, manifest)
+    return create_folder_from_manifest(root, manifest, connection=connection)
 
 
 def manifest_from_job(connection, job, vehicle=None, customer_name=None):
@@ -715,7 +774,7 @@ def sync_job_folders(root, connection, days_back=30):
             customer_name = customer_names.get(job.get('customer_id')) if job.get('customer_id') else workshop_names.get(job.get('workshop_contact_id'))
             manifest = manifest_from_job(connection, job, vehicle, customer_name)
             connection.verified_jobs[job['id']] = manifest
-            folder = create_folder_from_manifest(root, manifest, allow_workshop_identity_repair=True)
+            folder = create_folder_from_manifest(root, manifest, allow_workshop_identity_repair=True, connection=connection)
             created.append(folder)
         except Exception as error:
             errors.append(f'{job.get("reference", "Unknown job")}: {error}')
@@ -1296,6 +1355,7 @@ def published_invoice_for_job(connection, job_id, filename):
 
 def process_job(folder, connection=None):
     manifest = manifest_for(folder, connection)
+    linked = linked_job_manifests(folder, manifest, connection)
     migrate_category_folders(folder)
     consolidate_photo_folders(folder)
     if (folder / '.psi-prepared').is_dir():
@@ -1344,6 +1404,11 @@ def process_job(folder, connection=None):
                     continue
                 if connection and not workshop_only and kind == 'invoice':
                     published_invoice = published_invoice_for_job(connection, manifest['job_id'], path.name)
+                    for linked_manifest in linked:
+                        other = published_invoice_for_job(connection, linked_manifest['job_id'], path.name)
+                        if other and published_invoice:
+                            raise ValueError('Multiple published invoices in linked workspace need PSI review')
+                        published_invoice = other or published_invoice
                     if published_invoice:
                         state[relative] = _source_state(
                             source_key, 'uploaded', before,

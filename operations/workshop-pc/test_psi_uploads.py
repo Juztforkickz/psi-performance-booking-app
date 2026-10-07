@@ -15,12 +15,63 @@ from psi_uploads import (
     _remove_legacy_vehicle_index,
     create_folder_from_manifest, create_job_folder, create_manual_job,
     ensure_object, folder_label_for, import_manifest_inbox, invoice_identity, manifest_for,
-    local_folder_scan, prepare_file, process_job, published_invoice_for_job,
+    local_folder_scan, linked_job_manifests, prepare_file, process_job, published_invoice_for_job,
     sync_job_folders,
 )
 
 
 class WorkshopImporterTests(unittest.TestCase):
+    def linked_workspace_fixture(self):
+        root = self.folder / 'root'
+        primary = create_folder_from_manifest(root, {**self.manifest, 'customer_name': 'Daniel'})
+        linked = {**self.manifest, 'job_id': 'a4300000-0000-4000-8000-000000000002',
+                  'reference': 'XERO INV-1649', 'customer_name': 'Daniel'}
+        (primary / '.psi-linked-jobs.json').write_text(json.dumps({
+            'schema': 1, 'primary_job_id': self.manifest['job_id'], 'jobs': [linked]}))
+        class Fake:
+            url = 'https://test.supabase.co'
+            verified_jobs = {self.manifest['job_id']: {**self.manifest, 'customer_name': 'Daniel'},
+                             linked['job_id']: linked}
+            def call(inner, *args, **kwargs):
+                raise AssertionError('No unverified network request expected')
+        return root, primary, linked, Fake()
+
+    def test_linked_invoice_workspace_is_one_folder_after_repeated_sync(self):
+        root, primary, linked, connection = self.linked_workspace_fixture()
+        original = self.image()
+        for _ in range(3):
+            self.assertEqual(create_folder_from_manifest(root, linked, connection=connection), primary)
+        jobs, review = local_folder_scan(root)
+        self.assertEqual(jobs, [primary])
+        self.assertEqual(review, [])
+        self.assertTrue(original.exists())
+
+    def test_linked_workspace_rejects_different_vehicle_and_offline_use(self):
+        root, primary, linked, connection = self.linked_workspace_fixture()
+        with self.assertRaises(ValueError):
+            create_folder_from_manifest(root, linked)
+        linked['vehicle_id'] = 'a4200000-0000-4000-8000-000000000002'
+        (primary / '.psi-linked-jobs.json').write_text(json.dumps({
+            'schema': 1, 'primary_job_id': self.manifest['job_id'], 'jobs': [linked]}))
+        with self.assertRaises(ValueError):
+            create_folder_from_manifest(root, linked, connection=connection)
+
+    def test_linked_invoice_pdf_deduplicates_without_writes(self):
+        root, primary, linked, connection = self.linked_workspace_fixture()
+        pdf = primary / 'Invoice archive' / 'INV-1649.pdf'
+        pdf.write_bytes(b'%PDF-1.7\nfixture\n%%EOF')
+        os.utime(pdf, (time.time() - 10, time.time() - 10))
+        def read_only(path, method='GET', **kwargs):
+            self.assertEqual(method, 'GET')
+            self.assertTrue(path.startswith('/rest/v1/vault_records?'))
+            return [{'id': 'existing-invoice', 'title': 'Xero invoice INV-1649'}] if linked['job_id'] in path else []
+        connection.call = read_only
+        state = process_job(primary, connection)
+        entry = state[str(pdf.relative_to(primary))]
+        self.assertEqual(entry['record_id'], 'existing-invoice')
+        self.assertTrue(entry['deduplicated'])
+        process_job(primary, connection)
+
     def test_invoice_job_reused_only_after_staff_selection(self):
         vehicle = {'id': 'vehicle', 'customer_id': 'customer'}
         job = {'id': 'job', 'vehicle_id': 'vehicle', 'customer_id': 'customer',
