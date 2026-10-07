@@ -34,6 +34,8 @@ Files for a workshop-only customer are prepared once and marked `waiting_for_cus
 
 The upload root contains one folder per customer. Every verified vehicle job sits inside that customer folder and keeps its own category folders. For example, one customer can contain `2010 HOLDEN VE SSV REDLINE - 1YT9HQ - PSI-PHONE-...` and `2008 FORD FALCON - ABC123 - PSI-PHONE-...`. The registration and unique PSI job reference keep vehicles and visits separate. Synchronization safely moves older verified flat folders into this structure by reading protected customer, vehicle and job IDs. When an eligible workshop-only job is claimed by a newly registered customer, the existing customer folder is kept and its protected marker is upgraded in place. This preserves every local file and avoids an unnecessary Windows rename when the verified app profile uses slightly different punctuation or capitalization. A verified retry also clears any stale whole-folder review message. Completed files are not changed or re-uploaded.
 
+When creating a job for an existing app vehicle, eligible invoice-only Xero jobs for that exact customer and vehicle are displayed. Select the matching invoice job to reuse its desktop folder, reference and original invoice date. Its published invoice stays linked. Choose **Create a separate visit** for genuinely different work. Jobs with a booking or any non-invoice record are never offered for reuse. A matching name alone never merges jobs.
+
 Parts-only Xero sales remain read-only sales records. They do not create a customer workshop upload folder or pretend that a workshop job occurred.
 
 The resulting layout is:

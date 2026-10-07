@@ -1021,6 +1021,47 @@ def _create_new_vehicle_for_customer(connection, owner_type, owner, customer):
     }, headers={'Prefer': 'return=representation'})[0]
 
 
+def _reuse_invoice_job(connection, vehicle, title, input_fn):
+    """Offer verified invoice-only jobs, never merge separate visits by name."""
+    jobs = connection.call(
+        '/rest/v1/workshop_jobs?select=*&customer_id=eq.' + vehicle['customer_id']
+        + '&vehicle_id=eq.' + vehicle['id'] + '&order=job_date.desc&limit=100'
+    )
+    candidates = []
+    for job in jobs:
+        if (job.get('customer_id') != vehicle['customer_id']
+                or job.get('vehicle_id') != vehicle['id']
+                or job.get('booking_request_id')
+                or not str(job.get('reference', '')).startswith('XERO INV-')
+                or not str(job.get('title', '')).startswith('Xero invoice INV-')):
+            continue
+        records = connection.call('/rest/v1/vault_records?select=id,kind&job_id=eq.' + job['id'])
+        if records and all(record.get('kind') == 'invoice' for record in records):
+            candidates.append(job)
+    if not candidates:
+        return None
+    print('Existing invoice jobs for this verified customer and vehicle:')
+    for index, job in enumerate(candidates, 1):
+        print(f'{index}. {job["reference"]} | {job["job_date"]}')
+    print('0. Create a separate visit')
+    answer = input_fn('Use the invoice job for this work? Choose its number, or 0 for a separate visit: ').strip()
+    if not answer.isdigit() or not 0 <= int(answer) <= len(candidates):
+        raise ValueError('Choose an invoice job number or 0 for a separate visit')
+    if int(answer) == 0:
+        return None
+    print('Reusing the existing invoice job and its original date; invoice links are preserved.')
+    job = candidates[int(answer) - 1]
+    updated = connection.call(
+        '/rest/v1/workshop_jobs?id=eq.' + job['id']
+        + '&customer_id=eq.' + vehicle['customer_id'] + '&vehicle_id=eq.' + vehicle['id']
+        + '&title=eq.' + urllib.parse.quote(job['title'], safe=''),
+        'PATCH', {'title': title}, headers={'Prefer': 'return=representation'},
+    )
+    if len(updated) != 1:
+        raise ValueError('The existing invoice job changed. Nothing new was created; review and retry')
+    return updated[0]
+
+
 def _create_manual_job_once(root, connection, input_fn):
     registration = re.sub(r'\s+', '', input_fn('Vehicle registration: ').upper())
     if not registration:
@@ -1086,12 +1127,14 @@ def _create_manual_job_once(root, connection, input_fn):
     if selected_choice and selected_choice[0] == 'app':
         _, vehicle, customer_name = selected_choice
         job_date, title = _manual_job_details(input_fn, vehicle['registration'])
-        reference = 'PSI-PHONE-' + job_date.replace('-', '') + '-' + uuid.uuid4().hex[:8].upper()
-        job = connection.call('/rest/v1/workshop_jobs', 'POST', {
-            'customer_id': vehicle['customer_id'], 'vehicle_id': vehicle['id'],
-            'reference': reference, 'title': title, 'job_date': job_date,
-            'created_by': connection.user_id,
-        }, headers={'Prefer': 'return=representation'})[0]
+        job = _reuse_invoice_job(connection, vehicle, title, input_fn)
+        if job is None:
+            reference = 'PSI-PHONE-' + job_date.replace('-', '') + '-' + uuid.uuid4().hex[:8].upper()
+            job = connection.call('/rest/v1/workshop_jobs', 'POST', {
+                'customer_id': vehicle['customer_id'], 'vehicle_id': vehicle['id'],
+                'reference': reference, 'title': title, 'job_date': job_date,
+                'created_by': connection.user_id,
+            }, headers={'Prefer': 'return=representation'})[0]
     else:
         existing_vehicle = selected_choice[1] if selected_choice else None
         customer_name = selected_choice[2] if selected_choice else None

@@ -11,7 +11,7 @@ from unittest.mock import patch
 from PIL import Image
 from pillow_heif import from_pillow
 from psi_uploads import (
-    Connection, RequestFailure, SessionStore, _ReturnToMenu, _parse_job_date, _parse_job_type,
+    Connection, RequestFailure, SessionStore, _ReturnToMenu, _parse_job_date, _parse_job_type, _reuse_invoice_job,
     _remove_legacy_vehicle_index,
     create_folder_from_manifest, create_job_folder, create_manual_job,
     ensure_object, folder_label_for, import_manifest_inbox, invoice_identity, manifest_for,
@@ -21,6 +21,40 @@ from psi_uploads import (
 
 
 class WorkshopImporterTests(unittest.TestCase):
+    def test_invoice_job_reused_only_after_staff_selection(self):
+        vehicle = {'id': 'vehicle', 'customer_id': 'customer'}
+        job = {'id': 'job', 'vehicle_id': 'vehicle', 'customer_id': 'customer',
+               'reference': 'XERO INV-1653 - WKE590', 'title': 'Xero invoice INV-1653',
+               'job_date': '2026-10-06', 'booking_request_id': None}
+        class Fake:
+            writes = []
+            def call(inner, path, method='GET', data=None, **kwargs):
+                if method == 'PATCH':
+                    inner.writes.append((path, data))
+                    return [{**job, **data}]
+                if path.startswith('/rest/v1/vault_records'):
+                    return [{'id': 'invoice', 'kind': 'invoice'}]
+                return [job, {**job, 'id': 'other', 'customer_id': 'other'}]
+        c = Fake()
+        result = _reuse_invoice_job(c, vehicle, 'Diagnosis', lambda _: '1')
+        self.assertEqual(result['id'], 'job')
+        self.assertEqual(result['job_date'], '2026-10-06')
+        self.assertEqual(len(c.writes), 1)
+        c.writes.clear()
+        self.assertIsNone(_reuse_invoice_job(c, vehicle, 'Diagnosis', lambda _: '0'))
+        self.assertEqual(c.writes, [])
+
+    def test_invoice_reuse_excludes_jobs_with_workshop_records_or_bookings(self):
+        vehicle = {'id': 'vehicle', 'customer_id': 'customer'}
+        class Fake:
+            def call(inner, path, method='GET', **kwargs):
+                self.assertEqual(method, 'GET')
+                if path.startswith('/rest/v1/vault_records'):
+                    return [{'kind': 'invoice'}, {'kind': 'media'}]
+                return [{'id': 'job', **{'vehicle_id': 'vehicle', 'customer_id': 'customer'},
+                         'reference': 'XERO INV-1653 - WKE590', 'title': 'Xero invoice INV-1653'}]
+        self.assertIsNone(_reuse_invoice_job(Fake(), vehicle, 'Diagnosis', lambda _: self.fail('No prompt expected')))
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.folder = Path(self.temp.name)
@@ -785,6 +819,8 @@ class WorkshopImporterTests(unittest.TestCase):
                 if path == '/rest/v1/customer_vehicles' and method == 'POST':
                     inner.vehicle_post = data
                     return [{**data, 'id': vehicle_id, 'archived_at': None}]
+                if path.startswith('/rest/v1/workshop_jobs?') and method == 'GET':
+                    return []
                 if path == '/rest/v1/workshop_jobs' and method == 'POST':
                     return [{**data, 'id': self.manifest['job_id']}]
                 raise AssertionError(path)
@@ -828,6 +864,8 @@ class WorkshopImporterTests(unittest.TestCase):
                 if path == '/rest/v1/customer_vehicles' and method == 'POST':
                     inner.vehicle_post = data
                     return [{**data, 'id': vehicle_id, 'archived_at': None}]
+                if path.startswith('/rest/v1/workshop_jobs?') and method == 'GET':
+                    return []
                 if path == '/rest/v1/workshop_jobs' and method == 'POST':
                     return [{**data, 'id': self.manifest['job_id']}]
                 raise AssertionError(path)
