@@ -30,6 +30,8 @@ The Microsoft 365 fallback worker is fail closed until its Microsoft Graph appli
 
 The source now includes a complete customer conversation screen, a floating Boost launcher, photo messages, keyboard safe scrolling, realtime refresh, read receipts and a protected PSI workshop inbox. The workshop inbox requires an active staff identity and authenticator verification.
 
+Boost now has a transparent, app optimised turbo robot character asset. The hidden launcher uses a compact portrait and the Ask PSI screen introduces the full character without changing the normal customer navigation.
+
 Every interface is guarded by `EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW=true` together with either a local development build or the isolated review environment. Normal production builds therefore keep the launcher and workshop link hidden. Direct access to either route returns to the normal customer or workshop screen without exposing the private feature.
 
 The existing Apple review and Google performance test profiles include the private flag. No public, beta, App Store release, Android internal, Google Play internal or production profile includes it. This allows a later private build to exercise the feature without changing any public app.

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AskPsiThread } from '@/components/ask-psi-thread';
@@ -24,6 +24,7 @@ const TOPICS: readonly { detail: string; label: string; value: AskPsiTopic }[] =
   { value: 'sell_my_car', label: 'Sell my car', detail: 'Ask PSI about a customer vehicle listing' },
   { value: 'other', label: 'Something else', detail: 'A general question for PSI' },
 ] as const;
+const BOOST_ASSISTANT = require('../../assets/images/boost-assistant.png');
 
 export default function AskPsiMessagesScreen() {
   const router = useRouter();
@@ -91,7 +92,7 @@ export default function AskPsiMessagesScreen() {
     return (
       <SafeAreaView edges={['top', 'right', 'left']} style={[styles.screen, { backgroundColor: theme.inkSoft }]}>
         <View style={styles.state}>
-          <BoostMark />
+          <BoostPortrait size={180} />
           <Text style={[styles.title, { color: theme.text }]}>Ask PSI</Text>
           <Text style={[styles.copy, { color: theme.textMuted }]}>Sign in with your PSI account to start a private conversation with the workshop.</Text>
           <PrimaryButton label="Open secure sign in" onPress={() => router.push({ pathname: '/account', params: { returnTo: '/messages' } })} />
@@ -173,11 +174,12 @@ export default function AskPsiMessagesScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.list}>
           <View style={[styles.intro, { backgroundColor: theme.surface, borderColor: theme.frame }]}>
+            <BoostPortrait size={96} />
             <View style={styles.introCopy}>
               <Text style={[styles.introTitle, { color: theme.text }]}>How can Boost help?</Text>
               <Text style={[styles.copy, { color: theme.textMuted }]}>Send a private question to the PSI workshop and keep the reply with your account.</Text>
+              <PrimaryButton label="New question" onPress={() => setCreating(true)} />
             </View>
-            <PrimaryButton label="New question" onPress={() => setCreating(true)} />
           </View>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Conversations</Text>
           {loading ? <ActivityIndicator color={theme.accent} /> : conversations.length ? conversations.map((conversation) => {
@@ -207,6 +209,10 @@ function BoostMark({ compact = false }: { compact?: boolean }) {
   return <View accessibilityLabel="Boost, Ask PSI" style={[styles.boost, compact && styles.boostCompact]}><Ionicons color={colors.ink} name="chatbubble-ellipses" size={compact ? 20 : 30} /><View style={styles.boostEye} /></View>;
 }
 
+function BoostPortrait({ size }: { size: number }) {
+  return <Image accessibilityLabel="Boost, the Ask PSI assistant" resizeMode="contain" source={BOOST_ASSISTANT} style={{ height: size, width: size }} />;
+}
+
 function vehicleLabel(vehicle: { make: string; model: string; year: number }) { return `${vehicle.year} ${vehicle.make} ${vehicle.model}`; }
 function formatConversationTime(value: string) { return new Intl.DateTimeFormat('en-AU', { day: 'numeric', hour: 'numeric', minute: '2-digit', month: 'short' }).format(new Date(value)); }
 function statusLabel(status: AskPsiConversationRow['status']) { return status === 'closed' ? 'Closed' : status === 'awaiting_customer' ? 'PSI replied' : status === 'awaiting_psi' ? 'Waiting for PSI' : 'Open'; }
@@ -226,8 +232,8 @@ const styles = StyleSheet.create({
   boostCompact: { width: 40, height: 40, borderRadius: 20, borderWidth: 2 },
   boostEye: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.white, position: 'absolute', right: 13, top: 12 },
   list: { flexGrow: 1, width: '100%', maxWidth: 760, alignSelf: 'center', gap: 12, padding: 16, paddingBottom: 30 },
-  intro: { borderWidth: 1, borderRadius: 14, gap: 14, padding: 16 },
-  introCopy: { gap: 5 },
+  intro: { borderWidth: 1, borderRadius: 14, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 },
+  introCopy: { flex: 1, minWidth: 0, gap: 5 },
   introTitle: { fontSize: 21, fontWeight: '900' },
   sectionTitle: { fontSize: 17, fontWeight: '900', marginTop: 4 },
   conversationCard: { borderWidth: 1, borderRadius: 12, flexDirection: 'row', alignItems: 'center', gap: 11, padding: 13 },

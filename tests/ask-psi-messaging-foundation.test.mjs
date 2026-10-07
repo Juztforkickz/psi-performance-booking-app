@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import test from 'node:test';
 
 const migrationUrl = new URL('../supabase/migrations/20261006125247_ask_psi_messaging_foundation.sql', import.meta.url);
@@ -80,6 +80,7 @@ test('Ask PSI screens remain private and disabled in public builds', async () =>
   assert.match(stage, /privatePreviewRequested && \(__DEV__ \|\| REVIEW_ENVIRONMENT\.enabled\)/u);
   assert.match(stage, /EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW/u);
   assert.match(launcher, /ASK_PSI_STAGE\.privatePreviewEnabled/u);
+  assert.match(launcher, /boost-assistant\.png/u);
   assert.match(customerScreen, /if \(!ASK_PSI_STAGE\.privatePreviewEnabled\) router\.replace\('\/'\)/u);
   assert.match(staffScreen, /if \(!ASK_PSI_STAGE\.privatePreviewEnabled\) router\.replace\('\/staff'\)/u);
   assert.equal(easConfig.build['apple-review'].env.EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW, 'true');
@@ -87,6 +88,13 @@ test('Ask PSI screens remain private and disabled in public builds', async () =>
   for (const profile of ['preview', 'qa', 'beta', 'app-store-release', 'android-internal', 'android-play-internal', 'production']) {
     assert.equal(easConfig.build[profile].env?.EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW, undefined, `${profile} must keep Ask PSI hidden`);
   }
+});
+
+test('Boost mascot asset is bundled and kept to an app safe size', async () => {
+  const asset = await stat(new URL('../mobile/assets/images/boost-assistant.png', import.meta.url));
+
+  assert.ok(asset.size > 0);
+  assert.ok(asset.size < 800_000, `Boost asset is unexpectedly large at ${asset.size} bytes`);
 });
 
 test('Ask PSI native permissions and realtime subscriptions are declared', async () => {
