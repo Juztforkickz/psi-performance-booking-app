@@ -1,6 +1,6 @@
 import * as Crypto from 'expo-crypto';
 
-import type { AskPsiConversationRow, AskPsiMessageRow } from '@/lib/database.types';
+import type { AskPsiAttachmentRow, AskPsiConversationRow, AskPsiMessageRow } from '@/lib/database.types';
 import { getSupabaseClient } from '@/lib/supabase';
 
 export type AskPsiTopic = AskPsiConversationRow['topic'];
@@ -13,8 +13,19 @@ export type OpenAskPsiConversationInput = {
 };
 
 export type AskPsiConversationWithMessages = {
+  attachments: AskPsiAttachmentView[];
   conversation: AskPsiConversationRow;
   messages: AskPsiMessageRow[];
+};
+
+export type AskPsiAttachmentView = AskPsiAttachmentRow & { signedUrl: string };
+
+export type AskPsiPhotoInput = {
+  caption?: string;
+  height?: number | null;
+  mimeType?: string | null;
+  uri: string;
+  width?: number | null;
 };
 
 export async function listAskPsiConversations() {
@@ -34,7 +45,18 @@ export async function loadAskPsiConversation(conversationId: string): Promise<As
   ]);
   if (conversationResult.error) throw conversationResult.error;
   if (messagesResult.error) throw messagesResult.error;
+  const messageIds = messagesResult.data.map((message) => message.id);
+  const attachmentsResult = messageIds.length
+    ? await supabase.from('ask_psi_attachments').select('*').in('message_id', messageIds).order('created_at')
+    : { data: [], error: null };
+  if (attachmentsResult.error) throw attachmentsResult.error;
+  const attachments = await Promise.all((attachmentsResult.data ?? []).map(async (attachment) => {
+    const { data, error } = await supabase.storage.from('ask-psi-media').createSignedUrl(attachment.object_path, 10 * 60);
+    if (error) throw error;
+    return { ...attachment, signedUrl: data.signedUrl };
+  }));
   return {
+    attachments,
     conversation: conversationResult.data,
     messages: messagesResult.data,
   };
@@ -65,6 +87,49 @@ export async function sendAskPsiTextMessage(conversationId: string, body: string
     p_message_kind: 'text',
   });
   if (error) throw error;
+  await Promise.allSettled([dispatchAskPsiNotifications(conversationId)]);
+  return data;
+}
+
+export async function sendAskPsiPhotoMessage(conversationId: string, photo: AskPsiPhotoInput) {
+  const supabase = getSupabaseClient();
+  const [{ data: userResult, error: userError }, { data: conversation, error: conversationError }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from('ask_psi_conversations').select('*').eq('id', conversationId).single(),
+  ]);
+  const user = userResult.user;
+  if (userError || !user) throw userError ?? new Error('CUSTOMER_SESSION_REQUIRED');
+  if (conversationError) throw conversationError;
+
+  const response = await fetch(photo.uri);
+  const bytes = await response.arrayBuffer();
+  if (!bytes.byteLength || bytes.byteLength > 10 * 1024 * 1024) throw new Error('ASK_PSI_PHOTO_SIZE_INVALID');
+  const mimeType = normalizePhotoMimeType(photo.mimeType, photo.uri);
+  const messageId = Crypto.randomUUID();
+  const clientNonce = Crypto.randomUUID();
+  const objectPath = `${conversation.customer_id}/${conversationId}/${messageId}/${messageId}.${extensionForMimeType(mimeType)}`;
+  const uploadResult = await supabase.storage.from('ask-psi-media').upload(objectPath, bytes, {
+    cacheControl: '3600',
+    contentType: mimeType,
+    upsert: false,
+  });
+  if (uploadResult.error) throw uploadResult.error;
+
+  const { data, error } = await supabase.rpc('send_ask_psi_photo', {
+    p_caption: photo.caption?.trim() || null,
+    p_client_nonce: clientNonce,
+    p_conversation_id: conversationId,
+    p_file_size_bytes: bytes.byteLength,
+    p_height: normalizeDimension(photo.height),
+    p_message_id: messageId,
+    p_mime_type: mimeType,
+    p_object_path: objectPath,
+    p_width: normalizeDimension(photo.width),
+  });
+  if (error) {
+    await supabase.storage.from('ask-psi-media').remove([objectPath]);
+    throw error;
+  }
   await Promise.allSettled([dispatchAskPsiNotifications(conversationId)]);
   return data;
 }
@@ -117,4 +182,24 @@ async function dispatchAskPsiNotifications(conversationId: string) {
     body: { askPsiConversationId: conversationId },
   });
   if (error) throw error;
+}
+
+function normalizePhotoMimeType(value: string | null | undefined, uri: string) {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === 'image/jpeg' || normalized === 'image/png' || normalized === 'image/webp') return normalized;
+  const path = uri.split(/[?#]/u)[0].toLowerCase();
+  if (path.endsWith('.png') || uri.startsWith('data:image/png')) return 'image/png' as const;
+  if (path.endsWith('.webp') || uri.startsWith('data:image/webp')) return 'image/webp' as const;
+  if (/\.jpe?g$/u.test(path) || uri.startsWith('data:image/jpeg')) return 'image/jpeg' as const;
+  throw new Error('ASK_PSI_PHOTO_TYPE_UNSUPPORTED');
+}
+
+function extensionForMimeType(mimeType: 'image/jpeg' | 'image/png' | 'image/webp') {
+  if (mimeType === 'image/png') return 'png';
+  if (mimeType === 'image/webp') return 'webp';
+  return 'jpg';
+}
+
+function normalizeDimension(value: number | null | undefined) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 1 && value <= 12000 ? Math.round(value) : null;
 }

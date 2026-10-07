@@ -3,7 +3,7 @@ import type { Href } from 'expo-router';
 import type { NotificationEventRow } from '@/lib/database.types';
 import type { StaffSection } from '@/lib/staff-navigation';
 
-type NotificationNavigationEvent = Pick<NotificationEventRow, 'booking_request_id' | 'deep_link' | 'kind' | 'source_event_key'>;
+type NotificationNavigationEvent = Pick<NotificationEventRow, 'ask_psi_conversation_id' | 'booking_request_id' | 'deep_link' | 'kind' | 'source_event_key'>;
 
 export type StaffNotificationDestination = {
   label: string;
@@ -40,6 +40,12 @@ export function staffNotificationDestination(event: NotificationNavigationEvent)
 }
 
 export function notificationDestination(event: NotificationNavigationEvent): { href: Href; label: string } {
+  if (event.ask_psi_conversation_id && event.kind === 'staff_message_received') {
+    return { href: { pathname: '/staff-messages', params: { conversationId: event.ask_psi_conversation_id } } as unknown as Href, label: 'Open customer message' };
+  }
+  if (event.ask_psi_conversation_id && event.kind === 'customer_message_received') {
+    return { href: { pathname: '/messages', params: { conversationId: event.ask_psi_conversation_id } } as unknown as Href, label: 'Open PSI reply' };
+  }
   const staffDestination = staffNotificationDestination(event);
   if (staffDestination) {
     return {
@@ -58,8 +64,10 @@ export function pushNotificationHref(data: Record<string, unknown> | undefined):
   if (!['/staff', '/booking', '/bookings', '/customer-cars-for-sale', '/events', '/performance-plus'].includes(deepLink)) return null;
   const kind = typeof data?.kind === 'string' ? data.kind : '';
   const bookingRequestId = typeof data?.bookingId === 'string' ? data.bookingId : null;
+  const askPsiConversationId = typeof data?.askPsiConversationId === 'string' ? data.askPsiConversationId : null;
   const sourceEventKey = typeof data?.sourceEventKey === 'string' ? data.sourceEventKey : '';
   return notificationDestination({
+    ask_psi_conversation_id: askPsiConversationId,
     booking_request_id: bookingRequestId,
     deep_link: deepLink as NotificationNavigationEvent['deep_link'],
     kind: kind as NotificationNavigationEvent['kind'],

@@ -3,6 +3,8 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const migrationUrl = new URL('../supabase/migrations/20261006125247_ask_psi_messaging_foundation.sql', import.meta.url);
+const photoMigrationUrl = new URL('../supabase/migrations/20261007075301_register_ask_psi_photo_messages.sql', import.meta.url);
+const indexMigrationUrl = new URL('../supabase/migrations/20261007082034_index_ask_psi_foreign_keys.sql', import.meta.url);
 const pushWorkerUrl = new URL('../supabase/functions/process-push-notifications/index.ts', import.meta.url);
 const emailWorkerUrl = new URL('../supabase/functions/process-ask-psi-email-fallbacks/index.ts', import.meta.url);
 const deletionWorkerUrl = new URL('../supabase/functions/complete-account-deletion/index.ts', import.meta.url);
@@ -36,8 +38,9 @@ test('Ask PSI messages are immutable, idempotent and carry read timestamps', asy
 });
 
 test('Ask PSI photo storage is private and removed during account deletion', async () => {
-  const [migration, deletionWorker] = await Promise.all([
+  const [migration, photoMigration, deletionWorker] = await Promise.all([
     readFile(migrationUrl, 'utf8'),
+    readFile(photoMigrationUrl, 'utf8'),
     readFile(deletionWorkerUrl, 'utf8'),
   ]);
 
@@ -45,7 +48,36 @@ test('Ask PSI photo storage is private and removed during account deletion', asy
   assert.match(migration, /ask_psi_media_participant_select/u);
   assert.match(migration, /ask_psi_media_customer_insert/u);
   assert.match(migration, /ask_psi_media_staff_insert/u);
+  assert.match(photoMigration, /create or replace function public\.send_ask_psi_photo/u);
+  assert.match(photoMigration, /insert into public\.ask_psi_messages[\s\S]*insert into public\.ask_psi_attachments/u);
+  assert.match(photoMigration, /split_part\(p_object_path, '\/', 1\) <> conversation\.customer_id::text/u);
+  assert.match(photoMigration, /revoke all on function public\.send_ask_psi_photo/u);
+  assert.match(photoMigration, /create policy ask_psi_media_failed_upload_delete/u);
+  assert.match(photoMigration, /and not exists \([\s\S]*public\.ask_psi_attachments/u);
   assert.match(deletionWorker, /"ask-psi-media"/u);
+});
+
+test('Ask PSI foreign keys used by cleanup and fallback work are indexed', async () => {
+  const migration = await readFile(indexMigrationUrl, 'utf8');
+
+  assert.match(migration, /ask_psi_attachments_created_by_idx[\s\S]*ask_psi_attachments \(created_by\)/u);
+  assert.match(migration, /ask_psi_conversations_created_by_idx[\s\S]*ask_psi_conversations \(created_by\)/u);
+  assert.match(migration, /ask_psi_email_jobs_recipient_idx[\s\S]*ask_psi_email_jobs \(recipient_user_id, created_at desc\)/u);
+});
+
+test('Ask PSI screens remain private and disabled in public builds', async () => {
+  const [stage, launcher, customerScreen, staffScreen] = await Promise.all([
+    readFile(new URL('../mobile/src/lib/ask-psi-stage.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../mobile/src/components/ask-psi-launcher.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../mobile/src/app/messages.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../mobile/src/app/staff-messages.tsx', import.meta.url), 'utf8'),
+  ]);
+
+  assert.match(stage, /privatePreviewRequested && \(__DEV__ \|\| REVIEW_ENVIRONMENT\.enabled\)/u);
+  assert.match(stage, /EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW/u);
+  assert.match(launcher, /ASK_PSI_STAGE\.privatePreviewEnabled/u);
+  assert.match(customerScreen, /if \(!ASK_PSI_STAGE\.privatePreviewEnabled\) router\.replace\('\/'\)/u);
+  assert.match(staffScreen, /if \(!ASK_PSI_STAGE\.privatePreviewEnabled\) router\.replace\('\/staff'\)/u);
 });
 
 test('Ask PSI notifications use the existing scoped push queue', async () => {

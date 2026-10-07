@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PersistentBottomNavigation } from '@/components/persistent-bottom-navigation';
 import { AppleReviewBanner } from '@/components/apple-review-banner';
 import { AppModeGate } from '@/components/app-mode-gate';
+import { AskPsiLauncher } from '@/components/ask-psi-launcher';
 import { UiToneProvider } from '@/components/ui';
 import { colors } from '@/constants/brand';
 import { CustomerAccountProvider } from '@/lib/customer-account-context';
@@ -43,7 +44,7 @@ function ThemeAwareRootShell() {
           <NotificationProvider>
             <CustomerPreviewProvider>
               <StaffNavigationProvider>
-                <UiToneProvider tone={pathname === '/staff' || pathname === '/staff-security' || pathname === '/portal-preview' ? 'staff' : 'brand'}>
+                <UiToneProvider tone={pathname === '/staff' || pathname === '/staff-security' || pathname === '/staff-messages' || pathname === '/portal-preview' ? 'staff' : 'brand'}>
                 <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
                 <View style={styles.shell}>
                   <AppleReviewBanner />
@@ -56,6 +57,7 @@ function ThemeAwareRootShell() {
                       }}
                     />
                   </View>
+                  <AskPsiLauncher />
                   <PersistentBottomNavigation />
                 </View>
                 </UiToneProvider>

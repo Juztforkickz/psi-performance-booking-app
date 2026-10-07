@@ -19,6 +19,7 @@ import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_PREVIEW, type PreviewAlert } from '@/lib/customer-preview';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
+import { ASK_PSI_STAGE } from '@/lib/ask-psi-stage';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
@@ -38,13 +39,14 @@ const BOOKING_ALERT_IMAGE = require('../../../assets/images/dashboard/tile-my-bo
 const WORKSHOP_ALERT_COLOR = '#2D9CDB';
 const CUSTOMER_ALERT_COLOR = '#D92D20';
 
-type AlertPreference = 'booking' | 'carSale' | 'carSaleEmail' | 'event' | 'reminder' | 'vehicle';
+type AlertPreference = 'booking' | 'carSale' | 'carSaleEmail' | 'event' | 'message' | 'reminder' | 'vehicle';
 
 const SECURE_PREFERENCE_KEYS = {
   booking: 'booking_updates_enabled',
   carSale: 'car_sale_alerts_enabled',
   carSaleEmail: 'car_sale_emails_enabled',
   event: 'event_alerts_enabled',
+  message: 'message_alerts_enabled',
   reminder: 'booking_reminders_enabled',
   vehicle: 'workshop_alerts_enabled',
 } as const;
@@ -59,7 +61,7 @@ export default function AlertsScreen() {
   const [readIds, setReadIds] = useState<Set<string>>(
     () => new Set(CUSTOMER_PREVIEW.alerts.filter((alert) => alert.read).map((alert) => alert.id)),
   );
-  const [preferences, setPreferences] = useState<Record<AlertPreference, boolean>>({ booking: true, carSale: true, carSaleEmail: false, event: true, reminder: true, vehicle: true });
+  const [preferences, setPreferences] = useState<Record<AlertPreference, boolean>>({ booking: true, carSale: true, carSaleEmail: false, event: true, message: true, reminder: true, vehicle: true });
   const [notificationFeedback, setNotificationFeedback] = useState('');
   const [notificationSaving, setNotificationSaving] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -299,6 +301,14 @@ export default function AlertsScreen() {
             onPress={() => togglePreference('carSaleEmail')}
             previewOnly={!privateMode}
           />
+          {ASK_PSI_STAGE.privatePreviewEnabled ? <PreferenceRow
+            copy="Show a banner and play your chosen sound when PSI or a customer replies to a private conversation."
+            enabled={securePreference('message')}
+            icon="chatbubbles-outline"
+            label="Message alerts"
+            onPress={() => togglePreference('message')}
+            previewOnly={!privateMode}
+          /> : null}
           {!privateMode || staffMode ? (
             <PreferenceRow
               copy={privateMode ? 'New customer requests ready for workshop review.' : 'New dyno results, reports or build-plan stages.'}
@@ -474,7 +484,7 @@ function PreferenceRow({
 }: {
   copy: string;
   enabled: boolean;
-  icon: 'calendar-outline' | 'time-outline' | 'car-sport-outline' | 'construct-outline' | 'flag-outline' | 'mail-outline' | 'volume-high-outline';
+  icon: 'calendar-outline' | 'time-outline' | 'car-sport-outline' | 'chatbubbles-outline' | 'construct-outline' | 'flag-outline' | 'mail-outline' | 'volume-high-outline';
   label: string;
   last?: boolean;
   onPress: () => void;

@@ -1,6 +1,6 @@
 # Stage 5, Chat bot in app
 
-Status: Private backend foundation in progress. Nothing is live or visible in the app or website.
+Status: Private review sandbox and hidden interface foundation in progress. Nothing is live or visible in the public app or website.
 
 Recorded 4 October 2026.
 
@@ -8,7 +8,7 @@ Backend work authorised 6 October 2026.
 
 ## Current private checkpoint
 
-The local project now contains a proposed Supabase messaging foundation for review and private testing. It has not been applied to the production Supabase project and no customer or workshop screen exposes it.
+The local project contains a Supabase messaging foundation for review and private testing. The schema and workers are available only in the isolated PSI Apple Review Sandbox. They have not been applied to the production Supabase project and no public customer or workshop screen exposes them.
 
 The foundation includes:
 
@@ -22,8 +22,23 @@ The foundation includes:
 8. Automatic cancellation of the email fallback when PSI reads the message first.
 9. Account deletion coverage for private chat photos.
 10. A separate SQL acceptance test for customer isolation, staff MFA, immutable history and read state.
+11. Foreign key indexes for account cleanup, conversation ownership and email fallback processing.
 
 The Microsoft 365 fallback worker is fail closed until its Microsoft Graph application credentials, sender mailbox, recipient mailbox and workshop portal URL are deliberately configured. No email provider is substituted.
+
+## Hidden interface checkpoint
+
+The source now includes a complete customer conversation screen, a floating Boost launcher, photo messages, keyboard safe scrolling, realtime refresh, read receipts and a protected PSI workshop inbox. The workshop inbox requires an active staff identity and authenticator verification.
+
+Every interface is guarded by `EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW=true` together with either a local development build or the isolated review environment. Normal production builds therefore keep the launcher and workshop link hidden. Direct access to either route returns to the normal customer or workshop screen without exposing the private feature.
+
+The photo workflow uploads to the private bucket first, then registers the message and attachment together in one database transaction. A failed database registration removes the uploaded object so it does not leave an unattached private file.
+
+The two messaging migrations and required workers are deployed only to the PSI Apple Review Sandbox. Production database checks confirm that the messaging tables and photo function are absent there. No Expo update, Apple build, Google build or website change has been published.
+
+The sandbox follows its existing App Review identity rules. Its staff policies require the exact review identity, expected token issuer and an active review session. The production migration acceptance test passed with customer isolation, staff authenticator protection, immutable messages and read state verified inside a rolled back transaction.
+
+The two database functions flagged by the Supabase security advisor deliberately use definer access so they can update read state and conversation workflow without granting customers direct update access. Both perform their own authenticated participant or active staff checks, use a fixed search path and expose only the intended operation.
 
 ## Website option
 

@@ -37,7 +37,7 @@ type NotificationContextValue = {
   staffUnreadCount: number;
   unreadCount: number;
 };
-type PreferenceKey = 'booking_reminders_enabled' | 'booking_updates_enabled' | 'car_sale_alerts_enabled' | 'car_sale_emails_enabled' | 'event_alerts_enabled' | 'sound_enabled' | 'workshop_alerts_enabled';
+type PreferenceKey = 'booking_reminders_enabled' | 'booking_updates_enabled' | 'car_sale_alerts_enabled' | 'car_sale_emails_enabled' | 'event_alerts_enabled' | 'message_alerts_enabled' | 'sound_enabled' | 'workshop_alerts_enabled';
 
 const NotificationContext = createContext<NotificationContextValue | null>(null);
 let registeredToken = '';

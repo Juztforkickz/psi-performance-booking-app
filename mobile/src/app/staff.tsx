@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, BackHandler, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +21,7 @@ import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-u
 import { formatAustralianDate, formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { accountDeletionErrorMessage } from '@/lib/deletion-errors';
+import { ASK_PSI_STAGE } from '@/lib/ask-psi-stage';
 import { bookingArchiveStartedAt, bookingNextStep, bookingViewFromParam, organizeStaffBookings, STAFF_BOOKING_VIEWS, type StaffBookingView } from '@/lib/staff-booking-queue';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
@@ -958,6 +959,7 @@ export function StaffWorkspace({
 
         {section === 'menu' ? <>
           <Text style={styles.groupLabel}>Customer updates</Text>
+          {ASK_PSI_STAGE.privatePreviewEnabled ? <WorkspaceLink title="Messages" detail="Private customer conversations" icon="chatbubbles-outline" onPress={() => confirmLeaving(() => router.push('/staff-messages' as Href))} /> : null}
           <WorkspaceLink title="PSI events" detail="Upcoming events and customer announcements" icon="flag-outline" onPress={() => navigate('events')} />
           <WorkspaceLink title="Customer cars for sale" detail="Create listings and notify customers" icon="car-sport-outline" onPress={() => navigate('car_sales')} />
           <Text style={styles.groupLabel}>Workshop systems</Text>

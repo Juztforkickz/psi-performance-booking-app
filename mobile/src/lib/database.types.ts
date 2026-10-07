@@ -1074,6 +1074,20 @@ export type Database = {
         };
         Returns: Database['public']['Tables']['ask_psi_messages']['Row'];
       };
+      send_ask_psi_photo: {
+        Args: {
+          p_caption: string | null;
+          p_client_nonce: string;
+          p_conversation_id: string;
+          p_file_size_bytes: number;
+          p_height?: number | null;
+          p_message_id: string;
+          p_mime_type: string;
+          p_object_path: string;
+          p_width?: number | null;
+        };
+        Returns: Database['public']['Tables']['ask_psi_messages']['Row'];
+      };
       set_ask_psi_conversation_status: {
         Args: {
           p_assign_to_self?: boolean;
