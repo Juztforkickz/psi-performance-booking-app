@@ -36,6 +36,7 @@
       "channel": "apple-review",
       "environment": "preview",
       "env": {
+        "EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW": "true",
         "EXPO_PUBLIC_PSI_APPLE_REVIEW": "true",
         "EXPO_PUBLIC_PSI_UPDATE_CHANNEL": "apple-review",
         "EXPO_PUBLIC_SUPABASE_URL": "https://jwikoldibbpxyhbdrsow.supabase.co",
@@ -93,6 +94,7 @@
       "channel": "google-review",
       "environment": "preview",
       "env": {
+        "EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW": "true",
         "EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST": "true",
         "EXPO_PUBLIC_PSI_GOOGLE_REVIEW": "true",
         "EXPO_PUBLIC_PSI_APPLE_REVIEW": "false",

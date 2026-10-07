@@ -32,6 +32,10 @@ The source now includes a complete customer conversation screen, a floating Boos
 
 Every interface is guarded by `EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW=true` together with either a local development build or the isolated review environment. Normal production builds therefore keep the launcher and workshop link hidden. Direct access to either route returns to the normal customer or workshop screen without exposing the private feature.
 
+The existing Apple review and Google performance test profiles include the private flag. No public, beta, App Store release, Android internal, Google Play internal or production profile includes it. This allows a later private build to exercise the feature without changing any public app.
+
+Local Apple review and Google review native bundle exports passed with the private flag enabled. These checks compiled the customer screen, workshop inbox, photo picker, notification routing and sandbox connection into both platform bundles without uploading either bundle.
+
 The photo workflow uploads to the private bucket first, then registers the message and attachment together in one database transaction. A failed database registration removes the uploaded object so it does not leave an unattached private file.
 
 The two messaging migrations and required workers are deployed only to the PSI Apple Review Sandbox. Production database checks confirm that the messaging tables and photo function are absent there. No Expo update, Apple build, Google build or website change has been published.

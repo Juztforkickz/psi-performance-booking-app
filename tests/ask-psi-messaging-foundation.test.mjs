@@ -8,6 +8,8 @@ const indexMigrationUrl = new URL('../supabase/migrations/20261007082034_index_a
 const pushWorkerUrl = new URL('../supabase/functions/process-push-notifications/index.ts', import.meta.url);
 const emailWorkerUrl = new URL('../supabase/functions/process-ask-psi-email-fallbacks/index.ts', import.meta.url);
 const deletionWorkerUrl = new URL('../supabase/functions/complete-account-deletion/index.ts', import.meta.url);
+const appConfigUrl = new URL('../mobile/app.json', import.meta.url);
+const easConfigUrl = new URL('../mobile/eas.json', import.meta.url);
 
 test('Ask PSI messaging foundation stays private and participant scoped', async () => {
   const migration = await readFile(migrationUrl, 'utf8');
@@ -66,18 +68,40 @@ test('Ask PSI foreign keys used by cleanup and fallback work are indexed', async
 });
 
 test('Ask PSI screens remain private and disabled in public builds', async () => {
-  const [stage, launcher, customerScreen, staffScreen] = await Promise.all([
+  const [stage, launcher, customerScreen, staffScreen, easConfigText] = await Promise.all([
     readFile(new URL('../mobile/src/lib/ask-psi-stage.ts', import.meta.url), 'utf8'),
     readFile(new URL('../mobile/src/components/ask-psi-launcher.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../mobile/src/app/messages.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../mobile/src/app/staff-messages.tsx', import.meta.url), 'utf8'),
+    readFile(easConfigUrl, 'utf8'),
   ]);
+  const easConfig = JSON.parse(easConfigText);
 
   assert.match(stage, /privatePreviewRequested && \(__DEV__ \|\| REVIEW_ENVIRONMENT\.enabled\)/u);
   assert.match(stage, /EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW/u);
   assert.match(launcher, /ASK_PSI_STAGE\.privatePreviewEnabled/u);
   assert.match(customerScreen, /if \(!ASK_PSI_STAGE\.privatePreviewEnabled\) router\.replace\('\/'\)/u);
   assert.match(staffScreen, /if \(!ASK_PSI_STAGE\.privatePreviewEnabled\) router\.replace\('\/staff'\)/u);
+  assert.equal(easConfig.build['apple-review'].env.EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW, 'true');
+  assert.equal(easConfig.build['google-performance-test'].env.EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW, 'true');
+  for (const profile of ['preview', 'qa', 'beta', 'app-store-release', 'android-internal', 'android-play-internal', 'production']) {
+    assert.equal(easConfig.build[profile].env?.EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW, undefined, `${profile} must keep Ask PSI hidden`);
+  }
+});
+
+test('Ask PSI native permissions and realtime subscriptions are declared', async () => {
+  const [appConfigText, migration] = await Promise.all([
+    readFile(appConfigUrl, 'utf8'),
+    readFile(migrationUrl, 'utf8'),
+  ]);
+  const appConfig = JSON.parse(appConfigText).expo;
+  const imagePickerPlugin = appConfig.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === 'expo-image-picker');
+
+  assert.match(appConfig.ios.infoPlist.NSPhotoLibraryUsageDescription, /vehicle photos/u);
+  assert.equal(imagePickerPlugin[1].microphonePermission, false);
+  assert.match(imagePickerPlugin[1].photosPermission, /vehicle photos/u);
+  assert.match(migration, /alter publication supabase_realtime add table public\.ask_psi_conversations/u);
+  assert.match(migration, /alter publication supabase_realtime add table public\.ask_psi_messages/u);
 });
 
 test('Ask PSI notifications use the existing scoped push queue', async () => {
