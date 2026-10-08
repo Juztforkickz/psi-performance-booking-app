@@ -68,7 +68,7 @@ export default function HistoryImportScreen() {
         <View style={styles.headingRow}>
           <View style={styles.flex}>
             <Text style={styles.eyebrow}>PSI HISTORY IMPORT</Text>
-            <Text style={styles.title}>Bring your PSI history into the app</Text>
+            <Text style={styles.title}>Bring your PSI history into the{`\u00a0`}app</Text>
           </View>
           <Ionicons color={colors.accent} name="archive-outline" size={34} />
         </View>
@@ -179,12 +179,12 @@ const styles = StyleSheet.create({
   offerCard: { borderColor: colors.accent, borderWidth: 2 },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: spacing.sm },
   listCopy: { flex: 1, color: colors.silver, fontSize: 12, lineHeight: 18 },
-  priceRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: spacing.md, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, paddingVertical: spacing.md },
+  priceRow: { alignItems: 'flex-start', gap: spacing.xs, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.line, paddingVertical: spacing.md },
   price: { color: colors.white, fontSize: 29, fontWeight: '900' },
-  priceNote: { color: colors.accent, fontSize: 10, lineHeight: 15, fontWeight: '900', textAlign: 'right' },
+  priceNote: { maxWidth: '100%', color: colors.accent, fontSize: 10, lineHeight: 15, fontWeight: '900', textAlign: 'left' },
   boundary: { color: colors.silver, fontSize: 10, lineHeight: 16 },
   summary: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.line, paddingVertical: spacing.sm },
-  summaryValue: { flex: 1, color: colors.white, fontSize: 12, fontWeight: '800', textAlign: 'right' },
+  summaryValue: { flex: 1, minWidth: 0, color: colors.white, fontSize: 12, fontWeight: '800', textAlign: 'right' },
   summaryStrong: { color: colors.accent, fontSize: 18 },
   notice: { color: colors.silver, fontSize: 11, lineHeight: 17 },
   timelineRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

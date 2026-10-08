@@ -503,7 +503,7 @@ function GarageContent({
           <View style={styles.maintenanceHeading}>
             <View style={styles.maintenanceHeadingCopy}>
               <Text style={styles.primaryLabel}>{historyImport ? 'PSI history import' : 'One time service'}</Text>
-              <Text style={styles.maintenanceTitle}>{historyImport?.status === 'completed' ? 'Your imported history is ready' : historyImport ? 'Track your history import' : 'Bring previous PSI history into the app'}</Text>
+              <Text style={styles.maintenanceTitle}>{historyImport?.status === 'completed' ? 'Your imported history is ready' : historyImport ? 'Track your history import' : 'Bring previous PSI history into the\u00a0app'}</Text>
               <Text style={styles.bodyCopy}>{historyImport
                 ? historyImport.status === 'needs_information'
                   ? 'PSI needs another detail before the import can continue.'
@@ -803,9 +803,9 @@ const styles = StyleSheet.create({
   maintenanceCard: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.panel, padding: spacing.lg },
   historyImportCard: { ...mobileFrame, gap: spacing.md, borderColor: colors.accent, backgroundColor: colors.panel, padding: spacing.lg },
   historyImportCardComplete: { borderWidth: 2 },
-  historyImportPrice: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md },
+  historyImportPrice: { alignItems: 'flex-start', gap: spacing.xs, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md },
   priceText: { color: colors.white, fontSize: 25, fontWeight: '900' },
-  priceMeta: { color: colors.accent, fontSize: 10, fontWeight: '900', textAlign: 'right', textTransform: 'uppercase' },
+  priceMeta: { maxWidth: '100%', color: colors.accent, fontSize: 10, lineHeight: 15, fontWeight: '900', textAlign: 'left', textTransform: 'uppercase' },
   maintenanceHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   maintenanceHeadingCopy: { flex: 1, gap: spacing.xs },
   maintenanceTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
