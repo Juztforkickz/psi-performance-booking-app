@@ -1,5 +1,7 @@
 # PSI Boost Preview on iPhone
 
+Current status, 8 October 2026: Matt paused Boost app work and is considering the website instead. The temporary build checkout and generated iOS export were removed after verification, while the source, approved artwork, private installer, tests, signing records and checkpoints were preserved. See [website direction and cleanup record](BOOST-WEBSITE-DIRECTION.md). The build and installation notes below are retained as history, not an instruction to resume app testing or release.
+
 Prepared 8 October 2026 from checkpoint `ce30c15`. This is a separate private install of the existing PSI app source, with completed Boost work preserved. It does not create another Expo, Supabase or App Store project.
 
 ## Identity and distribution
