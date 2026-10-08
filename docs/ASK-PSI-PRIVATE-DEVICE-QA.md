@@ -50,4 +50,12 @@ Public release still requires Matt's inspection and approval, completion of the 
 
 ## Checkpoint and rollback
 
+### Private TestFlight preparation, 8 October 2026
+
+Matt authorised the private iPhone beta. Configuration checkpoint `89baf943aa9b3d0924fa8a926b66165eadff611c` passed 35 targeted messaging and device isolation tests, TypeScript, lint and the resolved EAS iOS profile checks. The build archive excludes the existing local Android release download without deleting it.
+
+App Store Connect showed the existing internal group `Team (Expo)` has one tester, Matt Ebert, using `info@psiperformance.com.au`. The external group has no testers and no public invitation link. No testers or group settings were changed.
+
+Version 1.0.2 build 21 was started from this checkpoint, EAS build `e558ad58-77af-4431-a31f-6e8ed2dddd86`. Submission `05b07768-c975-42f9-a89f-1d8510ac38be` is queued for that exact build and existing internal group, using the existing Apple credentials and app ID 6806902732. The last verified build state was `IN_PROGRESS`. This record does not confirm Apple processing, install availability or phone checks. Verify those separately before telling Matt to install. No public App Store review or public OTA was requested. The sandbox notification worker remains disabled.
+
 The checkpoint immediately before this task is `2a5cb86b744a5789742890b291e14a054fcfe058`. Save this preparation as an additive commit on the existing main branch. If it needs to be removed, disable the private worker and prepare a reviewed forward revert of this task's source changes. Preserve subsequent unrelated work and keep the sandbox tables and history. Do not reset main, drop tables, overwrite live data or publish a rollback automatically.
