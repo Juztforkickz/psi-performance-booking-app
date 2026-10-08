@@ -1,8 +1,17 @@
 const { resolveReviewEnvironment, resolveGoogleReviewEnvironment, REVIEW_CHANNEL, REVIEW_RUNTIME, GOOGLE_REVIEW_CHANNEL, GOOGLE_REVIEW_RUNTIME } = require('./review-environment.cjs');
 const { resolveDemoBuild, demoRuntimeForChannel, BETA_CHANNEL, APP_STORE_RELEASE_CHANNEL, ANDROID_INTERNAL_CHANNEL, ANDROID_PLAY_INTERNAL_CHANNEL } = require('./demo-mode.cjs');
 const { resolveAskPsiDeviceQa, QA_PROFILE, QA_RUNTIME } = require('./ask-psi-device-qa.cjs');
+const { resolveBoostPreview, BOOST_PREVIEW_PROFILE, BOOST_PREVIEW_RUNTIME, BOOST_PREVIEW_BUNDLE, BOOST_PREVIEW_SCHEME } = require('./boost-preview.cjs');
 
 module.exports = ({ config }) => {
+  const boostPreview = resolveBoostPreview({ flag: process.env.EXPO_PUBLIC_PSI_BOOST_PREVIEW, channel: process.env.EXPO_PUBLIC_PSI_UPDATE_CHANNEL, url: process.env.EXPO_PUBLIC_SUPABASE_URL, key: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, review: process.env.EXPO_PUBLIC_PSI_APPLE_REVIEW, googleReview: process.env.EXPO_PUBLIC_PSI_GOOGLE_REVIEW, privatePreview: process.env.EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW, auth: process.env.EXPO_PUBLIC_SUPABASE_AUTH_ENABLED, booking: process.env.EXPO_PUBLIC_SUPABASE_BOOKING_ENABLED, registration: process.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED, demo: process.env.EXPO_PUBLIC_PSI_DEMO_MODE_ENABLED, purchaseTest: process.env.EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST, deviceQa: process.env.EXPO_PUBLIC_ASK_PSI_DEVICE_QA, applePurchaseKey: process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY, googlePurchaseKey: process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY });
+  if (boostPreview.enabled) {
+    if (process.env.EAS_BUILD_PROFILE !== BOOST_PREVIEW_PROFILE) throw new Error('BOOST_PREVIEW_PROFILE_REQUIRED');
+    if (process.env.EAS_BUILD_PLATFORM && process.env.EAS_BUILD_PLATFORM !== 'ios') throw new Error('BOOST_PREVIEW_IPHONE_ONLY');
+    return { ...config, name: 'PSI Boost Preview', scheme: BOOST_PREVIEW_SCHEME, runtimeVersion: BOOST_PREVIEW_RUNTIME,
+      ios: { ...config.ios, bundleIdentifier: BOOST_PREVIEW_BUNDLE },
+      extra: { ...config.extra, psiEnvironment: BOOST_PREVIEW_PROFILE, psiReviewProject: boostPreview.projectRef, psiBoostPreview: true } };
+  }
   const deviceQa = resolveAskPsiDeviceQa({ flag: process.env.EXPO_PUBLIC_ASK_PSI_DEVICE_QA, users: process.env.EXPO_PUBLIC_ASK_PSI_DEVICE_QA_USERS, review: process.env.EXPO_PUBLIC_PSI_APPLE_REVIEW, googleReview: process.env.EXPO_PUBLIC_PSI_GOOGLE_REVIEW, privatePreview: process.env.EXPO_PUBLIC_ASK_PSI_PRIVATE_PREVIEW, url: process.env.EXPO_PUBLIC_SUPABASE_URL, key: process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, channel: process.env.EXPO_PUBLIC_PSI_UPDATE_CHANNEL, auth: process.env.EXPO_PUBLIC_SUPABASE_AUTH_ENABLED, booking: process.env.EXPO_PUBLIC_SUPABASE_BOOKING_ENABLED, registration: process.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED, demo: process.env.EXPO_PUBLIC_PSI_DEMO_MODE_ENABLED, purchaseTest: process.env.EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST });
   if (deviceQa.enabled) {
     if (process.env.EAS_BUILD_PROFILE !== QA_PROFILE) throw new Error('ASK_PSI_DEVICE_QA_PROFILE_REQUIRED');

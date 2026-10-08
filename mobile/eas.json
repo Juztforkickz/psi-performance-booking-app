@@ -159,6 +159,26 @@
       "channel": "production",
       "environment": "production"
     },
+    "boost-preview": {
+      "extends": "apple-review",
+      "distribution": "internal",
+      "channel": "boost-preview",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_PSI_BOOST_PREVIEW": "true",
+        "EXPO_PUBLIC_PSI_UPDATE_CHANNEL": "boost-preview",
+        "EXPO_PUBLIC_ASK_PSI_DEVICE_QA": "false",
+        "EXPO_PUBLIC_PSI_GOOGLE_REVIEW": "false",
+        "EXPO_PUBLIC_PSI_DEMO_MODE_ENABLED": "false",
+        "EXPO_PUBLIC_PERFORMANCE_PURCHASE_TEST": "false",
+        "EXPO_PUBLIC_REVENUECAT_APPLE_KEY": "disabled",
+        "EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY": "disabled"
+      },
+      "ios": {
+        "distribution": "internal",
+        "simulator": false
+      }
+    },
     "ask-psi-device-test": {
       "extends": "apple-review",
       "env": {
