@@ -1,0 +1,87 @@
+<div id="psi-boost-website-test" class="viz-dotted-background">
+  <style>
+    #psi-boost-website-test { padding: 12px 0; }
+    #psi-boost-website-test * { box-sizing: border-box; }
+    #psi-boost-website-test [hidden] { display: none !important; }
+    #psi-boost-website-test .boost-product { --psi-bg: #161a1f; --psi-panel: #232930; --psi-copy: #f2f5f7; --psi-muted: #bbc7cf; --psi-blue: #61d3f4; --psi-line: #505e68; max-width: 430px; margin: auto; background: var(--psi-bg); color: var(--psi-copy); font: 400 16px/1.5 Arial, sans-serif; border: 1px solid var(--psi-line); border-radius: 16px; overflow: hidden; }
+    #psi-boost-website-test .boost-product button { font: inherit; color: inherit; min-height: 44px; min-width: 44px; background: transparent; border: 1px solid var(--psi-line); border-radius: 8px; padding: 9px 12px; }
+    #psi-boost-website-test .boost-product button:focus-visible, #psi-boost-website-test textarea:focus-visible { outline: 3px solid var(--psi-blue); outline-offset: 2px; }
+    #psi-boost-website-test .boost-product button:disabled { opacity: .5; }
+    #psi-boost-website-test .boost-header { padding: 18px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--psi-line); }
+    #psi-boost-website-test .boost-logo { font-size: 26px; font-weight: 700; letter-spacing: -.8px; }
+    #psi-boost-website-test .boost-test-label { color: var(--psi-blue); font-size: 12px; text-transform: uppercase; letter-spacing: 1.1px; }
+    #psi-boost-website-test .boost-switch { display: grid; grid-template-columns: 1fr 1fr; padding: 12px; gap: 8px; }
+    #psi-boost-website-test .boost-switch button[aria-selected="true"] { background: var(--psi-panel); border-color: var(--psi-blue); }
+    #psi-boost-website-test .boost-stage { position: relative; padding: 4px 12px 12px; }
+    #psi-boost-website-test .boost-panel { background: var(--psi-panel); border: 1px solid var(--psi-line); border-radius: 12px; }
+    #psi-boost-website-test .boost-panel-header { padding: 14px; display: flex; gap: 12px; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--psi-line); }
+    #psi-boost-website-test .boost-title { margin: 0; font-size: 20px; font-weight: 700; }
+    #psi-boost-website-test .boost-secondary { color: var(--psi-muted); font-size: 12px; margin: 2px 0 0; }
+    #psi-boost-website-test .boost-transcript { max-height: 340px; overflow-y: auto; overscroll-behavior-y: contain; padding: 14px; scrollbar-color: var(--psi-line) var(--psi-panel); }
+    #psi-boost-website-test .boost-message { margin-bottom: 14px; overflow-wrap: anywhere; }
+    #psi-boost-website-test .boost-message:last-child { margin-bottom: 0; }
+    #psi-boost-website-test .boost-message .boost-bubble { background: #303942; border-radius: 10px; padding: 12px; white-space: pre-wrap; }
+    #psi-boost-website-test .boost-message.visitor { margin-left: 28px; }
+    #psi-boost-website-test .boost-message.visitor .boost-bubble { background: #c9edf6; color: #152129; }
+    #psi-boost-website-test .boost-message.matt .boost-bubble { border-left: 3px solid var(--psi-blue); }
+    #psi-boost-website-test .boost-byline { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--psi-muted); margin: 0 0 4px; }
+    #psi-boost-website-test .boost-time { color: var(--psi-muted); font-size: 11px; margin-top: 4px; }
+    #psi-boost-website-test .boost-prompts { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; border-top: 1px solid var(--psi-line); }
+    #psi-boost-website-test .boost-prompts button { font-size: 13px; padding: 7px 10px; }
+    #psi-boost-website-test .boost-composer { padding: 12px; border-top: 1px solid var(--psi-line); }
+    #psi-boost-website-test .boost-composer label { display: block; font-size: 13px; margin-bottom: 6px; color: var(--psi-muted); }
+    #psi-boost-website-test textarea { display: block; width: 100%; min-height: 76px; resize: vertical; max-height: 180px; padding: 10px; border: 1px solid var(--psi-line); background: #161c22; color: var(--psi-copy); font: inherit; font-size: 16px; border-radius: 8px; }
+    #psi-boost-website-test textarea::placeholder { color: #aebcc7; }
+    #psi-boost-website-test .boost-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    #psi-boost-website-test .boost-product .boost-send { background: var(--psi-blue); border-color: var(--psi-blue); color: #142129; font-weight: 700; margin-left: auto; }
+    #psi-boost-website-test .boost-notice { color: var(--psi-blue); margin: 0; padding: 0 14px 12px; font-size: 12px; overflow-wrap: anywhere; }
+    #psi-boost-website-test .boost-error { color: #ffb9b9; margin: 8px 0 0; font-size: 13px; }
+    #psi-boost-website-test .boost-launcher-row { display: flex; min-height: 106px; align-items: center; justify-content: flex-end; padding: 8px 16px; gap: 10px; }
+    #psi-boost-website-test .boost-product .boost-launcher { border: 0; background: transparent; padding: 0; width: 86px; height: 86px; line-height: 0; flex: 0 0 86px; }
+    #psi-boost-website-test .boost-launcher img { width: 86px; height: 86px; object-fit: contain; }
+    #psi-boost-website-test .boost-launcher-label { font-size: 13px; color: var(--psi-muted); }
+    #psi-boost-website-test .boost-footer { padding: 12px 14px; font-size: 12px; color: var(--psi-muted); border-top: 1px solid var(--psi-line); }
+    #psi-boost-website-test .boost-footer summary { min-height: 32px; color: var(--psi-blue); }
+    #psi-boost-website-test .boost-footer p { margin: 8px 0; }
+    #psi-boost-website-test .boost-empty { padding: 28px 20px; color: var(--psi-muted); }
+    #psi-boost-website-test .boost-idle { padding: 36px 18px; min-height: 220px; }
+    #psi-boost-website-test .boost-idle h2 { font-size: 24px; font-weight: 700; margin: 0 0 12px; }
+    @media (max-width: 360px) { #psi-boost-website-test .boost-header { padding: 14px; } #psi-boost-website-test .boost-switch { padding: 8px; } #psi-boost-website-test .boost-switch button { font-size: 13px; } #psi-boost-website-test .boost-stage { padding: 4px 8px 8px; } #psi-boost-website-test .boost-message.visitor { margin-left: 12px; } }
+  </style>
+  <section class="boost-product" aria-label="Boost private website test">
+    <header class="boost-header"><span class="boost-logo">PSI <span style="color:var(--psi-blue)">Performance</span></span><span class="boost-test-label">Private test</span></header>
+    <nav class="boost-switch" role="tablist" aria-label="Test conversation views">
+      <button type="button" id="boost-customer-tab" role="tab" aria-controls="boost-customer-panel" aria-selected="true" class="cursor-interaction">Visitor view</button>
+      <button type="button" id="boost-inbox-tab" role="tab" aria-controls="boost-inbox-panel" aria-selected="false" class="cursor-interaction">Matt’s test inbox</button>
+    </nav>
+    <div class="boost-stage">
+      <section id="boost-customer-panel" role="tabpanel" aria-labelledby="boost-customer-tab">
+        <div id="boost-idle" class="boost-idle" hidden><h2>Workshop help, one tap away.</h2><p>Tap Boost to open your test conversation.</p></div>
+        <section id="boost-chat" class="boost-panel" aria-label="Ask Boost">
+          <header class="boost-panel-header"><div><h2 class="boost-title">Ask Boost</h2><p class="boost-secondary">Draft FAQ replies and a person when needed</p></div><button type="button" id="boost-close" aria-label="Close Boost chat" class="cursor-interaction">×</button></header>
+          <div id="boost-customer-messages" class="boost-transcript" role="log" aria-label="Visitor test messages" aria-live="polite"></div>
+          <div class="boost-prompts" aria-label="Sample questions"><button type="button" data-command="/service" class="cursor-interaction">Servicing</button><button type="button" data-command="/dyno" class="cursor-interaction">Dyno tuning</button><button type="button" data-command="/ev" class="cursor-interaction">EV &amp; Hybrid</button><button type="button" data-command="/hard" class="cursor-interaction">Harder question</button></div>
+          <form id="boost-customer-form" class="boost-composer">
+            <label for="boost-message">Your test message</label><textarea id="boost-message" maxlength="1500" rows="2" placeholder="Ask a question, or try /help"></textarea>
+            <div class="boost-actions"><button type="button" id="boost-handoff" class="cursor-interaction">Message PSI</button><button type="submit" class="boost-send cursor-interaction">Send test message</button></div>
+            <p id="boost-customer-error" class="boost-error" role="alert" hidden></p>
+          </form>
+        </section>
+      </section>
+      <section id="boost-inbox-panel" role="tabpanel" aria-labelledby="boost-inbox-tab" hidden>
+        <section class="boost-panel" aria-label="Simulated Shopify Inbox">
+          <header class="boost-panel-header"><div><h2 class="boost-title">PSI test inbox</h2><p class="boost-secondary">Simulated Shopify handoff · PREVIEW 001</p></div></header>
+          <div id="boost-inbox-empty" class="boost-empty">No handoff yet. Choose Message PSI in the visitor view to try it.</div>
+          <div id="boost-inbox-content" hidden><div id="boost-inbox-messages" class="boost-transcript" role="log" aria-label="Matt’s test messages" aria-live="polite"></div>
+            <form id="boost-inbox-form" class="boost-composer"><label for="boost-reply">Matt’s test reply</label><textarea id="boost-reply" maxlength="1500" rows="2" placeholder="Write a reply as Matt for this simulation"></textarea><div class="boost-actions"><button type="button" id="boost-resolve" class="cursor-interaction">Close conversation</button><button type="submit" class="boost-send cursor-interaction">Send test reply</button></div><p id="boost-inbox-error" class="boost-error" role="alert" hidden></p></form>
+          </div>
+        </section>
+      </section>
+    </div>
+    <p id="boost-notice" class="boost-notice" role="status" hidden></p>
+    <div id="boost-launcher-row" class="boost-launcher-row"><span id="boost-launcher-label" class="boost-launcher-label">Boost stays clear of the controls</span><button type="button" id="boost-launcher" aria-label="Open Boost chat" aria-expanded="true" aria-controls="boost-chat" class="boost-launcher cursor-interaction"><img src="__BOOST_IMAGE__" alt="Boost, the PSI turbo helper" width="86" height="86"></button></div>
+    <footer class="boost-footer">Local simulation. No real messages, bookings or payments.<details><summary>Test commands and reset</summary><p>/service · /dyno · /ev · /booking · /hard · /human · /help · /reset</p><button type="button" id="boost-reset" class="cursor-interaction">Reset this test</button></details></footer>
+  </section>
+  <script>/*__BOOST_ENGINE__*/</script>
+  <script>/*__BOOST_VIEW__*/</script>
+</div>

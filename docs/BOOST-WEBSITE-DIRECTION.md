@@ -8,7 +8,7 @@ Use the approved transparent Boost character as a small floating button on the e
 
 Offer a few clear starting topics, such as servicing, dyno tuning, an existing booking and a general question. A visitor can then write a message to PSI. Simple answers can be prepared from workshop approved wording, with an obvious option to message a person. The existing Boost implementation is direct workshop messaging. It does not currently provide AI generated replies.
 
-Reuse the messaging foundation and workshop inbox work for a browser inbox that Matt can open on his laptop or phone. Optional Microsoft 365 alerts can notify him that a message is waiting. The current public PSI app does not automatically receive these website messages; connecting its staff inbox later would be a separate approved app change. Email delivery remains disabled until separately configured and tested.
+Matt subsequently chose the existing Shopify Inbox as the preferred place to receive website conversations and alerts. Test the visitor prompts and workshop handoff locally first. The current public PSI app does not automatically receive these website messages. Opening website chat from the app can be considered later; directly synchronising the native Boost conversations into Shopify Inbox has not been verified. Email delivery remains disabled until separately configured and tested. Any PSI email work uses Microsoft 365.
 
 Visitors should be able to enquire without installing PSI. A website guest flow will need its own contact and conversation identity handling. Do not assume a Shopify login and a PSI customer account are interchangeable, automatically attach an unverified visitor to customer records or expose invoices, bookings or private vehicle history.
 
@@ -16,7 +16,9 @@ Visitors should be able to enquire without installing PSI. A website guest flow 
 
 The approved character is retained at `mobile/assets/images/boost-assistant.png`. The customer chat, workshop inbox, photo handling, sent and read times, conversation assignment, waiting state, closing and reopening, retries and access checks remain in the current source and Git history. The private inspection guides and sandbox testing records remain saved.
 
-The website widget and guest flow have not yet been built or published. The existing private browser inspection uses the app's sandbox views; it is not an installed Shopify widget. Website adaptation still needs the compact widget, browser inbox entry, visitor identity handling, spam controls, responsive keyboard checks, secure integration and a private walkthrough before Matt approves launch.
+The separate local website test kit is now at `operations/boost-website-test/`. It reuses the approved transparent character, offers draft FAQ replies and demonstrates a simulated Shopify Inbox handoff, staff replies and read times. It does not connect to Shopify or any messaging service. See [Boost website test guide](BOOST-WEBSITE-TEST.md).
+
+The real website widget and guest integration have not been installed or published. The older private app inspection remains separate from this local website simulation. Website launch still needs supported Shopify chat controls, visitor identity handling, spam controls, real phone keyboard checks, notification delivery checks and Matt's approval of the finished integration.
 
 ## App pause and safe cleanup
 
