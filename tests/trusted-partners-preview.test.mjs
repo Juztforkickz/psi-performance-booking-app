@@ -43,8 +43,8 @@ test('Trusted Partners is a public referral directory with ten approved shortest
   assert.equal((partners.match(/id: '/gu) ?? []).length, 10);
   assert.doesNotMatch(partners, /raceline|Motorsport Apparel/iu);
   assert.match(partners, /left\.category\.length - right\.category\.length/u);
-  assert.match(partners, /id: 'dark-side-film',[\s\S]*phoneDisplay: '0426 246 001',[\s\S]*phoneUrl: 'tel:\+61426246001'/u);
-  assert.match(partners, /id: 'eye-candy',[\s\S]*phoneDisplay: '0414 544 317',[\s\S]*phoneUrl: 'tel:\+61414544317'/u);
+  assert.match(partners, /id: 'dark-side-film',[\s\S]*phoneDisplay: '0426 246 001',[\s\S]*email: 'info@darksideofthefilm\.com\.au',[\s\S]*emailUrl: 'mailto:info@darksideofthefilm\.com\.au'/u);
+  assert.match(partners, /id: 'eye-candy',[\s\S]*phoneDisplay: '0414 544 317',[\s\S]*email: 'info@eyecandymotorsports\.com\.au',[\s\S]*emailUrl: 'mailto:info@eyecandymotorsports\.com\.au'/u);
   assert.match(partners, /id: 'trb-visuals',[\s\S]*phoneDisplay: '0493 530 347',[\s\S]*email: 'trbvisualsphotography@gmail\.com'/u);
   assert.match(partners, /id: 'martini-racing-products',[\s\S]*phoneDisplay: '03 9763 0977',[\s\S]*email: 'sales@martiniracing\.com\.au'/u);
   assert.match(partners, /id: 'fab-car-audio',[\s\S]*phoneDisplay: '0423 522 124',[\s\S]*email: 'sales@fabcaraudio\.com\.au'/u);
