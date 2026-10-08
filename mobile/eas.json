@@ -169,6 +169,10 @@
         "EXPO_PUBLIC_PSI_DEMO_MODE_ENABLED": "false"
       },
       "autoIncrement": false,
+      "ios": {
+        "distribution": "store",
+        "autoIncrement": true
+      },
       "android": {
         "buildType": "apk"
       },

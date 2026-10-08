@@ -14,6 +14,7 @@
 **/web-build/
 **/work/
 **/artifacts/
+**/.tmp-release/
 **/coverage/
 **/expo-env.d.ts
 **/*.tsbuildinfo
