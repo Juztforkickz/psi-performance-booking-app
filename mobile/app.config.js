@@ -10,7 +10,7 @@ module.exports = ({ config }) => {
     if (process.env.EAS_BUILD_PLATFORM && process.env.EAS_BUILD_PLATFORM !== 'ios') throw new Error('BOOST_PREVIEW_IPHONE_ONLY');
     return { ...config, name: 'PSI Boost Preview', scheme: BOOST_PREVIEW_SCHEME, runtimeVersion: BOOST_PREVIEW_RUNTIME,
       // This first preview has no remote push entitlement or APNs signing capability.
-      plugins: (config.plugins ?? []).filter(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) !== 'expo-notifications'),
+      plugins: [...(config.plugins ?? []).filter(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) !== 'expo-notifications'), './plugins/with-boost-preview-entitlements.cjs'],
       ios: { ...config.ios, bundleIdentifier: BOOST_PREVIEW_BUNDLE },
       extra: { ...config.extra, psiEnvironment: BOOST_PREVIEW_PROFILE, psiReviewProject: boostPreview.projectRef, psiBoostPreview: true } };
   }

@@ -44,10 +44,30 @@ test('Boost preview has a separate install identity, scheme, runtime and interna
   assert.equal(c.extra.psiEnvironment, 'boost-preview');
   assert.equal(c.extra.eas.projectId, base.extra.eas.projectId);
   assert.equal(c.plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === 'expo-notifications'), false);
+  assert.ok(c.plugins.includes('./plugins/with-boost-preview-entitlements.cjs'));
   assert.equal(eas.build['boost-preview'].distribution, 'internal');
   assert.equal(eas.build['boost-preview'].ios.distribution, 'internal');
   assert.equal(eas.build['boost-preview'].channel, 'boost-preview');
   assert.equal(eas.submit['boost-preview'], undefined);
+});
+
+test('Preview strips auto-applied APNs entitlement after inherited entitlement actions', async () => {
+  const plugin = require('../mobile/plugins/with-boost-preview-entitlements.cjs');
+  const { withEntitlementsPlist } = createRequire(new URL('../mobile/package.json', import.meta.url))('expo/config-plugins');
+  let c = withEntitlementsPlist({}, config => {
+    config.modResults['aps-environment'] = 'development';
+    config.modResults['keychain-access-groups'] = ['preview-only'];
+    return config;
+  });
+  c = plugin(c);
+  // Expo adds other entitlement actions after user plugins as well.
+  c = withEntitlementsPlist(c, config => {
+    config.modResults['aps-environment'] = 'production';
+    return config;
+  });
+  const result = await c.mods.ios.entitlements({ ...c, modResults: {}, modRequest: {} });
+  assert.equal(result.modResults['aps-environment'], undefined);
+  assert.deepEqual(result.modResults['keychain-access-groups'], ['preview-only']);
 });
 
 test('Existing build and submission profiles and resolved public configurations remain identical', () => {

@@ -19,7 +19,7 @@ The separate bundle identifier and URL scheme let this app coexist with public P
 
 The profile inherits the existing Apple review sandbox `jwikoldibbpxyhbdrsow`. It pins the sandbox URL and public key, enables closed fictional account login and Boost, and rejects production configuration. Registration, selectable live mode, RevenueCat purchase keys and purchase testing are disabled. Existing review guards keep calendar changes, payments, emails and external notification registration closed. Sandbox bookings and test messages may be created only in the existing sandbox. No production schema, records, subscriptions, devices or protected owner entitlement are changed.
 
-This first separate preview deliberately keeps the private push exception off and omits the native notification config plugin, so no APNs entitlement or Apple push capability is requested. Message, reply, attachment and read time inspection can run in the sandbox. Phone notification delivery and sounds need a separately authorised sandbox delivery session and a new native preview build with the required capability. Microsoft 365 fallback remains disabled. Boost currently provides direct messages to the workshop, without an AI response provider.
+This first separate preview deliberately keeps the private push exception off. Its private config plugin removes the APNs entitlement after Expo's automatic entitlement actions, so Apple push capability is not requested. Message, reply, attachment and read time inspection can run in the sandbox. Phone notification delivery and sounds need a separately authorised sandbox delivery session and a new native preview build with the required capability. Microsoft 365 fallback remains disabled. Boost currently provides direct messages to the workshop, without an AI response provider.
 
 Use the existing fictional review credentials retained privately in `artifacts/apple-review-private/PSI-APPLE-REVIEW-SANDBOX-credentials.clixml`. The customer and staff fixture accounts are distinct from Matt's public owner account. The public account retains permanent complimentary Performance+ access. Never copy production credentials or customer data into the preview.
 
@@ -31,7 +31,7 @@ Apple ad hoc distribution uses a distribution certificate and an ad hoc provisio
 
 ## Validation
 
-The five new preview isolation tests passed, along with 75 existing Boost messaging, worker, inbox, sandbox account and device guard checks. TypeScript and lint passed. Expo resolved the iOS profile as internal, using the private bundle and runtime. The local iOS JavaScript export passed. These checks do not establish native installation or phone behaviour.
+The six preview isolation tests passed, along with 75 existing Boost messaging, worker, inbox, sandbox account and device guard checks. Native Expo introspection confirms that the preview requests no APNs entitlement, while the public resolved configurations remain unchanged. TypeScript and lint passed. Expo resolved the iOS profile as internal, using the private bundle and runtime. The local iOS JavaScript export passed. These checks do not establish native installation or phone behaviour.
 
 A broader purchase test run found two pre-existing Android fixture failures: fixtures still use Apple product identifiers while the implementation expects Google base plan identifiers. Both the test and purchase implementation match `ce30c15` unchanged. This task does not repair or change those unrelated files.
 
@@ -58,6 +58,8 @@ Configuration checkpoint `b1f0d88` is committed and pushed. The private channel 
 
 The previous same-identifier TestFlight submission `05b07768-c975-42f9-a89f-1d8510ac38be` had already entered `ERRORED` before this task. It was not retried. No new build or submission uses that route.
 
-The signed preview build and installation link are pending the approved device check and separate provisioning. Save the build ID, checkpoint, included device count and installation URL here once verified. No new preview build has been submitted to Apple.
+Apple created the separate App ID and ad hoc profile `PSI Boost Preview Ad Hoc Matt 20261008`, profile ID `V8PDV7NH7T`, UUID `a59e8a49-e1f4-489b-9049-03c8096b3675`. The downloaded profile was checked for the exact preview bundle, only the confirmed iPhone, no push entitlement and the unchanged existing distribution certificate. It expires on 29 August 2027. EAS has associated that existing certificate with the preview identifier. No existing profile or certificate was revoked or replaced.
+
+The signed preview build and installation link are still pending completion of EAS signing. Specific approval to export a protected local copy of the existing distribution private key is pending; alternatively Matt can complete Apple sign in personally within EAS. Do not export that key before approval. The prepared profile is retained under the protected, Git ignored `artifacts/boost-preview/signing` folder. Save the build ID, source checkpoint and installation URL here once verified. No native preview build has been submitted to Apple or TestFlight.
 
 To stop testing, uninstall only PSI Boost Preview. Public PSI and its data remain installed. To undo source preparation, use a reviewed forward revert of this task's changes from its checkpoint, preserving subsequent work. Do not reset main, remove the owner, revoke public signing credentials, alter subscriptions or delete sandbox history.
