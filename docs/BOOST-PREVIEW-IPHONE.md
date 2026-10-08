@@ -54,6 +54,10 @@ The helper clears inherited public environment values, pins this profile and val
 
 ## Completion and rollback
 
+Configuration checkpoint `b1f0d88` is committed and pushed. The private channel ID is `01a11980-124a-714f-a594-f9ebc50e4edd`, mapped only to the `boost-preview` branch ID `01a11980-1105-7997-812d-ab643514e0fe`. No private OTA has been published yet. A clean detached checkout of that checkpoint under ignored `artifacts/boost-preview/source` passed the 80 relevant checks, excluding concurrent unfinished edits. Existing mobile dependencies are reused through a directory junction, without copying them or changing the main checkout.
+
+The previous same-identifier TestFlight submission `05b07768-c975-42f9-a89f-1d8510ac38be` had already entered `ERRORED` before this task. It was not retried. No new build or submission uses that route.
+
 The signed preview build and installation link are pending the approved device check and separate provisioning. Save the build ID, checkpoint, included device count and installation URL here once verified. No new preview build has been submitted to Apple.
 
 To stop testing, uninstall only PSI Boost Preview. Public PSI and its data remain installed. To undo source preparation, use a reviewed forward revert of this task's changes from its checkpoint, preserving subsequent work. Do not reset main, remove the owner, revoke public signing credentials, alter subscriptions or delete sandbox history.
