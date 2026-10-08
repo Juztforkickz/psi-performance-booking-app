@@ -55,6 +55,8 @@
     el('boost-reply').disabled = state.closed;
     el('boost-handoff').disabled = state.closed;
     el('boost-handoff').textContent = state.queued ? 'In Matt’s test inbox' : 'Message PSI';
+    const psiHasReplied = state.messages.at(-1).role === 'matt';
+    el('boost-chat-status').textContent = state.closed ? 'Conversation closed · Private test' : state.queued ? psiHasReplied ? 'PSI replied · Test inbox' : 'Waiting for PSI reply · Test inbox' : 'Chatting with Boost · Private test';
     root.querySelectorAll('.boost-send, [data-command]').forEach(button => { button.disabled = state.closed; });
     el('boost-notice').textContent = state.notice;
     el('boost-notice').hidden = !state.notice;
@@ -70,7 +72,7 @@
       el('boost-message').value = '';
       engine.view(state, 'customer');
       // Keep the handoff banner visible while the visitor is still looking at it.
-      if (state.queued) state.notice = 'Test handoff in Matt’s inbox. No real alert sent.';
+      if (state.queued) state.notice = 'Message in Matt’s test inbox. Waiting for PSI to reply.';
       render(); remember();
     }
   }

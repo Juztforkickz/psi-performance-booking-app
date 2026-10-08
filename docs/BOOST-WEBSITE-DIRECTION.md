@@ -16,7 +16,7 @@ Visitors should be able to enquire without installing PSI. A website guest flow 
 
 The approved character is retained at `mobile/assets/images/boost-assistant.png`. The customer chat, workshop inbox, photo handling, sent and read times, conversation assignment, waiting state, closing and reopening, retries and access checks remain in the current source and Git history. The private inspection guides and sandbox testing records remain saved.
 
-The separate local website test kit is now at `operations/boost-website-test/`. It reuses the approved transparent character, offers draft FAQ replies and demonstrates a simulated Shopify Inbox handoff, staff replies and read times. It does not connect to Shopify or any messaging service. See [Boost website test guide](BOOST-WEBSITE-TEST.md).
+The separate local website test kit is now at `operations/boost-website-test/`. It reuses the approved transparent character, offers short draft FAQ replies and collects missing enquiry details before a visitor confirms a simulated Shopify Inbox handoff. It also demonstrates staff replies and read times, with a clear waiting status after handoff. It does not connect to Shopify or any messaging service. See [Boost website test guide](BOOST-WEBSITE-TEST.md).
 
 The real website widget and guest integration have not been installed or published. The older private app inspection remains separate from this local website simulation. Website launch still needs supported Shopify chat controls, visitor identity handling, spam controls, real phone keyboard checks, notification delivery checks and Matt's approval of the finished integration.
 

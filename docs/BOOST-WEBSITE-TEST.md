@@ -4,9 +4,11 @@ Created 8 October 2026 from the preserved Boost work, following Matt's instructi
 
 ## What this test does
 
-The test reuses the approved transparent Boost image and PSI colours. It contains visitor and workshop views in the same local session. Servicing, dyno tuning, EV and Hybrid and location questions get deterministic draft FAQ replies. Pricing, guarantees, existing bookings, private records, unknown answers and more involved workshop questions hand over to a simulated PSI inbox.
+The test reuses the approved transparent Boost image and PSI colours. It contains visitor and workshop views in the same local session. Servicing and location questions get short deterministic draft FAQ replies. Dyno, EV and Hybrid and pricing enquiries can collect the vehicle, year and relevant missing details before the visitor chooses a handoff. Guarantees, existing bookings, private records, unknown answers and questions needing direct workshop review explicitly hand over to a simulated PSI inbox.
 
-These are draft replies for Matt to inspect. They are not an AI connection, a diagnosis, a price confirmation or an approved live knowledge base. An FAQ answer does not create a booking. Unknown questions receive a workshop handoff rather than invented facts. Once a conversation is handed over, further visitor messages wait for Matt instead of continuing automated replies.
+These are draft replies for Matt to inspect. They are not an AI connection, a diagnosis, a price confirmation or an approved live knowledge base. An FAQ answer does not create a booking. Unknown questions receive a workshop handoff rather than invented facts. Once a conversation is handed over, further visitor messages wait for Matt instead of continuing automated replies. The conversation header then reads Waiting for PSI reply. Boost does not ask another question after announcing a handoff.
+
+The 8 October reply revision keeps most answers to one or two short sentences. Quote intake asks for one missing detail at a time, keeps vehicle and year details already supplied and requires the visitor to confirm before sending that enquiry to the test inbox. No workshop price has been invented or added. For example, How much is it to service my 2021 Audi RS3? receives PSI will confirm the price. What’s the odometer reading? A mileage reply leads to a clear offer to send the details. Yes or Message PSI then completes the simulated handoff. Visitors can decline or skip a missing detail. Known side questions are answered; unknown side questions offer Message PSI without silently recording the question as a quote detail.
 
 Selecting Matt's test inbox marks visitor messages as read. Sending a test reply and returning to Visitor view marks the reply as read by the visitor. These timestamps are local simulations. Closing and reopening the conversation can also be tested. Reset affects only this test session.
 
@@ -27,8 +29,8 @@ Use the sample buttons or type these commands into the visitor message field:
 | Command | Local test |
 | --- | --- |
 | `/service` | Explain Service & Report and date review |
-| `/dyno` | Ask for the car, setup, fuel and goal |
-| `/ev` | Explain the initial EV and Hybrid scope |
+| `/dyno` | Collect the car, year, setup and tuning goal |
+| `/ev` | Collect the car, year and what needs checking |
 | `/booking` | Hand over a booking confirmation request |
 | `/hard` | Hand over a fault, quote and outcome request |
 | `/human` | Hand over to the simulated PSI inbox |
@@ -38,7 +40,7 @@ Use the sample buttons or type these commands into the visitor message field:
 Suggested walkthrough:
 
 1. Ask about servicing, dyno tuning and an EV.
-2. Ask what a modified car will cost or whether PSI guarantees the result. Confirm Boost leaves the decision to PSI.
+2. Ask what servicing your 2021 Audi RS3 will cost, then reply with 65,000 km. Confirm Boost asks whether to send the details before handing over. Ask about a guaranteed result and confirm he leaves that decision to PSI.
 3. Try an unknown question or account question. Confirm no private data is shown.
 4. Choose Message PSI, then open Matt's test inbox. Write a test reply and return to Visitor view to see it and its read time.
 5. Close and reopen the conversation from the test inbox. Close the chat panel and reopen it by tapping Boost. Confirm the conversation stays in the same session.
@@ -64,7 +66,7 @@ node operations/boost-website-test/build-preview.mjs
 
 Its default generated copy goes into the ignored `artifacts/boost-website-test/` directory. Source, tests and this guide are kept in Git. The original character image is reused without modification.
 
-Validation completed 8 October 2026: all 12 automated checks passed. The visitor FAQ, difficult question handoff, Matt's reply, both read timestamps, commands, conversation closing and reopening, literal HTML input, reset and transparent launcher were exercised in the Codex browser. A 320 pixel viewport had no horizontal overflow and the original character loaded correctly. The browser reported no warnings or errors. A physical phone keyboard and real Shopify notifications have not been tested by this simulation.
+Initial validation completed 8 October 2026: all 12 automated checks passed. The visitor FAQ, difficult question handoff, Matt's reply, both read timestamps, commands, conversation closing and reopening, literal HTML input, reset and transparent launcher were exercised in the Codex browser. A 320 pixel viewport had no horizontal overflow and the original character loaded correctly. The browser reported no warnings or errors. The reply revision adds quote collection, existing vehicle details, handoff confirmation, declining, skipping, side questions and concise handoff wording checks; all 19 automated checks pass. The revised Audi service question, mileage follow up, explicit Yes handoff, staff reply and read times were also verified in the Codex browser. A physical phone keyboard and real Shopify notifications have not been tested by this simulation.
 
 No public app file, Expo profile, OTA channel, subscription, owner entitlement, native build, store listing or Shopify theme is changed by this test kit. No real customer communications or notifications are sent. App Boost remains paused. The repository has a shared working directory; unrelated app edits made by other work must not be staged into this checkpoint.
 
