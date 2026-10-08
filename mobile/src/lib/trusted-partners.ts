@@ -27,18 +27,6 @@ const PARTNERS: readonly TrustedPartner[] = [
     instagramUrl: 'https://www.instagram.com/tintby_darkside/',
   },
   {
-    id: 'race-wires',
-    category: 'Auto Electrical',
-    businessName: 'Race Wires Auto Electrics',
-    summary: 'Performance, street and race-car electrical systems and aftermarket ECU installations.',
-    address: 'Unit 6, 18 Sette Circuit, Pakenham VIC 3810',
-    phoneDisplay: '0407 257 079',
-    phoneUrl: 'tel:+61407257079',
-    email: 'racewires@live.com',
-    emailUrl: 'mailto:racewires@live.com',
-    websiteUrl: 'https://racewires.com.au/',
-  },
-  {
     id: 'elite-autobody',
     category: 'Paint & Bodywork',
     businessName: 'Elite Autobody',

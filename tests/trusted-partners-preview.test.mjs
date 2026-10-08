@@ -21,14 +21,13 @@ test('Home shortcuts expose every tile and persist only a device-local identifie
   assert.doesNotMatch(preferences, /fetch|EXPO_PUBLIC_API_BASE_URL|booking draft|vehicleId/iu);
 });
 
-test('Trusted Partners is a public referral directory with ten approved shortest-first categories', async () => {
+test('Trusted Partners is a public referral directory with nine approved shortest-first categories', async () => {
   const [partners, screen] = await Promise.all([
     read('../mobile/src/lib/trusted-partners.ts'),
     read('../mobile/src/app/trusted-partners.tsx'),
   ]);
 
   const categories = [
-    'Auto Electrical',
     'Car Audio & Security',
     'Paint & Bodywork',
     'Window Tinting',
@@ -40,7 +39,8 @@ test('Trusted Partners is a public referral directory with ten approved shortest
     'Performance Fluids & Lubricants',
   ];
   for (const category of categories) assert.match(partners, new RegExp(`category: '${category}'`, 'u'));
-  assert.equal((partners.match(/id: '/gu) ?? []).length, 10);
+  assert.equal((partners.match(/id: '/gu) ?? []).length, 9);
+  assert.doesNotMatch(`${partners}\n${screen}`, /race-wires|Race Wires|racewires@live\.com|racewires\.com\.au/iu);
   assert.doesNotMatch(partners, /raceline|Motorsport Apparel/iu);
   assert.match(partners, /left\.category\.length - right\.category\.length/u);
   assert.match(partners, /id: 'dark-side-film',[\s\S]*phoneDisplay: '0426 246 001',[\s\S]*phoneUrl: 'tel:\+61426246001'/u);
