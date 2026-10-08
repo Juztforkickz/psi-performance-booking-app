@@ -3,9 +3,15 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, spacing } from '@/constants/brand';
+import {
+  daysInIsoMonth,
+  formatIsoDate,
+  isoDateParts,
+  monthCalendarGrid,
+  shiftIsoMonth,
+} from '@/lib/australian-date';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
-const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/u;
 
 type MonthCalendarPickerProps = {
   disabled?: boolean;
@@ -24,12 +30,12 @@ export function MonthCalendarPicker({
   onChange,
   value = '',
 }: MonthCalendarPickerProps) {
-  const initial = validDateParts(value) ?? validDateParts(minimumDate ?? '') ?? todayParts();
+  const initial = isoDateParts(value) ?? isoDateParts(minimumDate ?? '') ?? todayParts();
   const [visibleMonth, setVisibleMonth] = useState(() => ({ month: initial.month, year: initial.year }));
 
   const days = useMemo(() => monthGrid(visibleMonth.year, visibleMonth.month), [visibleMonth]);
-  const monthLabel = new Intl.DateTimeFormat('en-AU', { month: 'long', year: 'numeric' })
-    .format(new Date(visibleMonth.year, visibleMonth.month - 1, 1, 12));
+  const monthLabel = new Intl.DateTimeFormat('en-AU', { month: 'long', timeZone: 'UTC', year: 'numeric' })
+    .format(new Date(Date.UTC(visibleMonth.year, visibleMonth.month - 1, 1, 12)));
   const previousDisabled = disabled || !monthCanContainDate(shiftMonth(visibleMonth, -1), minimumDate, maximumDate);
   const nextDisabled = disabled || !monthCanContainDate(shiftMonth(visibleMonth, 1), minimumDate, maximumDate);
 
@@ -75,7 +81,7 @@ export function MonthCalendarPicker({
           const outOfRange = Boolean((minimumDate && isoDate < minimumDate) || (maximumDate && isoDate > maximumDate));
           const unavailable = outOfRange || (isDateEnabled ? !isDateEnabled(isoDate) : false);
           const selected = isoDate === value;
-          const dateLabel = new Intl.DateTimeFormat('en-AU', { dateStyle: 'full' }).format(new Date(`${isoDate}T12:00:00`));
+          const dateLabel = formatIsoDate(isoDate, { dateStyle: 'full' }, isoDate);
           return (
             <View key={isoDate} style={styles.cell}>
               <Pressable
@@ -101,17 +107,6 @@ export function MonthCalendarPicker({
   );
 }
 
-function validDateParts(value: string) {
-  const match = ISO_DATE.exec(value);
-  if (!match) return null;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
-  return { day, month, year };
-}
-
 function todayParts() {
   const parts = new Intl.DateTimeFormat('en-AU', {
     day: '2-digit',
@@ -124,22 +119,16 @@ function todayParts() {
 }
 
 function monthGrid(year: number, month: number) {
-  const firstWeekdayMondayBased = (new Date(year, month - 1, 1, 12).getDay() + 6) % 7;
-  const daysInMonth = new Date(year, month, 0, 12).getDate();
-  const cells: (number | null)[] = Array(firstWeekdayMondayBased).fill(null);
-  for (let day = 1; day <= daysInMonth; day += 1) cells.push(day);
-  while (cells.length % 7 !== 0) cells.push(null);
-  return cells;
+  return monthCalendarGrid(year, month);
 }
 
 function shiftMonth(value: { month: number; year: number }, offset: number) {
-  const date = new Date(value.year, value.month - 1 + offset, 1, 12);
-  return { month: date.getMonth() + 1, year: date.getFullYear() };
+  return shiftIsoMonth(value, offset);
 }
 
 function monthCanContainDate(value: { month: number; year: number }, minimumDate?: string, maximumDate?: string) {
   const start = `${value.year}-${String(value.month).padStart(2, '0')}-01`;
-  const end = `${value.year}-${String(value.month).padStart(2, '0')}-${String(new Date(value.year, value.month, 0, 12).getDate()).padStart(2, '0')}`;
+  const end = `${value.year}-${String(value.month).padStart(2, '0')}-${String(daysInIsoMonth(value.year, value.month)).padStart(2, '0')}`;
   return (!minimumDate || end >= minimumDate) && (!maximumDate || start <= maximumDate);
 }
 

@@ -129,7 +129,7 @@ function workshopToday() {
 function isEligibleDate(value: string, type: BookingType, minDate: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/u.test(value)) return false;
   if (value < minDate) return false;
-  const day = new Date(`${value}T12:00:00`).getDay();
+  const day = new Date(`${value}T12:00:00Z`).getUTCDay();
   return type === "dyno" ? [1, 3, 4].includes(day) : day >= 1 && day <= 5;
 }
 
@@ -140,7 +140,8 @@ function formatDate(value?: string) {
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(new Date(`${value}T12:00:00`));
+    timeZone: "UTC",
+  }).format(new Date(`${value}T12:00:00Z`));
 }
 
 export function AdminQueue() {

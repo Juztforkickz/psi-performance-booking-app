@@ -22,6 +22,7 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
+import { formatIsoDate } from '@/lib/australian-date';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import {
   HOME_TILE_IDS,
@@ -297,7 +298,7 @@ export default function CustomerHomeScreen() {
                 <Ionicons color={theme.accent} name={weather.current.icon} size={18} />
                 <View style={styles.homeWeatherCopy}>
                   <Text style={[styles.homeWeatherTemp, { color: theme.text }]}>{weather.current.temperatureC}°C</Text>
-                  <Text style={[styles.homeWeatherDate, { color: theme.textMuted }]}>{new Intl.DateTimeFormat('en-AU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${weather.current.date}T12:00:00`))}</Text>
+                  <Text style={[styles.homeWeatherDate, { color: theme.textMuted }]}>{formatIsoDate(weather.current.date, { weekday: 'long', day: 'numeric', month: 'long' }, weather.current.date)}</Text>
                 </View>
               </>
             ) : (

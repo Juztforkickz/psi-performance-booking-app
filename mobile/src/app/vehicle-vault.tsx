@@ -5,6 +5,7 @@ import { ActivityIndicator, AppState, Image, Linking, Modal, Platform, Pressable
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { PrivateVaultThumbnail } from '@/components/private-vault-thumbnail';
+import { formatIsoDate } from '@/lib/australian-date';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { loadVaultAssets, loadVaultOverview, loadVaultRecords, recordMatchesReportSection, REPORT_KINDS, REPORT_LABELS, type VaultAsset, type ReportKind, type ReportSection, type VaultRecord } from '@/lib/performance-plus';
@@ -140,7 +141,7 @@ export default function VehicleVault() {
         : expanded ? 'Hide attached files' : record.kind === 'dyno' ? 'View dyno files'
         : record.kind === 'invoice' ? 'View invoice' : 'View attached files';
       return <View key={entry.key} style={[archiveStyles.entry, { borderLeftWidth: 3, borderLeftColor: '#65CFF8' }]}>
-      <Text style={s.eyebrow}>{new Date(`${record.occurred_on.slice(0, 10)}T12:00:00`).toLocaleDateString('en-AU', { day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase()}</Text>
+      <Text style={s.eyebrow}>{formatIsoDate(record.occurred_on.slice(0, 10), { day: 'numeric', month: 'long', year: 'numeric' }, record.occurred_on).toUpperCase()}</Text>
       <Text style={s.muted}>{record.source === 'customer_entry' ? 'Customer-supplied · unverified' : 'PSI workshop record · read-only'}</Text>
       <Text style={s.section}>{displayTitle}</Text>
       {fileLabel ? <Text numberOfLines={expanded || noteExpanded ? undefined : 3} style={s.copy}>{fileLabel}</Text> : null}

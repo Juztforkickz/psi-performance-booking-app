@@ -1,4 +1,4 @@
-import { formatAustralianDate } from '@/lib/australian-date';
+import { addIsoMonths, formatAustralianDate } from '@/lib/australian-date';
 import type { Database } from '@/lib/database.types';
 import { dispatchBookingIntegrationNotifications } from '@/lib/booking-integrations';
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
@@ -242,10 +242,8 @@ export function displayMoney(amountCents: number, currency = 'AUD') {
 }
 
 export function maxBookingDate() {
-  const [year, month, day] = localIsoDate(new Date()).split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-  date.setUTCMonth(date.getUTCMonth() + 18);
-  return date;
+  const maximum = addIsoMonths(localIsoDate(new Date()), 18);
+  return dateFromIso(maximum ?? localIsoDate(new Date()));
 }
 
 export function isEligibleBookingDate(type: BookingType | '', isoDate: string) {

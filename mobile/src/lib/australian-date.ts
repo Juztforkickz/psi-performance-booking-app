@@ -1,6 +1,8 @@
 const ISO_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/u;
 const AUSTRALIAN_DATE_PATTERN = /^(\d{2})\/(\d{2})\/(\d{4})$/u;
 
+export type IsoDateParts = { day: number; month: number; year: number };
+
 export function australianDateToIso(value: string) {
   const match = AUSTRALIAN_DATE_PATTERN.exec(value.trim());
   if (!match) return null;
@@ -13,6 +15,65 @@ export function isoDateToAustralian(value: string | null | undefined) {
   const match = ISO_DATE_PATTERN.exec(value.slice(0, 10));
   if (!match || !isRealIsoDate(match[0])) return '';
   return `${match[3]}/${match[2]}/${match[1]}`;
+}
+
+export function isoDateParts(value: string | null | undefined): IsoDateParts | null {
+  if (!value) return null;
+  const match = ISO_DATE_PATTERN.exec(value.slice(0, 10));
+  if (!match || !isRealIsoDate(match[0])) return null;
+  return { day: Number(match[3]), month: Number(match[2]), year: Number(match[1]) };
+}
+
+export function isoDateUtc(value: string | null | undefined) {
+  const parts = isoDateParts(value);
+  return parts ? new Date(Date.UTC(parts.year, parts.month - 1, parts.day, 12)) : null;
+}
+
+export function formatIsoDate(
+  value: string | null | undefined,
+  options: Intl.DateTimeFormatOptions,
+  fallback = '',
+) {
+  const date = isoDateUtc(value);
+  return date
+    ? new Intl.DateTimeFormat('en-AU', { ...options, timeZone: 'UTC' }).format(date)
+    : fallback;
+}
+
+export function isoWeekday(value: string | null | undefined) {
+  const date = isoDateUtc(value);
+  return date ? date.getUTCDay() : null;
+}
+
+export function daysInIsoMonth(year: number, month: number) {
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) return 0;
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+export function monthCalendarGrid(year: number, month: number) {
+  const daysInMonth = daysInIsoMonth(year, month);
+  if (!daysInMonth) return [];
+  const firstWeekdayMondayBased = (new Date(Date.UTC(year, month - 1, 1)).getUTCDay() + 6) % 7;
+  const cells: (number | null)[] = Array(firstWeekdayMondayBased).fill(null);
+  for (let day = 1; day <= daysInMonth; day += 1) cells.push(day);
+  while (cells.length % 7 !== 0) cells.push(null);
+  return cells;
+}
+
+export function shiftIsoMonth(value: { month: number; year: number }, offset: number) {
+  const absoluteMonth = value.year * 12 + value.month - 1 + offset;
+  const year = Math.floor(absoluteMonth / 12);
+  return { month: absoluteMonth - year * 12 + 1, year };
+}
+
+export function addIsoMonths(value: string, months: number) {
+  const parts = isoDateParts(value);
+  if (!parts || !Number.isInteger(months)) return null;
+  const target = new Date(Date.UTC(parts.year, parts.month - 1 + months, 1));
+  const targetYear = target.getUTCFullYear();
+  const targetMonth = target.getUTCMonth() + 1;
+  const targetDay = Math.min(parts.day, daysInIsoMonth(targetYear, targetMonth));
+  return `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
 }
 
 export function formatAustralianDate(value: string | number | null | undefined, fallback = 'Not scheduled') {

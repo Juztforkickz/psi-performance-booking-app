@@ -128,10 +128,10 @@ const escapeHtml = (value: string | null | undefined) =>
 
 const displayDate = (value: string | null) => {
   if (!value) return "To be arranged";
-  const date = new Date(`${value}T12:00:00+10:00`);
+  const date = new Date(`${value}T12:00:00Z`);
   return Number.isNaN(date.getTime())
     ? value
-    : new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "long", year: "numeric" }).format(date);
+    : new Intl.DateTimeFormat("en-AU", { day: "numeric", month: "long", timeZone: "UTC", year: "numeric" }).format(date);
 };
 
 const nextCalendarDate = (date: string) => {

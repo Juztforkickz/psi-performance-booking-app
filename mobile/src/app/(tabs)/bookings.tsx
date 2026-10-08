@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import { formatAustralianDate, formatAustralianDateTime } from '@/lib/australian-date';
+import { formatAustralianDate, formatAustralianDateTime, formatIsoDate } from '@/lib/australian-date';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { CUSTOMER_PREVIEW } from '@/lib/customer-preview';
@@ -263,10 +263,10 @@ export default function BookingsScreen() {
               <View key={forecast.date} style={[styles.weatherDay, index === 0 && styles.weatherDayToday]}>
                 <View style={styles.weatherDayTopline}>
                   <Text style={[styles.weatherDayLabel, index === 0 && styles.weatherDayLabelToday]}>
-                    {index === 0 ? 'Today' : new Intl.DateTimeFormat('en-AU', { weekday: 'short' }).format(new Date(`${forecast.date}T12:00:00`))}
+                    {index === 0 ? 'Today' : formatIsoDate(forecast.date, { weekday: 'short' }, forecast.date)}
                   </Text>
                   <Text style={styles.weatherDateText}>
-                    {new Intl.DateTimeFormat('en-AU', { day: '2-digit', month: '2-digit' }).format(new Date(`${forecast.date}T12:00:00`))}
+                    {formatIsoDate(forecast.date, { day: '2-digit', month: '2-digit' }, forecast.date)}
                   </Text>
                 </View>
                 <Ionicons color={colors.accent} name={forecast.icon} size={26} />

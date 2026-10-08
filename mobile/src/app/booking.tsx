@@ -24,7 +24,7 @@ import { BOOKING_INPUT_ACCESSORY_ID, ChoiceCard, Eyebrow, Field, FormInput, Prim
 import { MonthCalendarPicker } from '@/components/month-calendar-picker';
 import { bookingColors, colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import { formatAustralianDate } from '@/lib/australian-date';
+import { formatAustralianDate, formatIsoDate } from '@/lib/australian-date';
 import type { CustomerProfileRow, CustomerVehicleRow } from '@/lib/database.types';
 import {
   BOOKING_DRAFT_EXPIRY_DAYS,
@@ -1676,7 +1676,7 @@ function DateStep({
                     const selected = form.preferredDate === day.date;
                     return (
                       <Pressable
-                        accessibilityLabel={`${index === 0 ? 'Today' : new Intl.DateTimeFormat('en-AU', { weekday: 'long' }).format(new Date(`${day.date}T12:00:00`))}, ${formatAustralianDate(day.date)}, ${day.description}, ${day.precipitationChance} percent chance of rain${eligible ? '' : ', not an eligible request day'}`}
+                        accessibilityLabel={`${index === 0 ? 'Today' : formatIsoDate(day.date, { weekday: 'long' }, day.date)}, ${formatAustralianDate(day.date)}, ${day.description}, ${day.precipitationChance} percent chance of rain${eligible ? '' : ', not an eligible request day'}`}
                         accessibilityRole="button"
                         accessibilityState={{ disabled: !eligible, selected }}
                         disabled={!eligible}
@@ -1694,10 +1694,10 @@ function DateStep({
                         ]}
                       >
                         <Text style={[styles.forecastDateDay, selected && styles.forecastDateTextSelected]}>
-                          {index === 0 ? 'Today' : new Intl.DateTimeFormat('en-AU', { weekday: 'short' }).format(new Date(`${day.date}T12:00:00`))}
+                          {index === 0 ? 'Today' : formatIsoDate(day.date, { weekday: 'short' }, day.date)}
                         </Text>
                         <Text style={[styles.forecastDateNumber, selected && styles.forecastDateTextSelected]}>
-                          {new Intl.DateTimeFormat('en-AU', { day: '2-digit', month: '2-digit' }).format(new Date(`${day.date}T12:00:00`))}
+                          {formatIsoDate(day.date, { day: '2-digit', month: '2-digit' }, day.date)}
                         </Text>
                         <Ionicons color={selected ? colors.ink : bookingColors.accent} name={day.icon} size={27} />
                         <Text style={[styles.forecastDateTemperature, selected && styles.forecastDateTextSelected]}>{Math.round(day.temperatureMaxC)}°</Text>

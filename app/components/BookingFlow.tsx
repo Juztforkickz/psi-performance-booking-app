@@ -388,27 +388,27 @@ function workshopIsoDate(date: Date) {
 }
 
 function calendarIsoDate(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
   return year + "-" + month + "-" + day;
 }
 
 function addMonthsToIsoDate(value: string, months: number) {
   const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCMonth(date.getUTCMonth() + months);
-  return date.toISOString().slice(0, 10);
+  const target = new Date(Date.UTC(year, month - 1 + months, 1));
+  const targetDay = Math.min(day, new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate());
+  return new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), targetDay)).toISOString().slice(0, 10);
 }
 
 function dateFromIso(value: string) {
   const parts = value.split("-").map(Number);
-  return new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+  return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 12, 0, 0));
 }
 
 function isAllowedBookingDay(value: string, bookingType: BookingType | "") {
   if (!value || !bookingType) return false;
-  const day = dateFromIso(value).getDay();
+  const day = dateFromIso(value).getUTCDay();
   return bookingType === "dyno" ? [1, 3, 4].includes(day) : day >= 1 && day <= 5;
 }
 
@@ -420,6 +420,7 @@ function displayDate(value: string, mode: AppointmentMode = "specific") {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: "UTC",
   }).format(dateFromIso(value));
 }
 
@@ -1806,24 +1807,24 @@ function CalendarPicker({
   onChange: (value: string) => void;
 }) {
   const initialDate = value ? dateFromIso(value) : dateFromIso(min);
-  const [visibleMonth, setVisibleMonth] = useState(() => new Date(initialDate.getFullYear(), initialDate.getMonth(), 1));
-  const firstDayIndex = (visibleMonth.getDay() + 6) % 7;
-  const daysInMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 0).getDate();
+  const [visibleMonth, setVisibleMonth] = useState(() => new Date(Date.UTC(initialDate.getUTCFullYear(), initialDate.getUTCMonth(), 1)));
+  const firstDayIndex = (visibleMonth.getUTCDay() + 6) % 7;
+  const daysInMonth = new Date(Date.UTC(visibleMonth.getUTCFullYear(), visibleMonth.getUTCMonth() + 1, 0)).getUTCDate();
   const cells: Array<number | null> = [
     ...Array.from({ length: firstDayIndex }, () => null),
     ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
   ];
   while (cells.length % 7 !== 0) cells.push(null);
 
-  const monthKey = visibleMonth.getFullYear() * 12 + visibleMonth.getMonth();
+  const monthKey = visibleMonth.getUTCFullYear() * 12 + visibleMonth.getUTCMonth();
   const minDate = dateFromIso(min);
   const maxDate = dateFromIso(max);
-  const minMonthKey = minDate.getFullYear() * 12 + minDate.getMonth();
-  const maxMonthKey = maxDate.getFullYear() * 12 + maxDate.getMonth();
-  const monthLabel = new Intl.DateTimeFormat("en-AU", { month: "long", year: "numeric" }).format(visibleMonth);
+  const minMonthKey = minDate.getUTCFullYear() * 12 + minDate.getUTCMonth();
+  const maxMonthKey = maxDate.getUTCFullYear() * 12 + maxDate.getUTCMonth();
+  const monthLabel = new Intl.DateTimeFormat("en-AU", { month: "long", year: "numeric", timeZone: "UTC" }).format(visibleMonth);
 
   const moveMonth = (offset: number) => {
-    setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
+    setVisibleMonth((current) => new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth() + offset, 1)));
   };
 
   return (
@@ -1845,7 +1846,7 @@ function CalendarPicker({
       <div className="calendar-grid" role="group" aria-label={`${monthLabel} preferred dates`}>
         {cells.map((day, index) => {
           if (day === null) return <span key={"empty-" + index} className="calendar-empty" aria-hidden="true" />;
-          const date = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), day, 12, 0, 0);
+          const date = new Date(Date.UTC(visibleMonth.getUTCFullYear(), visibleMonth.getUTCMonth(), day, 12, 0, 0));
           const iso = calendarIsoDate(date);
           const eligible = isAllowedBookingDay(iso, bookingType);
           const disabled = iso < min || iso > max || !eligible;
@@ -1855,6 +1856,7 @@ function CalendarPicker({
             day: "numeric",
             month: "long",
             year: "numeric",
+            timeZone: "UTC",
           }).format(date);
           return (
             <button
