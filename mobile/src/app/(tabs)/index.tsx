@@ -349,7 +349,7 @@ export default function CustomerHomeScreen() {
             onPress={() => setShortcutChooserOpen(true)}
             style={({ pressed }) => [
               styles.shortcutButton,
-              { borderColor: theme.accent, backgroundColor: theme.surface },
+              { borderColor: theme.accent, backgroundColor: activeTheme === 'dark' ? theme.surfaceRaised : theme.surface },
               pressed && styles.pressed,
             ]}
           >
@@ -820,7 +820,7 @@ const styles = StyleSheet.create({
   sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.sm },
   sectionTitle: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .9, textTransform: 'uppercase' },
   sectionHint: { color: colors.accent, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
-  shortcutButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 2, paddingHorizontal: spacing.sm },
+  shortcutButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1.5, paddingHorizontal: spacing.sm },
   shortcutButtonText: { fontSize: 9, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
   tileGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: spacing.sm },
   tileCell: { width: '46%', flexGrow: 0, flexShrink: 1, minWidth: 0, maxWidth: 340 },

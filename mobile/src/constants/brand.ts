@@ -17,19 +17,19 @@ function adaptiveColor(name: string, bright: string, dark: string): string {
 }
 
 export const colors = {
-  ink: adaptiveColor('ink', '#FFFFFF', '#050505'),
-  inkSoft: adaptiveColor('ink-soft', '#E7EDF0', '#111111'),
-  panel: adaptiveColor('panel', '#F4F7F8', '#171717'),
-  panelRaised: adaptiveColor('panel-raised', '#DBE3E7', '#202020'),
-  line: adaptiveColor('line', 'rgba(5, 5, 5, 0.2)', 'rgba(255, 255, 255, 0.18)'),
-  lineLight: adaptiveColor('line-light', '#050505', '#DBE3E7'),
+  ink: adaptiveColor('ink', '#FFFFFF', '#090B0E'),
+  inkSoft: adaptiveColor('ink-soft', '#E7EDF0', '#161C22'),
+  panel: adaptiveColor('panel', '#F4F7F8', '#252B31'),
+  panelRaised: adaptiveColor('panel-raised', '#DBE3E7', '#303942'),
+  line: adaptiveColor('line', 'rgba(5, 5, 5, 0.2)', '#687B89'),
+  lineLight: adaptiveColor('line-light', '#050505', '#879AA8'),
   silver: adaptiveColor('silver', '#050505', '#DBE3E7'),
   white: adaptiveColor('white', '#0A0A0A', '#FFFFFF'),
-  muted: adaptiveColor('muted', '#495055', '#AAB1B5'),
-  mutedDark: adaptiveColor('muted-dark', '#555D61', '#555D61'),
+  muted: adaptiveColor('muted', '#495055', '#CAD2D8'),
+  mutedDark: adaptiveColor('muted-dark', '#555D61', '#A9B7C1'),
   onSilverMuted: adaptiveColor('on-silver-muted', '#DBE3E7', '#464646'),
   noticeSurface: adaptiveColor('notice-surface', '#E7EDF0', '#DBE3E7'),
-  onNotice: adaptiveColor('on-notice', '#050505', '#050505'),
+  onNotice: adaptiveColor('on-notice', '#050505', '#090B0E'),
   onNoticeMuted: adaptiveColor('on-notice-muted', '#495055', '#464646'),
   accent: adaptiveColor('accent', '#155D78', '#65CFF8'),
   accentDark: adaptiveColor('accent-dark', '#65CFF8', '#155D78'),
@@ -43,23 +43,23 @@ export const colors = {
  * actions. The wider mobile app uses the same palette through `colors`.
  */
 export const bookingColors = {
-  background: adaptiveColor('booking-background', '#EAF0F2', '#000000'),
-  raised: adaptiveColor('booking-raised', '#FFFFFF', '#050505'),
-  surface: adaptiveColor('booking-surface', '#FFFFFF', '#0D0D0D'),
-  surfaceAlt: adaptiveColor('booking-surface-alt', '#E7EDF0', '#111111'),
+  background: adaptiveColor('booking-background', '#EAF0F2', '#090B0E'),
+  raised: adaptiveColor('booking-raised', '#FFFFFF', '#090B0E'),
+  surface: adaptiveColor('booking-surface', '#FFFFFF', '#252B31'),
+  surfaceAlt: adaptiveColor('booking-surface-alt', '#E7EDF0', '#161C22'),
   text: adaptiveColor('booking-text', '#111111', '#FFFFFF'),
-  textSecondary: adaptiveColor('booking-text-secondary', '#495055', '#B9C0C4'),
-  textMuted: adaptiveColor('booking-text-muted', '#555D61', '#9CA4A8'),
-  placeholder: adaptiveColor('booking-placeholder', '#5D666B', '#8F999E'),
+  textSecondary: adaptiveColor('booking-text-secondary', '#495055', '#CAD2D8'),
+  textMuted: adaptiveColor('booking-text-muted', '#555D61', '#A9B7C1'),
+  placeholder: adaptiveColor('booking-placeholder', '#5D666B', '#CAD2D8'),
   label: adaptiveColor('booking-label', '#111111', '#DBE3E7'),
-  border: adaptiveColor('booking-border', 'rgba(5, 5, 5, 0.2)', 'rgba(255, 255, 255, 0.18)'),
-  borderStrong: adaptiveColor('booking-border-strong', 'rgba(5, 5, 5, 0.42)', 'rgba(255, 255, 255, 0.42)'),
+  border: adaptiveColor('booking-border', 'rgba(5, 5, 5, 0.2)', '#687B89'),
+  borderStrong: adaptiveColor('booking-border-strong', 'rgba(5, 5, 5, 0.42)', '#879AA8'),
   inputBorder: adaptiveColor('booking-input-border', '#41474A', '#DBE3E7'),
   ghostBorder: adaptiveColor('booking-ghost-border', '#6B7479', '#495055'),
   accent: adaptiveColor('booking-accent', '#155D78', '#65CFF8'),
   accentBright: adaptiveColor('booking-accent-bright', '#050505', '#DBE3E7'),
   accentDark: adaptiveColor('booking-accent-dark', '#155D78', '#155D78'),
-  accentText: adaptiveColor('booking-accent-text', '#FFFFFF', '#050505'),
+  accentText: adaptiveColor('booking-accent-text', '#FFFFFF', '#090B0E'),
   selectedSecondary: adaptiveColor('booking-selected-secondary', '#D8F3FD', '#0C3444'),
   error: adaptiveColor('booking-error', '#B42318', '#FF9F91'),
   errorSurface: adaptiveColor('booking-error-surface', 'rgba(180, 35, 24, 0.08)', 'rgba(180, 35, 24, 0.12)'),
@@ -68,8 +68,8 @@ export const bookingColors = {
 
 /** One consistent frame for every rectangular mobile surface and control. */
 export const mobileFrame = {
-  borderWidth: 3,
-  borderColor: colors.silver,
+  borderWidth: 1.5,
+  borderColor: colors.lineLight,
 } as const;
 
 export const contact = {

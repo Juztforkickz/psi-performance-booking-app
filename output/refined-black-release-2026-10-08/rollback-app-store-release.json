@@ -1,0 +1,9 @@
+{
+  "channel": "app-store-release",
+  "branch": "app-store-release",
+  "group": "813b4e3b-cba0-41ac-818a-1e38c4ad977f",
+  "update": "01a1185d-8977-7821-88a6-b4bb7be15b68",
+  "runtime": "1.0.0-app-store-release-1",
+  "platform": "ios",
+  "checkpoint": "66414850962c8d5e68169904c93373e9d8f529de"
+}

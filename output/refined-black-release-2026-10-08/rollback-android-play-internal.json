@@ -1,0 +1,9 @@
+{
+  "channel": "android-play-internal",
+  "branch": "android-play-internal",
+  "group": "8f90e9af-c83c-465e-b671-6297692ff817",
+  "update": "01a11490-a800-7f88-a8e8-82324962480a",
+  "runtime": "1.0.0-android-play-internal-1",
+  "platform": "android",
+  "checkpoint": "a39dbe286a208e0b966df8da35d0bd036f2c7ef3"
+}

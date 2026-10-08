@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { useThemePreference } from '@/lib/theme-preference';
 
 export type DashboardTileProps = {
   accessibilityHint?: string;
@@ -39,6 +40,7 @@ export function DashboardTile({
   onPress,
   style,
 }: DashboardTileProps) {
+  const { activeTheme, theme } = useThemePreference();
   return (
     <Pressable
       accessibilityHint={accessibilityHint}
@@ -49,12 +51,13 @@ export function DashboardTile({
       onPress={onPress}
       style={({ pressed }) => [
         styles.tile,
+        { backgroundColor: theme.inkSoft },
         style,
         pressed && styles.pressed,
         disabled && styles.disabled,
       ]}
     >
-      <View style={styles.imageArea}>
+      <View style={[styles.imageArea, activeTheme === 'dark' && styles.refinedImage]}>
         <Image
           accessible={false}
           resizeMode={imageResizeMode}
@@ -67,7 +70,7 @@ export function DashboardTile({
       </View>
       <View style={styles.shade} />
       {cornerBadge ? <View pointerEvents="none" style={styles.cornerBadge}><Text style={styles.cornerBadgeText}>{cornerBadge}</Text></View> : null}
-      <View style={styles.labelBand}>
+      <View style={[styles.labelBand, activeTheme === 'dark' && { backgroundColor: theme.card, borderTopColor: theme.line }]}>
         <Text
           adjustsFontSizeToFit
           maxFontSizeMultiplier={1.2}
@@ -108,6 +111,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#050505',
     transform: [{ scale: 1.55 }],
   },
+  refinedImage: { filter: [{ brightness: 1.18 }] },
   cornerBadge: {
     position: 'absolute',
     top: spacing.sm,

@@ -106,7 +106,7 @@ export function PersistentBottomNavigation() {
   return (
     <SafeAreaView
       edges={['right', 'bottom', 'left']}
-      style={[styles.safeArea, { backgroundColor: theme.surfaceRaised, borderTopColor: theme.frame }, isStaffWorkspace && { borderTopWidth: 1, borderTopColor: theme.border }]}
+      style={[styles.safeArea, { backgroundColor: theme.surfaceRaised, borderTopColor: theme.line }, isStaffWorkspace && { borderTopWidth: 1, borderTopColor: theme.border }]}
     >
       <View accessibilityLabel={isStaffWorkspace ? 'Staff workspace navigation' : 'Customer app navigation'} accessibilityRole="tablist" style={[styles.navigationRow, isStaffWorkspace && styles.staffNavigationRow]}>
         {navigationItems.map((item) => {
