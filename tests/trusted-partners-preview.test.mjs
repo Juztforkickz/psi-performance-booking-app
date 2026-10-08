@@ -28,7 +28,7 @@ test('Trusted Partners is a public referral directory with ten approved shortest
   ]);
 
   const categories = [
-    'Auto Electrical',
+    'Insurance Advice',
     'Car Audio & Security',
     'Paint & Bodywork',
     'Window Tinting',
@@ -42,17 +42,20 @@ test('Trusted Partners is a public referral directory with ten approved shortest
   for (const category of categories) assert.match(partners, new RegExp(`category: '${category}'`, 'u'));
   assert.equal((partners.match(/id: '/gu) ?? []).length, 10);
   assert.doesNotMatch(partners, /raceline|Motorsport Apparel/iu);
+  assert.doesNotMatch(`${partners}\n${screen}`, /race-wires|Race Wires Auto Electrics|racewires@live\.com/iu);
   assert.match(partners, /left\.category\.length - right\.category\.length/u);
   assert.match(partners, /id: 'dark-side-film',[\s\S]*phoneDisplay: '0426 246 001',[\s\S]*email: 'info@darksideofthefilm\.com\.au',[\s\S]*emailUrl: 'mailto:info@darksideofthefilm\.com\.au'/u);
   assert.match(partners, /id: 'eye-candy',[\s\S]*phoneDisplay: '0414 544 317',[\s\S]*email: 'info@eyecandymotorsports\.com\.au',[\s\S]*emailUrl: 'mailto:info@eyecandymotorsports\.com\.au'/u);
   assert.match(partners, /id: 'trb-visuals',[\s\S]*phoneDisplay: '0493 530 347',[\s\S]*email: 'trbvisualsphotography@gmail\.com'/u);
   assert.match(partners, /id: 'martini-racing-products',[\s\S]*phoneDisplay: '03 9763 0977',[\s\S]*email: 'sales@martiniracing\.com\.au'/u);
   assert.match(partners, /id: 'fab-car-audio',[\s\S]*phoneDisplay: '0423 522 124',[\s\S]*email: 'sales@fabcaraudio\.com\.au'/u);
+  assert.match(partners, /id: 'grace-insurance',[\s\S]*category: 'Insurance Advice',[\s\S]*businessName: 'Grace Insurance',[\s\S]*summary: 'Personal, business and automotive insurance advice\. Protection and peace of mind\.',[\s\S]*phoneDisplay: '0431 444 305',[\s\S]*phoneUrl: 'tel:\+61431444305',[\s\S]*email: 'vanessa@graceinsurance\.com\.au',[\s\S]*emailUrl: 'mailto:vanessa@graceinsurance\.com\.au'/u);
   assert.match(screen, /Contact partners directly/u);
   assert.match(screen, /Referrals are not PSI bookings or quotes/u);
   assert.match(screen, /trb-visuals\.jpg/u);
   assert.match(screen, /martini-racing-products\.jpg/u);
   assert.match(screen, /fab-car-audio\.jpg/u);
+  assert.match(screen, /grace-insurance\.png/u);
   assert.match(screen, /'martini-racing-products': 1\.2/u);
   assert.match(screen, /'martini-racing-products': colors\.white/u);
   assert.match(screen, /'fab-car-audio': 0\.9/u);

@@ -23,7 +23,7 @@ type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
 const PARTNER_LOGOS: Readonly<Record<string, ImageSourcePropType>> = {
   'dark-side-film': require('../../assets/images/partners/dark-side-film.jpg'),
-  'race-wires': require('../../assets/images/partners/race-wires.jpg'),
+  'grace-insurance': require('../../assets/images/partners/grace-insurance.png'),
   'elite-autobody': require('../../assets/images/partners/elite-autobody.jpg'),
   'kng-tow': require('../../assets/images/partners/kng-tow.jpg'),
   'eye-candy': require('../../assets/images/partners/eye-candy.jpg'),
@@ -36,7 +36,7 @@ const PARTNER_LOGOS: Readonly<Record<string, ImageSourcePropType>> = {
 
 const PARTNER_LOGO_SCALES: Readonly<Record<string, number>> = {
   'dark-side-film': 1.54,
-  'race-wires': 1.43,
+  'grace-insurance': 1,
   'elite-autobody': 1.28,
   'kng-tow': 1.5,
   'eye-candy': 1.29,
