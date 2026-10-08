@@ -1,0 +1,9 @@
+{
+  "channel": "app-store-release",
+  "group": "5eb71499-83c4-4b57-acc7-1db74b4a0ff3",
+  "update": "01a118f0-c398-77d5-b411-e8837e77ec99",
+  "runtime": "1.0.0-app-store-release-1",
+  "checkpoint": "75cee2ac1a39caa0d9f472b3e85f2791183434da",
+  "published": "2026-10-08T00:36:34.328Z",
+  "workflow": "01a118ec-2596-72d3-904a-0fe3bc02d4db"
+}

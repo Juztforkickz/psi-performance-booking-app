@@ -29,4 +29,17 @@ Public updates before this release:
 
 Use Expo's existing republish operation on the matching channel and platform if rollback is required. Do not replace a channel mapping or recreate a runtime. Compact rollback references and the inspected Home screenshot are saved in `output/refined-black-release-2026-10-08`.
 
-Apple publication must pass the existing `PSI Apple public OTA update` validation and approval jobs. Android publication uses the existing Play channel and production environment. Publication results are recorded separately after confirmation.
+## Confirmed publication
+
+Application checkpoint: `75cee2ac1a39caa0d9f472b3e85f2791183434da`, committed and pushed to `main`.
+
+* Apple workflow `01a118ec-2596-72d3-904a-0fe3bc02d4db` succeeded through validation, the existing approval job and publication. Apple update group: `5eb71499-83c4-4b57-acc7-1db74b4a0ff3`.
+* Android update group: `3312f98d-a31d-424e-8867-c475a20c27c8`. Publication used the existing Play channel and production environment. Expo reported no new assets to upload.
+
+Both public channel mappings were read again after publication and confirmed to serve application checkpoint `75cee2a` on their unchanged compatible runtimes. Compact publication records and Apple workflow evidence are saved alongside the rollback JSON. No store resubmission, native build or plan upgrade was made.
+
+Requests to the public Expo update endpoint, with each installed app's platform, channel and runtime headers, also returned the exact new update IDs. Apple: `01a118f0-c398-77d5-b411-e8837e77ec99`. Android: `01a118ee-0e6a-7aa9-a070-31d2eb84b4d2`. These read only checks confirm public availability; they do not claim every customer's phone has already downloaded the update.
+
+Secondary text contrast against the updated surfaces ranges from 5.72:1 to 12.87:1. The visual inspection was a browser rendering of the real app at phone size, not a new physical device test.
+
+To receive the update, open the installed public app while online, allow the background download, then fully close and reopen it. Some installations can require another launch before the downloaded update is applied.
