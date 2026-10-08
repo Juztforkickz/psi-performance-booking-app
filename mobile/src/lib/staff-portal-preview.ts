@@ -199,6 +199,7 @@ export const STAFF_PORTAL_PREVIEW_SNAPSHOT: StaffPortalSnapshot = {
     updated_at: profile.updated_at,
     workshop_contact_id: null,
   })),
+  historyImports: [],
   integrationJobs: [
     { kind: 'notify_psi_request_received', bookingIndex: 0 },
     { kind: 'notify_customer_request_received', bookingIndex: 0 },

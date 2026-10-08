@@ -43,7 +43,7 @@ export type VaultImportQueue = {
   job_id: string | null; record_id: string | null; reason: string; attempt_count: number;
   last_error_code: string | null; created_at: string; updated_at: string;
 };
-export type VaultOverview = { plan: 'free' | 'performance_plus'; counts: Partial<Record<ReportKind, number>>; expires_at: string | null; is_permanent: boolean; is_trial: boolean; trial_days: number };
+export type VaultOverview = { plan: 'free' | 'history_import' | 'performance_plus'; counts: Partial<Record<ReportKind, number>>; expires_at: string | null; is_permanent: boolean; is_trial: boolean; trial_days: number };
 type Table<T> = { Row: T; Insert: Partial<T>; Update: Partial<T>; Relationships: [] };
 type VaultDatabase = { public: { Tables: {
   vault_records: Table<VaultRecord>; vault_assets: Table<VaultAsset>; workshop_jobs: Table<WorkshopJob>;

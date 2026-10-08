@@ -8,7 +8,9 @@ type StripeCheckoutSession = {
   id: string;
   metadata?: {
     booking_request_id?: string;
+    historical_import_request_id?: string;
     payment_attempt_id?: string;
+    purpose?: string;
   } | null;
   payment_intent?: string | { id?: string } | null;
   payment_status?: string | null;
@@ -84,6 +86,53 @@ Deno.serve(async (request) => {
   if (Boolean(event.livemode) !== expectedLiveMode) return json({ error: "stripe_mode_mismatch" }, 409);
 
   const session = event.data.object;
+  const historicalImportId = session.metadata?.historical_import_request_id;
+  if (session.metadata?.purpose === "historical_import" && historicalImportId) {
+    if (session.client_reference_id !== historicalImportId) return json({ error: "historical_import_reference_mismatch" }, 409);
+    const supabaseUrl = env("SUPABASE_URL");
+    const serviceKey = env("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !serviceKey) return json({ error: "server_configuration_unavailable" }, 503);
+    const admin = createClient(supabaseUrl, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
+    const { data: historyRequest, error: lookupError } = await admin.from("historical_import_requests")
+      .select("*").eq("id", historicalImportId).eq("provider", "stripe").maybeSingle();
+    if (lookupError) return json({ error: "historical_import_lookup_failed" }, 503);
+    if (!historyRequest || historyRequest.provider_checkout_id !== session.id) return json({ error: "historical_import_checkout_mismatch" }, 409);
+
+    const success = event.type === "checkout.session.async_payment_succeeded"
+      || (event.type === "checkout.session.completed" && session.payment_status === "paid");
+    if (success) {
+      const paymentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+      if (!paymentId || !Number.isInteger(session.amount_total) || String(session.currency).toUpperCase() !== "AUD") {
+        return json({ error: "historical_import_payment_data_invalid" }, 422);
+      }
+      const { error } = await admin.rpc("confirm_historical_import_payment", {
+        p_amount_cents: session.amount_total,
+        p_checkout_id: session.id,
+        p_currency: "AUD",
+        p_paid_at: new Date(event.created * 1000).toISOString(),
+        p_provider_event_id: event.id,
+        p_provider_payment_id: paymentId,
+        p_request_id: historyRequest.id,
+      });
+      if (error) return json({ error: "historical_import_confirmation_failed" }, 409);
+      return json({ received: true, historicalImportConfirmed: true });
+    }
+
+    const terminalState = event.type === "checkout.session.expired"
+      ? "expired"
+      : event.type === "checkout.session.async_payment_failed"
+        ? "failed"
+        : null;
+    if (terminalState) {
+      const { error } = await admin.from("historical_import_requests")
+        .update({ payment_status: terminalState })
+        .eq("id", historyRequest.id)
+        .neq("payment_status", "paid");
+      if (error) return json({ error: "historical_import_state_update_failed" }, 503);
+    }
+    return json({ received: true });
+  }
+
   const attemptId = session.metadata?.payment_attempt_id;
   const bookingId = session.metadata?.booking_request_id;
   if (!attemptId || !bookingId || session.client_reference_id !== bookingId) return json({ received: true, ignored: true });

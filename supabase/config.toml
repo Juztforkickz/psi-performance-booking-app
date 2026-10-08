@@ -467,6 +467,11 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/stripe-booking-webhook/index.ts"
 
+[functions.create-history-import-payment]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/create-history-import-payment/index.ts"
+
 [functions.confirm-bank-transfer]
 enabled = true
 verify_jwt = true

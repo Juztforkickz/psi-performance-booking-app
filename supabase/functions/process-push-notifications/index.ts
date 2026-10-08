@@ -211,6 +211,7 @@ Deno.serve(async (request) => {
     const workshopAlert = event.deep_link === "/staff";
     const invoiceAttentionAlert = event.kind === "xero_invoice_review";
     const performanceSubscriptionAlert = event.kind === "performance_subscription_started";
+    const historicalImportAlert = event.kind.startsWith("historical_import_");
     const carSaleAlert = event.kind === "car_sale_published";
     const messageAlert = event.kind === "customer_message_received" || event.kind === "staff_message_received";
     if (messageAlert && event.read_at) {
@@ -221,11 +222,11 @@ Deno.serve(async (request) => {
       const cashSoundAvailable = workshopAlert && device.notification_sound === PSI_CASH_NOTIFICATION_SOUND;
       return {
         to: device.expo_push_token,
-        title: invoiceAttentionAlert ? "PSI invoices need attention" : performanceSubscriptionAlert || carSaleAlert || messageAlert ? event.title : "PSI update received",
+        title: invoiceAttentionAlert ? "PSI invoices need attention" : performanceSubscriptionAlert || historicalImportAlert || carSaleAlert || messageAlert ? event.title : "PSI update received",
         subtitle: workshopAlert ? "PSI workshop" : carSaleAlert ? "Customer Cars for Sale" : messageAlert ? "Ask PSI" : "Customer account",
         body: invoiceAttentionAlert
           ? "Open Imports & drafts to review unresolved sales invoices."
-          : performanceSubscriptionAlert || carSaleAlert || messageAlert
+          : performanceSubscriptionAlert || historicalImportAlert || carSaleAlert || messageAlert
             ? event.body
             : workshopAlert
               ? "Open the protected workshop portal to review it."

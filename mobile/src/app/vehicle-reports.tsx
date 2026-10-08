@@ -86,10 +86,10 @@ function ReportCategories({ vehicleId }: { vehicleId: string }) {
     }).catch(() => { if (active) { setOverview(null); setMessage('Report access could not be checked. Please refresh.'); } });
     return () => { active = false; };
   }, [vehicleId, revision]));
-  const unlocked = overview?.plan === 'performance_plus' &&
-    (!overview.expires_at || Date.parse(overview.expires_at) > now);
+  const unlocked = overview?.plan === 'history_import' || (overview?.plan === 'performance_plus' &&
+    (!overview.expires_at || Date.parse(overview.expires_at) > now));
   return <View style={styles.section}>
-    <Text style={styles.eyebrow}>{unlocked ? 'PERFORMANCE+ · UNLOCKED' : 'PERFORMANCE+ · VEHICLE ARCHIVE'}</Text>
+    <Text style={styles.eyebrow}>{overview?.plan === 'history_import' ? 'PSI HISTORY · PERMANENT ACCESS' : unlocked ? 'PERFORMANCE+ · UNLOCKED' : 'PERFORMANCE+ · VEHICLE ARCHIVE'}</Text>
     <Text style={styles.copy}>{unlocked
       ? 'Open a category to see your saved records. PSI workshop records are read-only.'
       : 'See what is saved for your car. Performance+ unlocks the records, results, photos and files inside each category.'}</Text>

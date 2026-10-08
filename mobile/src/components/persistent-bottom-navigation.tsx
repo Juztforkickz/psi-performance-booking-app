@@ -34,7 +34,7 @@ const NAVIGATION_ITEMS: readonly NavigationItem[] = [
     activeIcon: 'car-sport',
     href: '/garage',
     inactiveIcon: 'car-sport-outline',
-    isActive: (pathname) => ['/garage', '/account', '/parts'].some((route) => pathname === route || pathname.startsWith(`${route}/`)),
+    isActive: (pathname) => ['/garage', '/account', '/history-import', '/parts'].some((route) => pathname === route || pathname.startsWith(`${route}/`)),
     label: 'My Garage',
   },
   {

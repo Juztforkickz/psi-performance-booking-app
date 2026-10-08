@@ -15,6 +15,7 @@ import { StaffCarSalesManager } from '@/components/staff-car-sales-manager';
 import { StaffServiceCompletion } from '@/components/staff-service-completion';
 import { StaffWorkshopJob } from '@/components/staff-workshop-job';
 import { StaffWorkshopCustomers } from '@/components/staff-workshop-customers';
+import { StaffHistoryImports } from '@/components/staff-history-imports';
 import { colors, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
@@ -355,7 +356,7 @@ export function StaffWorkspace({
     };
   }, [liveNotifications, previewMode, previewReadIds]);
   const portalProfilePhotoUri = useCustomerProfilePhotoUri();
-  const params = useLocalSearchParams<{ section?: string; bookingId?: string; customerId?: string; importId?: string; importView?: string; vehicleId?: string; tool?: string; view?: string }>();
+  const params = useLocalSearchParams<{ section?: string; bookingId?: string; customerId?: string; historyImportId?: string; importId?: string; importView?: string; vehicleId?: string; tool?: string; view?: string }>();
   const section = resolveStaffSection(params.section);
   const { registerNavigationHandler } = useStaffNavigation();
   const { confirmDiscard, discardDialog } = useStaffDiscardConfirmation();
@@ -503,7 +504,7 @@ export function StaffWorkspace({
         setBookingSearch(''); setBookingPage(0);
       }
       const nextBookingView = bookingViewFromParam(extra.view ?? '');
-      router.setParams({ section: next, bookingId: '', customerId: '', importId: '', importView: '', vehicleId: '', tool: '', ...extra, view: next === 'bookings' ? resetBookingView ? nextBookingView : bookingFilter : '' });
+      router.setParams({ section: next, bookingId: '', customerId: '', historyImportId: '', importId: '', importView: '', vehicleId: '', tool: '', ...extra, view: next === 'bookings' ? resetBookingView ? nextBookingView : bookingFilter : '' });
       afterNavigate?.();
     });
   }, [bookingFilter, confirmLeaving, params.bookingId, router, section]);
@@ -660,6 +661,7 @@ export function StaffWorkspace({
             <DashboardMetric label="Waiting account" value={invoiceQueues.waiting.length} onPress={() => navigate('imports', { importView: 'waiting' })} />
             <DashboardMetric label="Imported" value={invoiceQueues.imported.length} onPress={() => navigate('imports', { importView: 'imported' })} />
           </View>
+          {snapshot.historyImports.some(item => ['paid', 'in_progress', 'needs_information'].includes(item.status)) ? <WorkspaceLink title="History import requests" detail={`${snapshot.historyImports.filter(item => ['paid', 'in_progress', 'needs_information'].includes(item.status)).length} paid request${snapshot.historyImports.filter(item => ['paid', 'in_progress', 'needs_information'].includes(item.status)).length === 1 ? '' : 's'} to review`} icon="archive-outline" onPress={() => navigate('history_imports')} /> : null}
           <PrimaryButton label="Add vehicle record" onPress={() => navigate('records')} />
           <WorkspaceLink title="Find customer or vehicle" detail="Search name, email or registration" icon="search-outline" onPress={() => navigate('customers')} />
           {activeWorkshopContacts.length ? <WorkspaceLink title="Workshop-only customers" detail={`${activeWorkshopContacts.length} phone or walk-in customer${activeWorkshopContacts.length === 1 ? '' : 's'} awaiting an account match`} icon="git-merge-outline" onPress={() => navigate('workshop_customers')} /> : null}
@@ -826,6 +828,7 @@ export function StaffWorkspace({
             <Text style={styles.groupLabel}>Manage accounts</Text>
             <WorkspaceLink title="Invite customer" icon="person-add-outline" onPress={() => navigate('invitations')} />
             <WorkspaceLink title="Workshop-only customers" detail={`${activeWorkshopContacts.length} awaiting account matching`} icon="git-merge-outline" onPress={() => navigate('workshop_customers')} />
+            <WorkspaceLink title="History import requests" detail={`${snapshot.historyImports.filter(item => item.payment_status === 'paid').length} paid request${snapshot.historyImports.filter(item => item.payment_status === 'paid').length === 1 ? '' : 's'}`} icon="archive-outline" onPress={() => navigate('history_imports')} />
             <WorkspaceLink title="Account requests" detail={`${pendingDeletions.length} awaiting review`} icon="person-remove-outline" onPress={() => navigate('deletion')} />
             </> : null}
           </>}
@@ -837,6 +840,7 @@ export function StaffWorkspace({
         </> : null}
         {section === 'imports' ? <StaffVaultReview focusImportId={paramValue(params.importId)} initialTab={paramValue(params.importView)} onApproveAndInvite={openVerifiedCustomerInvitation} onRefresh={onRefresh} owner={role === 'owner'} previewMode={previewMode} snapshot={snapshot} /> : null}
         {section === 'workshop_customers' ? <StaffWorkshopCustomers contacts={snapshot.workshopContacts} customerVehicles={snapshot.vehicles} customers={snapshot.customers} onInvite={openVerifiedCustomerInvitation} onRefresh={onRefresh} owner={role === 'owner'} workshopVehicles={snapshot.workshopVehicles} /> : null}
+        {section === 'history_imports' ? <StaffHistoryImports customers={snapshot.customers} focusId={paramValue(params.historyImportId)} onRefresh={onRefresh} requests={snapshot.historyImports} vehicles={[...snapshot.vehicles, ...snapshot.archivedVehicles]} /> : null}
         {section === 'access' ? role === 'owner' ? <StaffPerformanceAccess previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} /> : <EmptyState>Owner access is required.</EmptyState> : null}
         {section === 'invitations' ? role === 'owner' ? <>
                   {role === 'owner' ? (

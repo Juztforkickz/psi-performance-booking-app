@@ -6,6 +6,7 @@ import type {
   CustomerProfileRow,
   CustomerVehicleRow,
   DynoRecordRow,
+  HistoricalImportRequestRow,
   VehicleFileRow,
   VehicleServiceSummaryRow,
 } from '@/lib/database.types';
@@ -23,6 +24,7 @@ export type CustomerAccountSnapshot = {
   bookings: BookingRequestRow[];
   paymentAttempts: BookingPaymentAttemptRow[];
   dynoRecords: DynoRecordRow[];
+  historyImports: HistoricalImportRequestRow[];
   profile: CustomerProfileRow | null;
   serviceSummaries: VehicleServiceSummaryRow[];
   user: User;
@@ -92,6 +94,13 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
       .eq('record_source', 'psi_verified')
       .is('archived_at', null)
       .order('tested_at', { ascending: false }),
+    REVIEW_ENVIRONMENT.enabled
+      ? Promise.resolve({ data: [] as HistoricalImportRequestRow[], error: null, status: 200 })
+      : supabase
+        .from('historical_import_requests')
+        .select('*')
+        .eq('customer_id', user.id)
+        .order('created_at', { ascending: false }),
     supabase
       .from('vehicle_files')
       .select('*')
@@ -111,7 +120,7 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
     if (!error && data.session) results = await readAccount();
   }
 
-  const [profileResult, vehiclesResult, serviceSummariesResult, bookingsResult, paymentAttemptsResult, dynoRecordsResult, vehicleFilesResult, vehicleDisplayPreferencesResult] = results;
+  const [profileResult, vehiclesResult, serviceSummariesResult, bookingsResult, paymentAttemptsResult, dynoRecordsResult, historyImportsResult, vehicleFilesResult, vehicleDisplayPreferencesResult] = results;
 
   if (profileResult.error) throw profileResult.error;
   if (vehiclesResult.error) throw vehiclesResult.error;
@@ -119,6 +128,7 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
   if (bookingsResult.error) throw bookingsResult.error;
   if (paymentAttemptsResult.error) throw paymentAttemptsResult.error;
   if (dynoRecordsResult.error) throw dynoRecordsResult.error;
+  if (historyImportsResult.error) throw historyImportsResult.error;
   if (vehicleFilesResult.error) throw vehicleFilesResult.error;
   if (vehicleDisplayPreferencesResult.error) throw vehicleDisplayPreferencesResult.error;
 
@@ -139,6 +149,7 @@ export async function loadCustomerAccount(): Promise<CustomerAccountSnapshot> {
     bookings: (bookingsResult.data ?? []).filter((booking) => !heldBookingIds.has(booking.id)),
     paymentAttempts: paymentAttemptsResult.data ?? [],
     dynoRecords: dynoRecordsResult.data ?? [],
+    historyImports: historyImportsResult.data ?? [],
     profile: profileResult.data,
     serviceSummaries: serviceSummariesResult.data ?? [],
     user,

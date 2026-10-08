@@ -38,6 +38,9 @@ export function staffNotificationDestination(event: NotificationNavigationEvent)
   if (event.kind === 'performance_subscription_started') {
     return { label: 'Open subscription alert', params: {}, section: 'alerts' };
   }
+  if (event.kind === 'historical_import_received') {
+    return { label: 'Open history import requests', params: {}, section: 'history_imports' };
+  }
   return event.booking_request_id
     ? { label: 'Open booking', params: { bookingId: event.booking_request_id }, section: 'bookings' }
     : { label: 'Open workshop inbox', params: {}, section: 'alerts' };
@@ -60,13 +63,14 @@ export function notificationDestination(event: NotificationNavigationEvent): { h
   if (event.deep_link === '/customer-cars-for-sale') return { href: '/customer-cars-for-sale', label: 'Open Customer Cars for Sale' };
   if (event.deep_link === '/events') return { href: '/events', label: 'Open PSI Events' };
   if (event.deep_link === '/performance-plus') return { href: '/performance-plus', label: 'Continue with Performance+' };
+  if (event.deep_link === '/history-import') return { href: '/history-import' as Href, label: 'Open history import' };
   return { href: '/bookings', label: 'Open Bookings' };
 }
 
 export function pushNotificationHref(data: Record<string, unknown> | undefined): Href | null {
   const deepLink = typeof data?.url === 'string' ? data.url : '';
   const route = deepLink.split('?')[0];
-  if (!['/staff', '/booking', '/bookings', '/customer-cars-for-sale', '/events', '/performance-plus', '/staff-messages', '/messages'].includes(route)) return null;
+  if (!['/staff', '/booking', '/bookings', '/customer-cars-for-sale', '/events', '/history-import', '/performance-plus', '/staff-messages', '/messages'].includes(route)) return null;
   const kind = typeof data?.kind === 'string' ? data.kind : '';
   const bookingRequestId = typeof data?.bookingId === 'string' ? data.bookingId : null;
   const askPsiConversationId = typeof data?.askPsiConversationId === 'string' ? data.askPsiConversationId : null;

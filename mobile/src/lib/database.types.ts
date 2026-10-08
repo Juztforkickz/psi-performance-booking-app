@@ -281,6 +281,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      historical_import_requests: {
+        Row: {
+          amount_cents: 19900;
+          assigned_to: string | null;
+          checkout_attempt: number;
+          checkout_expires_at: string | null;
+          completed_at: string | null;
+          consent_at: string;
+          created_at: string;
+          currency: 'AUD';
+          customer_id: string;
+          id: string;
+          imported_item_count: number;
+          paid_at: string | null;
+          payment_status: 'awaiting_payment' | 'creating' | 'expired' | 'failed' | 'paid' | 'refunded';
+          previous_details: string | null;
+          provider: 'stripe';
+          provider_checkout_id: string | null;
+          provider_checkout_url: string | null;
+          provider_event_id: string | null;
+          provider_payment_id: string | null;
+          staff_note: string | null;
+          status: 'awaiting_payment' | 'cancelled' | 'completed' | 'in_progress' | 'needs_information' | 'paid';
+          updated_at: string;
+          vehicle_id: string;
+        };
+        Insert: Record<never, never>;
+        Update: Record<never, never>;
+        Relationships: [];
+      };
       car_sale_email_jobs: {
         Row: {
           attempt_count: number;
@@ -675,9 +705,9 @@ export type Database = {
           booking_request_id: string | null;
           car_sale_listing_id: string | null;
           created_at: string;
-          deep_link: '/booking' | '/bookings' | '/customer-cars-for-sale' | '/events' | '/messages' | '/performance-plus' | '/staff';
+          deep_link: '/booking' | '/bookings' | '/customer-cars-for-sale' | '/events' | '/history-import' | '/messages' | '/performance-plus' | '/staff';
           id: string;
-          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'car_sale_published' | 'customer_message_received' | 'new_booking_request' | 'performance_subscription_started' | 'performance_trial_ended' | 'psi_event_cancelled' | 'psi_event_published' | 'psi_event_updated' | 'service_reminder' | 'staff_message_received' | 'xero_invoice_review';
+          kind: 'booking_cancelled' | 'booking_completed' | 'booking_confirmed' | 'booking_date_approved' | 'booking_date_proposed' | 'booking_request_received' | 'car_sale_published' | 'customer_message_received' | 'historical_import_completed' | 'historical_import_needs_information' | 'historical_import_received' | 'new_booking_request' | 'performance_subscription_started' | 'performance_trial_ended' | 'psi_event_cancelled' | 'psi_event_published' | 'psi_event_updated' | 'service_reminder' | 'staff_message_received' | 'xero_invoice_review';
           psi_event_id: string | null;
           read_at: string | null;
           recipient_user_id: string;
@@ -1052,6 +1082,15 @@ export type Database = {
       };
     };
     Functions: {
+      review_historical_import_request: {
+        Args: {
+          p_imported_item_count?: number;
+          p_request_id: string;
+          p_staff_note?: string | null;
+          p_status: string;
+        };
+        Returns: Database['public']['Tables']['historical_import_requests']['Row'];
+      };
       mark_ask_psi_conversation_read: {
         Args: { p_conversation_id: string; p_read_through_message_id?: string | null };
         Returns: string;
@@ -1127,6 +1166,7 @@ export type BookingIntegrationJobRow = Database['public']['Tables']['booking_int
 export type BookingPaymentAttemptRow = Database['public']['Tables']['booking_payment_attempts']['Row'];
 export type BookingPaymentEventRow = Database['public']['Tables']['booking_payment_events']['Row'];
 export type CustomerVehicleRow = Database['public']['Tables']['customer_vehicles']['Row'];
+export type HistoricalImportRequestRow = Database['public']['Tables']['historical_import_requests']['Row'];
 export type WorkshopContactRow = Database['public']['Tables']['workshop_contacts']['Row'];
 export type WorkshopVehicleRow = Database['public']['Tables']['workshop_vehicles']['Row'];
 export type BookingRequestRow = Database['public']['Tables']['booking_requests']['Row'];

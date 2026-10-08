@@ -133,7 +133,7 @@ function GarageContent({
   secureVehicles: readonly PreviewVehicle[] | null;
 }) {
   const router = useRouter();
-  const { refreshAccount } = useCustomerAccount();
+  const { account, refreshAccount } = useCustomerAccount();
   const profilePhotoUri = useCustomerProfilePhotoUri();
   const { section } = useLocalSearchParams<{ section?: string }>();
   const { compact, horizontalPadding, largeText, tablet } = useResponsiveLayout();
@@ -163,6 +163,7 @@ function GarageContent({
   const selectedVehicleId = secureVehicles ? secureSelectedVehicleId : previewSelectedVehicleId;
 
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === selectedVehicleId) ?? vehicles[0];
+  const historyImport = account?.historyImports.find((request) => request.vehicle_id === selectedVehicle.id && request.status !== 'cancelled') ?? null;
   const artwork = useGarageArtwork(selectedVehicle.id);
   const hasPhotoOverride = Object.prototype.hasOwnProperty.call(securePhotoFiles, selectedVehicle.id);
   const selectedSecurePhotoFile = hasPhotoOverride
@@ -498,6 +499,24 @@ function GarageContent({
         <GarageArtworkPicker key={selectedVehicle.id} selectedId={artwork.art.id} onSelect={artwork.select} vehicle={selectedVehicle} hasVehiclePhoto={Boolean(selectedPhoto)} />
         {artwork.error ? <Text accessibilityRole="alert" style={styles.vehiclePhotoNotice}>{artwork.error}</Text> : null}
         <PerformanceVaultCard vehicleId={selectedVehicle.id} />
+        {secureVehicles ? <View style={[styles.historyImportCard, historyImport?.status === 'completed' && styles.historyImportCardComplete]}>
+          <View style={styles.maintenanceHeading}>
+            <View style={styles.maintenanceHeadingCopy}>
+              <Text style={styles.primaryLabel}>{historyImport ? 'PSI history import' : 'One time service'}</Text>
+              <Text style={styles.maintenanceTitle}>{historyImport?.status === 'completed' ? 'Your imported history is ready' : historyImport ? 'Track your history import' : 'Bring previous PSI history into the app'}</Text>
+              <Text style={styles.bodyCopy}>{historyImport
+                ? historyImport.status === 'needs_information'
+                  ? 'PSI needs another detail before the import can continue.'
+                  : historyImport.status === 'completed'
+                    ? `${historyImport.imported_item_count} verified ${historyImport.imported_item_count === 1 ? 'item is' : 'items are'} now available for this vehicle.`
+                    : 'Follow PSI review and import progress for this vehicle.'
+                : 'PSI can locate and organise eligible older invoices, service records, dyno results, photos and documents.'}</Text>
+            </View>
+            <Ionicons color={colors.accent} name={historyImport?.status === 'completed' ? 'checkmark-circle' : 'archive-outline'} size={26} />
+          </View>
+          {!historyImport ? <View style={styles.historyImportPrice}><Text style={styles.priceText}>AUD $199</Text><Text style={styles.priceMeta}>Once only · one vehicle</Text></View> : null}
+          <PrimaryButton label={historyImport ? 'Open history import' : 'View history import details'} onPress={() => router.push({ pathname: '/history-import' as never, params: { vehicleId: selectedVehicle.id } })} />
+        </View> : null}
         <View style={styles.maintenanceCard}>
           <View style={styles.maintenanceHeading}>
             <View style={styles.maintenanceHeadingCopy}>
@@ -782,6 +801,11 @@ const styles = StyleSheet.create({
   statValue: { color: colors.white, fontSize: 12, fontWeight: '800' },
   localMaintenanceLabel: { color: colors.accent, fontSize: 9, fontWeight: '900', lineHeight: 14, textTransform: 'uppercase' },
   maintenanceCard: { ...mobileFrame, gap: spacing.md, backgroundColor: colors.panel, padding: spacing.lg },
+  historyImportCard: { ...mobileFrame, gap: spacing.md, borderColor: colors.accent, backgroundColor: colors.panel, padding: spacing.lg },
+  historyImportCardComplete: { borderWidth: 2 },
+  historyImportPrice: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.md, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md },
+  priceText: { color: colors.white, fontSize: 25, fontWeight: '900' },
+  priceMeta: { color: colors.accent, fontSize: 10, fontWeight: '900', textAlign: 'right', textTransform: 'uppercase' },
   maintenanceHeading: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   maintenanceHeadingCopy: { flex: 1, gap: spacing.xs },
   maintenanceTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
