@@ -46,6 +46,9 @@ test('Trusted Partners is a public referral directory with ten approved shortest
   assert.match(partners, /left\.category\.length - right\.category\.length/u);
   assert.match(partners, /id: 'dark-side-film',[\s\S]*phoneDisplay: '0426 246 001',[\s\S]*email: 'info@darksideofthefilm\.com\.au',[\s\S]*emailUrl: 'mailto:info@darksideofthefilm\.com\.au'/u);
   assert.match(partners, /id: 'eye-candy',[\s\S]*phoneDisplay: '0414 544 317',[\s\S]*email: 'info@eyecandymotorsports\.com\.au',[\s\S]*emailUrl: 'mailto:info@eyecandymotorsports\.com\.au'/u);
+  assert.match(partners, /id: 'eye-candy',[\s\S]*instagramUrl: 'https:\/\/www\.instagram\.com\/eyecandymotorsports\/'/u);
+  assert.match(partners, /id: 'luxe-interiors',[\s\S]*email: 'luxeautomotiveinteriors@outlook\.com',[\s\S]*emailUrl: 'mailto:luxeautomotiveinteriors@outlook\.com',[\s\S]*instagramUrl: 'https:\/\/www\.instagram\.com\/luxeautomotiveinteriors_\/'/u);
+  assert.doesNotMatch(partners, /eyecandymotorsportsmelbourne|instagram\.com\/luxeautomotiveinteriors\//u);
   assert.match(partners, /id: 'trb-visuals',[\s\S]*phoneDisplay: '0493 530 347',[\s\S]*email: 'trbvisualsphotography@gmail\.com'/u);
   assert.match(partners, /id: 'martini-racing-products',[\s\S]*phoneDisplay: '03 9763 0977',[\s\S]*email: 'sales@martiniracing\.com\.au'/u);
   assert.match(partners, /id: 'fab-car-audio',[\s\S]*phoneDisplay: '0423 522 124',[\s\S]*email: 'sales@fabcaraudio\.com\.au'/u);
@@ -62,4 +65,26 @@ test('Trusted Partners is a public referral directory with ten approved shortest
   assert.match(screen, /'fab-car-audio': colors\.white/u);
   assert.match(screen, /TRUSTED_PARTNERS\.map/u);
   assert.doesNotMatch(`${partners}\n${screen}`, /fetch|AsyncStorage|EXPO_PUBLIC_API_BASE_URL|supabase|upload/iu);
+});
+
+test('Every trusted partner action uses a valid destination', async () => {
+  const partners = await read('../mobile/src/lib/trusted-partners.ts');
+  const partnerBlocks = partners.split(/\n  \{\n/u).slice(1);
+
+  assert.equal(partnerBlocks.length, 10);
+  for (const block of partnerBlocks) {
+    const email = block.match(/email: '([^']+)'/u)?.[1];
+    const emailUrl = block.match(/emailUrl: '([^']+)'/u)?.[1];
+    assert.ok(email, 'Every partner has a displayed email address');
+    assert.equal(emailUrl, `mailto:${email}`);
+
+    for (const phoneUrl of block.matchAll(/(?:secondaryP|p)honeUrl: '([^']+)'/gu)) {
+      assert.match(phoneUrl[1], /^tel:\+61\d{9}$/u);
+    }
+
+    for (const link of block.matchAll(/(?:websiteUrl|instagramUrl): '([^']+)'/gu)) {
+      const parsed = new URL(link[1]);
+      assert.equal(parsed.protocol, 'https:');
+    }
+  }
 });

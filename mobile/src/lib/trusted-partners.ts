@@ -75,7 +75,7 @@ const PARTNERS: readonly TrustedPartner[] = [
     email: 'info@eyecandymotorsports.com.au',
     emailUrl: 'mailto:info@eyecandymotorsports.com.au',
     websiteUrl: 'https://eyecandymotorsports.com.au/',
-    instagramUrl: 'https://www.instagram.com/eyecandymotorsportsmelbourne/',
+    instagramUrl: 'https://www.instagram.com/eyecandymotorsports/',
   },
   {
     id: 'luxe-interiors',
@@ -85,9 +85,9 @@ const PARTNERS: readonly TrustedPartner[] = [
     address: '4/20 Colemans Road, Carrum Downs VIC 3201',
     phoneDisplay: '0428 674 081',
     phoneUrl: 'tel:+61428674081',
-    email: 'automotiveaesthetic@outlook.com',
-    emailUrl: 'mailto:automotiveaesthetic@outlook.com',
-    instagramUrl: 'https://www.instagram.com/luxeautomotiveinteriors/',
+    email: 'luxeautomotiveinteriors@outlook.com',
+    emailUrl: 'mailto:luxeautomotiveinteriors@outlook.com',
+    instagramUrl: 'https://www.instagram.com/luxeautomotiveinteriors_/',
   },
   {
     id: 'elite-detailing',
