@@ -19,13 +19,13 @@ The separate bundle identifier and URL scheme let this app coexist with public P
 
 The profile inherits the existing Apple review sandbox `jwikoldibbpxyhbdrsow`. It pins the sandbox URL and public key, enables closed fictional account login and Boost, and rejects production configuration. Registration, selectable live mode, RevenueCat purchase keys and purchase testing are disabled. Existing review guards keep calendar changes, payments, emails and external notification registration closed. Sandbox bookings and test messages may be created only in the existing sandbox. No production schema, records, subscriptions, devices or protected owner entitlement are changed.
 
-This first separate preview deliberately keeps the private push exception off. Message, reply, attachment and read time inspection can run in the sandbox. Phone notification delivery and sounds need a separately authorised sandbox delivery session. Microsoft 365 fallback remains disabled. Boost currently provides direct messages to the workshop, without an AI response provider.
+This first separate preview deliberately keeps the private push exception off and omits the native notification config plugin, so no APNs entitlement or Apple push capability is requested. Message, reply, attachment and read time inspection can run in the sandbox. Phone notification delivery and sounds need a separately authorised sandbox delivery session and a new native preview build with the required capability. Microsoft 365 fallback remains disabled. Boost currently provides direct messages to the workshop, without an AI response provider.
 
 Use the existing fictional review credentials retained privately in `artifacts/apple-review-private/PSI-APPLE-REVIEW-SANDBOX-credentials.clixml`. The customer and staff fixture accounts are distinct from Matt's public owner account. The public account retains permanent complimentary Performance+ access. Never copy production credentials or customer data into the preview.
 
 ## Device and signing
 
-On 8 October, Apple and Expo showed one enabled iPhone registered on 29 August 2026. Its identifier ends in `2401C`. Matt authorised using only the already registered iPhone if it is his current phone; no new device registration is authorised. Device identity confirmation is pending. Do not register another UDID or broaden the ad hoc device list without Matt's specific approval.
+On 8 October, Apple and Expo showed one enabled iPhone registered on 29 August 2026. Its identifier ends in `2401C`. Matt confirmed this is his current iPhone and authorised using only that device; no new device registration is authorised. Do not register another UDID or broaden the ad hoc device list without Matt's specific approval.
 
 Apple ad hoc distribution uses a distribution certificate and an ad hoc provisioning profile, rather than TestFlight or an App Store submission. Only devices in that profile can install. Reuse existing signing where possible without revoking or replacing the public certificate or profile. A separate profile must target the preview bundle identifier.
 

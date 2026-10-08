@@ -43,6 +43,7 @@ test('Boost preview has a separate install identity, scheme, runtime and interna
   assert.equal(c.extra.psiBoostPreview, true);
   assert.equal(c.extra.psiEnvironment, 'boost-preview');
   assert.equal(c.extra.eas.projectId, base.extra.eas.projectId);
+  assert.equal(c.plugins.some(plugin => (Array.isArray(plugin) ? plugin[0] : plugin) === 'expo-notifications'), false);
   assert.equal(eas.build['boost-preview'].distribution, 'internal');
   assert.equal(eas.build['boost-preview'].ios.distribution, 'internal');
   assert.equal(eas.build['boost-preview'].channel, 'boost-preview');
