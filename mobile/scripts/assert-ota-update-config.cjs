@@ -38,7 +38,7 @@ if (release) {
 
 const resolved = resolveAppConfig({ config: baseConfig });
 assert.equal(resolved.extra?.eas?.projectId, 'e62e9cdf-867c-4eb7-b8c5-a2610f969286', 'Expo project mismatch');
-assert.equal(resolved.extra?.psiDemoModeAvailable, true, 'PSI live app configuration did not resolve');
+assert.equal(resolved.extra?.psiDemoModeAvailable, !release, 'PSI public app mode did not resolve');
 assert.equal(resolved.runtimeVersion, release ? APP_STORE_RELEASE_RUNTIME : BETA_RUNTIME, 'OTA runtime mismatch');
 
 console.log(`Verified ${target} OTA runtime ${resolved.runtimeVersion}.`);

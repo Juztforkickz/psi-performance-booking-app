@@ -49,6 +49,10 @@ function createDemoRuntime(selectable, reviewOnly = false) {
   });
 }
 
+function demoModeAvailableForChannel(configured, channel) {
+  return configured && channel !== APP_STORE_RELEASE_CHANNEL;
+}
+
 module.exports = {
   LIVE_URL,
   LIVE_PUBLIC_KEY,
@@ -63,4 +67,5 @@ module.exports = {
   demoRuntimeForChannel,
   resolveDemoBuild,
   createDemoRuntime,
+  demoModeAvailableForChannel,
 };

@@ -5,6 +5,7 @@ const { spawnSync } = require('node:child_process');
 const { resolve } = require('node:path');
 const {
   createDemoRuntime,
+  demoModeAvailableForChannel,
   resolveDemoBuild,
   LIVE_URL,
   LIVE_PUBLIC_KEY,
@@ -35,6 +36,11 @@ test('App Store release opens registration only on its own update channel', () =
   assert.equal(resolveDemoBuild({ ...valid, registration: 'true', channel: APP_STORE_RELEASE_CHANNEL }), true);
   assert.throws(() => resolveDemoBuild({ ...valid, channel: APP_STORE_RELEASE_CHANNEL }), /MISMATCH/);
   assert.throws(() => resolveDemoBuild({ ...valid, registration: 'true' }), /MISMATCH/);
+});
+test('public App Store release cannot enter demonstration mode', () => {
+  assert.equal(demoModeAvailableForChannel(true, APP_STORE_RELEASE_CHANNEL), false);
+  assert.equal(demoModeAvailableForChannel(true, 'beta'), true);
+  assert.equal(demoModeAvailableForChannel(false, APP_STORE_RELEASE_CHANNEL), false);
 });
 test('Android internal build opens registration and demo while keeping purchases closed', () => {
   const eas = JSON.parse(readFileSync(resolve(__dirname, '../eas.json'), 'utf8'));
@@ -149,7 +155,7 @@ test('the App Store release keeps live mode while isolating review purchases', (
   assert.equal(config.name,'PSI');
   assert.equal(config.ios.bundleIdentifier,'com.psiperformance.booking');
   assert.equal(config.runtimeVersion,APP_STORE_RELEASE_RUNTIME);
-  assert.equal(config.extra.psiDemoModeAvailable,true);
+  assert.equal(config.extra.psiDemoModeAvailable,false);
   assert.equal(profile.channel,APP_STORE_RELEASE_CHANNEL);
   assert.equal(profile.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED, 'true');
   assert.equal(eas.build.beta.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED, 'false');

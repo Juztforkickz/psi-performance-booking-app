@@ -1,5 +1,5 @@
 import { resolveGoogleReviewEnvironment, resolveReviewEnvironment, REVIEW_PROJECT_REF } from '../../review-environment.cjs';
-import { createDemoRuntime, resolveDemoBuild } from '../../demo-mode.cjs';
+import { createDemoRuntime, demoModeAvailableForChannel, resolveDemoBuild } from '../../demo-mode.cjs';
 import { resolveBoostPreview } from '../../boost-preview.cjs';
 
 // Explicit property references are required for Expo's public-env replacement.
@@ -32,7 +32,7 @@ const reviewOnly = boostPreview.enabled ? boostPreview : (googleReview ? resolve
   channel: process.env.EXPO_PUBLIC_PSI_UPDATE_CHANNEL,
 });
 
-export const DEMO_MODE_AVAILABLE = resolveDemoBuild({
+const demoBuildConfigured = resolveDemoBuild({
   demo: process.env.EXPO_PUBLIC_PSI_DEMO_MODE_ENABLED,
   review: googleReview ? process.env.EXPO_PUBLIC_PSI_GOOGLE_REVIEW : process.env.EXPO_PUBLIC_PSI_APPLE_REVIEW,
   url: process.env.EXPO_PUBLIC_SUPABASE_URL,
@@ -42,6 +42,10 @@ export const DEMO_MODE_AVAILABLE = resolveDemoBuild({
   registration: process.env.EXPO_PUBLIC_SUPABASE_REGISTRATION_ENABLED,
   channel: process.env.EXPO_PUBLIC_PSI_UPDATE_CHANNEL,
 });
+export const DEMO_MODE_AVAILABLE = demoModeAvailableForChannel(
+  demoBuildConfigured,
+  process.env.EXPO_PUBLIC_PSI_UPDATE_CHANNEL,
+);
 export const appModeRuntime = createDemoRuntime(DEMO_MODE_AVAILABLE, reviewOnly.enabled);
 export const REVIEW_ENVIRONMENT = Object.freeze({
   get enabled() { return appModeRuntime.enabled; },
