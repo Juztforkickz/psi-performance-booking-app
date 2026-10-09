@@ -27,7 +27,7 @@ Published through the signed in Edge Shopify editor, active theme `130077360257`
 * `shopify/psi-ev-hybrid-page.liquid`: smaller right panel, wider copy column and container relative headline sizing for the live Ethnocentric font. All three headline lines fit clear of the panel at the verified desktop viewport.
 * `shopify/footer-group.json`: the custom Liquid section contains the power estimator only on its own page. Hide its empty outer section elsewhere, removing the white strip while preserving the entire estimator.
 
-The exact pasted editor contents were checked before each save. The public page confirms the new styles and zero height for the empty section. Desktop screenshot and original sources are in `output/layout-xero-release-2026-09-27/`.
+The exact pasted editor contents were checked before each save. The public page confirms the new styles and zero height for the empty section. Desktop screenshot and original sources were moved on 9 October 2026 to the local ignored archive `artifacts/archive/2026-10-09/output/layout-xero-release-2026-09-27/`.
 
 The previously published footer still provides 23 brands, including BYD, Tesla and Polestar. No footer brand content was replaced in this change.
 
@@ -47,7 +47,7 @@ Full Git history and all refs were saved and verified before cleanup:
 
 SHA256: `FC3C1C993C746107355E6449A232E1C099A5FF7F67E9744D86FD1A0AE2B0A164`
 
-Reference names and object IDs are saved in `output/layout-xero-release-2026-09-27/git-refs-before-cleanup.txt`. The bundle is intentionally local and ignored, not an application asset.
+Reference names and object IDs are saved in `artifacts/archive/2026-10-09/output/layout-xero-release-2026-09-27/git-refs-before-cleanup.txt`, moved and hash verified on 9 October 2026. The bundle remains at its original location and is intentionally local and ignored, not an application asset.
 
 Removed three merged remote branches: `codex/illustrated-customer-app`, `codex/reports-performance-plus-notes`, `codex/web-booking-next`. Removed three merged local branches: `codex/brand-protection-and-backup`, `codex/illustrated-customer-app`, `codex/reports-performance-plus-notes`. No open PRs or additional worktrees used them.
 
@@ -55,7 +55,7 @@ Removed nine obsolete website version tags from local and remote, versions 3 thr
 
 Retained `origin/ota-release-2026-09-26` because it has two commits outside main. Older release exports, unrelated screenshots, the existing screenshot generator and sketch remain preserved. Bulk deletion of these artifacts was not performed. A preexisting unsaved `theme.liquid` editor tab was left untouched.
 
-To restore website files, use the exact `.before` copies in the release folder and save only those corresponding Shopify files. To recover old branch or tag names, fetch the required ref from the local bundle. Prefer a forward correction for database defects; do not restore the known broken confirmation function. Previous public OTA group `8b3533fb-a137-440e-ab3e-37fb27042efc` remains available through the existing Expo rollback workflow if required.
+To restore website files, use the exact `.before` copies in the local archive and save only those corresponding Shopify files. To recover old branch or tag names, fetch the required ref from the local bundle. Prefer a forward correction for database defects; do not restore the known broken confirmation function. Previous public OTA group `8b3533fb-a137-440e-ab3e-37fb27042efc` remains available through the existing Expo rollback workflow if required.
 
 ## Remaining work
 

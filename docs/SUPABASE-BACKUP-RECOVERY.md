@@ -1,6 +1,13 @@
 # Supabase backup, capacity and recovery
 
-Status: controlled QA review, 25 August 2026.
+Status: historical controlled QA review, 25 August 2026.
+
+Current verification, 9 October 2026: the production organization is still Free
+and its dashboard reports that project backups are not included. Live uploaded
+files now exist. This document and its export script do not establish that a
+current customer database or Storage backup has been created. See
+[the current recovery audit](ARCHIVE-AND-RECOVERY-AUDIT-2026-10-09.md). Preserve
+the historical figures below as dated evidence, not current capacity or coverage.
 
 ## Current project
 
@@ -71,4 +78,3 @@ restore without a verified recovery point, an outage notice and an explicit
 owner decision.
 
 References: [Supabase Database Backups](https://supabase.com/docs/guides/platform/backups), [Backup and Restore using the CLI](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore), [Supabase billing and quotas](https://supabase.com/docs/guides/platform/billing-on-supabase).
-

@@ -31,7 +31,7 @@ Published the expanded footer in active Shopify theme `130077360257`, asset `glo
 
 The live footer now contains 23 brands, including BYD, Tesla and Polestar. Mobile has two columns and desktop has three. Browser checks found no horizontal page overflow at either tested size. Visual checks confirmed complete brand names and retained PSI footer styling.
 
-The targeted change is backed up in `output/footer-release-2026-09-27/global.before.js` and `global.after.js`. These are copies of the public theme asset. Live screenshots are saved alongside them as `footer-mobile.png` and `footer-desktop.png`.
+The targeted change and its screenshots were moved on 9 October 2026 to the local ignored archive `artifacts/archive/2026-10-09/output/footer-release-2026-09-27/`. This retains `global.before.js`, `global.after.js`, `footer-mobile.png` and `footer-desktop.png`, with SHA256 verification in the archive manifest. The archive is a local recovery copy and is not hosted on GitHub Pages.
 
 Code checkpoint `b2c3253` was pushed to main. GitHub workflow `36317099785` successfully built and deployed the web app.
 
