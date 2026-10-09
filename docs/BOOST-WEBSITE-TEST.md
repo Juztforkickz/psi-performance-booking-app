@@ -164,3 +164,13 @@ Matt confirmed AUD $750 including GST to supply and fit the sump gasket, includi
 Added a prepared reply, cam extras follow up, scoped quote collection and fitting follow up routing. The private knowledge now contains 84 replies. All 61 engine, conversation and isolation checks passed, including the fixed GST inclusive amount, included fitting, conditional valve work, separate routine service and DOD prices, and other vehicle exclusions. The predecessor checkpoint is `b61e1f6`. Only the private Boost test kit and this guide change; no app, Shopify theme or external delivery is modified.
 
 All four local artifacts rebuilt and the private server refreshed. Browser verification confirmed the AUD $750 including GST supply and fit reply and its conditional valve scope. Screenshot: `artifacts/boost-website-test/boost-sump-gasket-confirmed.png`.
+
+## Inspection, quote and approval presentation, 9 October 2026
+
+Matt directed Boost to lead with the requested starting package, rather than automatically adding optional work into a package total. The general cam guide now explains that PSI inspects the vehicle, notifies the customer about concerns or proposed additional work, quotes it and gets approval before commencing additional repairs. Approved supplementary prices and fitting conditions remain available for direct questions and relevant follow ups.
+
+Known L77 and L76 head removal, lifter and DOD requirements remain clearly disclosed as separately quoted work. They are not described as optional upgrades or unexpected inspection findings. A general engine requirement answer no longer adds the supplementary figures automatically. A distinct direct price reply retains the confirmed AUD $2,750 + GST, AUD $3,025 including GST combined extras. This supersedes the earlier general quote behaviour described above. Combined optional upgrade enquiries still require a complete scoped quote rather than an automatically calculated total.
+
+The knowledge now contains 85 prepared replies. All 62 engine, conversation and isolation checks passed, including general versus direct pricing, mandatory engine scope, inspection and prior approval wording, and all 20 conversation journeys. The predecessor checkpoint is `9d0d747`. Changes remain confined to the private test kit and this guide; no public app, owner access, OTA, Shopify theme or external delivery changes are included.
+
+All four local artifacts rebuilt and the private server refreshed. Browser verification confirmed a general L77 cam quote without automatically adding supplementary prices, the direct DOD cost follow up with stored figures, and the prior approval reply. Screenshot: `artifacts/boost-website-test/boost-inspection-approval.png`. No messages were sent externally.

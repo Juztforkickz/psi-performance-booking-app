@@ -124,8 +124,8 @@ test('listed LS engines retain confirmed DOD scope and additional charges', () =
   const engines = engine.answer('Which engines are the cam packages for?').reply;
   for (const name of ['LS1', 'LS2', 'LS3', 'LSA', 'L77', 'L76', 'L98']) assert.ok(engines.includes(name), name);
   const dod = engine.answer('Does an L77 need a DOD delete?').reply;
-  assert.match(dod, /L77 and L76 cam upgrades require/); assert.match(dod, /LS1, LS2, LS3, L98 and LSA do not/);
-  assert.match(dod, /previous modifications/); assert.match(dod, /2,750 \+ GST/); assert.match(dod, /3,025 including GST/);
+  assert.match(dod, /L77 and L76 require/); assert.match(dod, /LS1, LS2, LS3, L98 and LSA do not/);
+  assert.match(dod, /previous modifications/); assert.doesNotMatch(dod, /\$\d/); assert.match(dod, /not optional/);
   const state = engine.createSession(); send(state, 'Can you help choose a cam package?', 'What about my L76?');
   assert.match(last(state).text, /DOD work/); assert.equal(state.queued, false);
   const kit = engine.createSession(); send(kit, 'DOD delete kit cost for my 2011 Holden L77?');
@@ -433,8 +433,10 @@ test('head and lifter pricing preserves conditional labour and mandatory L77 ext
   for (const part of ['2,000 + GST', '2,200 including GST', 'genuine MLS', 'LS7 lifters', 'LS2 lifter buckets', 'GM head bolts', 'block cleaning', 'During a cam job', 'separate']) assert.ok(reply.includes(part), part);
   const state = engine.createSession();
   send(state, 'Cam package price for my 2011 Holden L77?');
-  assert.match(last(state).text, /3,450 \+ GST/); assert.match(last(state).text, /required.*2,750 \+ GST/);
-  assert.match(last(state).text, /3,025 including GST/); assert.equal(state.queued, false);
+  assert.match(last(state).text, /3,450 \+ GST/); assert.match(last(state).text, /L77 and L76 require additional/);
+  assert.doesNotMatch(last(state).text, /2,750|3,025/); assert.equal(state.queued, false);
+  send(state, 'What do those DOD extras cost?');
+  assert.match(last(state).text, /2,750 \+ GST/); assert.match(last(state).text, /3,025 including GST/);
   const other = engine.createSession(); send(other, 'DOD delete price for my 2012 Holden LS3?');
   assert.match(last(other).text, /does not require/); assert.doesNotMatch(last(other).text, /\$\d/);
   const standalone = engine.createSession(); send(standalone, 'Standalone lifter package cost?');
@@ -475,4 +477,26 @@ test('sump gasket guide includes GST and fitting without confusing other service
   assert.doesNotMatch(engine.answer('What does Service & Report cover?').reply, /sump gasket|relief valve|750/);
   const other = engine.createSession(); send(other, 'Sump gasket price for my 2018 Mercedes C200?');
   assert.match(last(other).text, /individually/); assert.doesNotMatch(last(other).text, /750/);
+});
+
+test('inspection approval leads general enquiries while direct extra prices remain available', () => {
+  const policy = engine.answer('Will you ask before doing extra work?').reply;
+  for (const phrase of ['vehicle is here', 'inspects', 'notify you', 'quote the price', 'approval before commencing']) assert.ok(policy.includes(phrase), phrase);
+  const general = engine.createSession();
+  send(general, 'Cam package quote for my 2012 Holden LS3?');
+  assert.match(last(general).text, /3,450 \+ GST/);
+  assert.match(last(general).text, /quotes.*approval before proceeding/);
+  assert.doesNotMatch(last(general).text, /1,550|1,705|920|1,012|2,000|2,200|2,750|3,025|6,200|6,820/);
+  send(general, 'How much for CNC head porting?');
+  assert.match(last(general).text, /1,550 \+ GST/); assert.match(last(general).text, /1,705 including GST/);
+  assert.equal(general.queued, false);
+  const dod = engine.createSession();
+  send(dod, 'Does my L77 cam upgrade need a DOD delete?');
+  assert.match(last(dod).text, /not optional/); assert.doesNotMatch(last(dod).text, /\$\d/);
+  send(dod, 'How much are those extras?');
+  assert.match(last(dod).text, /2,750 \+ GST/); assert.match(last(dod).text, /3,025 including GST/);
+  assert.equal(dod.queued, false);
+  const total = engine.createSession();
+  send(total, 'What is the complete cam package total with CNC heads, valve seats and oil pump upgrades?');
+  assert.doesNotMatch(last(total).text, /\$\d/); assert.match(last(total).text, /complete scope/);
 });

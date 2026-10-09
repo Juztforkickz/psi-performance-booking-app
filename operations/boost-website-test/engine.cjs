@@ -56,7 +56,7 @@
   function contextualAnswer(state, text) {
     const response = answer(text), q = normalise(text);
     if (response.handoff) return response;
-    if ((state.intake.work === 'cam' || ['cam','cam-engines','dod-delete'].includes(state.topic)) && /\b(ls1|ls2|ls3|lsa|l77|l76|l98)\b/.test(q) && (/\b(dod|afm|delete kit)\b/.test(q) || /^(?:what|how) about (?:my |an? )?(?:ls1|ls2|ls3|lsa|l77|l76|l98)$/.test(q)) && !knowledge.isPricing(q)) return toFAQ(knowledge.BY_ID['dod-delete']);
+    if ((state.intake.work === 'cam' || ['cam','cam-engines','dod-delete','dod-price'].includes(state.topic)) && /\b(ls1|ls2|ls3|lsa|l77|l76|l98)\b/.test(q) && (/\b(dod|afm|delete kit)\b/.test(q) || /^(?:what|how) about (?:my |an? )?(?:ls1|ls2|ls3|lsa|l77|l76|l98)$/.test(q)) && !knowledge.isPricing(q)) return toFAQ(knowledge.BY_ID['dod-delete']);
     if (['cam', 'cam-inclusions', 'cam-options'].includes(state.topic) || state.intake.work === 'cam') {
       if (/\b(include\w*|comes with|contents|cover\w*)\b/.test(q) && /\b(fitting|labour|labor|tuning|tune|cam|springs?|pushrods?|timing|gaskets?|coolant)\b/.test(q) && !/\b(transmission|tcu|cpc|unlock|lifters?|heads?|spark plugs|sump|rocker)\b/.test(q)) return toFAQ(knowledge.BY_ID['cam-inclusions']);
       if (/\b(lifters?|head gaskets?|head bolts?|spark plugs|sump gasket|rocker cover|exhaust manifold)\b/.test(q) && /\b(include\w*|extra|optional)\b/.test(q)) return toFAQ(knowledge.BY_ID['cam-options']);
@@ -119,7 +119,7 @@
   function quoteIntro(work, context = '') {
     const q = normalise(context);
     const otherMake = /\b(ford|bmw|audi|mercedes|toyota|nissan|honda|mazda|subaru|volkswagen|vw|hyundai|kia|mitsubishi|porsche|tesla|byd|coyote|barra|2jz)\b/.test(q);
-    if (work === 'cam' && /\b(l77|l76)\b/.test(q)) return knowledge.PRICE_GUIDES.cam + ' For your L77 or L76, the required head removal, lifter and DOD extras add AUD $2,750 + GST, which is AUD $3,025 including GST. PSI confirms the complete quote and any further upgrades.';
+    if (work === 'cam' && /\b(l77|l76)\b/.test(q)) return knowledge.PRICE_GUIDES.cam;
     if (work === 'DOD delete' && /\b(ls1|ls2|ls3|lsa|l98)\b/.test(q) && !/\b(l77|l76)\b/.test(q)) return 'That listed LS engine does not require the L77 or L76 DOD kit for PSI’s cam packages. PSI checks the actual engine and any existing modifications before quoting the work.';
     if (work === 'cam' && otherMake && !/\b(ls1|ls2|ls3|lsa|l77|l76|l98)\b/.test(q)) return 'The cam starting guide is for PSI’s listed Holden and Chevrolet LS engines. Your engine and setup need an individual quote; that guide does not establish the price for this car.';
     if (work === 'OTR and tuning' && otherMake && !/\b(holden|hsv)\b/.test(q)) return 'The OTR and tune starting guide applies to Holden and HSV combinations. PSI needs to quote the intake, fitting and tuning for your vehicle individually.';
@@ -136,7 +136,7 @@
     if (work === 'CNC head porting') return knowledge.BY_ID['cnc-heads'].reply;
     if (work === 'valve seat upgrade') return knowledge.BY_ID['valve-seats'].reply;
     if (work === 'pump and trunnions') return knowledge.BY_ID['pump-trunnions'].reply;
-    if (work === 'DOD delete') return knowledge.BY_ID['dod-delete'].reply;
+    if (work === 'DOD delete') return knowledge.BY_ID['dod-price'].reply;
     if (work === 'OTR and tuning') return knowledge.BY_ID.otr.reply;
     if (work === 'coding') return knowledge.BY_ID.coding.reply;
     return knowledge.PRICE_GUIDES[work] || 'PSI will confirm the price.';
@@ -165,7 +165,7 @@
     ]) if (pattern.test(q)) return work;
     return null;
   }
-  const topicWork = { 'sump-gasket': 'sump gasket replacement', 'ev-service': 'electric service', 'lifter-package': 'head removal and lifters', 'cam-inclusions': 'cam', 'cam-options': 'cam', 'module-tuning': 'module tuning', 'cam-extras': 'cam extras', 'cam-engines': 'cam', 'dod-delete': 'DOD delete', 'cnc-heads': 'CNC head porting', 'valve-seats': 'valve seat upgrade', 'pump-trunnions': 'pump and trunnions', otr: 'OTR and tuning', 'scan-price': 'diagnostics', service: 'service', logbook: 'service', 'service-report': 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'transmission tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
+  const topicWork = { 'sump-gasket': 'sump gasket replacement', 'ev-service': 'electric service', 'lifter-package': 'head removal and lifters', 'cam-inclusions': 'cam', 'cam-options': 'cam', 'module-tuning': 'module tuning', 'cam-extras': 'cam extras', 'cam-engines': 'cam', 'dod-delete': 'DOD delete', 'dod-price': 'DOD delete', 'cnc-heads': 'CNC head porting', 'valve-seats': 'valve seat upgrade', 'pump-trunnions': 'pump and trunnions', otr: 'OTR and tuning', 'scan-price': 'diagnostics', service: 'service', logbook: 'service', 'service-report': 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'transmission tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
   function collectDetails(intake, text) {
     const q = normalise(text), year = q.match(/\b((?:19|20)\d{2})\b/);
     const make = q.match(/\b(audi|bmw|ford|holden|hsv|chev(?:rolet)?|honda|hyundai|kia|mazda|mercedes(?: benz)?|mitsubishi|nissan|porsche|skoda|subaru|suzuki|tesla|toyota|volkswagen|vw|volvo|byd|mg|gwm|lexus|isuzu|jeep|land rover|peugeot|renault|ferrari|lamborghini|polestar|cupra|chery|mini)\b/);
