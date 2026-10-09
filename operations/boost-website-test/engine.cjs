@@ -103,6 +103,9 @@
     if (/\b(android|samsung|google pixel)\b/.test(q) && !/android auto/.test(q)) state.preferences.platform = 'android';
     if (/\b(already have|installed|downloaded)\b.*\bapp\b|\bapp\b.*\b(installed|downloaded)\b/.test(q) && !/\b(not|havent|dont)\b/.test(q)) state.preferences.installed = true;
     if (/\b(without (?:the )?app|dont want.*app|website enquiry|use the website|use the form)\b/.test(q)) state.preferences.booking = 'website';
+    if (/\b(?:dont want|do not want|dont download|do not download|wont download|will not download)\b.*\bapp\b|\bno app\b|\b(?:prefer|rather use)\b.*\b(?:website|form)\b/.test(q)) {
+      state.preferences.appDeclined = true; state.preferences.booking = 'website';
+    }
     if (/\b(book (?:in|through|using) the app|use the app instead)\b/.test(q)) state.preferences.booking = 'app';
   }
   function personalise(state, response) {
@@ -111,8 +114,20 @@
       next = next.intent === 'booking' ? toFAQ(knowledge.BY_ID['website-enquiry']) : result('availability', 'PSI needs to confirm current availability. Put your preferred date and vehicle details in the website enquiry. For an urgent enquiry, call 0433 431 781.', { sources: ['booking','website'] });
       next = { ...next, links: ['enquiry'], prompts: ['Website enquiry', 'Message PSI'] };
     }
+    const encourageApp = next.intent === 'website-enquiry' && !state.preferences.installed && !state.preferences.appDeclined && !state.preferences.appEncouragementShown;
+    if (encourageApp) {
+      const phone = state.preferences.platform === 'apple' ? 'iPhone' : state.preferences.platform === 'android' ? 'Android' : 'iPhone or Android';
+      next = { ...next,
+        reply: `The free PSI app is the easiest way to keep your vehicles and booking requests together. Download it for ${phone} below, or use the website if you prefer.\n\n${next.reply}`,
+        links: ['apple', 'android', 'enquiry'],
+        sources: [...new Set([...next.sources, 'stores', 'booking'])],
+        prompts: ['I need the app', 'Website enquiry', 'Message PSI'],
+        appEncouraged: true,
+      };
+      state.preferences.appEncouragementShown = true;
+    }
     const explicitDownload = ['download','iphone','android'].includes(next.intent);
-    if (!explicitDownload && (state.preferences.installed || state.preferences.booking === 'website')) next.links = next.links.filter(key => !['apple','android'].includes(key));
+    if (!explicitDownload && !next.appEncouraged && (state.preferences.installed || state.preferences.booking === 'website')) next.links = next.links.filter(key => !['apple','android'].includes(key));
     else if (state.preferences.platform) next.links = next.links.filter(key => !['apple','android'].includes(key) || key === state.preferences.platform);
     return next;
   }
@@ -248,7 +263,7 @@
     });
   }
   function createSession(now = Date.now()) {
-    const state = { version: 4, mode: 'customer', open: true, ticket: 'PREVIEW 001', queued: false, closed: false, intent: 'welcome', topic: null, guide: null, intake: newIntake(), preferences: { platform: null, installed: false, booking: 'app' }, reviewQuestions: [], handoffReason: null, notice: '', messages: [] };
+    const state = { version: 4, mode: 'customer', open: true, ticket: 'PREVIEW 001', queued: false, closed: false, intent: 'welcome', topic: null, guide: null, intake: newIntake(), preferences: { platform: null, installed: false, booking: 'app', appDeclined: false, appEncouragementShown: false }, reviewQuestions: [], handoffReason: null, notice: '', messages: [] };
     append(state, 'boost', GREETING, now); return state;
   }
   function send(state, raw, now = Date.now()) {

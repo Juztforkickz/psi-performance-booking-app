@@ -174,3 +174,13 @@ Known L77 and L76 head removal, lifter and DOD requirements remain clearly discl
 The knowledge now contains 85 prepared replies. All 62 engine, conversation and isolation checks passed, including general versus direct pricing, mandatory engine scope, inspection and prior approval wording, and all 20 conversation journeys. The predecessor checkpoint is `9d0d747`. Changes remain confined to the private test kit and this guide; no public app, owner access, OTA, Shopify theme or external delivery changes are included.
 
 All four local artifacts rebuilt and the private server refreshed. Browser verification confirmed a general L77 cam quote without automatically adding supplementary prices, the direct DOD cost follow up with stored figures, and the prior approval reply. Screenshot: `artifacts/boost-website-test/boost-inspection-approval.png`. No messages were sent externally.
+
+## App encouragement before website enquiries, 10 October 2026
+
+Matt requested a brief recommendation of the PSI app before the website enquiry fallback. General booking guidance now explains that the free app keeps vehicles and booking requests together. The first website enquiry answer offers the relevant store download links before the website form instructions, while keeping the enquiry link immediately available. A known phone platform receives only its matching store link.
+
+The invitation is offered once per conversation and skipped if the visitor already has the app or explicitly declines it. Subsequent website requests respect that preference without repeating the invitation. No download or Performance+ purchase is required, and asking for website help does not start signup, submit an enquiry or queue a message. All approved prices and inspection, quote and approval rules are preserved.
+
+All 63 engine, conversation and isolation checks passed, including store link selection, repeat requests, explicit refusals, existing installations and the 20 conversation journeys. The predecessor checkpoint is `5b0b869`. Only the private Boost kit and this guide change; no Shopify, app, OTA or real delivery is enabled.
+
+All four local artifacts rebuilt and the server refreshed. Browser verification confirmed the first online booking enquiry recommends the app and offers both store links alongside the website enquiry. Screenshot: `artifacts/boost-website-test/boost-app-encouragement.png`.

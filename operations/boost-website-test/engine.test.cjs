@@ -417,6 +417,29 @@ test('download preference can change explicitly without assuming installation', 
   send(state, 'I want to book in the app', 'How do I book?'); assert.match(last(state).text, /Open Bookings/);
 });
 
+test('app encouragement precedes the website fallback once without blocking enquiries', () => {
+  const state = engine.createSession(); send(state, 'Can I book online?');
+  assert.match(last(state).text, /^The free PSI app/);
+  assert.match(last(state).text, /Send enquiry/);
+  assert.deepEqual(last(state).links, ['apple', 'android', 'enquiry']);
+  assert.equal(state.queued, false); assert.equal(state.guide, null);
+  send(state, 'Website enquiry', 'How do I book?');
+  assert.doesNotMatch(last(state).text, /Download it|The free PSI app/);
+  assert.deepEqual(last(state).links, ['enquiry']);
+  const phone = engine.createSession(); send(phone, 'I use Android', 'Can I enquire without the app?');
+  assert.match(last(phone).text, /Download it for Android/);
+  assert.deepEqual(last(phone).links, ['android', 'enquiry']);
+  const declined = engine.createSession(); send(declined, 'I do not want the app, can I book online?');
+  assert.doesNotMatch(last(declined).text, /Download it|The free PSI app/);
+  assert.deepEqual(last(declined).links, ['enquiry']);
+  const installed = engine.createSession(); send(installed, 'I already have the app', 'Website enquiry');
+  assert.doesNotMatch(last(installed).text, /Download it|The free PSI app/);
+  assert.deepEqual(last(installed).links, ['enquiry']);
+  const ordinary = engine.createSession(); send(ordinary, 'How do I book?');
+  assert.match(last(ordinary).text, /^The free PSI app/);
+  send(ordinary, '/reset');
+});
+
 test('cam contents distinguish the approved base from optional parts and head work', () => {
   const base = engine.answer('What is included in the entry cam package?').reply;
   for (const part of ['camshaft', 'valve springs', 'locks', 'retainers', 'stem seals', 'pushrods', 'ARP', 'timing cover', 'water pump gaskets', 'front crank seal', 'timing chain', 'coolant', 'labour', 'engine ECU dyno tuning', 'three bolt', 'where conversion']) assert.ok(base.includes(part), part);

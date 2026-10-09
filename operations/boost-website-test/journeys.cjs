@@ -84,7 +84,7 @@ module.exports = [
   { title: 'Stock and delivery are not invented', steps: [
     { say: 'Is this exhaust in stock?', includes: ['no live stock feed'], excludes: ['Yes. PSI'] },
     { say: 'Can it arrive tomorrow?', includes: ['confirm'], excludes: ['will arrive'] },
-    { say: 'Website enquiry', links: ['enquiry'], queued: false },
+    { say: 'Website enquiry', includes: ['free PSI app', 'Send enquiry'], links: ['apple', 'android', 'enquiry'], queued: false },
   ] },
   { title: 'Exhaust quote distinguishes supply and fitting', steps: [
     { say: 'Exhaust quote for my 2018 Ford Mustang', pending: 'details' },
