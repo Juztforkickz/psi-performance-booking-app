@@ -64,7 +64,7 @@ test('the local server blocks connections, writes, filesystem routes and foreign
   assert.equal((await request(port, { path: '/website.html', method: 'POST' })).status, 404);
   const review = await request(port, { path: '/review.html' });
   assert.equal(review.status, 200);
-  assert.match(review.body, /3 remaining clarifications for Matt/);
+  assert.match(review.body, /2 remaining clarifications for Matt/);
   assert.match(review.headers['content-security-policy'], /connect-src 'none'/);
   assert.equal((await request(port, { path: '/review.html', method: 'POST' })).status, 404);
   const rehearsals = await request(port, { path: '/rehearsals.html' });

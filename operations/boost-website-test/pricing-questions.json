@@ -1,10 +1,10 @@
 {
   "reviewDate": "2026-10-09",
-  "status": "Matt’s confirmed business answers are applied to the private replies. All customer prices in replies include GST. Unconfirmed supplementary prices stay out of automatic answers. No live publication or message delivery is enabled.",
+  "status": "Matt’s confirmed business answers and supplementary prices are applied to the private replies. Customer price guides include GST, with machining, fitting and vehicle scope stated explicitly. No live publication or message delivery is enabled.",
   "approved": [
     {
       "topic": "Routine engine servicing",
-      "detail": "From AUD $423.50 including GST. Engine oil, oil filter and sump plug washer replacement, full vehicle check, necessary fluid top ups and tyre pressures including the spare. Extra work is reported, quoted and approved first. Lubrication wording and EV scope await clarification."
+      "detail": "From AUD $423.50 including GST. Engine oil, oil filter and sump plug washer replacement, full vehicle check and report, necessary fluid top ups, tyre pressures including the spare, wheel nut torque, and door, bonnet and boot hinge and latch lubrication where applicable. Report damage and mechanical work needing attention. Extras require a quote and approval. EV and hybrid scope remains model dependent."
     },
     {
       "topic": "Engine ECU dyno tuning",
@@ -16,7 +16,23 @@
     },
     {
       "topic": "Entry cam package",
-      "detail": "From AUD $3,795 including GST, converted from AUD $3,450 plus GST, drive in drive out. Eligible engines and exact inclusions still require confirmation. Cam, condition, driveline and supporting work affect the final scope."
+      "detail": "From AUD $3,795 including GST, converted from AUD $3,450 plus GST, drive in drive out. Holden and Chevrolet LS1, LS2, LS3, LSA, L77, L76 and L98. L77 and L76 require a DOD delete kit with a cam upgrade; LS1, LS2, LS3, L98 and LSA do not for these packages. Confirm actual engine and modifications. The full included parts and tuning list and DOD kit cost remain individually quoted."
+    },
+    {
+      "topic": "CNC head porting",
+      "detail": "AUD $1,705 including GST, from AUD $1,550 plus GST, for CNC porting only. Cylinder head removal, additional parts and labour for the head job cost extra. Not a fitted package total. An option across the listed LS combinations."
+    },
+    {
+      "topic": "Valve seat upgrade",
+      "detail": "AUD $825 including GST, from AUD $750 plus GST, for the valve seat upgrade work. Cylinder head removal, additional parts and labour for the head job cost extra. Not an installed total."
+    },
+    {
+      "topic": "Oil pump and CHE trunnion combination",
+      "detail": "AUD $1,012 including GST, from AUD $920 plus GST, for the combined upgrade. No additional fitting labour when done during the cam job. Standalone fitting is not included in this guide. Optional supporting upgrade, not automatically included in the entry cam price."
+    },
+    {
+      "topic": "Holden and HSV OTR with tune",
+      "detail": "Supplied and fitted OTR and tune combinations from AUD $1,650 including GST, from AUD $1,500 plus GST. Vehicle, intake, exhaust, extractors and computer determine the final scope. This is not a supplied exhaust package. Other vehicles need their own quote."
     },
     {
       "topic": "Mercedes coding",
@@ -42,21 +58,15 @@
   "questions": [
     {
       "id": 1,
-      "topic": "Supplementary prices and fitting",
-      "question": "Are CNC heads AUD $1,550, valve seats AUD $750, oil pump plus CHE trunnion AUD $920, and Holden/HSV supplied and fitted OTR plus tune from AUD $1,500 before GST or inclusive? Do the first three include fitting, or are they parts or machining only?",
-      "evidence": "The amounts were supplied, but their GST treatment and the first three fitting scopes were not stated. These figures are saved here for review only, not in customer replies."
+      "topic": "Exact entry cam package contents",
+      "question": "If Boost should list the full standard package contents, which parts and tuning are included in the entry price?",
+      "evidence": "Engine eligibility and DOD requirements are confirmed. The complete bill of parts and tuning inclusions was not provided. Boost gives the starting guide and asks PSI to confirm the written scope, without inventing inclusions."
     },
     {
       "id": 2,
-      "topic": "Entry cam eligibility and inclusions",
-      "question": "Which engines or vehicles qualify for the entry cam package, and exactly which parts and tuning are included?",
-      "evidence": "The drive in drive out guide and GST are confirmed. Boost can state a conditional starting guide, but cannot promise eligibility or a list of included parts."
-    },
-    {
-      "id": 3,
-      "topic": "Service lubrication and EV scope",
-      "question": "By lubricating straps, do you mean hinges and latches, or something else? Does the same service starting guide apply to hybrids and electric vehicles?",
-      "evidence": "Lubrication wording was ambiguous. The engine service tasks cannot be applied unchanged to a battery electric vehicle."
+      "topic": "EV and hybrid service pricing",
+      "question": "Should the engine service starting guide apply to any particular hybrids or electric vehicles, or should those prices always be individually confirmed?",
+      "evidence": "The latest answer confirms engine service tasks and reporting, not a universal HEV, PHEV or BEV price. Boost keeps model specific EV scope and pricing for PSI review."
     }
   ],
   "quoteOnly": [

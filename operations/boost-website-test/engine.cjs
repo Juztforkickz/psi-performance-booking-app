@@ -46,7 +46,7 @@
     if (/\b(guide me|step by step|walk me through)\b.*\b(book|booking)\b/.test(q)) return result('booking', '', { guide: 'booking' });
     const item = knowledge.match(q);
     if (item) return toFAQ(item);
-    if (knowledge.isPricing(q)) return result('quote', quoteIntro(workFrom(text)), { collect: true });
+    if (knowledge.isPricing(q)) return result('quote', quoteIntro(workFrom(text), text), { collect: true });
     if (/^(hi|hello|hey|good morning|good afternoon|good evening)\b/.test(q)) return result('welcome', GREETING, { prompts: ['How do I book?', 'I need a quote', 'Where can I download the PSI app?'] });
     if (/^(thanks|thank you|cheers)\b/.test(q)) return result('thanks', 'You’re welcome. Anything else I can help with?');
     return result('needs-review', 'I do not have a verified answer for that yet. Choose Message PSI to ask Matt, or tell me whether it is about a vehicle, the app or a booking.', { prompts: ['Message PSI', 'How do I book?', 'I need a quote'] });
@@ -56,6 +56,9 @@
   function contextualAnswer(state, text) {
     const response = answer(text), q = normalise(text);
     if (response.handoff) return response;
+    if ((state.intake.work === 'cam' || ['cam','cam-engines','dod-delete'].includes(state.topic)) && /\b(ls1|ls2|ls3|lsa|l77|l76|l98)\b/.test(q) && (/\b(dod|afm|delete kit)\b/.test(q) || /^(?:what|how) about (?:my |an? )?(?:ls1|ls2|ls3|lsa|l77|l76|l98)$/.test(q)) && !knowledge.isPricing(q)) return toFAQ(knowledge.BY_ID['dod-delete']);
+    const supportingTopic = state.topic || ({ 'CNC head porting': 'cnc-heads', 'valve seat upgrade': 'valve-seats', 'pump and trunnions': 'pump-trunnions' })[state.intake.work];
+    if (['cnc-heads','valve-seats','pump-trunnions'].includes(supportingTopic) && /\b(fitting|labour|labor|removal|install\w*)\b/.test(q) && !knowledge.isPricing(q) && !/\b(other|different)\b/.test(q)) return toFAQ(knowledge.BY_ID[supportingTopic]);
     if (/^(?:is|does) (?:that|it|the price) (?:include|including|includes) gst$/.test(q)) {
       return result('gst', 'Boost’s confirmed price guides include GST. Any additional or individually quoted work needs a GST inclusive total confirmed by PSI. I cannot assume the tax or inclusions for an unconfirmed price.', { sources: ['ownerApproval'], prompts: ['Message PSI'] });
     }
@@ -109,20 +112,31 @@
     else if (state.preferences.platform) next.links = next.links.filter(key => !['apple','android'].includes(key) || key === state.preferences.platform);
     return next;
   }
-  function quoteIntro(work) {
+  function quoteIntro(work, context = '') {
+    const q = normalise(context);
+    const otherMake = /\b(ford|bmw|audi|mercedes|toyota|nissan|honda|mazda|subaru|volkswagen|vw|hyundai|kia|mitsubishi|porsche|tesla|byd|coyote|barra|2jz)\b/.test(q);
+    if (work === 'cam' && otherMake && !/\b(ls1|ls2|ls3|lsa|l77|l76|l98)\b/.test(q)) return 'The cam starting guide is for PSI’s listed Holden and Chevrolet LS engines. Your engine and setup need an individual quote; that guide does not establish the price for this car.';
+    if (work === 'OTR and tuning' && otherMake && !/\b(holden|hsv)\b/.test(q)) return 'The OTR and tune starting guide applies to Holden and HSV combinations. PSI needs to quote the intake, fitting and tuning for your vehicle individually.';
     if (work === 'transmission tuning') return knowledge.BY_ID['ecu-tcu'].reply;
     if (work === 'module tuning') return knowledge.BY_ID['module-tuning'].reply;
     if (work === 'diagnostics') return 'Diagnostic scans cost AUD $88 including GST. Further fault finding is scoped separately, with labour at AUD $187 per hour including GST and no minimum labour charge. PSI confirms the investigation and any extra work for approval.';
     if (work === 'cam extras') return knowledge.BY_ID['cam-extras'].reply;
+    if (work === 'CNC head porting') return knowledge.BY_ID['cnc-heads'].reply;
+    if (work === 'valve seat upgrade') return knowledge.BY_ID['valve-seats'].reply;
+    if (work === 'pump and trunnions') return knowledge.BY_ID['pump-trunnions'].reply;
+    if (work === 'DOD delete') return knowledge.BY_ID['dod-delete'].reply;
     if (work === 'OTR and tuning') return knowledge.BY_ID.otr.reply;
     if (work === 'coding') return knowledge.BY_ID.coding.reply;
     return knowledge.PRICE_GUIDES[work] || 'PSI will confirm the price.';
   }
   function workFrom(text) {
     const q = normalise(text);
+    const supportingItems = [/\b(cnc|head porting)\b/, /\bvalve seats?\b/, /\b(oil pump|trunnions?)\b/].filter(pattern => pattern.test(q)).length;
+    if (supportingItems > 1) return 'cam extras';
     for (const [work, pattern] of [
       ['coding', /\b(coding|carplay|mbux)\b/],
-      ['cam extras', /\b(cnc|valve seats?|oil pump|che trunnion)\b/], ['cam', /\b(cam|camshaft|lifters|dod|afm)\b/],
+      ['CNC head porting', /\b(cnc|head porting|port.*heads?)\b/], ['valve seat upgrade', /\bvalve seats?\b/],
+      ['pump and trunnions', /\b(oil pump|trunnions?)\b/], ['DOD delete', /\b(dod|afm|displacement on demand)\b/], ['cam', /\b(cam|camshaft|lifters)\b/],
       ['OTR and tuning', /\botr\b/], ['module tuning', /\b(cpc|unlock\w*|fuel pump module|other modules|module tuning)\b/],
       ['engine build', /\b(engine build|engine rebuild|stroker)\b/], ['cooling upgrade', /\b(interchiller|water meth|water methanol)\b/],
       ['forced induction', /\b(supercharger|turbo kit|turbo upgrade|whipple|harrop)\b/], ['exhaust', /\b(exhaust|headers|varex|cat back|downpipe)\b/],
@@ -135,10 +149,10 @@
     ]) if (pattern.test(q)) return work;
     return null;
   }
-  const topicWork = { 'module-tuning': 'module tuning', 'cam-extras': 'cam extras', otr: 'OTR and tuning', 'scan-price': 'diagnostics', service: 'service', logbook: 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'transmission tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
+  const topicWork = { 'module-tuning': 'module tuning', 'cam-extras': 'cam extras', 'cam-engines': 'cam', 'dod-delete': 'DOD delete', 'cnc-heads': 'CNC head porting', 'valve-seats': 'valve seat upgrade', 'pump-trunnions': 'pump and trunnions', otr: 'OTR and tuning', 'scan-price': 'diagnostics', service: 'service', logbook: 'service', 'service-report': 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'transmission tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
   function collectDetails(intake, text) {
     const q = normalise(text), year = q.match(/\b((?:19|20)\d{2})\b/);
-    const make = q.match(/\b(audi|bmw|ford|holden|honda|hyundai|kia|mazda|mercedes(?: benz)?|mitsubishi|nissan|porsche|skoda|subaru|suzuki|tesla|toyota|volkswagen|vw|volvo|byd|mg|gwm|lexus|isuzu|jeep|land rover|peugeot|renault|ferrari|lamborghini|polestar|cupra|chery|mini)\b/);
+    const make = q.match(/\b(audi|bmw|ford|holden|hsv|chev(?:rolet)?|honda|hyundai|kia|mazda|mercedes(?: benz)?|mitsubishi|nissan|porsche|skoda|subaru|suzuki|tesla|toyota|volkswagen|vw|volvo|byd|mg|gwm|lexus|isuzu|jeep|land rover|peugeot|renault|ferrari|lamborghini|polestar|cupra|chery|mini)\b/);
     const mileage = text.toLowerCase().match(/\b(\d[\d,]*(?:\.\d+)?)\s*(km|kms|kilometres|kilometers|k)\b/);
     if (year) intake.year = year[1];
     if (make) intake.vehicle = text;
@@ -159,6 +173,10 @@
         'transmission tuning': 'Which transmission does the car have, and what is the current setup, modifications and tuning goal?',
         'module tuning': 'Which module or feature needs work, and what is the current vehicle setup and goal?',
         'cam extras': 'Which head work or supporting parts do you need, and what engine, cam and driveline do you have?',
+        'CNC head porting': 'What engine and head work do you need? Include whether PSI needs to remove and refit the heads, and any cam upgrade planned.',
+        'valve seat upgrade': 'What engine and head work do you need? Include whether the heads are already removed and any cam upgrade planned.',
+        'pump and trunnions': 'Is the pump and trunnion combination being fitted during a cam job, or do you need standalone work? Include the engine and existing setup.',
+        'DOD delete': 'What engine and existing cam or DOD modifications does the car have, and what work are you planning?',
         'OTR and tuning': 'Which engine, intake, exhaust, extractors and computer does the car have, and do you need supply, fitting and tuning?',
         cam: 'What engine, transmission and current setup do you have, and what driving result are you after?',
         exhaust: 'Do you want a rear section, headers or a full system, and supply only or fitted? Include any product link and whether tuning is needed.',
@@ -259,7 +277,7 @@
       state.intake.active = true; collectDetails(state.intake, message);
       state.topic = null;
       if (response.unanswered) state.reviewQuestions = [...state.reviewQuestions, ...response.unanswered].slice(-8);
-      state.intent = 'quote'; state.guide = null; promptIntake(state, now + 1, [quoteIntro(state.intake.work), ...(response.extraReplies || [])].join('\n\n') + '\n\n'); return { ok: true };
+      state.intent = 'quote'; state.guide = null; promptIntake(state, now + 1, [quoteIntro(state.intake.work, state.intake.vehicle || message), ...(response.extraReplies || [])].join('\n\n') + '\n\n'); return { ok: true };
     }
     const vehicleContext = /\b(my|i have|ive got|i own|it is|its|sorry)\b/.test(q);
     if (vehicleContext) collectDetails(state.intake, message);

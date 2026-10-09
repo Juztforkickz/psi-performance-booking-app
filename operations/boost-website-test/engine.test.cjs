@@ -7,7 +7,7 @@ const send = (state, ...messages) => messages.forEach(message => assert.equal(en
 
 test('approved engine service inclusions preserve prior approval for extras', () => {
   const reply = engine.answer('What does Service & Report cover?').reply;
-  for (const phrase of ['423.50', 'oil filter', 'sump plug washer', 'full vehicle check', 'fluid top ups', 'spare', 'approved before']) assert.ok(reply.includes(phrase), phrase);
+  for (const phrase of ['423.50', 'oil filter', 'sump plug washer', 'full vehicle check', 'fluid top ups', 'spare', 'approved before', 'report', 'wheel nut torque', 'door, bonnet and boot', 'hinges and latches', 'damage', 'mechanical work']) assert.ok(reply.toLowerCase().includes(phrase), phrase);
   assert.match(engine.answer('Does a service include spark plugs?').reply, /not automatically included/);
   assert.match(engine.answer('Will you ask before doing extra work?').reply, /approval before/);
   const state = engine.createSession(); send(state, 'Does the service price cover every EV?');
@@ -33,7 +33,7 @@ test('cam and engine ECU guides do not leak into supplementary or module quotes'
     const r = engine.answer(q); assert.match(r.reply, /3,795 including GST/); assert.match(r.reply, /eligibility/);
   }
   assert.match(engine.answer('Price for an engine ECU tune?').reply, /649 including GST/);
-  for (const q of ['How much for CNC heads?', 'Valve seats price?', 'CHE trunnion and oil pump cost?', 'OTR and tune price?', 'CPC tuning price?', 'ECU unlocking quote?']) {
+  for (const q of ['CPC tuning price?', 'ECU unlocking quote?', 'DOD delete kit price?']) {
     const r = engine.answer(q); assert.equal(r.collect, true, q);
     assert.doesNotMatch(r.reply, /\$[\d,]+/, q);
   }
@@ -76,12 +76,73 @@ test('known transport and remote coding answers avoid old uncertainty or guarant
   assert.deepEqual(coding.links, ['coding']); assert.doesNotMatch(coding.reply, /\$\d|no risk/);
 });
 
-test('unknown supplementary GST and totals are never inferred from owner review amounts', () => {
+test('customer replies use confirmed GST inclusive amounts without inventing extras or totals', () => {
   const publicReplies = knowledge.FAQS.map(f => f.reply).join('\n');
   assert.doesNotMatch(publicReplies, /\$1,?550|\$750|\$920|\$1,?500/);
-  const state = engine.createSession(); send(state, 'OTR and tune price for my 2015 Holden Commodore?', 'Does that include GST?');
+  const state = engine.createSession(); send(state, 'OTR and tune price for my 2015 Holden Commodore?');
+  assert.match(last(state).text, /1,650 including GST/); assert.equal(state.intake.pending, 'details');
+  send(state, 'Does that include GST?');
   assert.match(last(state).text, /cannot assume/); assert.doesNotMatch(last(state).text, /Yes|1,500|1,650/);
   assert.equal(state.queued, false); assert.equal(state.intake.work, 'OTR and tuning');
+});
+
+test('machining guides include GST and keep removal and full job labour separate', () => {
+  for (const [question, work, amount] of [
+    ['How much for CNC head porting?', 'CNC head porting', '1,705'],
+    ['What is the valve seats price?', 'valve seat upgrade', '825'],
+  ]) {
+    const state = engine.createSession(); send(state, question);
+    assert.ok(last(state).text.includes('AUD $' + amount + ' including GST'), question);
+    assert.match(last(state).text, /head removal/); assert.match(last(state).text, /extra/);
+    assert.equal(state.intake.work, work); assert.equal(state.queued, false);
+    send(state, 'Does that include fitting?');
+    assert.match(last(state).text, /head removal/); assert.match(last(state).text, /extra/);
+    assert.equal(state.intake.pending, 'vehicle');
+  }
+});
+
+test('pump and trunnion labour inclusion is conditional on the concurrent cam job', () => {
+  const state = engine.createSession(); send(state, 'Oil pump and CHE trunnion price for my 2015 HSV LSA?');
+  assert.match(last(state).text, /1,012 including GST/); assert.match(last(state).text, /during the cam job/);
+  assert.match(last(state).text, /no additional fitting labour/); assert.match(last(state).text, /Standalone fitting/);
+  assert.equal(state.intake.pending, 'details');
+  send(state, 'Is standalone fitting included?');
+  assert.match(last(state).text, /Standalone fitting.*separate quote/); assert.doesNotMatch(last(state).text, /^Yes/);
+  assert.equal(state.queued, false);
+});
+
+test('listed LS engines and DOD requirements are available without inventing a kit price', () => {
+  const engines = engine.answer('Which engines are the cam packages for?').reply;
+  for (const name of ['LS1', 'LS2', 'LS3', 'LSA', 'L77', 'L76', 'L98']) assert.ok(engines.includes(name), name);
+  const dod = engine.answer('Does an L77 need a DOD delete?').reply;
+  assert.match(dod, /L77 and L76 engines require/); assert.match(dod, /LS1, LS2, LS3, L98 and LSA do not/);
+  assert.match(dod, /previous modifications/); assert.doesNotMatch(dod, /AUD \$/);
+  const state = engine.createSession(); send(state, 'Can you help choose a cam package?', 'What about my L76?');
+  assert.match(last(state).text, /DOD delete kit/); assert.equal(state.queued, false);
+  const kit = engine.createSession(); send(kit, 'DOD delete kit cost for my 2011 Holden L77?');
+  assert.equal(kit.intake.work, 'DOD delete'); assert.equal(kit.intake.pending, 'details');
+  assert.doesNotMatch(last(kit).text, /3,795|649|\$\d/);
+});
+
+test('restricted LS and Holden guides do not become prices for other cars or a complete build', () => {
+  for (const question of ['Cam package price for my 2018 Ford Mustang Coyote?', 'OTR and tune price for my 2020 Toyota Supra?']) {
+    const state = engine.createSession(); send(state, question);
+    assert.doesNotMatch(last(state).text, /\$\d/, question); assert.match(last(state).text, /individual/);
+    assert.equal(state.intake.pending, 'details'); assert.equal(state.queued, false);
+  }
+  const swapped = engine.createSession(); send(swapped, 'Cam quote for my 2001 Nissan Silvia with an LS3?');
+  assert.match(last(swapped).text, /3,795/); assert.match(last(swapped).text, /confirms eligibility/);
+  const combined = engine.createSession(); send(combined, 'What is the complete cam package total with CNC heads, valve seats and oil pump upgrades?');
+  assert.equal(combined.intake.work, 'cam extras'); assert.doesNotMatch(last(combined).text, /\$\d/);
+  assert.match(last(combined).text, /complete scope/); assert.equal(combined.queued, false);
+});
+
+test('report and lubrication questions are recognised directly with no extra charge implied', () => {
+  for (const question of ['What is in the service report?', 'Do you check wheel nut torque?', 'Do you lubricate hinges and latches?']) {
+    const r = engine.answer(question); assert.equal(r.intent, 'service-report', question);
+    assert.match(r.reply, /full vehicle check and report/); assert.match(r.reply, /where applicable/);
+    assert.match(r.reply, /quoted for your approval/); assert.equal(r.handoff, false);
+  }
 });
 
 test('all curated entry questions and their suggested follow ups are reachable', () => {
