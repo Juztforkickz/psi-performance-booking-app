@@ -69,15 +69,32 @@ test('unknown topics offer a person without inventing facts or queuing everythin
   send(state, 'Message PSI'); assert.equal(state.queued, true);
 });
 
-test('workshop prices collect context while approved subscription prices stay separate', () => {
+test('workshop quotes collect context and only approved starting guides are numeric', () => {
   for (const q of ['What does a service cost?', 'What does a tune cost?', 'EV servicing estimate?', 'Cam package ballpark?', 'Coding pricing?']) {
-    const response = engine.answer(q); assert.equal(response.collect, true, q); assert.doesNotMatch(response.reply, /\$|\d/);
+    const response = engine.answer(q); assert.equal(response.collect, true, q);
   }
   assert.match(engine.answer('What does Performance+ cost?').reply, /AUD \$9.99/);
   assert.match(engine.answer('What does Performance+ cost?').reply, /optional/);
   assert.match(engine.answer('Is the app free?').reply, /booking requests are free/);
   const state = engine.createSession(); send(state, 'What is Performance+?', 'How much?');
   assert.match(last(state).text, /AUD \$9.99/); assert.equal(state.intake.active, false);
+});
+
+test('approved service and dyno guides are never fixed quotes or promises of inclusions', () => {
+  for (const [question, amount] of [['What does a service cost?', '423.50'], ['What does a tune cost?', '649']]) {
+    const state = engine.createSession(); send(state, question);
+    assert.ok(last(state).text.includes('starts from AUD $' + amount + ' including GST'));
+    assert.match(last(state).text, /PSI confirms the final price for your vehicle and the work required/);
+    assert.equal(state.queued, false); assert.equal(state.intake.pending, 'vehicle');
+  }
+  const followup = engine.createSession(); send(followup, 'Do you do dyno tuning?', 'How much?');
+  assert.match(last(followup).text, /starts from AUD \$649/);
+  for (const question of ['What does a cam package cost?', 'How much is coding?', 'Transmission tuning quote?', 'Price for an ECU tune?', 'What does a dyno power run cost?']) {
+    const state = engine.createSession(); send(state, question);
+    assert.doesNotMatch(last(state).text, /\$423|\$649/, question);
+  }
+  const transmission = engine.createSession(); send(transmission, 'Is transmission tuning included with an engine tune?', 'How much?');
+  assert.doesNotMatch(last(transmission).text, /\$649/);
 });
 
 test('service quote retains car and mileage, asks scope, then requires consent', () => {

@@ -46,12 +46,13 @@
     if (/\b(guide me|step by step|walk me through)\b.*\b(book|booking)\b/.test(q)) return result('booking', '', { guide: 'booking' });
     const item = knowledge.match(q);
     if (item) return toFAQ(item);
-    if (knowledge.isPricing(q)) return result('quote', 'PSI will confirm the price.', { collect: true });
+    if (knowledge.isPricing(q)) return result('quote', quoteIntro(workFrom(text)), { collect: true });
     if (/^(hi|hello|hey|good morning|good afternoon|good evening)\b/.test(q)) return result('welcome', GREETING, { prompts: ['How do I book?', 'I need a quote', 'Where can I download the PSI app?'] });
     if (/^(thanks|thank you|cheers)\b/.test(q)) return result('thanks', 'You’re welcome. Anything else I can help with?');
     return result('needs-review', 'I do not have a verified answer for that yet. Choose Message PSI to ask Matt, or tell me whether it is about a vehicle, the app or a booking.', { prompts: ['Message PSI', 'How do I book?', 'I need a quote'] });
   }
   function newIntake() { return { active: false, work: null, vehicle: null, year: null, mileage: null, details: null, pending: null }; }
+  function quoteIntro(work) { return knowledge.PRICE_GUIDES[work] || 'PSI will confirm the price.'; }
   function workFrom(text) {
     const q = normalise(text);
     for (const [work, pattern] of [
@@ -59,12 +60,13 @@
       ['engine build', /\b(engine build|engine rebuild|stroker)\b/], ['cooling upgrade', /\b(interchiller|water meth|water methanol)\b/],
       ['forced induction', /\b(supercharger|turbo kit|turbo upgrade|whipple|harrop)\b/], ['exhaust', /\b(exhaust|headers|varex|cat back|downpipe)\b/],
       ['brakes or suspension', /\b(brakes|suspension|alignment|coilovers|tyres)\b/], ['parts', /\b(parts|part|intake|otr)\b/],
-      ['service', /\b(service|servicing|maintenance|logbook)\b/], ['dyno', /\b(dyno|tuning|tune|ecu|tcu|transmission)\b/],
+      ['specific tuning', /\b(ecu|tcu|tcm|transmission tun\w*|gearbox tun\w*|power runs?|health check)\b/],
+      ['service', /\b(service|servicing|maintenance|logbook)\b/], ['dyno', /\b(dyno|tuning|tune)\b/],
       ['EV check', /\b(ev|electric|hybrid|charging|hev|phev|bev)\b/], ['diagnostics', /\b(diagnostics|fault|warning|misfire)\b/],
     ]) if (pattern.test(q)) return work;
     return null;
   }
-  const topicWork = { service: 'service', logbook: 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'dyno', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
+  const topicWork = { service: 'service', logbook: 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'specific tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
   function collectDetails(intake, text) {
     const q = normalise(text), year = q.match(/\b((?:19|20)\d{2})\b/);
     const make = q.match(/\b(audi|bmw|ford|holden|honda|hyundai|kia|mazda|mercedes(?: benz)?|mitsubishi|nissan|porsche|skoda|subaru|suzuki|tesla|toyota|volkswagen|vw|volvo|byd|mg|gwm|lexus|isuzu|jeep|land rover|peugeot|renault|ferrari|lamborghini|polestar|cupra|chery|mini)\b/);
@@ -83,6 +85,7 @@
       intake.pending = 'details';
       return ({ service: 'Which service is due, or is there a particular concern?',
         dyno: 'What’s the current setup, transmission, fuel and tuning goal? Include whether you want engine tuning, transmission tuning or both.',
+        'specific tuning': 'What exact tuning or testing work do you need, and what engine, transmission, fuel and modifications does the car have?',
         cam: 'What engine, transmission and current setup do you have, and what driving result are you after?',
         exhaust: 'Do you want a rear section, headers or a full system, and supply only or fitted? Include any product link and whether tuning is needed.',
         parts: 'Which product or part number do you need, and is it supply only or fitted?',
@@ -169,7 +172,7 @@
       if (!state.intake.active) state.intake = newIntake();
       state.intake.active = true; collectDetails(state.intake, message);
       if (!state.intake.work) state.intake.work = topicWork[state.topic] || null;
-      state.intent = 'quote'; state.guide = null; promptIntake(state, now + 1, 'PSI will confirm the price. '); return { ok: true };
+      state.intent = 'quote'; state.guide = null; promptIntake(state, now + 1, quoteIntro(state.intake.work) + ' '); return { ok: true };
     }
     state.intent = response.intent;
     if (knowledge.BY_ID[response.intent]) state.topic = response.intent;

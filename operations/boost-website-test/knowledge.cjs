@@ -4,6 +4,11 @@
 // must never be copied into this module or the browser build.
 (function (root) {
   const VERIFIED_ON = '2026-10-09';
+  // Matt approved these as starting guides, not fixed quotes or package inclusions.
+  const PRICE_GUIDES = Object.freeze({
+    service: 'Service & Report starts from AUD $423.50 including GST. PSI confirms the final price for your vehicle and the work required.',
+    dyno: 'Dyno Tuning starts from AUD $649 including GST. PSI confirms the final price for your vehicle and the work required.',
+  });
   const LINKS = Object.freeze({
     apple: { label: 'iPhone App Store', url: 'https://apps.apple.com/au/app/psi-performance-garage/id6806902732' },
     android: { label: 'Android Google Play', url: 'https://play.google.com/store/apps/details?id=com.psiperformance.booking' },
@@ -23,6 +28,7 @@
     account: 'Current mobile account/index.tsx and account/sign-up.tsx, labels checked 9 October 2026',
     garage: 'Current mobile account setup and My Garage screens',
     booking: 'Current mobile booking.tsx, tabs/bookings.tsx and lib/booking.ts',
+    pricingApproval: 'Matt confirmed Service & Report from AUD $423.50 and Dyno Tuning from AUD $649 on 9 October 2026. Starting guides only, with existing GST inclusive treatment. Exact prices and inclusions still require PSI review.',
     plus: 'Current mobile performance-plus.tsx and public Australian App Store description',
     mail: 'Anonymised recurring enquiry topics from selected PSI Outlook correspondence, March to October 2026. No individual prices approved.',
     boundary: 'Private Boost test scope and owner instructions. No connected inbox or production actions.',
@@ -55,7 +61,7 @@
     faq('arrival', 'Booking', 'Can I drop off outside normal hours?', 'The app lets you request an arrival arrangement, including before or after hours. PSI must agree to it first. Ask PSI for the approved drop off instructions rather than leaving the car or keys unarranged.', ['booking'], ['How do I book?', 'Message PSI']),
     faq('turnaround', 'Booking', 'How long will the work take?', 'That depends on the job, diagnosis and parts availability. PSI confirms timing after reviewing your car and scope. Include when you need the car back in your request. Boost cannot promise a same day finish.', ['workshop','mail'], ['How do I book?', 'Website enquiry']),
     faq('plan', 'Workshop', 'What is Plan Builder?', 'It is the website enquiry path for a build or upgrade idea. Select the areas you want to discuss, then your intended use, priority, timing, budget direction and current setup. PSI reviews the combination before recommending parts or quoting.', ['website'], ['Website enquiry', 'Do you build engines?'], ['enquiry']),
-    faq('service', 'Workshop', 'What does Service & Report cover?', 'Use Service & Report for servicing, inspection or a specific concern. Select what your car needs and describe the issue. PSI confirms the exact work and price for your vehicle before proceeding. It is available through Book ahead in the app.', ['booking','workshop'], ['How do I book?', 'Does a service include spark plugs?', 'What does servicing cost?']),
+    faq('service', 'Workshop', 'What does Service & Report cover?', PRICE_GUIDES.service + ' Use it for servicing, inspection or a specific concern. Select what your car needs through Book ahead in the app.', ['booking','workshop','pricingApproval'], ['How do I book?', 'Does a service include spark plugs?', 'What does servicing cost?']),
     faq('service-inclusions', 'Workshop', 'Does a service include spark plugs?', 'Do not assume plugs, filters, fluids or extra repairs are all included in a starting price. PSI checks the vehicle, kilometres and service requirements, then confirms the inclusions and any additional work.', ['booking','mail'], ['What does servicing cost?', 'How do I book?']),
     faq('logbook', 'Workshop', 'Do you do logbook servicing?', 'Yes. PSI offers logbook and routine servicing. Include your make, model, year, kilometres and the service due so PSI can confirm the correct scope. Use Service & Report in the app.', ['workshop','mail','booking'], ['How do I book?', 'What does servicing cost?']),
     faq('diagnostics', 'Workshop', 'Can you diagnose a warning light or fault?', 'Yes. Describe the symptom, when it happens and what has already been checked or replaced. PSI inspects and tests before recommending repairs. Book Service & Report and select diagnostics. Boost cannot diagnose the cause from chat.', ['workshop','booking','mail'], ['How do I book?', 'I need a quote']),
@@ -66,7 +72,7 @@
     faq('exhaust', 'Workshop', 'Do you supply and fit exhausts?', 'PSI can review exhaust supply and fitting. Specify the vehicle, engine and whether you want a rear section, full system, headers or a valved system. Fitting, tuning and any additional parts need to be included in the agreed quote.', ['website','mail'], ['I need an exhaust quote', 'Website enquiry']),
     faq('forced-induction', 'Workshop', 'Can you supply and fit a supercharger?', 'PSI can assess turbo and supercharger projects. Send the exact car, engine, current setup, fuel and intended use. Kit access, compatibility, supporting parts and tuning are confirmed individually, not assumed from the brand alone.', ['workshop','mail'], ['What is Plan Builder?', 'I need a quote']),
     faq('interchiller', 'Workshop', 'Do you fit interchillers or water meth systems?', 'PSI has handled interchiller and water meth installation enquiries. The right setup depends on the car, blower or turbo, cooling arrangement and intended use. PSI needs to confirm suitability and the complete installed scope.', ['website','mail'], ['I need a quote', 'What is Plan Builder?']),
-    faq('dyno', 'Tuning', 'Do you do dyno tuning?', 'Yes. PSI offers hub dyno tuning and calibration. The car’s engine, transmission, fuel, fitted parts and tuning goal determine the scope. Use Dyno Tuning in the app and include your current setup.', ['workshop','booking'], ['What details do I need for tuning?', 'How do I book?', 'What does a tune cost?']),
+    faq('dyno', 'Tuning', 'Do you do dyno tuning?', 'Yes. ' + PRICE_GUIDES.dyno + ' Use Dyno Tuning in the app and include your current setup and tuning goal.', ['workshop','booking','pricingApproval'], ['What details do I need for tuning?', 'How do I book?', 'What does a tune cost?']),
     faq('dyno-details', 'Tuning', 'What details do I need for tuning?', 'Include the engine and modifications, transmission, differential, injectors and pump, fuel, intake, exhaust, cam and any previous tune. If you do not know the setup, choose the PSI inspection option rather than guessing.', ['booking','website'], ['How do I book?', 'I need a quote']),
     faq('ecu-tcu', 'Tuning', 'Is transmission tuning included with an engine tune?', 'An engine ECU tune and transmission TCU tune are different work. Do not assume both are included. Give PSI the car, transmission and goal so compatibility and the combined scope can be quoted.', ['mail','website'], ['I need a tune quote', 'How do I book?']),
     faq('power', 'Tuning', 'How much power will my car make?', 'PSI must assess the exact setup before discussing a realistic result. Fuel, condition and supporting parts matter. No power or economy gain is guaranteed by Boost. Include your goal in a Dyno Tuning request.', ['workshop','estimator','booking'], ['What details do I need for tuning?', 'How do I book?']),
@@ -170,8 +176,8 @@
     return /\b(price|prices|cost|costs|how much|quote|estimate|ballpark|ball park|pricing)\b/.test(q) && !/\b(how much power|how much horsepower)\b/.test(q);
   }
   function match(q) {
-    // Service prices and package prices enter scoped quote collection. Only
-    // subscription prices are currently verified for an automatic numeric answer.
+    // Workshop price questions keep scoped quote collection. Approved category
+    // starting guides do not approve specific package prices or inclusions.
     const exact = FAQS.find(item => normalise(item.question) === q);
     if (exact) return exact;
     const pricing = isPricing(q);
@@ -187,7 +193,7 @@
     if (/^where\b/.test(q)) return BY_ID.location;
     return null;
   }
-  const api = Object.freeze({ VERIFIED_ON, LINKS, SOURCES, FAQS, BY_ID, normalise, isPricing, match });
+  const api = Object.freeze({ VERIFIED_ON, PRICE_GUIDES, LINKS, SOURCES, FAQS, BY_ID, normalise, isPricing, match });
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.BoostKnowledge = api;
 })(typeof window === 'object' ? window : globalThis);
