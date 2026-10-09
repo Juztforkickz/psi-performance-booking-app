@@ -77,8 +77,17 @@ test('known transport and remote coding answers avoid old uncertainty or guarant
 });
 
 test('customer replies use confirmed GST inclusive amounts without inventing extras or totals', () => {
-  const publicReplies = knowledge.FAQS.map(f => f.reply).join('\n');
-  assert.doesNotMatch(publicReplies, /\$1,?550|\$750|\$920|\$1,?500/);
+  for (const [id, beforeTax, inclusive] of [
+    ['cnc-heads', 1550, 1705], ['valve-seats', 750, 825], ['pump-trunnions', 920, 1012], ['otr', 1500, 1650],
+  ]) {
+    assert.equal(Math.round(beforeTax * 110) / 100, inclusive);
+    const aud = amount => 'AUD $' + amount.toLocaleString('en-AU');
+    const text = knowledge.BY_ID[id].reply;
+    assert.ok(text.includes(aud(beforeTax) + ' + GST, which is ' + aud(inclusive) + ' including GST'), id);
+    assert.doesNotMatch(text, /<small|font-size|hidden|click.*total/i);
+  }
+  assert.match(knowledge.PRICE_GUIDES.service, /423.50 including GST/);
+  assert.match(knowledge.PRICE_GUIDES.dyno, /649 including GST/);
   const state = engine.createSession(); send(state, 'OTR and tune price for my 2015 Holden Commodore?');
   assert.match(last(state).text, /1,650 including GST/); assert.equal(state.intake.pending, 'details');
   send(state, 'Does that include GST?');

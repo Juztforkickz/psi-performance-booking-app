@@ -60,7 +60,7 @@
     const supportingTopic = state.topic || ({ 'CNC head porting': 'cnc-heads', 'valve seat upgrade': 'valve-seats', 'pump and trunnions': 'pump-trunnions' })[state.intake.work];
     if (['cnc-heads','valve-seats','pump-trunnions'].includes(supportingTopic) && /\b(fitting|labour|labor|removal|install\w*)\b/.test(q) && !knowledge.isPricing(q) && !/\b(other|different)\b/.test(q)) return toFAQ(knowledge.BY_ID[supportingTopic]);
     if (/^(?:is|does) (?:that|it|the price) (?:include|including|includes) gst$/.test(q)) {
-      return result('gst', 'Boost’s confirmed price guides include GST. Any additional or individually quoted work needs a GST inclusive total confirmed by PSI. I cannot assume the tax or inclusions for an unconfirmed price.', { sources: ['ownerApproval'], prompts: ['Message PSI'] });
+      return result('gst', 'Where Boost shows + GST, it also shows the amount including GST. Use the GST inclusive figure for that item. Additional or individually quoted work needs a total confirmed by PSI. I cannot assume the tax or inclusions for an unconfirmed price.', { sources: ['ownerApproval'], prompts: ['Message PSI'] });
     }
     const tuning = ['dyno','specific tuning','transmission tuning'].includes(state.intake.work) || ['dyno','dyno-details','ecu-tcu'].includes(state.topic);
     if (tuning && /\b(gearbox|transmission|tcu|tcm)\b/.test(q) && /\b(include\w*|extra|cost|price|how much)\b/.test(q)) {

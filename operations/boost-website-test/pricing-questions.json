@@ -1,6 +1,6 @@
 {
   "reviewDate": "2026-10-09",
-  "status": "Matt’s confirmed business answers and supplementary prices are applied to the private replies. Customer price guides include GST, with machining, fitting and vehicle scope stated explicitly. No live publication or message delivery is enabled.",
+  "status": "Matt’s confirmed business answers and supplementary prices are applied to the private replies. Supplementary items show the + GST amount alongside the GST inclusive figure in the same text style. Machining, fitting and vehicle scope stay explicit. No live publication or message delivery is enabled.",
   "approved": [
     {
       "topic": "Routine engine servicing",
@@ -20,19 +20,19 @@
     },
     {
       "topic": "CNC head porting",
-      "detail": "AUD $1,705 including GST, from AUD $1,550 plus GST, for CNC porting only. Cylinder head removal, additional parts and labour for the head job cost extra. Not a fitted package total. An option across the listed LS combinations."
+      "detail": "AUD $1,550 + GST, which is AUD $1,705 including GST, for CNC porting only. Cylinder head removal, additional parts and labour for the head job cost extra. Not a fitted package total. An option across the listed LS combinations."
     },
     {
       "topic": "Valve seat upgrade",
-      "detail": "AUD $825 including GST, from AUD $750 plus GST, for the valve seat upgrade work. Cylinder head removal, additional parts and labour for the head job cost extra. Not an installed total."
+      "detail": "AUD $750 + GST, which is AUD $825 including GST, for the valve seat upgrade work. Cylinder head removal, additional parts and labour for the head job cost extra. Not an installed total."
     },
     {
       "topic": "Oil pump and CHE trunnion combination",
-      "detail": "AUD $1,012 including GST, from AUD $920 plus GST, for the combined upgrade. No additional fitting labour when done during the cam job. Standalone fitting is not included in this guide. Optional supporting upgrade, not automatically included in the entry cam price."
+      "detail": "AUD $920 + GST, which is AUD $1,012 including GST, for the combined upgrade. No additional fitting labour when done during the cam job. Standalone fitting is not included in this guide. Optional supporting upgrade, not automatically included in the entry cam price."
     },
     {
       "topic": "Holden and HSV OTR with tune",
-      "detail": "Supplied and fitted OTR and tune combinations from AUD $1,650 including GST, from AUD $1,500 plus GST. Vehicle, intake, exhaust, extractors and computer determine the final scope. This is not a supplied exhaust package. Other vehicles need their own quote."
+      "detail": "Supplied and fitted OTR and tune combinations from AUD $1,500 + GST, which is AUD $1,650 including GST. Vehicle, intake, exhaust, extractors and computer determine the final scope. This is not a supplied exhaust package. Other vehicles need their own quote."
     },
     {
       "topic": "Mercedes coding",

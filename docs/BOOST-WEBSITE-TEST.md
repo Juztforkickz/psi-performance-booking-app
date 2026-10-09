@@ -134,3 +134,11 @@ The routine engine service now explicitly includes the full vehicle check and re
 Validation: all 57 checks pass, including 20 existing conversation journeys and additional machining, conditional labour, LS scope, DOD, service report and pricing tests. The four local preview artifacts were rebuilt. Browser verification confirmed the CNC price with the extra head removal and labour wording. Screenshot: `artifacts/boost-website-test/boost-ls-pricing.png`.
 
 Changes are confined to the Boost test knowledge, conversation routing, tests, review records and this guide. No app, OTA, owner entitlement, Shopify theme or live delivery changes are included. Work began from `db18e05`, preserving the newer customer onboarding release checkpoints. Roll back only this scoped commit if necessary; do not reset those unrelated releases.
+
+## Supplementary price presentation, 9 October 2026
+
+At Matt’s request, the four supplementary guides now show the amount before GST followed by + GST. The equivalent GST inclusive amount immediately follows in the same text style. CNC porting is AUD $1,550 + GST, AUD $1,705 including GST; valve seat upgrade work is AUD $750 + GST, AUD $825 including GST; the oil pump and CHE trunnion combination is AUD $920 + GST, AUD $1,012 including GST; and Holden or HSV OTR with tune starts from AUD $1,500 + GST, AUD $1,650 including GST.
+
+The [ACCC price display guidance](https://www.accc.gov.au/consumers/pricing/price-displays), checked 9 October 2026, requires customer prices to include applicable GST and the total to be at least as prominent as a partial price. The total is therefore not hidden in small print, a link or a separate step. This is a presentation change only; the scope, actual charges, service and dyno starting guides remain unchanged. The existing price tests now check the four tax conversions and adjacent paired figures. This private checkpoint can be reversed independently from its predecessor, `a4b7d69`.
+
+Validation: all 57 engine, conversation and isolation checks passed. All four local review artifacts rebuilt, and the CNC price reply was verified in the browser with both amounts in the same text style. Screenshot: `artifacts/boost-website-test/boost-plus-gst-pricing.png`. No public app or deployment configuration changed.
