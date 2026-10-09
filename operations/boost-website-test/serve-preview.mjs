@@ -4,10 +4,12 @@ import path from 'node:path';
 import { buildFragment } from './build-preview.mjs';
 import { buildWebsiteFragment } from './build-website-preview.mjs';
 import { buildReviewDocument } from './build-review.mjs';
+import { buildRehearsalsDocument } from './build-rehearsals.mjs';
 
 const HOST = '127.0.0.1';
 const PORT = 8780;
 export async function createPreviewServer() {
+  const rehearsalsDocument = buildRehearsalsDocument();
   const [fragment, websiteFragment] = await Promise.all([buildFragment(), buildWebsiteFragment()]);
   const document = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>PSI Boost private website test</title><style>html{color-scheme:dark}body{margin:0;padding:12px;background:#101419}button,summary{cursor:pointer}*{box-sizing:border-box}</style></head><body>${fragment}</body></html>`;
@@ -23,9 +25,9 @@ export async function createPreviewServer() {
   const originAllowed = !request.headers.origin || request.headers.origin === origin;
   const localNavigation = !request.headers['sec-fetch-site'] || ['same-origin', 'none'].includes(request.headers['sec-fetch-site']);
   if (request.headers.host !== authority || !originAllowed || !localNavigation) { response.writeHead(403); response.end('Local test only.'); return; }
-  if (request.method !== 'GET' || !['/', '/index.html', '/website.html', '/review.html'].includes(request.url)) { response.writeHead(404); response.end('No test endpoint here.'); return; }
+  if (request.method !== 'GET' || !['/', '/index.html', '/website.html', '/review.html', '/rehearsals.html'].includes(request.url)) { response.writeHead(404); response.end('No test endpoint here.'); return; }
   response.setHeader('Content-Type', 'text/html; charset=utf-8');
-  response.end(request.url === '/review.html' ? buildReviewDocument() : request.url === '/website.html' ? websiteDocument : document);
+  response.end(request.url === '/rehearsals.html' ? rehearsalsDocument : request.url === '/review.html' ? buildReviewDocument() : request.url === '/website.html' ? websiteDocument : document);
   });
   return server;
 }

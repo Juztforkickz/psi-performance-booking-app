@@ -221,3 +221,49 @@ test('the browser knowledge contains only curated public links and no historical
   assert.match(knowledge.BY_ID.estimator.reply, /not approved for customer quotations/);
   assert.match(knowledge.BY_ID['ev-battery'].reply, /not part of PSI/);
 });
+
+test('multiple questions preserve both price guides and unanswered topics', () => {
+  const state = engine.createSession();
+  send(state, 'How much is a service? How much is dyno tuning?');
+  assert.match(last(state).text, /423.50/); assert.match(last(state).text, /649/);
+  assert.match(last(state).text, /Which work/); assert.equal(state.intake.active, false);
+  send(state, 'I need a service quote'); assert.equal(state.intake.work, 'service');
+  const unknown = engine.createSession();
+  send(unknown, 'How much is a service? Can you organise a spaceship?');
+  assert.match(last(unknown).text, /423.50/); assert.match(last(unknown).text, /do not have a verified answer/);
+  assert.equal(unknown.queued, false); engine.handoff(unknown);
+  assert.match(JSON.stringify(engine.handoffSummary(unknown)), /spaceship/);
+});
+
+test('a fresh quote does not reuse an earlier job scope or skip consent', () => {
+  const state = engine.createSession();
+  send(state, 'Service quote for a 2019 Mazda 3 with 50000 km', 'Annual service', 'Not yet');
+  send(state, 'I need a service quote');
+  assert.equal(state.intake.pending, 'details'); assert.equal(state.intake.details, null);
+  assert.equal(state.queued, false);
+  send(state, 'Start over'); assert.equal(state.intake.vehicle, null);
+  send(state, 'How much?'); assert.equal(state.intake.pending, 'work');
+});
+
+test('summary is bounded, uses visitor details and resets with the conversation', () => {
+  const state = engine.createSession(); assert.equal(engine.handoffSummary(state), null);
+  for (let n = 0; n < 12; n++) send(state, 'Can you confirm unusual option ' + n + '?');
+  engine.handoff(state);
+  const markup = '<img src=x onerror=alert(1)>'; send(state, markup);
+  const summary = engine.handoffSummary(state);
+  assert.ok(summary.needsReview.length <= 8); assert.ok(summary.recentMessages.length <= 4);
+  assert.ok(summary.recentMessages.includes(markup));
+  assert.equal(summary.vehicle, 'Not supplied'); assert.match(summary.status, /Private test/);
+  const reset = engine.send(state, '/reset').state;
+  assert.equal(engine.handoffSummary(reset), null); assert.deepEqual(reset.reviewQuestions, []);
+});
+
+test('download preference can change explicitly without assuming installation', () => {
+  const state = engine.createSession(); send(state, 'I use Android', 'Guide me through account setup');
+  assert.deepEqual(last(state).links, ['android']); assert.equal(state.preferences.installed, false);
+  send(state, 'I use an iPhone'); assert.deepEqual(last(state).links, ['apple']);
+  send(state, 'I already have the app', 'Is the app free?'); assert.deepEqual(last(state).links, []);
+  send(state, 'Where can I download the PSI app?'); assert.deepEqual(last(state).links, ['apple']);
+  send(state, 'I do not want the app, use the website', 'How do I book?'); assert.deepEqual(last(state).links, ['enquiry']);
+  send(state, 'I want to book in the app', 'How do I book?'); assert.match(last(state).text, /Open Bookings/);
+});

@@ -41,6 +41,7 @@
     el('bp-handoff').disabled = state.queued;
     const target = el('bp-transcript');
     target.replaceChildren();
+    if (inbox && state.queued) window.appendBoostSummary(target, engine.handoffSummary(state));
     state.messages.forEach(message => {
       const item = document.createElement('article');
       item.className = 'bp-message ' + message.role;
@@ -69,7 +70,7 @@
       render(); remember();
     }
   }
-  function view(mode) { state.open = true; engine.view(state, mode); render(); remember(); }
+  function view(mode) { state.open = true; engine.view(state, mode); render(); if (mode === 'inbox') el('bp-transcript').scrollTop = 0; remember(); }
   function close() {
     state.open = false;
     root.classList.remove('bp-typing');
@@ -104,7 +105,7 @@
   function fitViewport() {
     if (document.body.classList.contains('boost-website-standalone') && window.visualViewport) {
       root.style.height = Math.round(window.visualViewport.height) + 'px';
-      requestAnimationFrame(scrollLatest);
+      if (state.mode === 'customer') requestAnimationFrame(scrollLatest);
     }
   }
   if (window.visualViewport) window.visualViewport.addEventListener('resize', fitViewport);

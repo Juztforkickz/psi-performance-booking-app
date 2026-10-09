@@ -171,7 +171,11 @@
     ['bot', /\b(real person|are you.*bot|who are you|what can you do)\b/],
   ];
   function normalise(value) {
-    return value.toLowerCase().replace(/performance\s*\+/g, 'performance plus').replace(/[’']/g, '').replace(/[^a-z0-9/\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    return value.toLowerCase().replace(/performance\s*\+/g, 'performance plus').replace(/[’']/g, '')
+      .replace(/\bdo not\b/g, 'dont').replace(/\b(servce|sevice|servicingg)\b/g, 'service')
+      .replace(/\b(tunning|tuneing)\b/g, 'tuning').replace(/\b(transmision|transmisson)\b/g, 'transmission')
+      .replace(/\b(u)\b/g, 'you').replace(/\b(ur)\b/g, 'your')
+      .replace(/[^a-z0-9/\s]/g, ' ').replace(/\s+/g, ' ').trim();
   }
   function isPricing(q) {
     return /\b(price|prices|cost|costs|how much|quote|estimate|ballpark|ball park|pricing)\b/.test(q) && !/\b(how much power|how much horsepower)\b/.test(q);

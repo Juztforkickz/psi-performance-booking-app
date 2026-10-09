@@ -61,7 +61,7 @@ The latest 9 October direction supersedes the earlier website first wording. Mat
 
 The current tests cover every prepared question, suggested follow ups, common paraphrases, guides, scoped quote collection, side questions, consent, inbox read times, unknown questions, literal markup, bounded state and isolation. The review page at `http://127.0.0.1:8780/review.html` contains all 64 replies and 12 pricing decisions for Matt. It has no save or submission action. `node operations/boost-website-test/build-review.mjs` also saves a local HTML copy in the ignored artifacts directory.
 
-Current validation on 9 October: 21 test groups pass, covering every prepared answer and suggested follow up as well as the scenarios above. Browser checks verified account guide buttons, both download destinations, the service enquiry and consent flow, Matt’s test reply and read time, long reply scrolling and a 320 pixel viewport with no horizontal overflow. Physical phone keyboard behaviour and actual Shopify delivery remain outside this local test.
+Current validation on 9 October: 45 test groups pass, including 20 complete fictional customer journeys, covering every prepared answer and suggested follow up as well as the scenarios above. Browser checks verified account guide buttons, both download destinations, the service enquiry and consent flow, Matt’s test reply and read time, long reply scrolling and a 320 pixel viewport with no horizontal overflow. Physical phone keyboard behaviour and actual Shopify delivery remain outside this local test.
 
 ## Research and pricing approval
 
@@ -96,3 +96,13 @@ Matt's preferred destination is the existing Shopify Inbox. The local inbox show
 After Matt approves the behaviour and FAQ wording, inspect the supported chat controls and store availability in a separately authorised private Shopify theme test. Verify the actual handoff, conversation identity, available hours and notifications. Preserve the current website and public app until the finished implementation is approved for launch.
 
 Reference documentation previously reviewed: [Shopify Inbox](https://help.shopify.com/en/manual/inbox), [instant answers](https://help.shopify.com/en/manual/inbox/chat-settings-and-appearance/instant-answers), [notifications](https://help.shopify.com/en/manual/inbox/configure-inbox/inbox-notifications) and [availability and first reply](https://help.shopify.com/en/manual/inbox/chat-settings-and-appearance/availability-and-first-reply).
+
+## Conversation rehearsal expansion, 9 October
+
+The private engine now remembers the stated phone platform, existing app installation and website booking preference within the current session. It retains vehicle details offered before a quote, recognises selected spelling variants and tuning follow ups such as gearbox, and answers up to three separate questions in one message. Multiple workshop price requests offer the approved guides and ask which work to discuss first. Safety and private account actions retain priority. No new workshop prices or inclusions were inferred.
+
+The simulated inbox includes an expandable Request summary for PSI with vehicle details as supplied, work, odometer, setup, questions for review and recent visitor messages. Unknown values remain labelled as not supplied. This summary uses session data only and sends nothing outside the preview.
+
+`journeys.cjs` contains 20 fictional conversations covering service, dyno, transmission, corrections, app signup, website preference, combined questions, safety, unknown prices, parts, coding, EV scope, Performance+, staff handoff and consent. The baseline met all checks in 4 of 20; the remaining journeys exposed missing context handling or the planned summary feature. All 20 now meet their checks. Run the complete suite with `node --test operations/boost-website-test/engine.test.cjs operations/boost-website-test/journeys.test.cjs operations/boost-website-test/isolation.test.mjs`.
+
+`http://127.0.0.1:8780/rehearsals.html` shows the actual generated conversations and test summaries. Build a saved copy with `node operations/boost-website-test/build-rehearsals.mjs`. This remains a prepared response engine, with limited wording recognition. Real Shopify delivery, alerts, physical phone keyboard testing, outstanding pricing decisions and public launch are still separate work.

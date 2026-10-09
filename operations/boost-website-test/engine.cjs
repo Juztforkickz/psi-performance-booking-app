@@ -52,6 +52,60 @@
     return result('needs-review', 'I do not have a verified answer for that yet. Choose Message PSI to ask Matt, or tell me whether it is about a vehicle, the app or a booking.', { prompts: ['Message PSI', 'How do I book?', 'I need a quote'] });
   }
   function newIntake() { return { active: false, work: null, vehicle: null, year: null, mileage: null, details: null, pending: null }; }
+  const APP_TOPICS = ['download','iphone','android','installed','signup','signin','free','plus','plus-price','trial','garage'];
+  function contextualAnswer(state, text) {
+    const response = answer(text), q = normalise(text);
+    if (response.handoff) return response;
+    const tuning = ['dyno','specific tuning','transmission tuning'].includes(state.intake.work) || ['dyno','dyno-details','ecu-tcu'].includes(state.topic);
+    if (tuning && /\b(gearbox|transmission|tcu|tcm)\b/.test(q) && /\b(include\w*|extra|cost|price|how much)\b/.test(q)) {
+      return knowledge.isPricing(q) ? result('quote', quoteIntro('transmission tuning'), { collect: true, work: 'transmission tuning' }) : toFAQ(knowledge.BY_ID['ecu-tcu']);
+    }
+    if (APP_TOPICS.includes(state.topic) && /^(is it free|is that free|do i have to pay)$/.test(q)) return toFAQ(knowledge.BY_ID.free);
+    if (['plus','plus-price','trial'].includes(state.topic) && /\b(pay|cover|include)\w*\b.*\b(service|workshop|tune|deposit)\b/.test(q)) return result('free', 'Performance+ is optional app access. Servicing, tuning, parts and workshop deposits are charged separately.', { sources: ['plus'], prompts: ['How do I book?'] });
+    if (['stock','shipping','fitment','exhaust'].includes(state.topic) && /\b(arrive|arriving|delivered|delivery)\b/.test(q)) return toFAQ(knowledge.BY_ID.shipping);
+    if (/\b(include\w*|cover\w*)\b/.test(q) && /\b(ev|hybrid|electric)\b/.test(q) && /\b(price|every|all|423|service)\b/.test(q)) return result('service-inclusions', 'PSI must confirm the service price and inclusions for your exact EV or hybrid. The starting guide does not confirm coverage for every model or every job.', { sources: ['pricingApproval','ev'], prompts: ['I need a service quote', 'Message PSI'] });
+    return response;
+  }
+  function conversationAnswer(state, text) {
+    const whole = contextualAnswer(state, text);
+    if (whole.handoff) return whole;
+    const parts = text.split(/\?+|;\s*|\s+and\s+(?=(?:how|what|does|is|can|do)\b)/i).map(x => x.trim()).filter(Boolean);
+    if (parts.length < 2) return whole;
+    const questions = parts.filter(part => /^(how|what|does|is|can|do|where|when|will|are)\b/i.test(part));
+    if (questions.length < 2) return whole;
+    if (questions.length > 3) return result('needs-review', 'Let’s take those one at a time so I do not miss anything. Which question would you like answered first?', { prompts: ['Message PSI'] });
+    const responses = questions.map(part => contextualAnswer(state, part));
+    const urgent = responses.find(response => response.handoff);
+    if (urgent) return urgent;
+    if (responses.some(response => response.guide)) return whole;
+    if (responses.filter(response => response.collect).length > 1) return result('quote-choice', [...new Set(responses.map(response => response.reply))].join('\n\n') + '\n\nWhich work would you like to discuss first?', { prompts: ['I need a service quote', 'I need a tune quote', 'Message PSI'] });
+    const primary = responses.find(response => response.collect) || responses[0];
+    const unique = [...new Map(responses.map(response => [response.intent, response])).values()];
+    return { ...primary, reply: unique.map(response => response.reply).join('\n\n'),
+      extraReplies: unique.filter(response => response !== primary).map(response => response.reply),
+      sources: [...new Set(unique.flatMap(response => response.sources))],
+      links: [...new Set(unique.flatMap(response => response.links))],
+      unanswered: questions.filter((_, index) => ['needs-review','loan-car','warranty','service-inclusions'].includes(responses[index].intent)) };
+  }
+  function rememberPreferences(state, text) {
+    const q = normalise(text);
+    if (/\b(iphone|ios)\b/.test(q)) state.preferences.platform = 'apple';
+    if (/\b(android|samsung|google pixel)\b/.test(q) && !/android auto/.test(q)) state.preferences.platform = 'android';
+    if (/\b(already have|installed|downloaded)\b.*\bapp\b|\bapp\b.*\b(installed|downloaded)\b/.test(q) && !/\b(not|havent|dont)\b/.test(q)) state.preferences.installed = true;
+    if (/\b(without (?:the )?app|dont want.*app|website enquiry|use the website|use the form)\b/.test(q)) state.preferences.booking = 'website';
+    if (/\b(book (?:in|through|using) the app|use the app instead)\b/.test(q)) state.preferences.booking = 'app';
+  }
+  function personalise(state, response) {
+    let next = { ...response, links: [...(response.links || [])] };
+    if (state.preferences.booking === 'website' && ['booking','availability'].includes(next.intent)) {
+      next = next.intent === 'booking' ? toFAQ(knowledge.BY_ID['website-enquiry']) : result('availability', 'PSI needs to confirm current availability. Put your preferred date and vehicle details in the website enquiry. For an urgent enquiry, call 0433 431 781.', { sources: ['booking','website'] });
+      next = { ...next, links: ['enquiry'], prompts: ['Website enquiry', 'Message PSI'] };
+    }
+    const explicitDownload = ['download','iphone','android'].includes(next.intent);
+    if (!explicitDownload && (state.preferences.installed || state.preferences.booking === 'website')) next.links = next.links.filter(key => !['apple','android'].includes(key));
+    else if (state.preferences.platform) next.links = next.links.filter(key => !['apple','android'].includes(key) || key === state.preferences.platform);
+    return next;
+  }
   function quoteIntro(work) {
     if (work === 'transmission tuning') return knowledge.BY_ID['ecu-tcu'].reply;
     return knowledge.PRICE_GUIDES[work] || 'PSI will confirm the price.';
@@ -77,6 +131,7 @@
     const mileage = text.toLowerCase().match(/\b(\d[\d,]*(?:\.\d+)?)\s*(km|kms|kilometres|kilometers|k)\b/);
     if (year) intake.year = year[1];
     if (make) intake.vehicle = text;
+    if (!make && year && /\b(vf|ve|vx|vy|vz|commodore|falcon|mustang|corolla|hilux|ranger|rs3|golf|model 3|model y)\b/.test(q)) intake.vehicle = text;
     if (mileage) intake.mileage = mileage[0];
     if (!intake.work) intake.work = workFrom(text);
   }
@@ -107,6 +162,7 @@
     return 'Thanks. PSI has enough context to review the request, but no price or date is confirmed. Send these details to Matt’s test inbox?';
   }
   function append(state, role, text, now, meta = {}) {
+    if (role === 'boost') meta = personalise(state, meta);
     state.messages.push({ id: state.messages.length ? state.messages.at(-1).id + 1 : 1, role, text, at: now, readAt: null,
       prompts: role === 'boost' ? [...(meta.prompts || [])].slice(0, 3) : [],
       links: role === 'boost' ? (meta.links || []).filter(key => Object.hasOwn(knowledge.LINKS, key)) : [],
@@ -140,7 +196,7 @@
     });
   }
   function createSession(now = Date.now()) {
-    const state = { version: 3, mode: 'customer', open: true, ticket: 'PREVIEW 001', queued: false, closed: false, intent: 'welcome', topic: null, guide: null, intake: newIntake(), notice: '', messages: [] };
+    const state = { version: 4, mode: 'customer', open: true, ticket: 'PREVIEW 001', queued: false, closed: false, intent: 'welcome', topic: null, guide: null, intake: newIntake(), preferences: { platform: null, installed: false, booking: 'app' }, reviewQuestions: [], handoffReason: null, notice: '', messages: [] };
     append(state, 'boost', GREETING, now); return state;
   }
   function send(state, raw, now = Date.now()) {
@@ -153,15 +209,18 @@
     if (text.startsWith('/') && text.toLowerCase() !== '/human' && !SAMPLES[text.toLowerCase()]) { append(state, 'boost', 'That test command is not recognised. ' + HELP, now); return { ok: true }; }
     const message = text.toLowerCase() === '/human' ? 'Message PSI' : (SAMPLES[text.toLowerCase()] || text), q = normalise(message);
     append(state, 'visitor', message, now);
-    if (state.queued) { state.notice = 'Added to Matt’s test inbox. Waiting for PSI to reply.'; return { ok: true }; }
-    let response = answer(message);
+    if (state.queued) { collectDetails(state.intake, message); state.notice = 'Added to Matt’s test inbox. Waiting for PSI to reply.'; return { ok: true }; }
+    rememberPreferences(state, message);
+    let response = conversationAnswer(state, message);
     if (response.collect && ['plus','plus-price','trial'].includes(state.topic) && /^(how much|what does it cost|what is the price|price)$/.test(q)) response = toFAQ(knowledge.BY_ID['plus-price']);
     if (response.handoff) {
+      state.handoffReason = response.intent;
+      if (response.intent !== 'human') state.reviewQuestions = [...state.reviewQuestions, message].slice(-8);
       state.queued = true; state.intake.active = false; state.guide = null; state.intent = response.intent;
       append(state, 'boost', response.reply, now + 1, response); state.notice = 'Waiting for PSI to reply in the test inbox.'; return { ok: true };
     }
     if (/^(stop guide|finish guide|stop quote|start over)$/.test(q)) {
-      state.guide = null; state.intake = newIntake(); append(state, 'boost', 'We’ve stopped the guide. Nothing was submitted here. What else can I help with?', now + 1, { prompts: ['How do I book?', 'I need a quote'] }); return { ok: true };
+      state.guide = null; state.intake = newIntake(); state.topic = null; state.reviewQuestions = []; append(state, 'boost', 'We’ve stopped the guide. Nothing was submitted here. What else can I help with?', now + 1, { prompts: ['How do I book?', 'I need a quote'] }); return { ok: true };
     }
     if (q === 'resume quote' && state.intake.active) { promptIntake(state, now + 1); return { ok: true }; }
     if (q === 'resume guide' && state.guide) { showGuide(state, now + 1); return { ok: true }; }
@@ -170,20 +229,29 @@
       state.guide.step = Math.max(0, Math.min(GUIDES[state.guide.topic].length - 1, state.guide.step + (backwards ? -1 : 1))); showGuide(state, now + 1); return { ok: true };
     }
     if (response.guide) { state.guide = { topic: response.guide, step: 0 }; state.intake.active = false; state.intent = response.intent; showGuide(state, now + 1); return { ok: true }; }
-    const directQuestion = message.includes('?') || /^(what|where|how|do|does|can|is|are|when|will|why)\b/.test(q);
-    const helpStatement = ['welcome','thanks','download','iphone','android','installed','signup','signin','password','code-help','free','plus','plus-price','trial','restore','subscription-manage','records-guide','website-enquiry','location','hours','contact','bot','message-delivery'].includes(response.intent);
+    const directQuestion = message.includes('?') || /^(what|where|how|do|does|can|is|are|when|will|why)\b/.test(q) || /\bbut (?:what|where|how|do|does|can|is|are|when|will|why)\b/.test(q);
+    const helpStatement = ['welcome','thanks','download','iphone','android','installed','signup','signin','password','code-help','free','plus','plus-price','trial','restore','subscription-manage','records-guide','website-enquiry','location','hours','contact','bot','message-delivery','quote-choice'].includes(response.intent);
     if (state.intake.active && !response.collect && !directQuestion && !helpStatement) return continueIntake(state, message, now + 1);
     if (response.collect) {
-      if (!state.intake.active) state.intake = newIntake();
-      const requestedWork = workFrom(message) || topicWork[state.topic];
+      const requestedWork = response.work || workFrom(message) || topicWork[state.topic];
+      if (!state.intake.active) {
+        const { vehicle, year, mileage } = state.intake;
+        state.intake = { ...newIntake(), vehicle, year, mileage };
+      }
       if (requestedWork && requestedWork !== state.intake.work) {
         state.intake.work = requestedWork;
         state.intake.details = null;
       }
       state.intake.active = true; collectDetails(state.intake, message);
       state.topic = null;
-      state.intent = 'quote'; state.guide = null; promptIntake(state, now + 1, quoteIntro(state.intake.work) + ' '); return { ok: true };
+      if (response.unanswered) state.reviewQuestions = [...state.reviewQuestions, ...response.unanswered].slice(-8);
+      state.intent = 'quote'; state.guide = null; promptIntake(state, now + 1, [quoteIntro(state.intake.work), ...(response.extraReplies || [])].join('\n\n') + '\n\n'); return { ok: true };
     }
+    const vehicleContext = /\b(my|i have|ive got|i own|it is|its|sorry)\b/.test(q);
+    if (vehicleContext) collectDetails(state.intake, message);
+    if (['needs-review','loan-car','warranty','service-inclusions'].includes(response.intent)) state.reviewQuestions = [...state.reviewQuestions, message].slice(-8);
+    if (response.unanswered) state.reviewQuestions = [...state.reviewQuestions, ...response.unanswered].slice(-8);
+    response = personalise(state, response);
     state.intent = response.intent;
     if (knowledge.BY_ID[response.intent]) state.topic = response.intent;
     const meta = { ...response };
@@ -195,6 +263,7 @@
     if (state.closed) return { ok: false, error: 'Reopen this test conversation first.' };
     if (state.queued) return { ok: true };
     state.queued = true; state.intake.active = false; state.guide = null; state.intent = 'human';
+    state.handoffReason = 'Visitor requested PSI review';
     append(state, 'boost', 'Sent to Matt’s test inbox. You can add details here while waiting for his test reply.', now);
     state.notice = 'Waiting for PSI to reply in the test inbox.'; return { ok: true };
   }
@@ -211,6 +280,19 @@
     if (!text || text.length > MAX_MESSAGE) return { ok: false, error: `Write a reply within ${MAX_MESSAGE} characters.` };
     append(state, 'matt', text, now); state.notice = 'Test reply ready for the visitor. No real alert or email sent.'; return { ok: true };
   }
-  const api = Object.freeze({ MAX_MESSAGE, MAX_MESSAGES, GREETING, HELP, SAMPLES, GUIDES, answer, createSession, send, handoff, view, reply });
+  function handoffSummary(state) {
+    if (!state.queued) return null;
+    const intake = state.intake;
+    return {
+      vehicle: intake.vehicle || 'Not supplied', year: intake.year || 'Not supplied',
+      work: intake.work || 'PSI to review', mileage: intake.mileage || 'Not supplied',
+      details: intake.details || 'See visitor messages',
+      needsReview: [...new Set(state.reviewQuestions)].filter(question => !/^(message psi|message matt|matt)$/i.test(question)).slice(-8),
+      recentMessages: state.messages.filter(message => message.role === 'visitor').slice(-4).map(message => message.text),
+      reason: state.handoffReason || 'Visitor requested PSI review',
+      status: 'Private test only. No price or booking confirmed.',
+    };
+  }
+  const api = Object.freeze({ MAX_MESSAGE, MAX_MESSAGES, GREETING, HELP, SAMPLES, GUIDES, answer, createSession, send, handoff, view, reply, handoffSummary });
   if (typeof module === 'object' && module.exports) module.exports = api; else root.BoostWebsiteTest = api;
 })(typeof window === 'object' ? window : globalThis);

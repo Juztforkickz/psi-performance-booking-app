@@ -19,6 +19,7 @@
   }
   function messages(target) {
     target.replaceChildren();
+    if (state.mode === 'inbox' && target.id === 'boost-inbox-messages') window.appendBoostSummary(target, engine.handoffSummary(state));
     state.messages.forEach(message => {
       const item = document.createElement('article');
       item.className = 'boost-message ' + message.role;
@@ -88,12 +89,13 @@
   root.querySelectorAll('[data-command]').forEach(button => button.addEventListener('click', () => send(button.dataset.command)));
   el('boost-handoff').addEventListener('click', () => { const result = engine.handoff(state); showError('boost-customer-error', result.error); render(); remember(); });
   for (const [id, mode] of [['boost-customer-tab', 'customer'], ['boost-inbox-tab', 'inbox']]) {
-    el(id).addEventListener('click', () => { engine.view(state, mode); render(); remember(); });
+    el(id).addEventListener('click', () => { engine.view(state, mode); render(); if (mode === 'inbox') el('boost-inbox-messages').scrollTop = 0; remember(); });
     el(id).addEventListener('keydown', event => {
       if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
         event.preventDefault();
         const next = event.key === 'Home' ? 'customer' : event.key === 'End' ? 'inbox' : mode === 'customer' ? 'inbox' : 'customer';
         engine.view(state, next); render(); remember();
+        if (next === 'inbox') el('boost-inbox-messages').scrollTop = 0;
         el(next === 'customer' ? 'boost-customer-tab' : 'boost-inbox-tab').focus();
       }
     });

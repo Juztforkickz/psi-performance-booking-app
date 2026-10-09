@@ -67,6 +67,11 @@ test('the local server blocks connections, writes, filesystem routes and foreign
   assert.match(review.body, /12 decisions for Matt/);
   assert.match(review.headers['content-security-policy'], /connect-src 'none'/);
   assert.equal((await request(port, { path: '/review.html', method: 'POST' })).status, 404);
+  const rehearsals = await request(port, { path: '/rehearsals.html' });
+  assert.equal(rehearsals.status, 200);
+  assert.match(rehearsals.body, /20 of 20 conversations passed/);
+  assert.match(rehearsals.headers['content-security-policy'], /connect-src 'none'/);
+  assert.equal((await request(port, { path: '/rehearsals.html', method: 'POST' })).status, 404);
   assert.equal((await request(port, { method: 'POST' })).status, 404);
   assert.equal((await request(port, { path: '/.env' })).status, 404);
   assert.equal((await request(port, { path: '/../mobile/app.json' })).status, 404);
