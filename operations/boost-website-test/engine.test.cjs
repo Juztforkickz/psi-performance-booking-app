@@ -24,6 +24,32 @@ test('service does not override pricing and mixed requests route to a person', (
   assert.equal(engine.answer('How much does EV servicing cost?').handoff, false);
   assert.equal(engine.answer('Can you change my account and book a service?').intent, 'account');
 });
+test('website visitors get enquiry guidance without an app requirement or automatic handoff', () => {
+  for (const question of ['What happens when I book a service?', 'How do I book?', 'Where do I send an enquiry?', 'Can I book online?', 'Do I need the app?', 'Can I book without the app?']) {
+    const result = engine.answer(question);
+    assert.equal(result.handoff, false);
+    assert.match(result.reply, /website/);
+    assert.match(result.reply, /Message PSI/);
+    assert.doesNotMatch(result.reply, /Service & Report|choose your vehicle|open the app/i);
+    const state = engine.createSession();
+    engine.send(state, question);
+    assert.equal(state.queued, false);
+  }
+  assert.match(engine.answer('Do I need the app?').reply, /without downloading the app/);
+});
+test('website booking guidance preserves confirmation checks and active quote details', () => {
+  for (const question of ['How do I cancel my booking?', 'Can you confirm my booking online?', 'How do I change my booking date?', 'Do I need the app to see my invoice?']) {
+    assert.equal(engine.answer(question).handoff, true);
+  }
+  const state = engine.createSession();
+  engine.send(state, 'What is the service price for my 2021 Audi RS3?');
+  engine.send(state, 'Can I book without the app?');
+  assert.equal(state.queued, false);
+  assert.equal(state.intake.pending, 'mileage');
+  assert.equal(state.intake.vehicle, 'What is the service price for my 2021 Audi RS3?');
+  engine.send(state, '65000 km');
+  assert.equal(state.intake.pending, 'confirm');
+});
 test('handoff is idempotent, further messages wait for Matt, and read times follow the correct viewer', () => {
   const state = engine.createSession(1000);
   engine.send(state, '/service', 2000);

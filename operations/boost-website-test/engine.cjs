@@ -37,6 +37,15 @@
     if (/\b(price|cost|how much|quote)\b/.test(q)) {
       return result('quote-or-diagnosis', 'PSI will confirm the price. What work do you need?', false, 'quote');
     }
+    const appRequired = /\b(need|require|required|have to|must|without)\b.*\bapp\b/.test(q);
+    const bookingGuide = /\b(how|where)\b.*\b(book|booking|appointment|enquire|enquiry)\b/.test(q)
+      || /\b(book|enquire)\b.*\b(website|online)\b/.test(q) || appRequired;
+    const bookingAction = /\b(confirm|cancel|reschedule|change|my booking|tomorrow|today|deposit)\b/.test(q);
+    if (bookingGuide && !bookingAction) {
+      return result('booking-guide', appRequired
+        ? 'You can enquire on this website without downloading the app. Use Book an appointment, or choose Message PSI here.'
+        : 'Use Book an appointment on this website, or choose Message PSI here. PSI will review the work and preferred date before confirming.');
+    }
     if (/\b(booking|book|appointment|tomorrow|date|deposit|cancel|reschedule)\b/.test(q) && !/\b(service|servicing|dyno|tuning)\b/.test(q)) {
       return result('booking', 'PSI must confirm or change the booking. Your test conversation is in Matt’s inbox.', true);
     }
@@ -47,7 +56,7 @@
       return result('dyno', 'PSI can review your setup for dyno tuning. What car and year is it?', false, 'dyno');
     }
     if (/\b(service|servicing|maintenance|inspection)\b/.test(q)) {
-      return result('service', 'Choose Service & Report, then your vehicle, service options and preferred date. PSI will confirm availability.');
+      return result('service', 'Use Book an appointment on this website, or choose Message PSI here. Include your vehicle, work needed and preferred date. PSI will confirm availability.');
     }
     if (/\b(address|where|location|pakenham)\b/.test(q)) {
       return result('location', '21 Exchange Drive, Pakenham VIC 3810. Call PSI on 0433 431 781.');

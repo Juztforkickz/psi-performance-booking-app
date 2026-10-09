@@ -28,7 +28,7 @@ Use the sample buttons or type these commands into the visitor message field:
 
 | Command | Local test |
 | --- | --- |
-| `/service` | Explain Service & Report and date review |
+| `/service` | Explain website enquiry and date review |
 | `/dyno` | Collect the car, year, setup and tuning goal |
 | `/ev` | Collect the car, year and what needs checking |
 | `/booking` | Hand over a booking confirmation request |
@@ -53,6 +53,8 @@ Conversation text is kept only in page memory and disappears after a page refres
 The server serves only the test pages. It does not expose a file browser, message endpoint, email route, payment route, customer API or real booking action. Its browser policy blocks outbound connections and form submissions. Foreign hosts and origins, cross site requests, POST requests and arbitrary file paths are rejected. No credentials or production customer data are used. User messages render as literal text rather than HTML.
 
 The website placement preview is available at `http://127.0.0.1:8780/website.html`. See [the placement preview guide](BOOST-WEBSITE-PLACEMENT-PREVIEW.md) for its scope, assets and checks. It keeps this original conversation test available.
+
+The 9 October wording revision removes the app’s Service & Report instructions from the website servicing reply. Routine booking questions now point to Book an appointment on the website or Message PSI in the chat. Asking whether the app is required explains that a website enquiry does not require downloading it. These explanations do not automatically hand over a conversation. Existing booking changes, confirmations and private account questions still require PSI review. The quote intake and explicit handoff safeguards are preserved. All 22 targeted automated checks pass.
 
 Run the relevant checks:
 

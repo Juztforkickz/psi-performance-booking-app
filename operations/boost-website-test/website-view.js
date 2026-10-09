@@ -91,7 +91,11 @@
   root.addEventListener('keydown', event => { if (event.key === 'Escape' && state.open) close(); });
   // Leave room for a phone keyboard and hide the mascot while composing.
   root.addEventListener('focusin', event => { if (event.target.tagName === 'TEXTAREA') root.classList.add('bp-typing'); });
-  root.addEventListener('focusout', event => { if (!event.relatedTarget || event.relatedTarget.tagName !== 'TEXTAREA') root.classList.remove('bp-typing'); });
+  root.addEventListener('focusout', event => {
+    // Keep the panel steady when focus moves from the input to Send or another chat control.
+    // Moving it on pointer down can prevent the intended button click from completing.
+    if (!event.relatedTarget || !el('bp-chat').contains(event.relatedTarget)) root.classList.remove('bp-typing');
+  });
   function fitViewport() {
     if (document.body.classList.contains('boost-website-standalone') && window.visualViewport) {
       root.style.height = Math.round(window.visualViewport.height) + 'px';
