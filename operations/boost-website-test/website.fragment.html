@@ -1,0 +1,139 @@
+<div id="psi-boost-website-placement">
+  <style>
+    @font-face{font-family:BoostPreviewPSI;src:url('__PSI_FONT__') format('woff2');font-display:swap}
+    #psi-boost-website-placement{position:relative;height:820px;max-width:100%;overflow:hidden;background:#000;color:#f4f8fc;font:15px/1.55 Arial,sans-serif;color-scheme:dark}
+    #psi-boost-website-placement *{box-sizing:border-box}
+    #psi-boost-website-placement [hidden]{display:none!important}
+    #psi-boost-website-placement button,#psi-boost-website-placement a{font:inherit}
+    #psi-boost-website-placement button{color:inherit}
+    #psi-boost-website-placement .bp-testbar{min-height:44px;background:#1d2730;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:7px 18px;font-size:12px;color:#d1dce7;position:relative;z-index:4}
+    #psi-boost-website-placement .bp-testtools{display:flex;gap:8px;flex-shrink:0}
+    #psi-boost-website-placement .bp-testtools button{border:1px solid #526270;background:transparent;min-height:32px;padding:4px 10px;border-radius:5px;font-size:12px}
+    #psi-boost-website-placement .bp-page{height:calc(100% - 46px);overflow:auto;overscroll-behavior:contain;scroll-behavior:smooth}
+    #psi-boost-website-placement .bp-header{background:#000;padding:26px 30px 22px;border-bottom:1px solid #34464f}
+    #psi-boost-website-placement .bp-header-top{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:18px;min-height:62px}
+    #psi-boost-website-placement .bp-logo{width:155px;height:60px;object-fit:contain}
+    #psi-boost-website-placement .bp-icons{position:absolute;right:0;display:flex;gap:16px;color:#c7ced4;font-size:12px}
+    #psi-boost-website-placement .bp-nav{display:flex;justify-content:center;gap:25px;flex-wrap:wrap;font-size:14px;color:#c6c9ce}
+    #psi-boost-website-placement .bp-nav a{color:inherit;text-decoration:none;padding:3px 0}
+    #psi-boost-website-placement .bp-nav a:first-child{color:#65cef8;border-bottom:1px solid #65cef8}
+    #psi-boost-website-placement .bp-hero{position:relative;min-height:550px;padding:48px 4%;display:flex;align-items:flex-start;background-image:linear-gradient(90deg,rgba(0,0,0,.12),rgba(0,0,0,.03)),url('__PSI_HERO__');background-position:center;background-size:cover}
+    #psi-boost-website-placement .bp-hero-copy{background:rgba(0,0,0,.66);border:1px solid #4d8ca5;border-left:4px solid #65cef8;width:48%;max-width:620px;padding:30px;backdrop-filter:blur(5px)}
+    #psi-boost-website-placement .bp-hero h1{font-family:BoostPreviewPSI,Arial,sans-serif;font-size:clamp(24px,3.4vw,41px);font-weight:400;line-height:1.28;margin:0 0 18px;overflow-wrap:anywhere}
+    #psi-boost-website-placement .bp-hero p{margin:0 0 24px;font-size:17px;max-width:380px}
+    #psi-boost-website-placement .bp-sitebutton{display:inline-block;color:#07121a;background:#edf3f6;border:1px solid #65cef8;border-radius:4px;box-shadow:inset 0 -3px #65cef8;text-decoration:none;padding:14px 20px;font-weight:700;font-size:13px;letter-spacing:.03em;text-align:center}
+    #psi-boost-website-placement .bp-slides{display:flex;justify-content:center;gap:22px;align-items:center;padding:13px;background:#000;color:#a0aab2;border-bottom:2px solid #2288bd;font-size:14px}
+    #psi-boost-website-placement .bp-services{padding:44px 4% 50px;background:#07111d;border-bottom:2px solid #2288bd}
+    #psi-boost-website-placement .bp-eyebrow{font-size:12px;letter-spacing:.12em;font-weight:700;color:#76cdf8;margin:0 0 16px}
+    #psi-boost-website-placement .bp-services h2,#psi-boost-website-placement .bp-booking h2{font:400 clamp(24px,3vw,33px)/1.4 BoostPreviewPSI,Arial,sans-serif;margin:0 0 18px;overflow-wrap:anywhere}
+    #psi-boost-website-placement .bp-services>p:not(.bp-eyebrow){max-width:880px;color:#d5dfe8;font-size:16px}
+    #psi-boost-website-placement .bp-service-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:26px}
+    #psi-boost-website-placement .bp-service-card{padding:22px;background:#122332;border-top:2px solid #3888aa}
+    #psi-boost-website-placement .bp-service-card h3{font:400 17px/1.5 BoostPreviewPSI,Arial,sans-serif;margin:0 0 14px}
+    #psi-boost-website-placement .bp-service-card p{margin:0;color:#ccd5de;font-size:14px}
+    #psi-boost-website-placement .bp-booking{padding:48px 4% 130px;background:#0b1016}
+    #psi-boost-website-placement .bp-footer{padding:28px 4% 150px;background:#000;border-top:1px solid #326378;color:#b9c4cd;font-size:14px}
+    #psi-boost-website-placement .bp-panel{position:absolute;right:24px;bottom:124px;width:370px;max-width:calc(100% - 32px);max-height:calc(100% - 190px);display:flex;flex-direction:column;z-index:5;border:1px solid #4a6577;border-radius:16px;background:#17222e;box-shadow:0 15px 65px rgba(0,0,0,.55);overflow:hidden}
+    #psi-boost-website-placement .bp-chathead{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:17px 18px;background:#202f3f;border-bottom:1px solid #405568;flex-shrink:0}
+    #psi-boost-website-placement .bp-chathead h2{margin:0;font-size:19px;line-height:1.35;font-weight:700}
+    #psi-boost-website-placement .bp-chathead p{margin:3px 0 0;color:#c3d4e2;font-size:12px}
+    #psi-boost-website-placement .bp-preview-tag{font-size:11px;color:#9dddff;font-weight:400;margin-left:8px;vertical-align:middle}
+    #psi-boost-website-placement .bp-close{width:44px;height:44px;border:0;background:transparent;font-size:28px;flex-shrink:0;border-radius:5px}
+    #psi-boost-website-placement .bp-transcript{overflow:auto;overscroll-behavior:contain;min-height:0;max-height:300px;padding:18px;flex:1;scrollbar-width:thin}
+    #psi-boost-website-placement .bp-message{margin-bottom:16px;max-width:94%}
+    #psi-boost-website-placement .bp-message:last-child{margin-bottom:0}
+    #psi-boost-website-placement .bp-message.visitor{margin-left:auto}
+    #psi-boost-website-placement .bp-byline{font-size:11px;color:#b9cddc;margin:0 0 4px}
+    #psi-boost-website-placement .bp-message.visitor .bp-byline,#psi-boost-website-placement .bp-message.visitor .bp-time{text-align:right}
+    #psi-boost-website-placement .bp-bubble{padding:12px 14px;background:#2c3e4f;border-radius:3px 13px 13px 13px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.5}
+    #psi-boost-website-placement .bp-message.visitor .bp-bubble{background:#69cef5;color:#092333;border-radius:13px 3px 13px 13px}
+    #psi-boost-website-placement .bp-time{font-size:11px;color:#aabfcf;margin-top:5px}
+    #psi-boost-website-placement .bp-quick{display:flex;gap:7px;flex-wrap:wrap;padding:0 18px 14px;flex-shrink:0}
+    #psi-boost-website-placement .bp-quick button{background:#223444;border:1px solid #4c6c84;border-radius:18px;padding:8px 11px;min-height:36px;font-size:12px}
+    #psi-boost-website-placement .bp-composer{padding:14px 16px 12px;border-top:1px solid #405568;background:#1c2a38;flex-shrink:0}
+    #psi-boost-website-placement .bp-compose-row{display:flex;gap:9px;align-items:flex-end}
+    #psi-boost-website-placement textarea{display:block;width:100%;min-width:0;resize:vertical;min-height:48px;max-height:110px;border:1px solid #5f758a;border-radius:8px;padding:11px;background:#101b26;color:#f5f9fc;font:16px/1.45 Arial,sans-serif}
+    #psi-boost-website-placement textarea::placeholder{color:#b4c6d5}
+    #psi-boost-website-placement .bp-send{height:48px;padding:0 14px;border:0;border-radius:8px;background:#65cef8;color:#082639;font-weight:700;font-size:13px}
+    #psi-boost-website-placement .bp-compose-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:11px;color:#b7c7d5}
+    #psi-boost-website-placement .bp-handoff{padding:6px 0;border:0;background:transparent;color:#9dddff;font-size:12px;min-height:32px;text-decoration:underline;text-underline-offset:3px}
+    #psi-boost-website-placement .bp-error{color:#ffcfca;font-size:12px;margin:8px 0 0}
+    #psi-boost-website-placement .bp-launcher{position:absolute;right:20px;bottom:15px;z-index:6;width:104px;height:104px;background:transparent;border:0;padding:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.65));transition:transform .18s ease}
+    #psi-boost-website-placement .bp-launcher:hover{transform:translateY(-3px)}
+    #psi-boost-website-placement .bp-launcher img{width:100%;height:100%;display:block;object-fit:contain}
+    #psi-boost-website-placement .bp-ask-label{position:absolute;right:132px;bottom:44px;z-index:5;border:1px solid #4c6c84;border-radius:9px;padding:8px 15px;background:#202f3f;color:#e7f4fd;font-weight:700;font-size:13px;pointer-events:none}
+    #psi-boost-website-placement .bp-inbox-empty{padding:24px 18px;color:#cbdae5;font-size:14px}
+    #psi-boost-website-placement .bp-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    #psi-boost-website-placement button:disabled{opacity:.6}
+    body.boost-website-standalone{margin:0;background:#000}
+    body.boost-website-standalone #psi-boost-website-placement{height:100dvh}
+    @media(max-width:700px){
+      #psi-boost-website-placement{height:780px}
+      #psi-boost-website-placement .bp-testbar{padding:6px 10px;gap:8px;min-height:60px}
+      #psi-boost-website-placement .bp-testbar>span{max-width:165px;font-size:11px;line-height:1.4}
+      #psi-boost-website-placement .bp-testtools{gap:5px}
+      #psi-boost-website-placement .bp-testtools button{min-height:44px;padding:5px 7px;font-size:11px}
+      #psi-boost-website-placement .bp-page{height:calc(100% - 60px)}
+      #psi-boost-website-placement .bp-header{padding:19px 18px 18px}
+      #psi-boost-website-placement .bp-header-top{margin:0}
+      #psi-boost-website-placement .bp-logo{width:155px;height:60px}
+      #psi-boost-website-placement .bp-icons{display:none}
+      #psi-boost-website-placement .bp-nav{margin-top:17px;gap:16px;font-size:12px}
+      #psi-boost-website-placement .bp-nav a:nth-child(6),#psi-boost-website-placement .bp-nav a:nth-child(7){display:none}
+      #psi-boost-website-placement .bp-hero{min-height:590px;align-items:flex-end;padding:22px 18px;background-position:60% center}
+      #psi-boost-website-placement .bp-hero-copy{width:100%;padding:22px}
+      #psi-boost-website-placement .bp-hero h1{font-size:25px}
+      #psi-boost-website-placement .bp-hero p{font-size:14px}
+      #psi-boost-website-placement .bp-service-grid{grid-template-columns:1fr}
+      #psi-boost-website-placement .bp-panel{right:12px;bottom:113px;max-width:calc(100% - 24px);max-height:calc(100% - 183px)}
+      #psi-boost-website-placement .bp-launcher{right:10px;bottom:12px;width:94px;height:94px}
+      #psi-boost-website-placement .bp-ask-label{right:116px;bottom:38px}
+      #psi-boost-website-placement .bp-quick button{min-height:44px}
+      #psi-boost-website-placement .bp-handoff{min-height:44px}
+      #psi-boost-website-placement.bp-typing .bp-launcher{visibility:hidden}
+      #psi-boost-website-placement.bp-typing .bp-quick{display:none}
+      #psi-boost-website-placement.bp-typing .bp-panel{bottom:12px;max-height:calc(100% - 82px)}
+      #psi-boost-website-placement .bp-composer{padding-bottom:max(12px,env(safe-area-inset-bottom))}
+    }
+    @media(max-height:600px){#psi-boost-website-placement .bp-quick{display:none}}
+    @media(prefers-reduced-motion:reduce){#psi-boost-website-placement .bp-launcher{transition:none}#psi-boost-website-placement .bp-page{scroll-behavior:auto}}
+  </style>
+  <div class="bp-testbar">
+    <span>Private preview · Messages stay in this test</span>
+    <div class="bp-testtools"><button id="bp-test-inbox" class="cursor-interaction" type="button">Matt’s test inbox</button><button id="bp-reset" class="cursor-interaction" type="button">Reset</button></div>
+  </div>
+  <div class="bp-page" id="bp-page">
+    <header class="bp-header">
+      <div class="bp-header-top"><img class="bp-logo" src="__PSI_LOGO__" alt="PSI Performance Garage"><span class="bp-icons" aria-hidden="true">Search · Account · Cart</span></div>
+      <nav class="bp-nav" aria-label="Website preview"><a class="cursor-interaction" href="#bp-page">Home</a><a class="cursor-interaction" href="#bp-workshop">Shop Now</a><a class="cursor-interaction" href="#bp-workshop">Tuning &amp; Coding</a><a class="cursor-interaction" href="#bp-workshop">EV &amp; Hybrid</a><a class="cursor-interaction" href="#bp-contact">Contact</a><a class="cursor-interaction" href="#bp-workshop">Workshop Services</a><a class="cursor-interaction" href="#bp-workshop">Power Estimator</a></nav>
+    </header>
+    <section class="bp-hero" aria-label="PSI website homepage">
+      <div class="bp-hero-copy"><h1>Performance Services,<br>Maintenance &amp; Repairs</h1><p>From cold air intakes to full performance engine builds, we do it all.</p><a class="bp-sitebutton cursor-interaction" href="#bp-contact">BOOK AN APPOINTMENT</a></div>
+    </section>
+    <div class="bp-slides" aria-hidden="true">‹ &nbsp; ● &nbsp; ○ &nbsp; ○ &nbsp; ›</div>
+    <section class="bp-services" id="bp-workshop">
+      <p class="bp-eyebrow">PSI PERFORMANCE · PAKENHAM</p><h2>Workshop services. Done right.</h2>
+      <p>Got a problem another workshop hasn’t pinned down? We inspect, test and explain the cause before recommending work. From everyday maintenance to serious performance builds, you get a clear plan and workmanship you can trust.</p><p><strong>Do it once. Do it right.</strong></p>
+      <div class="bp-service-grid"><article class="bp-service-card"><h3>Servicing, diagnostics &amp; repairs</h3><p>Maintenance, fault finding and mechanical repairs. EV and hybrid servicing and battery diagnostics where supported.</p></article><article class="bp-service-card"><h3>Hub dyno tuning</h3><p>Measured tuning, drivability and upgrades planned around your car and how you use it.</p></article><article class="bp-service-card"><h3>Engine builds &amp; upgrades</h3><p>Engine rebuilds, turbo and supercharger setups, supported module coding and complete project planning.</p></article></div>
+    </section>
+    <section class="bp-booking" id="bp-contact"><p class="bp-eyebrow">BOOK YOUR CAR</p><h2>Let’s get you sorted.</h2><p>Send an enquiry first. PSI will review the work and contact you to confirm the next step.</p><p>Try Boost in the corner to ask a question.</p></section>
+    <footer class="bp-footer">PSI Performance Garage<br>21 Exchange Drive, Pakenham VIC 3810<br>0433 431 781</footer>
+  </div>
+  <section class="bp-panel" id="bp-chat" aria-labelledby="bp-chat-title">
+    <header class="bp-chathead"><div><h2 id="bp-chat-title">Ask PSI <span class="bp-preview-tag">PREVIEW</span></h2><p id="bp-status">Quick answers from Boost</p></div><button class="bp-close cursor-interaction" id="bp-close" type="button" aria-label="Close conversation">×</button></header>
+    <div id="bp-transcript" class="bp-transcript" role="log" aria-live="polite" aria-label="Conversation"></div>
+    <div id="bp-inbox-empty" class="bp-inbox-empty" hidden>No conversation handed over yet. Return to the visitor view and select Message PSI.</div>
+    <div id="bp-quick" class="bp-quick"><button class="cursor-interaction" type="button" data-ask="/service">Servicing</button><button class="cursor-interaction" type="button" data-ask="/dyno">Dyno tuning</button><button class="cursor-interaction" type="button" data-ask="/ev">EV &amp; Hybrid</button></div>
+    <form id="bp-form" class="bp-composer">
+      <label class="bp-sr" for="bp-message">Your message to Boost</label>
+      <div class="bp-compose-row"><textarea id="bp-message" rows="1" maxlength="1500" placeholder="Type your message…"></textarea><button class="bp-send cursor-interaction" type="submit">Send</button></div>
+      <p id="bp-error" class="bp-error" role="alert" hidden></p>
+      <div class="bp-compose-footer"><button class="bp-handoff cursor-interaction" id="bp-handoff" type="button">Message PSI</button><span>Local test only</span></div>
+    </form>
+    <form id="bp-inbox-form" class="bp-composer" hidden><label class="bp-sr" for="bp-reply">Matt’s test reply</label><div class="bp-compose-row"><textarea id="bp-reply" rows="1" maxlength="1500" placeholder="Write Matt’s test reply…"></textarea><button class="bp-send cursor-interaction" type="submit">Reply</button></div><p id="bp-inbox-error" class="bp-error" role="alert" hidden></p><div class="bp-compose-footer"><button class="bp-handoff cursor-interaction" id="bp-visitor" type="button">Return to visitor view</button><span>Simulated inbox</span></div></form>
+  </section>
+  <span id="bp-ask-label" class="bp-ask-label" hidden>Ask PSI</span>
+  <button id="bp-launcher" class="bp-launcher cursor-interaction" type="button" aria-label="Open Boost conversation" aria-controls="bp-chat" aria-expanded="true"><img src="__BOOST_PREVIEW_IMAGE__" alt="Boost, PSI’s turbo assistant"></button>
+  <script>/*__BOOST_ENGINE__*/</script>
+  <script>/*__WEBSITE_VIEW__*/</script>
+</div>

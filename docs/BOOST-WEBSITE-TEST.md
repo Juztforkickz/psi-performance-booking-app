@@ -50,7 +50,9 @@ Conversation text is kept only in page memory and disappears after a page refres
 
 ## Isolation and validation
 
-The server serves only the test page. It does not expose a file browser, message endpoint, email route, payment route, customer API or real booking action. Its browser policy blocks outbound connections and form submissions. Foreign hosts and origins, cross site requests, POST requests and arbitrary file paths are rejected. No credentials or production customer data are used. User messages render as literal text rather than HTML.
+The server serves only the test pages. It does not expose a file browser, message endpoint, email route, payment route, customer API or real booking action. Its browser policy blocks outbound connections and form submissions. Foreign hosts and origins, cross site requests, POST requests and arbitrary file paths are rejected. No credentials or production customer data are used. User messages render as literal text rather than HTML.
+
+The website placement preview is available at `http://127.0.0.1:8780/website.html`. See [the placement preview guide](BOOST-WEBSITE-PLACEMENT-PREVIEW.md) for its scope, assets and checks. It keeps this original conversation test available.
 
 Run the relevant checks:
 
