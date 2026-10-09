@@ -57,8 +57,12 @@
     const response = answer(text), q = normalise(text);
     if (response.handoff) return response;
     if ((state.intake.work === 'cam' || ['cam','cam-engines','dod-delete'].includes(state.topic)) && /\b(ls1|ls2|ls3|lsa|l77|l76|l98)\b/.test(q) && (/\b(dod|afm|delete kit)\b/.test(q) || /^(?:what|how) about (?:my |an? )?(?:ls1|ls2|ls3|lsa|l77|l76|l98)$/.test(q)) && !knowledge.isPricing(q)) return toFAQ(knowledge.BY_ID['dod-delete']);
+    if (['cam', 'cam-inclusions', 'cam-options'].includes(state.topic) || state.intake.work === 'cam') {
+      if (/\b(include\w*|comes with|contents|cover\w*)\b/.test(q) && /\b(fitting|labour|labor|tuning|tune|cam|springs?|pushrods?|timing|gaskets?|coolant)\b/.test(q) && !/\b(transmission|tcu|cpc|unlock|lifters?|heads?|spark plugs|sump|rocker)\b/.test(q)) return toFAQ(knowledge.BY_ID['cam-inclusions']);
+      if (/\b(lifters?|head gaskets?|head bolts?|spark plugs|sump gasket|rocker cover|exhaust manifold)\b/.test(q) && /\b(include\w*|extra|optional)\b/.test(q)) return toFAQ(knowledge.BY_ID['cam-options']);
+    }
     const supportingTopic = state.topic || ({ 'CNC head porting': 'cnc-heads', 'valve seat upgrade': 'valve-seats', 'pump and trunnions': 'pump-trunnions' })[state.intake.work];
-    if (['cnc-heads','valve-seats','pump-trunnions'].includes(supportingTopic) && /\b(fitting|labour|labor|removal|install\w*)\b/.test(q) && !knowledge.isPricing(q) && !/\b(other|different)\b/.test(q)) return toFAQ(knowledge.BY_ID[supportingTopic]);
+    if (['cnc-heads','valve-seats','pump-trunnions','lifter-package'].includes(supportingTopic) && /\b(fitting|labour|labor|removal|install\w*)\b/.test(q) && !knowledge.isPricing(q) && !/\b(other|different)\b/.test(q)) return toFAQ(knowledge.BY_ID[supportingTopic]);
     if (/^(?:is|does) (?:that|it|the price) (?:include|including|includes) gst$/.test(q)) {
       return result('gst', 'Where Boost shows + GST, it also shows the amount including GST. Use the GST inclusive figure for that item. Additional or individually quoted work needs a total confirmed by PSI. I cannot assume the tax or inclusions for an unconfirmed price.', { sources: ['ownerApproval'], prompts: ['Message PSI'] });
     }
@@ -69,7 +73,7 @@
     if (APP_TOPICS.includes(state.topic) && /^(is it free|is that free|do i have to pay)$/.test(q)) return toFAQ(knowledge.BY_ID.free);
     if (['plus','plus-price','trial'].includes(state.topic) && /\b(pay|cover|include)\w*\b.*\b(service|workshop|tune|deposit)\b/.test(q)) return result('free', 'Performance+ is optional app access. Servicing, tuning, parts and workshop deposits are charged separately.', { sources: ['plus'], prompts: ['How do I book?'] });
     if (['stock','shipping','fitment','exhaust'].includes(state.topic) && /\b(arrive|arriving|delivered|delivery)\b/.test(q)) return toFAQ(knowledge.BY_ID.shipping);
-    if (/\b(include\w*|cover\w*)\b/.test(q) && /\b(ev|hybrid|electric)\b/.test(q) && /\b(price|every|all|423|service)\b/.test(q)) return result('service-inclusions', 'PSI must confirm the service price and inclusions for your exact EV or hybrid. The starting guide does not confirm coverage for every model or every job.', { sources: ['pricingApproval','ev'], prompts: ['I need a service quote', 'Message PSI'] });
+    if (/\b(include\w*|cover\w*)\b/.test(q) && /\b(ev|hybrid|electric)\b/.test(q) && /\b(price|every|all|423|service)\b/.test(q)) return result('service-inclusions', 'PSI must confirm the service price and inclusions for your exact EV or hybrid. Fully electric BEV servicing starts from AUD $325 including GST, with no engine oil or engine oil filter change. That BEV guide does not apply to hybrids with a combustion engine or confirm the price of additional work.', { sources: ['pricingApproval','ev'], prompts: ['I need a service quote', 'Message PSI'] });
     return response;
   }
   function conversationAnswer(state, text) {
@@ -115,8 +119,14 @@
   function quoteIntro(work, context = '') {
     const q = normalise(context);
     const otherMake = /\b(ford|bmw|audi|mercedes|toyota|nissan|honda|mazda|subaru|volkswagen|vw|hyundai|kia|mitsubishi|porsche|tesla|byd|coyote|barra|2jz)\b/.test(q);
+    if (work === 'cam' && /\b(l77|l76)\b/.test(q)) return knowledge.PRICE_GUIDES.cam + ' For your L77 or L76, the required head removal, lifter and DOD extras add AUD $2,750 + GST, which is AUD $3,025 including GST. PSI confirms the complete quote and any further upgrades.';
+    if (work === 'DOD delete' && /\b(ls1|ls2|ls3|lsa|l98)\b/.test(q) && !/\b(l77|l76)\b/.test(q)) return 'That listed LS engine does not require the L77 or L76 DOD kit for PSI’s cam packages. PSI checks the actual engine and any existing modifications before quoting the work.';
     if (work === 'cam' && otherMake && !/\b(ls1|ls2|ls3|lsa|l77|l76|l98)\b/.test(q)) return 'The cam starting guide is for PSI’s listed Holden and Chevrolet LS engines. Your engine and setup need an individual quote; that guide does not establish the price for this car.';
     if (work === 'OTR and tuning' && otherMake && !/\b(holden|hsv)\b/.test(q)) return 'The OTR and tune starting guide applies to Holden and HSV combinations. PSI needs to quote the intake, fitting and tuning for your vehicle individually.';
+    if (work === 'electric service') return knowledge.BY_ID['ev-service'].reply;
+    if (work === 'hybrid service') return 'Hybrids have a combustion engine. The fully electric service guide does not apply to them. PSI confirms the servicing requirements and price for your hybrid model; please include its year, model and the service due.';
+    if (work === 'head removal and lifters') return knowledge.BY_ID['lifter-package'].reply;
+    if (work === 'EV check' && /\b(service|servicing|maintenance)\b/.test(q)) return knowledge.BY_ID['ev-service'].reply;
     if (work === 'transmission tuning') return knowledge.BY_ID['ecu-tcu'].reply;
     if (work === 'module tuning') return knowledge.BY_ID['module-tuning'].reply;
     if (work === 'diagnostics') return 'Diagnostic scans cost AUD $88 including GST. Further fault finding is scoped separately, with labour at AUD $187 per hour including GST and no minimum labour charge. PSI confirms the investigation and any extra work for approval.';
@@ -134,6 +144,9 @@
     const supportingItems = [/\b(cnc|head porting)\b/, /\bvalve seats?\b/, /\b(oil pump|trunnions?)\b/].filter(pattern => pattern.test(q)).length;
     if (supportingItems > 1) return 'cam extras';
     for (const [work, pattern] of [
+      ['electric service', /\b(fully electric|full electric|electric vehicle|electric car|bev)\b.*\b(service|servicing|maintenance|oil|filter)\b|\b(service|servicing|maintenance|oil|filter)\b.*\b(fully electric|full electric|electric vehicle|electric car|bev)\b/],
+      ['hybrid service', /\b(hybrid|hev|phev)\b.*\b(service|servicing|maintenance)\b|\b(service|servicing|maintenance)\b.*\b(hybrid|hev|phev)\b/],
+      ['head removal and lifters', /\b(head removal|lifter package|lifter kit|ls7 lifters|ls2 lifter buckets)\b/],
       ['coding', /\b(coding|carplay|mbux)\b/],
       ['CNC head porting', /\b(cnc|head porting|port.*heads?)\b/], ['valve seat upgrade', /\bvalve seats?\b/],
       ['pump and trunnions', /\b(oil pump|trunnions?)\b/], ['DOD delete', /\b(dod|afm|displacement on demand)\b/], ['cam', /\b(cam|camshaft|lifters)\b/],
@@ -149,7 +162,7 @@
     ]) if (pattern.test(q)) return work;
     return null;
   }
-  const topicWork = { 'module-tuning': 'module tuning', 'cam-extras': 'cam extras', 'cam-engines': 'cam', 'dod-delete': 'DOD delete', 'cnc-heads': 'CNC head porting', 'valve-seats': 'valve seat upgrade', 'pump-trunnions': 'pump and trunnions', otr: 'OTR and tuning', 'scan-price': 'diagnostics', service: 'service', logbook: 'service', 'service-report': 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'transmission tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
+  const topicWork = { 'ev-service': 'electric service', 'lifter-package': 'head removal and lifters', 'cam-inclusions': 'cam', 'cam-options': 'cam', 'module-tuning': 'module tuning', 'cam-extras': 'cam extras', 'cam-engines': 'cam', 'dod-delete': 'DOD delete', 'cnc-heads': 'CNC head porting', 'valve-seats': 'valve seat upgrade', 'pump-trunnions': 'pump and trunnions', otr: 'OTR and tuning', 'scan-price': 'diagnostics', service: 'service', logbook: 'service', 'service-report': 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'transmission tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
   function collectDetails(intake, text) {
     const q = normalise(text), year = q.match(/\b((?:19|20)\d{2})\b/);
     const make = q.match(/\b(audi|bmw|ford|holden|hsv|chev(?:rolet)?|honda|hyundai|kia|mazda|mercedes(?: benz)?|mitsubishi|nissan|porsche|skoda|subaru|suzuki|tesla|toyota|volkswagen|vw|volvo|byd|mg|gwm|lexus|isuzu|jeep|land rover|peugeot|renault|ferrari|lamborghini|polestar|cupra|chery|mini)\b/);
@@ -162,12 +175,15 @@
   }
   function intakePrompt(intake) {
     if (!intake.work) { intake.pending = 'work'; return 'What work would you like quoted?'; }
-    if (!intake.vehicle) { intake.pending = 'vehicle'; return 'What car, engine and year is it?'; }
+    if (!intake.vehicle) { intake.pending = 'vehicle'; return ['electric service','hybrid service','EV check'].includes(intake.work) ? 'What vehicle make, model, year and powertrain is it?' : 'What car, engine and year is it?'; }
     if (!intake.year) { intake.pending = 'year'; return 'What year is the car?'; }
-    if (intake.work === 'service' && !intake.mileage) { intake.pending = 'mileage'; return 'What’s the odometer reading?'; }
+    if (['service','electric service','hybrid service'].includes(intake.work) && !intake.mileage) { intake.pending = 'mileage'; return 'What’s the odometer reading?'; }
     if (!intake.details) {
       intake.pending = 'details';
-      return ({ service: 'Which service is due, or is there a particular concern?',
+      return ({ 'electric service': 'Which scheduled service is due, and are there any warning messages or concerns?',
+        'hybrid service': 'Which service is due, what hybrid powertrain does it have, and are there any concerns?',
+        'head removal and lifters': 'Which LS engine and cam job is planned, and do you want any optional head work quoted?',
+        service: 'Which service is due, or is there a particular concern?',
         dyno: 'What’s the current setup, transmission, fuel and tuning goal? Include whether you want engine tuning, transmission tuning or both.',
         'specific tuning': 'What exact tuning or testing work do you need, and what engine, transmission, fuel and modifications does the car have?',
         'transmission tuning': 'Which transmission does the car have, and what is the current setup, modifications and tuning goal?',

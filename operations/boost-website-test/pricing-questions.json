@@ -1,6 +1,6 @@
 {
   "reviewDate": "2026-10-09",
-  "status": "Matt’s confirmed business answers and supplementary prices are applied to the private replies. Supplementary items show the + GST amount alongside the GST inclusive figure in the same text style. Machining, fitting and vehicle scope stay explicit. No live publication or message delivery is enabled.",
+  "status": "Matt’s confirmed cam package inclusions, head removal and lifter package, L77 and L76 DOD extras, and fully electric service guide are applied to the private replies. Prices plus GST show the GST inclusive figure alongside. Exact vehicle scope and additional work need PSI approval. No live publication or message delivery is enabled.",
   "approved": [
     {
       "topic": "Routine engine servicing",
@@ -16,7 +16,7 @@
     },
     {
       "topic": "Entry cam package",
-      "detail": "From AUD $3,795 including GST, converted from AUD $3,450 plus GST, drive in drive out. Holden and Chevrolet LS1, LS2, LS3, LSA, L77, L76 and L98. L77 and L76 require a DOD delete kit with a cam upgrade; LS1, LS2, LS3, L98 and LSA do not for these packages. Confirm actual engine and modifications. The full included parts and tuning list and DOD kit cost remain individually quoted."
+      "detail": "From AUD $3,450 + GST, which is AUD $3,795 including GST, drive in drive out, for the listed Holden and Chevrolet LS engines. Includes camshaft, valve springs, locks, retainers, stem seals, heavy duty pushrods, ARP camshaft and crankshaft bolts, timing cover and water pump gaskets, front crank seal, timing chain, coolant, labour and engine ECU dyno tuning. Includes a three bolt camshaft gear where conversion from a single bolt gear is required. Lifters, head removal and other listed optional items are additional. Actual engine, specification and modifications need confirmation."
     },
     {
       "topic": "CNC head porting",
@@ -53,22 +53,25 @@
     {
       "topic": "Transport",
       "detail": "No loan cars. Towing, pickup and vehicle transport are between the customer and their transport provider. Workshop arrival needs agreement with PSI."
-    }
-  ],
-  "questions": [
-    {
-      "id": 1,
-      "topic": "Exact entry cam package contents",
-      "question": "If Boost should list the full standard package contents, which parts and tuning are included in the entry price?",
-      "evidence": "Engine eligibility and DOD requirements are confirmed. The complete bill of parts and tuning inclusions was not provided. Boost gives the starting guide and asks PSI to confirm the written scope, without inventing inclusions."
     },
     {
-      "id": 2,
-      "topic": "EV and hybrid service pricing",
-      "question": "Should the engine service starting guide apply to any particular hybrids or electric vehicles, or should those prices always be individually confirmed?",
-      "evidence": "The latest answer confirms engine service tasks and reporting, not a universal HEV, PHEV or BEV price. Boost keeps model specific EV scope and pricing for PSI review."
+      "topic": "Optional cam job items",
+      "detail": "Lifters, head gaskets and bolts, exhaust manifold gaskets, spark plugs, sump gasket and rocker cover gaskets may be extra depending on the job. Lifters require cylinder head removal. CNC porting while the heads are off is optional and separately priced."
+    },
+    {
+      "topic": "Head removal and lifter package",
+      "detail": "Additional AUD $2,000 + GST, which is AUD $2,200 including GST, during a cam job. Includes head removal and refitting labour, genuine MLS head gaskets, LS7 lifters, LS2 lifter buckets and bolts, block cleaning and preparation, and GM head bolts. A parts and labour package, not labour alone. CNC porting, valve seats and other extras remain separate."
+    },
+    {
+      "topic": "L77 and L76 DOD work",
+      "detail": "Both require head removal and the lifter package for a camshaft upgrade. Matt confirmed DOD work adds AUD $750 + GST to the AUD $2,000 + GST head removal and lifter package. Combined extras are AUD $2,750 + GST, which is AUD $3,025 including GST, above the base cam package. DOD scope includes valley plate replacement, gasket and oil gallery blocking with welch plugs. No complete modified build total is automated."
+    },
+    {
+      "topic": "Fully electric servicing",
+      "detail": "BEV servicing starts from AUD $325 including GST. No combustion engine, so no engine oil or engine oil filter replacement. This is AUD $98.50 below the AUD $423.50 engine service guide. Exact service scope and additional work need confirmation. Do not apply this price to HEV or PHEV models; hybrids retain a combustion engine and their service price needs model confirmation."
     }
   ],
+  "questions": [],
   "quoteOnly": [
     "Forced induction, engine rebuilds, interchillers and water meth systems remain individually quoted. The answer numbered 7 restated servicing, rather than approving those package prices.",
     "EV and hybrid eligibility and inspection scope remain model dependent. Battery pack rebuilding stays excluded.",

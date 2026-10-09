@@ -33,12 +33,12 @@ test('cam and engine ECU guides do not leak into supplementary or module quotes'
     const r = engine.answer(q); assert.match(r.reply, /3,795 including GST/); assert.match(r.reply, /eligibility/);
   }
   assert.match(engine.answer('Price for an engine ECU tune?').reply, /649 including GST/);
-  for (const q of ['CPC tuning price?', 'ECU unlocking quote?', 'DOD delete kit price?']) {
+  for (const q of ['CPC tuning price?', 'ECU unlocking quote?']) {
     const r = engine.answer(q); assert.equal(r.collect, true, q);
     assert.doesNotMatch(r.reply, /\$[\d,]+/, q);
   }
   const cam = engine.createSession(); send(cam, 'Can you help choose a cam package?', 'Does that include fitting and tuning?');
-  assert.match(last(cam).text, /written quote/);
+  assert.match(last(cam).text, /labour and engine ECU dyno tuning/);
 });
 
 test('deposit policies are informational while personal changes and refunds require staff', () => {
@@ -120,17 +120,17 @@ test('pump and trunnion labour inclusion is conditional on the concurrent cam jo
   assert.equal(state.queued, false);
 });
 
-test('listed LS engines and DOD requirements are available without inventing a kit price', () => {
+test('listed LS engines retain confirmed DOD scope and additional charges', () => {
   const engines = engine.answer('Which engines are the cam packages for?').reply;
   for (const name of ['LS1', 'LS2', 'LS3', 'LSA', 'L77', 'L76', 'L98']) assert.ok(engines.includes(name), name);
   const dod = engine.answer('Does an L77 need a DOD delete?').reply;
-  assert.match(dod, /L77 and L76 engines require/); assert.match(dod, /LS1, LS2, LS3, L98 and LSA do not/);
-  assert.match(dod, /previous modifications/); assert.doesNotMatch(dod, /AUD \$/);
+  assert.match(dod, /L77 and L76 cam upgrades require/); assert.match(dod, /LS1, LS2, LS3, L98 and LSA do not/);
+  assert.match(dod, /previous modifications/); assert.match(dod, /2,750 \+ GST/); assert.match(dod, /3,025 including GST/);
   const state = engine.createSession(); send(state, 'Can you help choose a cam package?', 'What about my L76?');
-  assert.match(last(state).text, /DOD delete kit/); assert.equal(state.queued, false);
+  assert.match(last(state).text, /DOD work/); assert.equal(state.queued, false);
   const kit = engine.createSession(); send(kit, 'DOD delete kit cost for my 2011 Holden L77?');
   assert.equal(kit.intake.work, 'DOD delete'); assert.equal(kit.intake.pending, 'details');
-  assert.doesNotMatch(last(kit).text, /3,795|649|\$\d/);
+  assert.match(last(kit).text, /2,750 \+ GST/); assert.doesNotMatch(last(kit).text, /3,795|649/);
 });
 
 test('restricted LS and Holden guides do not become prices for other cars or a complete build', () => {
@@ -415,4 +415,47 @@ test('download preference can change explicitly without assuming installation', 
   send(state, 'Where can I download the PSI app?'); assert.deepEqual(last(state).links, ['apple']);
   send(state, 'I do not want the app, use the website', 'How do I book?'); assert.deepEqual(last(state).links, ['enquiry']);
   send(state, 'I want to book in the app', 'How do I book?'); assert.match(last(state).text, /Open Bookings/);
+});
+
+test('cam contents distinguish the approved base from optional parts and head work', () => {
+  const base = engine.answer('What is included in the entry cam package?').reply;
+  for (const part of ['camshaft', 'valve springs', 'locks', 'retainers', 'stem seals', 'pushrods', 'ARP', 'timing cover', 'water pump gaskets', 'front crank seal', 'timing chain', 'coolant', 'labour', 'engine ECU dyno tuning', 'three bolt', 'where conversion']) assert.ok(base.includes(part), part);
+  const state = engine.createSession();
+  send(state, 'Cam package quote for a 2012 Holden LS3?', 'Does that include fitting and tuning?');
+  assert.match(last(state).text, /labour and engine ECU dyno tuning/);
+  send(state, 'Are lifters included?');
+  assert.match(last(state).text, /may be extra/); assert.match(last(state).text, /cylinder head removal/);
+  assert.equal(state.intake.details, null); assert.equal(state.queued, false);
+});
+
+test('head and lifter pricing preserves conditional labour and mandatory L77 extras', () => {
+  const reply = engine.answer('What does the head removal and lifter package cost?').reply;
+  for (const part of ['2,000 + GST', '2,200 including GST', 'genuine MLS', 'LS7 lifters', 'LS2 lifter buckets', 'GM head bolts', 'block cleaning', 'During a cam job', 'separate']) assert.ok(reply.includes(part), part);
+  const state = engine.createSession();
+  send(state, 'Cam package price for my 2011 Holden L77?');
+  assert.match(last(state).text, /3,450 \+ GST/); assert.match(last(state).text, /required.*2,750 \+ GST/);
+  assert.match(last(state).text, /3,025 including GST/); assert.equal(state.queued, false);
+  const other = engine.createSession(); send(other, 'DOD delete price for my 2012 Holden LS3?');
+  assert.match(last(other).text, /does not require/); assert.doesNotMatch(last(other).text, /\$\d/);
+  const standalone = engine.createSession(); send(standalone, 'Standalone lifter package cost?');
+  assert.match(last(standalone).text, /During a cam job/);
+  assert.doesNotMatch(last(standalone).text, /standalone.*included/i);
+});
+
+test('BEV service guide does not become a hybrid price or an engine oil change', () => {
+  assert.equal(Math.round((423.5 - 325) * 100) / 100, 98.5);
+  const reply = engine.answer('What does fully electric servicing cost?').reply;
+  assert.match(reply, /325 including GST/); assert.match(reply, /no engine oil or engine oil filter/);
+  assert.match(reply, /does not apply to them/);
+  const bev = engine.createSession(); send(bev, 'How much for a BEV service?');
+  assert.match(last(bev).text, /starts from AUD \$325/); assert.doesNotMatch(last(bev).text, /What car, engine/);
+  send(bev, '2023 Tesla Model 3'); assert.equal(bev.intake.pending, 'mileage');
+  send(bev, '50000 km'); assert.equal(bev.intake.pending, 'details');
+  send(bev, 'Annual scheduled service'); assert.equal(bev.intake.pending, 'confirm');
+  assert.equal(bev.queued, false); send(bev, 'Yes, send it'); assert.equal(bev.queued, true);
+  for (const question of ['How much for hybrid servicing?', 'PHEV service quote for a 2025 BYD Shark?']) {
+    const hybrid = engine.createSession(); send(hybrid, question);
+    assert.match(last(hybrid).text, /combustion engine/); assert.doesNotMatch(last(hybrid).text, /325/);
+    assert.equal(hybrid.intake.work, 'hybrid service'); assert.equal(hybrid.queued, false);
+  }
 });
