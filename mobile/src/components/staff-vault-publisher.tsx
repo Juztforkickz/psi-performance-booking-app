@@ -365,7 +365,9 @@ function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaitin
   const [newWaitingOpen, setNewWaitingOpen] = useState(false);
   const identifiers = item.identifiers;
   const reference = typeof identifiers.reference === 'string' ? identifiers.reference : '';
-  const invoiceNumber = typeof identifiers.invoiceNumber === 'string' ? identifiers.invoiceNumber : 'Awaiting inspection';
+  const invoiceNumber = typeof identifiers.invoiceNumber === 'string' && identifiers.invoiceNumber.trim()
+    ? identifiers.invoiceNumber
+    : ['pending', 'processing', 'matched', 'failed'].includes(item.status) ? 'Awaiting inspection' : 'Number unavailable';
   const invoiceDate = typeof identifiers.invoiceDate === 'string' ? identifiers.invoiceDate : '';
   const totalCents = typeof identifiers.totalCents === 'number' ? identifiers.totalCents : null;
   const invoiceStatus = identifiers.invoiceStatus === 'PAID' ? 'PAID' : identifiers.invoiceStatus === 'AUTHORISED' ? 'ISSUED' : '';
@@ -461,6 +463,23 @@ function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaitin
     } finally { setWorking(false); }
   };
 
+  const retryInspection = async () => {
+    if (!owner || disabled || working || !(item.status === 'failed' || item.reason === 'invoice_date_requires_review')) return;
+    setWorking(true); setMessage('');
+    try {
+      const processed = await getSupabaseClient().functions.invoke('process-xero-imports', { body: { queueId: item.id, limit: 1 } });
+      if (processed.error) throw processed.error;
+      const outcome = processed.data?.results?.[0];
+      if (!outcome) throw new Error('xero_retry_unavailable');
+      setMessage(outcome.status === 'failed'
+        ? 'Xero inspection could not finish. The item remains safe and can be retried.'
+        : 'Xero inspection completed. Review the updated invoice details.');
+      await onDone();
+    } catch {
+      setMessage('Xero inspection could not finish. Check the Xero connection, then try again.');
+    } finally { setWorking(false); }
+  };
+
   const matchAndImport = async () => {
     if (!canMatch || disabled || working) return;
     setWorking(true); setMessage('');
@@ -509,6 +528,14 @@ function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaitin
     {typeof identifiers.descriptionRegistration === 'string' ? <Text style={styles.copy}>Invoice registration · {identifiers.descriptionRegistration}</Text> : null}
     <Text style={styles.muted}>{reviewReason(item.reason)}{item.last_error_code ? ` · ${item.last_error_code.replaceAll('_', ' ')}` : ''}</Text>
     {item.status === 'pending' || item.status === 'matched' || item.status === 'processing' ? <Text style={styles.message}>Secure inspection is queued.</Text> : null}
+    {item.status === 'failed' && owner ? <>
+      <Text style={styles.message}>This invoice is still safe in Xero. Retry its inspection, or keep it in Xero only if it does not belong in a customer account.</Text>
+      <PrimaryButton disabled={disabled || working} loading={working} label="Retry Xero inspection" onPress={() => void retryInspection()} />
+      <PrimaryButton disabled={disabled || working} label="Keep in Xero only" variant="outline" onPress={() => void keepInXeroOnly()} />
+    </> : null}
+    {item.status === 'needs_review' && item.reason === 'invoice_date_requires_review' && owner
+      ? <PrimaryButton disabled={disabled || working} loading={working} label="Retry Xero inspection" onPress={() => void retryInspection()} />
+      : null}
     {item.status === 'needs_review' && owner ? <>
       {queueEligible && waitingMatch ? <>
         <Text style={styles.message}>Workshop customer found: {waitingMatch.contact.display_name} · {waitingMatch.vehicle.registration}</Text>
@@ -587,7 +614,8 @@ function displayName(customer: StaffPortalSnapshot['customers'][number]) {
 
 function reviewReason(reason: string) {
   if (reason === 'verified_customer_link_required') return 'Customer and vehicle confirmation required before this sales invoice can be added.';
-  if (reason === 'invoice_status_requires_review') return 'This sales invoice is still a draft in Xero. It will not be published until it is issued or paid.';
+  if (reason === 'invoice_status_requires_review') return 'This invoice is not currently issued or paid in Xero. Review its Xero status before adding it to a customer account.';
+  if (reason === 'invoice_date_requires_review') return 'Xero did not provide a valid invoice date. Review the invoice in Xero, then retry the secure inspection.';
   if (reason === 'job_reference_required') return 'An exact PSI job reference or vehicle registration is required.';
   return reason.replaceAll('_', ' ');
 }

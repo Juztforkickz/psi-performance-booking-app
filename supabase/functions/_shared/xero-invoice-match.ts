@@ -4,7 +4,8 @@ import { xeroInvoiceMatchesVehicle } from './xero-invoice-registration.ts';
 export type XeroInvoice = {
   InvoiceID?: string; Type?: string; Status?: string; CurrencyCode?: string;
   SentToContact?: boolean; Reference?: string; InvoiceNumber?: string;
-  Date?: string; DateString?: string; Total?: number; AmountDue?: number; AmountPaid?: number;
+  Date?: unknown; DateString?: unknown; date?: unknown; dateString?: unknown;
+  Total?: number; AmountDue?: number; AmountPaid?: number;
   LineItems?: { Description?: string }[];
   Contact?: { ContactID?: string; Name?: string };
 };

@@ -2,6 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.112.3';
 import { openXeroTokens, sealXeroTokens } from '../_shared/xero-token-crypto.ts';
 import { xeroInvoiceReader } from '../_shared/xero-invoice-fetch.ts';
+import { xeroInvoiceDate } from '../_shared/xero-invoice-date.ts';
 import { selectPublishedInvoiceByIdentity } from '../_shared/xero-invoice-dedupe.ts';
 import { matchXeroInvoice, type VerifiedContactLink, type XeroInvoice } from '../_shared/xero-invoice-match.ts';
 import { xeroDescriptionRegistration } from '../_shared/xero-invoice-registration.ts';
@@ -64,10 +65,11 @@ async function verifyXeroAccess(accessToken: string, tenantId: string) {
 }
 
 function invoiceDate(invoice: XeroInvoice) {
-  const candidate = invoice.DateString ?? invoice.Date ?? '';
-  const match = candidate.match(/^\d{4}-\d{2}-\d{2}/u);
-  if (!match) throw new Error('xero_invoice_date_requires_review');
-  return match[0];
+  return xeroInvoiceDate(invoice);
+}
+
+function optionalInvoiceDate(invoice: XeroInvoice) {
+  try { return invoiceDate(invoice); } catch { return null; }
 }
 
 function invoiceAmountCents(invoice: XeroInvoice) {
@@ -264,8 +266,8 @@ function invoiceIdentifiers(queued: QueueRow, invoice: XeroInvoice) {
     reference,
     descriptionRegistration: xeroDescriptionRegistration(invoice),
     invoiceNumber: typeof invoice.InvoiceNumber === 'string' ? invoice.InvoiceNumber.slice(0, 120) : null,
-    invoiceDate: invoiceDate(invoice),
-    totalCents: invoiceAmountCents(invoice),
+    invoiceDate: optionalInvoiceDate(invoice),
+    totalCents: (() => { try { return invoiceAmountCents(invoice); } catch { return null; } })(),
     amountDueCents: optionalAmountCents(invoice.AmountDue),
     amountPaidCents: optionalAmountCents(invoice.AmountPaid),
     currency: invoice.CurrencyCode ?? null,
@@ -306,7 +308,6 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   const invoice = await reader.invoice(invoiceId);
   const contactId = invoice.Contact?.ContactID;
   const reference = typeof invoice.Reference === 'string' ? invoice.Reference.trim().toUpperCase() : '';
-  const enriched = invoiceIdentifiers(queued, invoice);
 
   // Supplier bills belong in Xero, not in the customer-facing PSI workflow.
   // Remove the short-lived webhook queue row as soon as Xero identifies it.
@@ -314,6 +315,25 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     const { error } = await admin.from('vault_import_queue').delete().eq('id', queued.id);
     if (error) throw new Error('xero_supplier_bill_cleanup_failed');
     return { id: queued.id, status: 'excluded', reason: 'supplier_bill' };
+  }
+
+  const enriched = invoiceIdentifiers(queued, invoice);
+  if (!['AUTHORISED', 'PAID'].includes(invoice.Status ?? '')) {
+    await setQueue(admin, queued.id, {
+      status: 'needs_review', identifiers: enriched, reason: 'invoice_status_requires_review',
+      completed_at: null, last_error_code: null,
+    });
+    await alertOwnerForReview(admin, ownerId, queued, enriched).catch(() => undefined);
+    return { id: queued.id, status: 'needs_review', reason: 'invoice_status_requires_review' };
+  }
+  const occurredOn = typeof enriched.invoiceDate === 'string' ? enriched.invoiceDate : null;
+  if (!occurredOn) {
+    await setQueue(admin, queued.id, {
+      status: 'needs_review', identifiers: enriched, reason: 'invoice_date_requires_review',
+      completed_at: null, last_error_code: null,
+    });
+    await alertOwnerForReview(admin, ownerId, queued, enriched).catch(() => undefined);
+    return { id: queued.id, status: 'needs_review', reason: 'invoice_date_requires_review' };
   }
 
   const invoiceNumber = typeof invoice.InvoiceNumber === 'string' && invoice.InvoiceNumber.trim()
@@ -324,7 +344,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     admin,
     reference,
     invoiceNumber,
-    invoiceDate(invoice),
+    occurredOn,
     queued.job_id,
   );
   if (publishedWorkshopInvoice) {
@@ -420,7 +440,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     admin,
     reference,
     invoiceNumber,
-    invoiceDate(invoice),
+    occurredOn,
     matched.jobId,
   ) : null;
   if (publishedMatchedInvoice) {
@@ -459,7 +479,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
       notes: matched.partsOnly
         ? 'Original Xero parts-only invoice imported after protected customer and vehicle verification. No PSI workshop job was created.'
         : 'Original Xero invoice imported after protected customer, vehicle and PSI job verification.',
-      occurred_on: invoiceDate(invoice),
+      occurred_on: occurredOn,
       amount_cents: invoiceAmountCents(invoice),
       currency: 'AUD',
       created_by: uuid(links[0]?.verified_by) ? links[0].verified_by : uuid(ownerId) ? ownerId : null,
@@ -519,7 +539,19 @@ Deno.serve(async request => {
   if (!supabaseUrl || !serviceRoleKey || !anonKey) return json({ error: 'server_configuration_unavailable' }, 503);
   if (!token) return json({ error: 'authentication_required' }, 401);
 
-  if (token !== serviceRoleKey) {
+  let body: { action?: unknown; queueId?: unknown; limit?: unknown; cronToken?: unknown } = {};
+  try { body = await request.json(); } catch { body = {}; }
+  if (body.queueId !== undefined && !uuid(body.queueId)) return json({ error: 'invalid_queue_id' }, 400);
+  const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const cronCall = token !== serviceRoleKey
+    && body.action === 'process_queue'
+    && body.queueId === undefined
+    && typeof body.cronToken === 'string';
+  const { data: cronVerified } = cronCall
+    ? await admin.rpc('verify_service_reminder_cron_token', { p_token: body.cronToken })
+    : { data: false };
+
+  if (token !== serviceRoleKey && cronVerified !== true) {
     const user = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
     const { data: identity } = await user.auth.getUser(token);
     if (!identity.user) return json({ error: 'owner_aal2_required' }, 403);
@@ -532,11 +564,7 @@ Deno.serve(async request => {
     }
   }
 
-  let body: { action?: unknown; queueId?: unknown; limit?: unknown } = {};
-  try { body = await request.json(); } catch { body = {}; }
-  if (body.queueId !== undefined && !uuid(body.queueId)) return json({ error: 'invalid_queue_id' }, 400);
   const limit = Math.min(10, Math.max(1, typeof body.limit === 'number' && Number.isFinite(body.limit) ? Math.trunc(body.limit) : 5));
-  const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
   if (body.action === 'inspect_invoice') {
     if (!uuid(body.queueId)) return json({ error: 'invalid_queue_id' }, 400);
     try { return json(await inspectInvoice(admin, body.queueId)); }
@@ -553,8 +581,9 @@ Deno.serve(async request => {
       return json({ connected: false, error: errorCode(error) }, 503);
     }
   }
-  let query = admin.from('vault_import_queue').select('id,source_key,status,identifiers,job_id,attempt_count').eq('source', 'xero').in('status', ['pending','matched','failed']).lte('available_at', new Date().toISOString()).lt('attempt_count', 20).order('created_at').limit(limit);
-  if (body.queueId) query = query.eq('id', body.queueId);
+  const processableStatuses = body.queueId ? ['pending','matched','failed','needs_review'] : ['pending','matched','failed'];
+  let query = admin.from('vault_import_queue').select('id,source_key,status,identifiers,job_id,attempt_count').eq('source', 'xero').in('status', processableStatuses).lt('attempt_count', 20).order('created_at').limit(limit);
+  query = body.queueId ? query.eq('id', body.queueId) : query.lte('available_at', new Date().toISOString());
   const { data: queued, error: queueError } = await query;
   if (queueError) return json({ error: 'xero_queue_unavailable' }, 500);
 
