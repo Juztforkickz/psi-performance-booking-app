@@ -30,7 +30,7 @@ completed service history, workshop recommendations, private vehicle photos, a
 booking request and an event. No live customer information is included.
 
 The customer app credentials are saved in Beta App Review Information. Open
-Account, select Open demonstration, then Enter demo and restart. After the app
+Account, select App store reviewer sign in, then Enter demo and restart. After the app
 restarts, use the Apple review sign-in form with those credentials. A mailbox
 or one-time email code is not required in this review environment. You can review
 My Garage, Bookings, Reports, Settings and PSI Events, including private documents,

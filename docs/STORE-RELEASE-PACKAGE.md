@@ -250,7 +250,7 @@ The current same-build demonstration instructions below cover ordinary app and
 workshop review. Check the actual selected build before using them. They do not
 claim subscription purchase access; see the separate pending requirement below.
 
-> Open Account, select Open demonstration, then Enter demo and restart. Use the
+> Open Account, select App store reviewer sign in, then Enter demo and restart. Use the
 > dedicated customer app credentials supplied in the private review fields on
 > the Apple review sign-in form. This isolated environment contains fictional
 > records. No mailbox access or one-time email code is required. To review the

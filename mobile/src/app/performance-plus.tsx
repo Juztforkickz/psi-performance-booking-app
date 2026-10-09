@@ -8,6 +8,7 @@ import { PrimaryButton } from '@/components/ui';
 import { colors } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerAccount } from '@/lib/customer-account-context';
+import { customerProfileComplete } from '@/lib/customer-access';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
@@ -125,7 +126,10 @@ export default function PerformancePlusScreen() {
     if (busy) return;
     setBusy(true); setMessage('');
     try {
-      if (!auth.user) { router.push('/account'); return; }
+      if (!auth.user || !customerProfileComplete(account?.profile)) {
+        router.push({ pathname: '/account', params: { returnTo: '/performance-plus' } });
+        return;
+      }
       if (!vehicleId) throw new Error('Add a vehicle to My Garage before choosing Performance+.');
       const currentOverview = await loadVaultOverview(vehicleId);
       setState({ key, overview: currentOverview });

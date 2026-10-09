@@ -13,6 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Eyebrow, Field, FormInput, PrimaryButton } from '@/components/ui';
+import { CustomerProfileGate } from '@/components/customer-profile-gate';
+import { customerReturnPath } from '@/lib/customer-access';
 import { type LocalVehiclePhoto, VehiclePhotoPicker } from '@/components/vehicle-photo-picker';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -54,6 +56,12 @@ const EMPTY_ACCOUNT: AccountDraft = {
 type AccountErrors = Partial<Record<keyof AccountDraft, string>>;
 
 export default function SignUpScreen() {
+  const { returnTo, mode } = useLocalSearchParams<{ returnTo?: string | string[]; mode?: string }>();
+  const destination = mode === 'add' ? '/account/sign-up?mode=add' : customerReturnPath(returnTo) ?? '/account/sign-up';
+  return <CustomerProfileGate feature="setting up your private profile" profileRequired={false} returnTo={destination}><VerifiedSignUpScreen /></CustomerProfileGate>;
+}
+
+function VerifiedSignUpScreen() {
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const auth = useCustomerAuth();
   const { account, status } = useCustomerAccount();
@@ -62,7 +70,7 @@ export default function SignUpScreen() {
 
   if (waitingForAccount) return <AccountFormLoading />;
 
-  return <AccountDetailsForm addVehicleMode={mode === 'add'} initialAccount={auth.status === 'signed_in' ? account : null} />;
+  return <AccountDetailsForm key={auth.user?.id} addVehicleMode={mode === 'add'} initialAccount={auth.status === 'signed_in' ? account : null} />;
 }
 
 function AccountFormLoading() {
@@ -79,6 +87,9 @@ function AccountFormLoading() {
 
 function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode: boolean; initialAccount: CustomerAccountSnapshot | null }) {
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
+  const destination = customerReturnPath(returnTo);
+  const [profileSaved, setProfileSaved] = useState(false);
   const auth = useCustomerAuth();
   const { refreshAccount } = useCustomerAccount();
   const { stageAccountPreview } = useCustomerPreview();
@@ -191,6 +202,7 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
             registration: form.registration,
             year,
           }, editingVehicleId ?? undefined);
+          if (!savedVehicle) throw new Error('Vehicle could not be saved');
           setEditingVehicleId(savedVehicle.id);
         }
         let photoNotice = '';
@@ -220,6 +232,7 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
           }
         }
         refreshAccount();
+        setProfileSaved(true);
         setNotice(`${canEditVehicle ? 'Your profile and vehicle details were' : 'Your profile was'} saved to your private PSI account.${canEditVehicle ? '' : ' PSI-created vehicle details remain read-only; your own photo can still be updated.'}${photoNotice}`);
       } catch {
         setNotice('Your profile could not be saved. Nothing was uploaded. Sign in again and try once more.');
@@ -382,8 +395,7 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
 
           <View style={styles.actions}>
             <PrimaryButton disabled={CUSTOMER_AUTH.enabled && auth.status !== 'signed_in'} label={addVehicleMode ? 'Add vehicle' : CUSTOMER_AUTH.enabled ? 'Save account details' : 'Check account setup'} loading={saving} onPress={() => void checkReadiness()} />
-            {notice ? <PrimaryButton label="Open My Garage" onPress={() => router.replace('/garage')} variant="outline" /> : null}
-            <PrimaryButton label="Book without an account" onPress={() => router.replace('/booking')} variant="outline" />
+            {profileSaved ? <PrimaryButton label={destination?.startsWith('/booking') ? 'Continue to bookings' : 'Continue to my account'} onPress={() => router.replace((destination?.startsWith('/account/sign-up') ? '/garage' : destination ?? '/garage') as import('expo-router').Href)} variant="outline" /> : null}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

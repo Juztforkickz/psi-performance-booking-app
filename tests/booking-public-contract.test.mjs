@@ -920,7 +920,11 @@ test("keeps approval-first clients and the mobile dashboard preview safe", async
   ]) {
     assert.match(publicDemo, new RegExp(`${flag}: true`, "u"));
   }
-  assert.match(mobileHome, /Explore the app with demonstration data\. Account access and submissions are disabled\./u);
+  assert.match(mobileHome, /auth\.status !== 'loading' && auth\.status !== 'signed_in' && !REVIEW_ENVIRONMENT\.enabled/u);
+  assert.match(mobileHome, /Browse our services, or create your profile to book and manage your vehicles\./u);
+  assert.match(mobileHome, /label="Create account or sign in" onPress=\{\(\) => router\.push\('\/account'\)\}/u);
+  assert.match(mobileHome, /label="Try demonstration"[^\n]+router\.push\('\/demonstration'/u);
+  assert.doesNotMatch(mobileHome, /Account access and submissions are disabled/u);
   assert.match(customerPreview, /managedBy: 'psi'/u);
   assert.match(customerPreview, /customerAccess: 'read_only'/u);
   assert.match(customerPreview, /status: 'psi_verified'/u);

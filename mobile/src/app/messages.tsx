@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AskPsiThread } from '@/components/ask-psi-thread';
 import { PrimaryButton } from '@/components/ui';
+import { CustomerProfileGate } from '@/components/customer-profile-gate';
 import { colors } from '@/constants/brand';
 import { ASK_PSI_STAGE } from '@/lib/ask-psi-stage';
 import { listAskPsiConversations, openAskPsiConversation, subscribeToAskPsiInbox, type AskPsiInboxConversation, type AskPsiTopic } from '@/lib/ask-psi-messaging';
@@ -51,7 +52,7 @@ export default function AskPsiMessagesScreen() {
       </SafeAreaView>
     );
   }
-  return <SignedInMessages key={auth.user.id} />;
+  return <CustomerProfileGate returnTo="/messages" feature="messaging the workshop"><SignedInMessages key={auth.user.id} /></CustomerProfileGate>;
 }
 
 function SignedInMessages() {

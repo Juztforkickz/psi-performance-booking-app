@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ASK_PSI_STAGE } from '@/lib/ask-psi-stage';
 
-const HIDDEN_ROUTES = ['/messages', '/staff', '/staff-security', '/staff-messages', '/portal-preview'];
+const HIDDEN_ROUTES = ['/messages', '/staff', '/staff-security', '/staff-messages', '/portal-preview', '/demonstration'];
 const BOOST_ASSISTANT = require('../../assets/images/boost-assistant.png');
 
 export function AskPsiLauncher() {

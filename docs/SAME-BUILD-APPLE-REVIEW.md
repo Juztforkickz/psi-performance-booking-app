@@ -139,7 +139,7 @@ notifications/reminders are not deleted by this feature.
 
 1. Install the new build via internal TestFlight, without deleting the existing
    app first. Check normal saved account access and existing records.
-2. Sign out normally. Account > Open demonstration > Enter demo and restart.
+2. Sign out normally. Account > App store reviewer sign in > Enter demo and restart.
 3. Sign in with the dedicated customer **app** password. Check garage, private
    reports, document upload/camera, booking workflow and Settings.
 4. Sign out within demo; sign in with the separate demo staff credentials.

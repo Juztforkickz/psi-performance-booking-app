@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandRail } from '@/components/brand-rail';
 import { DashboardTile } from '@/components/dashboard-tile';
+import { PrimaryButton } from '@/components/ui';
 import { useGarageArtwork } from '@/components/garage-artwork-picker';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
@@ -29,7 +30,9 @@ import {
   type HomeTileId,
   useHomeShortcutPreferences,
 } from '@/lib/home-shortcut-preferences';
-import { PUBLIC_DEMO } from '@/lib/public-demo';
+import { customerProfileComplete } from '@/lib/customer-access';
+import { useCustomerAuth } from '@/lib/customer-auth-context';
+import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { loadWorkshopWeather, type WorkshopWeather } from '@/lib/weather';
 import { SUPABASE_CONNECTION } from '@/lib/supabase';
 import { useThemePreference } from '@/lib/theme-preference';
@@ -70,6 +73,7 @@ const PSI_PROMISES = [
 
 export default function CustomerHomeScreen() {
   const router = useRouter();
+  const auth = useCustomerAuth();
   const { prepareBookingVehicle, prepareBookingVehicleRecord, selectedVehicleId } = useCustomerPreview();
   const { account: garageAccount } = useCustomerAccount();
   const selectedAccountVehicle = garageAccount?.vehicles.find((vehicle) => vehicle.is_primary)
@@ -270,17 +274,19 @@ export default function CustomerHomeScreen() {
         contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]}
         showsVerticalScrollIndicator={false}
       >
-        {!privateAccountMode ? (
+        {auth.status !== 'loading' && auth.status !== 'signed_in' && !REVIEW_ENVIRONMENT.enabled ? (
           <View
             accessibilityRole="alert"
             style={[
               styles.demoBanner,
               compact && styles.compactFrame,
-              { backgroundColor: colors.noticeSurface, borderColor: theme.frame },
+              { backgroundColor: theme.surface, borderColor: theme.frame },
             ]}
           >
-            <Text style={[styles.demoTitle, { color: colors.onNotice }]}>{PUBLIC_DEMO.label}</Text>
-            <Text style={[styles.demoCopy, { color: colors.onNoticeMuted }]}>Explore the app with demonstration data. Account access and submissions are disabled.</Text>
+            <Text style={[styles.demoTitle, { color: theme.text }]}>Welcome to PSI</Text>
+            <Text style={[styles.demoCopy, { color: theme.textMuted }]}>Browse our services, or create your profile to book and manage your vehicles.</Text>
+            <PrimaryButton label="Create account or sign in" onPress={() => router.push('/account')} />
+            <PrimaryButton label="Try demonstration" variant="outline" onPress={() => router.push('/demonstration' as Href)} />
           </View>
         ) : null}
 
@@ -347,7 +353,7 @@ export default function CustomerHomeScreen() {
             accessibilityHint="Choose which tiles appear in your Home shortcuts"
             accessibilityLabel="Customise Home shortcuts"
             accessibilityRole="button"
-            onPress={() => setShortcutChooserOpen(true)}
+            onPress={() => customerProfileComplete(garageAccount?.profile) ? setShortcutChooserOpen(true) : router.push({ pathname: '/account', params: { returnTo: '/' } })}
             style={({ pressed }) => [
               styles.shortcutButton,
               { borderColor: theme.accent, backgroundColor: activeTheme === 'dark' ? theme.surfaceRaised : theme.surface },

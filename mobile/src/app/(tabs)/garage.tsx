@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { VehiclePhotoPicker } from '@/components/vehicle-photo-picker';
+import { CustomerProfileGate } from '@/components/customer-profile-gate';
 import { PerformanceVaultCard } from '@/components/performance-vault-card';
 import { GarageArtworkPicker, useGarageArtwork } from '@/components/garage-artwork-picker';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
@@ -50,6 +51,10 @@ type MaintenanceDraft = {
 };
 
 export default function GarageScreen() {
+  return <CustomerProfileGate feature="managing your garage" returnTo="/garage"><AccountGarageScreen /></CustomerProfileGate>;
+}
+
+function AccountGarageScreen() {
   const auth = useCustomerAuth();
   const { account, error, status } = useCustomerAccount();
   const secureAccountActive = CUSTOMER_AUTH.enabled && auth.status === 'signed_in';

@@ -101,7 +101,7 @@ export function PersistentBottomNavigation() {
     };
   }, []);
 
-  if (keyboardVisible) return null;
+  if (keyboardVisible || pathname === '/demonstration') return null;
 
   return (
     <SafeAreaView

@@ -5,6 +5,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
+import { CustomerProfileGate } from '@/components/customer-profile-gate';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerAccount } from '@/lib/customer-account-context';
@@ -22,6 +23,10 @@ const STATUS_COPY = {
 } as const;
 
 export default function HistoryImportScreen() {
+  return <CustomerProfileGate returnTo="/history-import" requireVehicle feature="requesting your vehicle history"><HistoryImportContent /></CustomerProfileGate>;
+}
+
+function HistoryImportContent() {
   const router = useRouter();
   const { vehicleId } = useLocalSearchParams<{ vehicleId?: string }>();
   const { horizontalPadding } = useResponsiveLayout();

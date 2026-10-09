@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
+import { CustomerProfileGate } from '@/components/customer-profile-gate';
 import { PrivateVaultThumbnail } from '@/components/private-vault-thumbnail';
 import { formatIsoDate } from '@/lib/australian-date';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
@@ -55,6 +56,10 @@ function groupVaultEntries(records: VaultRecord[], filter: ReportSection | null)
 }
 
 export default function VehicleVault() {
+  return <CustomerProfileGate returnTo="/vehicle-reports" requireVehicle feature="opening your vehicle records"><VehicleVaultContent /></CustomerProfileGate>;
+}
+
+function VehicleVaultContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const auth = useCustomerAuth();

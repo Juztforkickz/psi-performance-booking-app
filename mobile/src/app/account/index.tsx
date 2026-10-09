@@ -1,4 +1,4 @@
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -18,6 +18,7 @@ import {
   requestOwnAccountDeletion,
 } from '@/lib/account-deletion';
 import { useCustomerAccount } from '@/lib/customer-account-context';
+import { customerProfileComplete, customerReturnPath } from '@/lib/customer-access';
 import {
   CUSTOMER_AUTH,
   EMAIL_CODE_RESEND_COOLDOWN_SECONDS,
@@ -63,6 +64,7 @@ export default function AccountScreen() {
   const openSetupAfterSignInRef = useRef(false);
   const authenticatedUserId = auth.user?.id;
   const secureReturnTo = (Array.isArray(returnTo) ? returnTo[0] : returnTo) === '/staff' ? '/staff' : null;
+  const customerReturnTo = customerReturnPath(returnTo);
   const accountSetupComplete = Boolean(
     account?.profile?.first_name?.trim()
     && account.profile.last_name?.trim()
@@ -70,22 +72,31 @@ export default function AccountScreen() {
     && account.vehicles.length > 0,
   );
   const currentProfilePhotoPath = account?.profile?.profile_photo_object_path ?? null;
-  const profilePhotoUri = account?.profile
+  const profilePhotoUri = account?.profile && profilePhotoState
     && profilePhotoState?.userId === account.profile.user_id
     && (profilePhotoState.objectPath === currentProfilePhotoPath || profilePhotoState.objectPath === 'pending')
     ? profilePhotoState.uri
     : null;
-  const staffPortalEligible = Boolean(authenticatedUserId && staffEntryState?.userId === authenticatedUserId && staffEntryState.eligible);
+  const staffPortalEligible = Boolean(authenticatedUserId && staffEntryState?.userId === authenticatedUserId && staffEntryState?.eligible);
 
   useEffect(() => {
     if (auth.status === 'signed_in' && secureReturnTo) router.replace(secureReturnTo);
   }, [auth.status, router, secureReturnTo]);
 
   useEffect(() => {
-    if (!openSetupAfterSignInRef.current || secureReturnTo || auth.status !== 'signed_in' || accountStatus !== 'ready' || !account) return;
+    if (!customerReturnTo || auth.status !== 'signed_in' || accountStatus !== 'ready' || !account) return;
+    if (customerReturnTo === '/account/sign-up' || !customerProfileComplete(account.profile) || !account.vehicles.length) {
+      router.replace({ pathname: '/account/sign-up', params: { returnTo: customerReturnTo } });
+    } else {
+      router.replace(customerReturnTo as Href);
+    }
+  }, [account, accountStatus, auth.status, customerReturnTo, router]);
+
+  useEffect(() => {
+    if (!openSetupAfterSignInRef.current || secureReturnTo || customerReturnTo || auth.status !== 'signed_in' || accountStatus !== 'ready' || !account) return;
     openSetupAfterSignInRef.current = false;
     if (!accountSetupComplete) router.replace('/account/sign-up');
-  }, [account, accountSetupComplete, accountStatus, auth.status, router, secureReturnTo]);
+  }, [account, accountSetupComplete, accountStatus, auth.status, customerReturnTo, router, secureReturnTo]);
 
   useEffect(() => {
     if (resendSeconds <= 0) return;
@@ -248,9 +259,8 @@ export default function AccountScreen() {
           showsVerticalScrollIndicator={false}
         >
         {auth.status !== 'signed_in' && REVIEW_ENVIRONMENT.enabled ? <AppReviewSignIn /> : null}
-        {auth.status === 'signed_out' && !REVIEW_ENVIRONMENT.enabled ? <DemoModeControl /> : null}
         {auth.status !== 'signed_in' && !REVIEW_ENVIRONMENT.enabled ? <View style={[styles.card, compact && styles.cardCompact]}>
-          <Text style={styles.cardTitle}>Sign in with email</Text>
+          <Text style={styles.cardTitle}>{secureReturnTo ? 'Sign in with email' : 'Create account or sign in'}</Text>
           <Text style={styles.cardCopy}>
             We’ll email you a six-digit sign-in code. No password is required.{secureReturnTo ? ' After verification, you will return to the protected PSI staff workspace.' : ''}
           </Text>
@@ -320,6 +330,13 @@ export default function AccountScreen() {
           ) : null}
         </View> : null}
 
+        {auth.status !== 'signed_in' && !REVIEW_ENVIRONMENT.enabled ? <View style={[styles.card, compact && styles.cardCompact]}>
+          <Text style={styles.cardTitle}>See how PSI works</Text>
+          <Text style={styles.cardCopy}>Explore sample cars, records and bookings. No account is needed for the demonstration.</Text>
+          <PrimaryButton label="Try demonstration" variant="outline" onPress={() => router.push('/demonstration' as Href)} />
+          <DemoModeControl />
+        </View> : null}
+
         <Eyebrow>{secureReturnTo ? 'PSI staff access' : 'PSI customer account'}</Eyebrow>
         <Text maxFontSizeMultiplier={2} style={[styles.title, compact && styles.titleCompact]}>{secureReturnTo ? `Staff sign in.${`\n`}Protected portal.` : `Your cars.${`\n`}Your bookings.`}</Text>
         <Text style={styles.lead}>
@@ -368,12 +385,12 @@ export default function AccountScreen() {
             {accountStatus === 'loading' ? <Text style={styles.dashboardCopy}>Loading your account…</Text> : null}
             {account?.profile ? (
               <>
-                <ProfilePhotoPicker
+                {accountSetupComplete ? <ProfilePhotoPicker
                   initials={`${account.profile.first_name?.[0] ?? ''}${account.profile.last_name?.[0] ?? ''}`}
                   onChange={(photo) => void changeProfilePhoto(photo)}
                   saving={profilePhotoBusy}
                   uri={profilePhotoUri}
-                />
+                /> : null}
                 {profilePhotoNotice ? <Text accessibilityRole="alert" style={styles.profilePhotoNotice}>{profilePhotoNotice}</Text> : null}
                 <View style={styles.profileDetails}>
                   <ProfileDetail label="Name" value={[account.profile.first_name, account.profile.last_name].filter(Boolean).join(' ') || 'Not completed'} />
@@ -433,7 +450,7 @@ export default function AccountScreen() {
         </View>
         ) : null}
 
-        {(REVIEW_ENVIRONMENT.enabled && auth.status !== 'signed_in') || (auth.status === 'signed_in' && account?.profile) ? null : <View style={[styles.createCard, compact && styles.cardCompact]}>
+        {auth.status === 'signed_in' && account && !account.profile ? <View style={[styles.createCard, compact && styles.cardCompact]}>
           <View style={styles.createCopy}>
             <Text style={styles.createTitle}>{account ? accountSetupComplete ? 'Account details' : 'Complete your profile' : CUSTOMER_AUTH.enabled ? 'Need an account?' : 'New to PSI?'}</Text>
             <Text style={styles.createText}>{account ? accountSetupComplete ? 'Update your contact details and primary vehicle.' : 'Add your name, mobile number and first vehicle to finish setting up your private PSI account.' : CUSTOMER_AUTH.registrationEnabled ? 'Add your details and primary vehicle.' : CUSTOMER_AUTH.enabled ? 'New customer accounts are set up by PSI. Contact us for access.' : 'Explore account setup with demonstration details.'}</Text>
@@ -443,7 +460,7 @@ export default function AccountScreen() {
             onPress={() => router.push(account || CUSTOMER_AUTH.registrationEnabled || !CUSTOMER_AUTH.enabled ? '/account/sign-up' : '/support')}
             variant="outline"
           />
-        </View>}
+        </View> : null}
 
         {CUSTOMER_AUTH.enabled && auth.status === 'signed_in' && authenticatedUserId ? (
           <AccountDeletionControls key={authenticatedUserId} compact={compact} sessionRevision={auth.sessionRevision} userId={authenticatedUserId} />
@@ -454,10 +471,6 @@ export default function AccountScreen() {
           <PrimaryButton label="Support & account help" onPress={() => router.push('/support')} variant="outline" />
         </View>
 
-        <Pressable accessibilityRole="button" onPress={() => router.replace('/')} style={({ pressed }) => [styles.guestLink, pressed && styles.pressed]}>
-          <Text style={styles.guestLinkText}>Continue without an account</Text>
-          <Text maxFontSizeMultiplier={1.3} style={styles.guestArrow}>→</Text>
-        </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

@@ -9,6 +9,7 @@ import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerAccount } from '@/lib/customer-account-context';
+import { CustomerProfileGate } from '@/components/customer-profile-gate';
 import { CUSTOMER_PREVIEW, type BuildPlanStage } from '@/lib/customer-preview';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import type { CustomerVehicleRow } from '@/lib/database.types';
@@ -66,6 +67,10 @@ const STARTER_PLAN_STAGES: readonly BuildPlanStage[] = [
 ];
 
 export default function PlanBuildScreen() {
+  return <CustomerProfileGate returnTo="/parts" requireVehicle feature="planning your vehicle build"><PlanBuildContent /></CustomerProfileGate>;
+}
+
+function PlanBuildContent() {
   const router = useRouter();
   const params = useLocalSearchParams<{ vehicleId?: string | string[] }>();
   const { account, status: accountStatus } = useCustomerAccount();

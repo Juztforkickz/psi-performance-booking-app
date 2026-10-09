@@ -113,6 +113,7 @@ function mount(name, exportName, props = {}, overrides = {}) {
     '@/lib/customer-auth-context': { useCustomerAuth: () => overrides.auth ?? { status: 'signed_in', user: { id: 'customer-a' } } },
     '@/lib/customer-account-context': { useCustomerAccount: () => ({ account: { vehicles: [] } }) },
     '@/components/ask-psi-thread': { AskPsiThread: 'AskPsiThread' },
+    '@/components/customer-profile-gate': { CustomerProfileGate: 'CustomerProfileGate' },
     '@/components/ui': { PrimaryButton: 'PrimaryButton' },
     '../../assets/images/boost-assistant.png': 'boost.png',
   };
@@ -299,8 +300,10 @@ test('Customer screen gates private routes and resets account scoped screen iden
   const first = mount('messages', 'default', {}, { auth: { status: 'signed_in', user: { id: 'customer-a' } } });
   const second = mount('messages', 'default', {}, { auth: { status: 'signed_in', user: { id: 'customer-b' } } });
   first.render(); second.render();
-  assert.equal(first.tree().key, 'customer-a');
-  assert.equal(second.tree().key, 'customer-b');
+  assert.equal(first.tree().type, 'CustomerProfileGate');
+  assert.equal(first.tree().props.returnTo, '/messages');
+  assert.equal(first.tree().props.children.key, 'customer-a');
+  assert.equal(second.tree().props.children.key, 'customer-b');
 });
 
 test('New question supports keyboard dismissal, realtime unread counts and a safe retry', async () => {

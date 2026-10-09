@@ -11,7 +11,7 @@ export function DemoModeControl() {
   const [error, setError] = useState('');
   if (!DEMO_MODE_AVAILABLE) return null;
   const exiting = REVIEW_ENVIRONMENT.enabled;
-  const label = exiting ? 'Return to normal PSI app' : 'Open demonstration';
+  const label = exiting ? 'Return to normal PSI app' : 'App store reviewer sign in';
   const change = async () => {
     if (busy) return;
     setBusy(true); setError('');

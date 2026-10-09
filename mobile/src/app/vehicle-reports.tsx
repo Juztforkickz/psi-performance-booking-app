@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StaffScrollSelect } from '@/components/staff-scroll-select';
 import { PrimaryButton } from '@/components/ui';
+import { CustomerProfileGate } from '@/components/customer-profile-gate';
 import { CustomerVehicleNotes } from '@/components/customer-vehicle-notes';
 import { colors } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -25,6 +26,10 @@ const REPORT_CATEGORY_ICONS = {
 } as const;
 
 export default function VehicleReportsScreen() {
+  return <CustomerProfileGate returnTo="/vehicle-reports" requireVehicle feature="viewing your vehicle reports"><VehicleReportsContent /></CustomerProfileGate>;
+}
+
+function VehicleReportsContent() {
   const router = useRouter();
   const auth = useCustomerAuth();
   const { account, status, error } = useCustomerAccount();

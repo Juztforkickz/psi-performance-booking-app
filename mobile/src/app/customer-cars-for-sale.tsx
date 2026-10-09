@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerAccount } from '@/lib/customer-account-context';
+import { CustomerProfileGate } from '@/components/customer-profile-gate';
 import {
   PREVIEW_CUSTOMER_CARS_FOR_SALE,
   formatAud,
@@ -92,7 +93,7 @@ export default function CustomerCarsForSaleScreen() {
           <Text style={[styles.noticeText, { color: theme.textMuted }]}>A listing appears only after the owner gives permission and PSI checks the vehicle identity. PSI workshop history is shared only where authorised. Buyers should confirm the sale terms and arrange their own inspection.</Text>
         </View>
 
-        {!preview && notifications.preferences ? <View style={[styles.alertSettings, { backgroundColor: theme.surface, borderColor: theme.frame }]}>
+        {!preview && notifications.preferences ? <CustomerProfileGate inline returnTo="/customer-cars-for-sale" feature="saving your listing alerts"><View style={[styles.alertSettings, { backgroundColor: theme.surface, borderColor: theme.frame }]}>
           <View style={styles.alertSettingsCopy}>
             <Text style={[styles.alertSettingsTitle, { color: theme.text }]}>New listing alerts</Text>
             <Text style={[styles.noticeText, { color: theme.textMuted }]}>Choose app banners with sound, and optional email notices when PSI publishes a customer car.</Text>
@@ -108,7 +109,7 @@ export default function CustomerCarsForSaleScreen() {
             onPress={() => void notifications.setPreference('car_sale_emails_enabled', !(notifications.preferences?.car_sale_emails_enabled ?? false))}
           />
           <Text style={[styles.emailConsent, { color: theme.textMuted }]}>Email notices are optional. Every email explains how to unsubscribe.</Text>
-        </View> : null}
+        </View></CustomerProfileGate> : null}
 
         {preview ? <Text style={[styles.previewNote, { color: theme.accent }]}>Preview data only · this vehicle is not for sale.</Text> : null}
 
@@ -130,10 +131,12 @@ export default function CustomerCarsForSaleScreen() {
           <Text style={[styles.sellerEyebrow, { color: theme.accent }]}>Selling your PSI-worked car?</Text>
           <Text maxFontSizeMultiplier={1.3} style={[styles.sellerTitle, { color: theme.text }]}>Ask PSI to review a listing</Text>
           <Text style={[styles.sellerCopy, { color: theme.textMuted }]}>Send the vehicle, expected price and current kilometres. PSI will contact you before any details or photos are published.</Text>
+          <CustomerProfileGate inline returnTo="/customer-cars-for-sale" requireVehicle feature="requesting a listing for your car">
           <Pressable accessibilityHint="Opens an email draft to PSI" accessibilityLabel="Ask PSI to list my car" accessibilityRole="button" onPress={requestListing} style={({ pressed }) => [styles.primaryButton, { backgroundColor: theme.accent }, pressed && styles.pressed]}>
             <Ionicons color={colors.ink} name="mail-outline" size={20} />
             <Text style={styles.primaryButtonText}>Ask PSI to list my car</Text>
           </Pressable>
+          </CustomerProfileGate>
           <Pressable accessibilityLabel="Call PSI about a vehicle listing" accessibilityRole="button" onPress={() => void Linking.openURL(contact.phoneUrl)} style={({ pressed }) => [styles.secondaryButton, { borderColor: theme.frame }, pressed && styles.pressed]}>
             <Ionicons color={theme.accent} name="call-outline" size={20} />
             <Text style={[styles.secondaryButtonText, { color: theme.text }]}>Call {contact.phoneDisplay}</Text>

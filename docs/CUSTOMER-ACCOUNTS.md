@@ -22,12 +22,32 @@ in-app subscription flow after signing in. The `beta`, `qa`, and review
 channels keep their separate registration settings. Supabase Auth's project
 setting **Allow new users to sign up** must also be enabled for this channel.
 
-## Approved account model
+## Profile first customer flow (9 October 2026)
+
+Customers can browse services, prices and partners before signing in. Real
+bookings and personal changes require email verification and a completed
+profile. The account and setup screens no longer offer a guest booking path.
+After setup, a customer returns to their original booking or feature. Existing
+drafts are retained, and booking vehicle selection resolves only to vehicles
+in the signed in customer's account.
+
+The public **Try demonstration** entry opens a disposable sample tour at
+`/demonstration`. It contains fictional cars, records and simulated booking and
+checkout actions. These actions do not create accounts, start trials, send
+requests or take payments. Existing authenticated app providers may still
+perform normal account and notification refreshes in the background.
+
+The separate **App store reviewer sign in** entry retains the existing isolated
+reviewer environment and credentials. Reviewers can still switch back through
+the persistent review banner. Trial duration, expiry notifications, purchases,
+ownership policies and permanent owner access are unchanged by this UI change.
+
+## Historical D1 account proposal
 
 - Sign-in is passwordless by email using a short-lived, single-use link.
 - Registration remains disabled during owner review and becomes invite-only for
   the first controlled test group.
-- Customers can continue booking without an account.
+- The earlier guest booking proposal does not apply to the current mobile app.
 - PSI never stores a password, password hash or email-link token. Access and
   refresh tokens must never enter D1, application logs, browser local storage
   or native AsyncStorage; a native provider session may use OS secure storage.

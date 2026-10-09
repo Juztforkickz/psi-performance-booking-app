@@ -9,6 +9,8 @@ import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAustralianDateTime } from '@/lib/australian-date';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
+import { useCustomerAccount } from '@/lib/customer-account-context';
+import { customerProfileComplete } from '@/lib/customer-access';
 import type { PsiEventRow } from '@/lib/database.types';
 import { loadPublishedPsiEvents } from '@/lib/psi-events';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
@@ -17,6 +19,7 @@ import { useThemePreference } from '@/lib/theme-preference';
 export default function PsiEventsScreen() {
   const router = useRouter();
   const auth = useCustomerAuth();
+  const { account } = useCustomerAccount();
   const { compact, horizontalPadding } = useResponsiveLayout();
   const { activeTheme, theme } = useThemePreference();
   const [events, setEvents] = useState<PsiEventRow[]>([]);
@@ -54,6 +57,10 @@ export default function PsiEventsScreen() {
   const scheduleReminder = async (event: PsiEventRow) => {
     setMessage('');
     if (REVIEW_ENVIRONMENT.enabled) { setMessage('Device reminders are disabled for fictional demonstration events.'); return; }
+    if (auth.status !== 'signed_in' || !customerProfileComplete(account?.profile)) {
+      router.push({ pathname: '/account', params: { returnTo: '/events' } });
+      return;
+    }
     if (Platform.OS === 'web') {
       setMessage('Event reminders are available in the installed iPhone or Android app.');
       return;

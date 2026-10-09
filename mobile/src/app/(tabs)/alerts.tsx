@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { PerformancePlanCard } from '@/components/performance-plan-card';
 import { PerformanceUpdates } from '@/components/performance-updates';
+import { CustomerProfileGate } from '@/components/customer-profile-gate';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_PREVIEW, type PreviewAlert } from '@/lib/customer-preview';
@@ -207,6 +208,7 @@ export default function AlertsScreen() {
           ) : null}
         </View>
 
+        <CustomerProfileGate inline returnTo="/alerts" feature="managing your notifications">
         <View style={styles.sectionHeading}>
           <Text style={styles.sectionTitle}>Latest</Text>
           <Pressable
@@ -391,6 +393,7 @@ export default function AlertsScreen() {
         ) : null}
 
         <PerformanceUpdates />
+        </CustomerProfileGate>
       </ScrollView>
     </SafeAreaView>
   );
