@@ -112,10 +112,10 @@ module.exports = [
     { say: 'I need to reschedule my booking', includes: ['No booking has been changed'], queued: true },
     { say: 'Prefer Friday, if available', visitorLast: true, queued: true, summary: ['reschedule', 'Friday'] },
   ] },
-  { title: 'Unanswered question reaches the test inbox with context', steps: [
-    { say: 'Can you organise interstate vehicle transport?', includes: ['confirmed'], queued: false },
+  { title: 'Transport policy and arrival question reach the test inbox with context', steps: [
+    { say: 'Can you organise interstate vehicle transport?', includes: ['arranged between you and your transport provider'], queued: false },
     { say: 'Message PSI', queued: true, summary: ['transport'] },
-    { view: 'inbox' }, { reply: 'Test reply: I will check the transport options.' },
+    { view: 'inbox' }, { reply: 'Test reply: Please arrange transport with your provider and confirm the arrival time with PSI.' },
     { view: 'customer', staffRead: true },
     { say: 'Thanks, it is a 2020 Ford Mustang', visitorLast: true, summary: ['2020', 'Ford Mustang'] },
   ] },

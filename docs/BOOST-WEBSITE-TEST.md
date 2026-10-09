@@ -59,9 +59,9 @@ The website placement preview is available at `http://127.0.0.1:8780/website.htm
 
 The latest 9 October direction supersedes the earlier website first wording. Matt now prefers app downloads and app booking guidance, with website enquiry retained as an alternative. Public store links open only after a visitor clicks. They contain no transcript or visitor details. All message handling remains local. General account and subscription instructions can be answered without accessing an account; actual account changes and refunds still require PSI.
 
-The current tests cover every prepared question, suggested follow ups, common paraphrases, guides, scoped quote collection, side questions, consent, inbox read times, unknown questions, literal markup, bounded state and isolation. The review page at `http://127.0.0.1:8780/review.html` contains all 64 replies and 12 pricing decisions for Matt. It has no save or submission action. `node operations/boost-website-test/build-review.mjs` also saves a local HTML copy in the ignored artifacts directory.
+The current tests cover every prepared question, suggested follow ups, common paraphrases, guides, scoped quote collection, side questions, consent, inbox read times, unknown questions, literal markup, bounded state and isolation. The review page at `http://127.0.0.1:8780/review.html` contains all 73 replies, confirmed business answers and 3 remaining clarification groups for Matt. It has no save or submission action. `node operations/boost-website-test/build-review.mjs` also saves a local HTML copy in the ignored artifacts directory.
 
-Current validation on 9 October: 45 test groups pass, including 20 complete fictional customer journeys, covering every prepared answer and suggested follow up as well as the scenarios above. Browser checks verified account guide buttons, both download destinations, the service enquiry and consent flow, Matt’s test reply and read time, long reply scrolling and a 320 pixel viewport with no horizontal overflow. Physical phone keyboard behaviour and actual Shopify delivery remain outside this local test.
+Current validation on 9 October after the business answers: 52 test groups pass, including 20 complete fictional customer journeys, covering every prepared answer and suggested follow up as well as the scenarios above. Browser checks verified account guide buttons, both download destinations, the service enquiry and consent flow, Matt’s test reply and read time, long reply scrolling and a 320 pixel viewport with no horizontal overflow. Physical phone keyboard behaviour and actual Shopify delivery remain outside this local test.
 
 ## Research and pricing approval
 
@@ -74,7 +74,7 @@ Public evidence: [PSI website](https://psiperformance.com.au/), [Workshop Servic
 Run the relevant checks:
 
 ```powershell
-node --test operations/boost-website-test/engine.test.cjs operations/boost-website-test/isolation.test.mjs
+node --test operations/boost-website-test/engine.test.cjs operations/boost-website-test/journeys.test.cjs operations/boost-website-test/isolation.test.mjs
 ```
 
 The build helper can create the standalone inline fragment without installing packages:
@@ -106,3 +106,17 @@ The simulated inbox includes an expandable Request summary for PSI with vehicle 
 `journeys.cjs` contains 20 fictional conversations covering service, dyno, transmission, corrections, app signup, website preference, combined questions, safety, unknown prices, parts, coding, EV scope, Performance+, staff handoff and consent. The baseline met all checks in 4 of 20; the remaining journeys exposed missing context handling or the planned summary feature. All 20 now meet their checks. Run the complete suite with `node --test operations/boost-website-test/engine.test.cjs operations/boost-website-test/journeys.test.cjs operations/boost-website-test/isolation.test.mjs`.
 
 `http://127.0.0.1:8780/rehearsals.html` shows the actual generated conversations and test summaries. Build a saved copy with `node operations/boost-website-test/build-rehearsals.mjs`. This remains a prepared response engine, with limited wording recognition. Real Shopify delivery, alerts, physical phone keyboard testing, outstanding pricing decisions and public launch are still separate work.
+
+## Owner business answers applied, 9 October 2026
+
+This later checkpoint supersedes the earlier pricing research gaps above where Matt has now supplied answers. It adds routine engine service inclusions and prior approval for extra work, engine ECU dyno scope, labour at AUD $187 including GST per hour with no minimum labour charge, diagnostic scans at AUD $88 including GST, and entry cam packages from AUD $3,795 including GST. A scan is not a complete diagnosis or repair quote. The cam guide does not guarantee eligible engines or unspecified parts and tuning inclusions.
+
+Additional transmission, unlocking, CPC, fuel pump and other module costs remain individually quoted. The OTR and tune option and typical cam supporting upgrades are explained without publishing the supplementary figures whose GST and fitting details remain unclear. Mercedes coding links retain compatibility checks, include the owner approved remote dongle option and do not calculate prices from inconsistent website credit examples.
+
+Deposits, timely agreed date transfers, quote expiry, customer supplied parts, workmanship warranty and transport policies are recorded. No policy reply performs or approves a refund, cancellation, date change, liability decision or warranty claim. Blanket exclusions of consumer rights are not used. Reference: [ACCC consumer rights and guarantees](https://www.accc.gov.au/consumers/buying-products-and-services/consumer-rights-and-guarantees), checked 9 October 2026. The owner’s commercial policy is qualified by applicable consumer rights and assessment of the circumstances.
+
+The review now records answered topics separately from three clarification groups: supplementary GST and fitting, cam eligibility and exact inclusions, and ambiguous service lubrication wording plus EV scope. The answer numbered 7 concerned servicing, not forced induction. Unanswered work stays quote only; no reply time, job duration, warranty duration or notice cutoff is invented.
+
+Validation: 52 checks passed, including all 20 existing conversation journeys, pricing and policy regression cases, consent, safe handoff and local server isolation. Built all four local artifacts. Browser verification confirmed the updated diagnostic price reply and the revised review page. Screenshot: `artifacts/boost-website-test/boost-approved-pricing.jpg`. No native app, public OTA configuration, customer account, Shopify theme or external message integration changed. The normal main branch GitHub Pages workflow exports only `mobile/dist`; this local Boost kit is not part of that export.
+
+Rollback is the preceding Git checkpoint `db19d05`. Revert this checkpoint’s scoped files if needed without resetting unrelated app or website work.

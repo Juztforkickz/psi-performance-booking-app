@@ -1,18 +1,68 @@
 {
   "reviewDate": "2026-10-09",
-  "status": "Matt approved Service & Report from AUD $423.50 and Dyno Tuning from AUD $649 as starting guides only. PSI confirms the final price. Transmission tuning costs extra and varies with the vehicle, transmission, setup and modifications. Other inclusions and prices remain under review.",
+  "status": "Matt’s confirmed business answers are applied to the private replies. All customer prices in replies include GST. Unconfirmed supplementary prices stay out of automatic answers. No live publication or message delivery is enabled.",
+  "approved": [
+    {
+      "topic": "Routine engine servicing",
+      "detail": "From AUD $423.50 including GST. Engine oil, oil filter and sump plug washer replacement, full vehicle check, necessary fluid top ups and tyre pressures including the spare. Extra work is reported, quoted and approved first. Lubrication wording and EV scope await clarification."
+    },
+    {
+      "topic": "Engine ECU dyno tuning",
+      "detail": "From AUD $649 including GST, vehicle dependent. Transmission tuning, unlocking, CPC, fuel pump and other module requirements are priced individually with supporting modifications."
+    },
+    {
+      "topic": "Labour and diagnostic scans",
+      "detail": "AUD $187 per hour including GST, converted from AUD $170 plus GST, with no minimum labour charge. Diagnostic scans AUD $88 including GST, converted from AUD $80 plus GST. Further investigation and repairs are additional approved work."
+    },
+    {
+      "topic": "Entry cam package",
+      "detail": "From AUD $3,795 including GST, converted from AUD $3,450 plus GST, drive in drive out. Eligible engines and exact inclusions still require confirmation. Cam, condition, driveline and supporting work affect the final scope."
+    },
+    {
+      "topic": "Mercedes coding",
+      "detail": "Link to PSI’s coding page and explain the remote dongle option for supported interstate work. Confirm compatibility and exact total. Other makes and features require assessment. Conflicting coding credit examples are not used to calculate prices."
+    },
+    {
+      "topic": "Deposits and date changes",
+      "detail": "Minimum AUD $100 for servicing and AUD $300 for dyno bookings after date approval. Timely communicated date changes can transfer the deposit with PSI’s agreement. No invented notice cutoff. Standard cancellation retention is qualified by applicable consumer rights and circumstances. Boost does not decide or process refunds."
+    },
+    {
+      "topic": "Written quotes",
+      "detail": "Generally valid for 7 to 14 days at most, with the written expiry controlling. Expired quotes need review because supplier prices, stock and import exchange rates change. No automatic repricing of accepted work."
+    },
+    {
+      "topic": "Customer parts and warranty",
+      "detail": "Request receipts, part details and inspection paperwork before PSI checks suitability and safety. PSI offers a workmanship warranty. Modified engine and supplier coverage need written scope. No blanket denial of consumer guarantees or automatic rejection of a failure claim."
+    },
+    {
+      "topic": "Transport",
+      "detail": "No loan cars. Towing, pickup and vehicle transport are between the customer and their transport provider. Workshop arrival needs agreement with PSI."
+    }
+  ],
   "questions": [
-    { "id": 1, "topic": "Service inclusions", "question": "The starting guide is approved. Which vehicles and routine work does it cover, and what makes the price higher?", "evidence": "Matt confirmed from AUD $423.50 on 9 October 2026, not a fixed price. Existing GST inclusive treatment is retained. Exact inclusions are still to be confirmed." },
-    { "id": 2, "topic": "Dyno inclusions", "question": "The starting guide is approved. What work does it cover, such as a power run, health check, calibration session or complete tune, and which vehicles qualify?", "evidence": "Matt confirmed from AUD $649 on 9 October 2026, not a fixed price. Existing GST inclusive treatment is retained. Transmission tuning is confirmed as an extra cost. Specific ECU, transmission and package prices remain for PSI to quote." },
-    { "id": 3, "topic": "Diagnostics and labour", "question": "What is the minimum diagnostic charge or included test time, and the current hourly labour rate including GST? Should Boost publish either?", "evidence": "No universal current diagnostic minimum or labour rate was verified." },
-    { "id": 4, "topic": "Engine and transmission tuning", "question": "Transmission tuning is confirmed as an extra cost and remains individually quoted. Are any more specific engine tuning guides approved for V6, V8, turbo, supercharged or European vehicles? List the vehicle group, ECU fees and inclusions, or mark them as quote only.", "evidence": "Matt confirmed transmission tuning costs extra and varies with the vehicle, transmission, setup and modifications. No fixed transmission price is approved. Specific engine prices still need confirmation." },
-    { "id": 5, "topic": "Cam and engine packages", "question": "Do you want an approved cam package starting price? Specify the engine family, cam, springs, pushrods, lifters, trays, DOD work, chain, oil pump, trunnions, fitting and tune included. Are engine rebuilds always quote only?", "evidence": "Previous packages have different inclusions. Some supporting parts were optional extras." },
-    { "id": 6, "topic": "Exhausts, intakes and fitting", "question": "May Boost give any fitted price guides, or should it collect the exact product and vehicle first? Confirm whether fitting, hardware and tuning are always separate unless listed.", "evidence": "Past enquiries distinguish rear sections, full systems, supply only and fitting. Some old parts prices were due to increase." },
-    { "id": 7, "topic": "Cooling and forced induction", "question": "Should interchillers, water meth systems, turbo and supercharger work remain quote only? If a starting guide is useful, confirm the exact kit, car group, fitting and tuning scope.", "evidence": "A recent estimate is tied to one specific modified car. Kit access and compatibility vary." },
-    { "id": 8, "topic": "EV and hybrid work", "question": "Does the service starting price cover HEV, PHEV and BEV? Are diagnostic, charging and high voltage inspection charges different? Which models or jobs should always come directly to you?", "evidence": "Service categories are verified. Current model coverage and individual inspection prices are not. Battery pack rebuilding remains excluded." },
-    { "id": 9, "topic": "Coding prices", "question": "Which coding credit schedule is current, does it include GST, and is there a minimum charge or paid compatibility check? Should Boost quote credits or only an approved total for a specific feature?", "evidence": "The public coding page contains conflicting examples for the same credit quantity. Numeric coding replies are withheld." },
-    { "id": 10, "topic": "Deposits and changes", "question": "Can Boost explain the current app deposit guides, AUD $100 for Service & Report and AUD $300 for Dyno Tuning, after date approval? What cancellation, rescheduling and refund wording may it use?", "evidence": "The app defines those deposits. They must not be confused with a charge on enquiry or payment confirmation." },
-    { "id": 11, "topic": "Quote rules and GST", "question": "How long is a quote valid? Can we display all approved customer prices including GST? Which jobs need inspection or a diagnostic fee before a firm quote, and who approves extra work?", "evidence": "Old estimates were requoted when scope or parts prices changed. Several mail figures do not explicitly state GST treatment." },
-    { "id": 12, "topic": "Workshop policies", "question": "Confirm customer supplied parts, parts warranty versus labour warranty, expected reply time, loan cars, pickup or towing arrangements, and whether any supported jobs have a reliable duration guide.", "evidence": "No universal current policy was verified. Boost asks PSI instead of promising these services or timing." }
+    {
+      "id": 1,
+      "topic": "Supplementary prices and fitting",
+      "question": "Are CNC heads AUD $1,550, valve seats AUD $750, oil pump plus CHE trunnion AUD $920, and Holden/HSV supplied and fitted OTR plus tune from AUD $1,500 before GST or inclusive? Do the first three include fitting, or are they parts or machining only?",
+      "evidence": "The amounts were supplied, but their GST treatment and the first three fitting scopes were not stated. These figures are saved here for review only, not in customer replies."
+    },
+    {
+      "id": 2,
+      "topic": "Entry cam eligibility and inclusions",
+      "question": "Which engines or vehicles qualify for the entry cam package, and exactly which parts and tuning are included?",
+      "evidence": "The drive in drive out guide and GST are confirmed. Boost can state a conditional starting guide, but cannot promise eligibility or a list of included parts."
+    },
+    {
+      "id": 3,
+      "topic": "Service lubrication and EV scope",
+      "question": "By lubricating straps, do you mean hinges and latches, or something else? Does the same service starting guide apply to hybrids and electric vehicles?",
+      "evidence": "Lubrication wording was ambiguous. The engine service tasks cannot be applied unchanged to a battery electric vehicle."
+    }
+  ],
+  "quoteOnly": [
+    "Forced induction, engine rebuilds, interchillers and water meth systems remain individually quoted. The answer numbered 7 restated servicing, rather than approving those package prices.",
+    "EV and hybrid eligibility and inspection scope remain model dependent. Battery pack rebuilding stays excluded.",
+    "No promised response time, turnaround, warranty duration or exact rescheduling notice period was supplied. Boost does not invent one.",
+    "Other module, transmission and manufacturer coding work remains individually priced. PSI confirms the exact coding total instead of Boost calculating inconsistent website credit examples."
   ]
 }

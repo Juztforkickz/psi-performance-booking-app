@@ -5,6 +5,85 @@ const knowledge = require('./knowledge.cjs');
 const last = state => state.messages.at(-1);
 const send = (state, ...messages) => messages.forEach(message => assert.equal(engine.send(state, message).ok, true));
 
+test('approved engine service inclusions preserve prior approval for extras', () => {
+  const reply = engine.answer('What does Service & Report cover?').reply;
+  for (const phrase of ['423.50', 'oil filter', 'sump plug washer', 'full vehicle check', 'fluid top ups', 'spare', 'approved before']) assert.ok(reply.includes(phrase), phrase);
+  assert.match(engine.answer('Does a service include spark plugs?').reply, /not automatically included/);
+  assert.match(engine.answer('Will you ask before doing extra work?').reply, /approval before/);
+  const state = engine.createSession(); send(state, 'Does the service price cover every EV?');
+  assert.match(last(state).text, /exact EV or hybrid/); assert.doesNotMatch(last(state).text, /Yes/);
+});
+
+test('scan and hourly charges remain distinct from a complete repair quote', () => {
+  for (const q of ['How much for a diagnostic scan?', 'What does scanning cost?', 'How much is a code scan?']) {
+    const r = engine.answer(q); assert.equal(r.intent, 'scan-price', q);
+    assert.match(r.reply, /AUD \$88 including GST/); assert.match(r.reply, /not a fixed price for all fault finding/);
+  }
+  for (const q of ['What is your hourly rate?', 'Is there a minimum charge?', 'Labour cost per hour?']) {
+    const r = engine.answer(q); assert.equal(r.intent, 'labour-rate', q);
+    assert.match(r.reply, /AUD \$187/); assert.match(r.reply, /no minimum labour charge/);
+  }
+  const state = engine.createSession(); send(state, 'How much to diagnose my 2015 Ford Falcon misfire?');
+  assert.match(last(state).text, /Further fault finding/); assert.equal(state.intake.pending, 'details');
+  assert.equal(state.queued, false);
+});
+
+test('cam and engine ECU guides do not leak into supplementary or module quotes', () => {
+  for (const q of ['Cam package price?', 'How much for a cam package for my 2014 Holden Commodore?']) {
+    const r = engine.answer(q); assert.match(r.reply, /3,795 including GST/); assert.match(r.reply, /eligibility/);
+  }
+  assert.match(engine.answer('Price for an engine ECU tune?').reply, /649 including GST/);
+  for (const q of ['How much for CNC heads?', 'Valve seats price?', 'CHE trunnion and oil pump cost?', 'OTR and tune price?', 'CPC tuning price?', 'ECU unlocking quote?']) {
+    const r = engine.answer(q); assert.equal(r.collect, true, q);
+    assert.doesNotMatch(r.reply, /\$[\d,]+/, q);
+  }
+  const cam = engine.createSession(); send(cam, 'Can you help choose a cam package?', 'Does that include fitting and tuning?');
+  assert.match(last(cam).text, /written quote/);
+});
+
+test('deposit policies are informational while personal changes and refunds require staff', () => {
+  const deposit = engine.answer('How much is a deposit?');
+  assert.match(deposit.reply, /AUD \$100/); assert.match(deposit.reply, /AUD \$300/);
+  assert.match(deposit.reply, /No payment is taken on enquiry/);
+  for (const q of ['What is your cancellation policy?', 'Are deposits refundable?']) {
+    const r = engine.answer(q); assert.equal(r.handoff, false, q);
+    assert.match(r.reply, /consumer rights/); assert.match(r.reply, /cannot decide a refund/);
+  }
+  const reschedule = engine.answer('What is your date change policy?');
+  assert.match(reschedule.reply, /deposit can move/); assert.match(reschedule.reply, /PSI’s agreement/);
+  assert.doesNotMatch(reschedule.reply, /24|48|72/);
+  for (const q of ['Refund my deposit', 'Cancel my booking', 'I need to reschedule my appointment']) {
+    const state = engine.createSession(); send(state, q); assert.equal(state.queued, true, q);
+  }
+});
+
+test('parts and workmanship policies do not waive rights or decide liability', () => {
+  const own = engine.answer('Can I bring my own parts?').reply;
+  for (const phrase of ['receipt', 'inspection paperwork', 'suitability', 'workmanship obligations', 'consumer rights', 'assessment']) assert.ok(own.includes(phrase), phrase);
+  const warranty = engine.answer('Do you offer a workmanship warranty?').reply;
+  assert.match(warranty, /workmanship warranty/); assert.match(warranty, /Australian Consumer Law/);
+  assert.match(warranty, /cannot accept or reject/);
+  assert.doesNotMatch(warranty + own, /zero accountability|no liability|no rights|all suppliers/);
+  assert.match(engine.answer('Can I use an old quote?').reply, /7 to 14 days/);
+  assert.match(engine.answer('Can I use an old quote?').reply, /cannot.*change an agreed price/);
+});
+
+test('known transport and remote coding answers avoid old uncertainty or guaranteed fitment', () => {
+  assert.match(engine.answer('Do you have a loan car?').reply, /does not offer loan cars/);
+  assert.match(engine.answer('Can you organise interstate transport?').reply, /arranged between you and your transport provider/);
+  const coding = engine.answer('Do you do remote coding?');
+  assert.match(coding.reply, /remote coding dongle/); assert.match(coding.reply, /Compatibility depends/);
+  assert.deepEqual(coding.links, ['coding']); assert.doesNotMatch(coding.reply, /\$\d|no risk/);
+});
+
+test('unknown supplementary GST and totals are never inferred from owner review amounts', () => {
+  const publicReplies = knowledge.FAQS.map(f => f.reply).join('\n');
+  assert.doesNotMatch(publicReplies, /\$1,?550|\$750|\$920|\$1,?500/);
+  const state = engine.createSession(); send(state, 'OTR and tune price for my 2015 Holden Commodore?', 'Does that include GST?');
+  assert.match(last(state).text, /cannot assume/); assert.doesNotMatch(last(state).text, /Yes|1,500|1,650/);
+  assert.equal(state.queued, false); assert.equal(state.intake.work, 'OTR and tuning');
+});
+
 test('all curated entry questions and their suggested follow ups are reachable', () => {
   assert.ok(knowledge.FAQS.length >= 60);
   for (const faq of knowledge.FAQS) {
@@ -89,7 +168,7 @@ test('approved service and dyno guides are never fixed quotes or promises of inc
   }
   const followup = engine.createSession(); send(followup, 'Do you do dyno tuning?', 'How much?');
   assert.match(last(followup).text, /starts from AUD \$649/);
-  for (const question of ['What does a cam package cost?', 'How much is coding?', 'Transmission tuning quote?', 'Price for an ECU tune?', 'What does a dyno power run cost?']) {
+  for (const question of ['What does a cam package cost?', 'How much is coding?', 'Transmission tuning quote?', 'ECU unlocking price?', 'What does a dyno power run cost?']) {
     const state = engine.createSession(); send(state, question);
     assert.doesNotMatch(last(state).text, /\$423|\$649/, question);
   }

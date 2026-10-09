@@ -56,6 +56,9 @@
   function contextualAnswer(state, text) {
     const response = answer(text), q = normalise(text);
     if (response.handoff) return response;
+    if (/^(?:is|does) (?:that|it|the price) (?:include|including|includes) gst$/.test(q)) {
+      return result('gst', 'Boost’s confirmed price guides include GST. Any additional or individually quoted work needs a GST inclusive total confirmed by PSI. I cannot assume the tax or inclusions for an unconfirmed price.', { sources: ['ownerApproval'], prompts: ['Message PSI'] });
+    }
     const tuning = ['dyno','specific tuning','transmission tuning'].includes(state.intake.work) || ['dyno','dyno-details','ecu-tcu'].includes(state.topic);
     if (tuning && /\b(gearbox|transmission|tcu|tcm)\b/.test(q) && /\b(include\w*|extra|cost|price|how much)\b/.test(q)) {
       return knowledge.isPricing(q) ? result('quote', quoteIntro('transmission tuning'), { collect: true, work: 'transmission tuning' }) : toFAQ(knowledge.BY_ID['ecu-tcu']);
@@ -85,7 +88,7 @@
       extraReplies: unique.filter(response => response !== primary).map(response => response.reply),
       sources: [...new Set(unique.flatMap(response => response.sources))],
       links: [...new Set(unique.flatMap(response => response.links))],
-      unanswered: questions.filter((_, index) => ['needs-review','loan-car','warranty','service-inclusions'].includes(responses[index].intent)) };
+      unanswered: questions.filter((_, index) => ['needs-review','warranty','service-inclusions'].includes(responses[index].intent)) };
   }
   function rememberPreferences(state, text) {
     const q = normalise(text);
@@ -108,23 +111,31 @@
   }
   function quoteIntro(work) {
     if (work === 'transmission tuning') return knowledge.BY_ID['ecu-tcu'].reply;
+    if (work === 'module tuning') return knowledge.BY_ID['module-tuning'].reply;
+    if (work === 'diagnostics') return 'Diagnostic scans cost AUD $88 including GST. Further fault finding is scoped separately, with labour at AUD $187 per hour including GST and no minimum labour charge. PSI confirms the investigation and any extra work for approval.';
+    if (work === 'cam extras') return knowledge.BY_ID['cam-extras'].reply;
+    if (work === 'OTR and tuning') return knowledge.BY_ID.otr.reply;
+    if (work === 'coding') return knowledge.BY_ID.coding.reply;
     return knowledge.PRICE_GUIDES[work] || 'PSI will confirm the price.';
   }
   function workFrom(text) {
     const q = normalise(text);
     for (const [work, pattern] of [
-      ['coding', /\b(coding|carplay|mbux)\b/], ['cam', /\b(cam|camshaft|lifters|dod|afm)\b/],
+      ['coding', /\b(coding|carplay|mbux)\b/],
+      ['cam extras', /\b(cnc|valve seats?|oil pump|che trunnion)\b/], ['cam', /\b(cam|camshaft|lifters|dod|afm)\b/],
+      ['OTR and tuning', /\botr\b/], ['module tuning', /\b(cpc|unlock\w*|fuel pump module|other modules|module tuning)\b/],
       ['engine build', /\b(engine build|engine rebuild|stroker)\b/], ['cooling upgrade', /\b(interchiller|water meth|water methanol)\b/],
       ['forced induction', /\b(supercharger|turbo kit|turbo upgrade|whipple|harrop)\b/], ['exhaust', /\b(exhaust|headers|varex|cat back|downpipe)\b/],
       ['brakes or suspension', /\b(brakes|suspension|alignment|coilovers|tyres)\b/], ['parts', /\b(parts|part|intake|otr)\b/],
       ['transmission tuning', /\b(tcu|tcm|transmission tun\w*|gearbox tun\w*)\b/],
+      ['dyno', /\b(?:engine|ecu) tun\w*\b/],
       ['specific tuning', /\b(ecu|power runs?|health check)\b/],
       ['service', /\b(service|servicing|maintenance|logbook)\b/], ['dyno', /\b(dyno|tuning|tune)\b/],
       ['EV check', /\b(ev|electric|hybrid|charging|hev|phev|bev)\b/], ['diagnostics', /\b(diagnostics|fault|warning|misfire)\b/],
     ]) if (pattern.test(q)) return work;
     return null;
   }
-  const topicWork = { service: 'service', logbook: 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'transmission tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
+  const topicWork = { 'module-tuning': 'module tuning', 'cam-extras': 'cam extras', otr: 'OTR and tuning', 'scan-price': 'diagnostics', service: 'service', logbook: 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'transmission tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
   function collectDetails(intake, text) {
     const q = normalise(text), year = q.match(/\b((?:19|20)\d{2})\b/);
     const make = q.match(/\b(audi|bmw|ford|holden|honda|hyundai|kia|mazda|mercedes(?: benz)?|mitsubishi|nissan|porsche|skoda|subaru|suzuki|tesla|toyota|volkswagen|vw|volvo|byd|mg|gwm|lexus|isuzu|jeep|land rover|peugeot|renault|ferrari|lamborghini|polestar|cupra|chery|mini)\b/);
@@ -146,6 +157,9 @@
         dyno: 'What’s the current setup, transmission, fuel and tuning goal? Include whether you want engine tuning, transmission tuning or both.',
         'specific tuning': 'What exact tuning or testing work do you need, and what engine, transmission, fuel and modifications does the car have?',
         'transmission tuning': 'Which transmission does the car have, and what is the current setup, modifications and tuning goal?',
+        'module tuning': 'Which module or feature needs work, and what is the current vehicle setup and goal?',
+        'cam extras': 'Which head work or supporting parts do you need, and what engine, cam and driveline do you have?',
+        'OTR and tuning': 'Which engine, intake, exhaust, extractors and computer does the car have, and do you need supply, fitting and tuning?',
         cam: 'What engine, transmission and current setup do you have, and what driving result are you after?',
         exhaust: 'Do you want a rear section, headers or a full system, and supply only or fitted? Include any product link and whether tuning is needed.',
         parts: 'Which product or part number do you need, and is it supply only or fitted?',
@@ -249,7 +263,7 @@
     }
     const vehicleContext = /\b(my|i have|ive got|i own|it is|its|sorry)\b/.test(q);
     if (vehicleContext) collectDetails(state.intake, message);
-    if (['needs-review','loan-car','warranty','service-inclusions'].includes(response.intent)) state.reviewQuestions = [...state.reviewQuestions, message].slice(-8);
+    if (['needs-review','warranty','service-inclusions'].includes(response.intent)) state.reviewQuestions = [...state.reviewQuestions, message].slice(-8);
     if (response.unanswered) state.reviewQuestions = [...state.reviewQuestions, ...response.unanswered].slice(-8);
     response = personalise(state, response);
     state.intent = response.intent;
