@@ -7,7 +7,7 @@
   // Matt approved these as starting guides, not fixed quotes or package inclusions.
   const PRICE_GUIDES = Object.freeze({
     service: 'Service & Report starts from AUD $423.50 including GST. PSI confirms the final price for your vehicle and the work required.',
-    dyno: 'Dyno Tuning starts from AUD $649 including GST. PSI confirms the final price for your vehicle and the work required.',
+    dyno: 'Dyno Tuning starts from AUD $649 including GST. PSI confirms the final price for your vehicle and the work required. Transmission tuning costs extra.',
   });
   const LINKS = Object.freeze({
     apple: { label: 'iPhone App Store', url: 'https://apps.apple.com/au/app/psi-performance-garage/id6806902732' },
@@ -29,6 +29,7 @@
     garage: 'Current mobile account setup and My Garage screens',
     booking: 'Current mobile booking.tsx, tabs/bookings.tsx and lib/booking.ts',
     pricingApproval: 'Matt confirmed Service & Report from AUD $423.50 and Dyno Tuning from AUD $649 on 9 October 2026. Starting guides only, with existing GST inclusive treatment. Exact prices and inclusions still require PSI review.',
+    transmissionApproval: 'Matt confirmed on 9 October 2026 that transmission tuning is an extra cost, varying with the vehicle, transmission, setup and modifications. No fixed transmission tuning price approved.',
     plus: 'Current mobile performance-plus.tsx and public Australian App Store description',
     mail: 'Anonymised recurring enquiry topics from selected PSI Outlook correspondence, March to October 2026. No individual prices approved.',
     boundary: 'Private Boost test scope and owner instructions. No connected inbox or production actions.',
@@ -74,7 +75,7 @@
     faq('interchiller', 'Workshop', 'Do you fit interchillers or water meth systems?', 'PSI has handled interchiller and water meth installation enquiries. The right setup depends on the car, blower or turbo, cooling arrangement and intended use. PSI needs to confirm suitability and the complete installed scope.', ['website','mail'], ['I need a quote', 'What is Plan Builder?']),
     faq('dyno', 'Tuning', 'Do you do dyno tuning?', 'Yes. ' + PRICE_GUIDES.dyno + ' Use Dyno Tuning in the app and include your current setup and tuning goal.', ['workshop','booking','pricingApproval'], ['What details do I need for tuning?', 'How do I book?', 'What does a tune cost?']),
     faq('dyno-details', 'Tuning', 'What details do I need for tuning?', 'Include the engine and modifications, transmission, differential, injectors and pump, fuel, intake, exhaust, cam and any previous tune. If you do not know the setup, choose the PSI inspection option rather than guessing.', ['booking','website'], ['How do I book?', 'I need a quote']),
-    faq('ecu-tcu', 'Tuning', 'Is transmission tuning included with an engine tune?', 'An engine ECU tune and transmission TCU tune are different work. Do not assume both are included. Give PSI the car, transmission and goal so compatibility and the combined scope can be quoted.', ['mail','website'], ['I need a tune quote', 'How do I book?']),
+    faq('ecu-tcu', 'Tuning', 'Is transmission tuning included with an engine tune?', 'Transmission tuning costs extra. The price depends on your vehicle, transmission, setup and modifications. PSI confirms the cost before proceeding.', ['transmissionApproval'], ['I need a transmission tuning quote', 'How do I book?']),
     faq('power', 'Tuning', 'How much power will my car make?', 'PSI must assess the exact setup before discussing a realistic result. Fuel, condition and supporting parts matter. No power or economy gain is guaranteed by Boost. Include your goal in a Dyno Tuning request.', ['workshop','estimator','booking'], ['What details do I need for tuning?', 'How do I book?']),
     faq('estimator', 'Tuning', 'Can I use the Power Estimator as a quote?', 'No. The website currently labels the Power Estimator a development preview and says its figures are not approved for customer quotations. Use it for initial context only, then ask PSI to assess your exact setup.', ['estimator'], ['What details do I need for tuning?', 'Website enquiry']),
     faq('fuel', 'Tuning', 'Can you tune for E85 or flex fuel?', 'The enquiry form accepts 98 RON, E85, flex fuel, race fuel and other setups. PSI must check your fuel system, controller support and intended use before confirming the tuning scope. Do not change fuel on Boost’s advice.', ['booking','website'], ['What details do I need for tuning?', 'I need a quote']),

@@ -105,6 +105,30 @@ test('service quote retains car and mileage, asks scope, then requires consent',
   send(state, 'yes please send it'); assert.equal(state.queued, true); assert.equal(state.intake.active, false);
 });
 
+test('transmission quotes stay variable even after a dyno price enquiry', () => {
+  for (const question of ['Is transmission tuning included?', 'How much is transmission tuning?', 'TCU tune quote?', 'Gearbox tuning price?']) {
+    const state = engine.createSession(); send(state, question);
+    assert.match(last(state).text, /Transmission tuning costs extra/);
+    assert.match(last(state).text, /vehicle, transmission, setup and modifications/);
+    assert.doesNotMatch(last(state).text, /AUD|\$\d/);
+    assert.equal(state.queued, false);
+  }
+  for (const messages of [
+    ['How much is transmission tuning?'],
+    ['Is transmission tuning included?', 'How much?'],
+  ]) {
+    const state = engine.createSession();
+    send(state, 'Dyno tuning price for my 2015 Holden Commodore?', ...messages);
+    assert.match(last(state).text, /Transmission tuning costs extra/);
+    assert.doesNotMatch(last(state).text, /\$649/);
+    assert.equal(state.intake.work, 'transmission tuning');
+    assert.equal(state.intake.year, '2015');
+    assert.match(state.intake.vehicle, /Holden Commodore/);
+    assert.match(last(state).text, /Which transmission/);
+    assert.equal(state.queued, false);
+  }
+});
+
 test('partial quotes, numeric mileage, declining and skipped details work', () => {
   const state = engine.createSession(); send(state, 'Service price?', 'Audi RS3');
   assert.equal(state.intake.pending, 'year'); send(state, '2021', '65000', 'Routine annual service');

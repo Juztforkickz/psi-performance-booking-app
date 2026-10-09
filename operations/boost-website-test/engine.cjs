@@ -52,7 +52,10 @@
     return result('needs-review', 'I do not have a verified answer for that yet. Choose Message PSI to ask Matt, or tell me whether it is about a vehicle, the app or a booking.', { prompts: ['Message PSI', 'How do I book?', 'I need a quote'] });
   }
   function newIntake() { return { active: false, work: null, vehicle: null, year: null, mileage: null, details: null, pending: null }; }
-  function quoteIntro(work) { return knowledge.PRICE_GUIDES[work] || 'PSI will confirm the price.'; }
+  function quoteIntro(work) {
+    if (work === 'transmission tuning') return knowledge.BY_ID['ecu-tcu'].reply;
+    return knowledge.PRICE_GUIDES[work] || 'PSI will confirm the price.';
+  }
   function workFrom(text) {
     const q = normalise(text);
     for (const [work, pattern] of [
@@ -60,13 +63,14 @@
       ['engine build', /\b(engine build|engine rebuild|stroker)\b/], ['cooling upgrade', /\b(interchiller|water meth|water methanol)\b/],
       ['forced induction', /\b(supercharger|turbo kit|turbo upgrade|whipple|harrop)\b/], ['exhaust', /\b(exhaust|headers|varex|cat back|downpipe)\b/],
       ['brakes or suspension', /\b(brakes|suspension|alignment|coilovers|tyres)\b/], ['parts', /\b(parts|part|intake|otr)\b/],
-      ['specific tuning', /\b(ecu|tcu|tcm|transmission tun\w*|gearbox tun\w*|power runs?|health check)\b/],
+      ['transmission tuning', /\b(tcu|tcm|transmission tun\w*|gearbox tun\w*)\b/],
+      ['specific tuning', /\b(ecu|power runs?|health check)\b/],
       ['service', /\b(service|servicing|maintenance|logbook)\b/], ['dyno', /\b(dyno|tuning|tune)\b/],
       ['EV check', /\b(ev|electric|hybrid|charging|hev|phev|bev)\b/], ['diagnostics', /\b(diagnostics|fault|warning|misfire)\b/],
     ]) if (pattern.test(q)) return work;
     return null;
   }
-  const topicWork = { service: 'service', logbook: 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'specific tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
+  const topicWork = { service: 'service', logbook: 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'transmission tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
   function collectDetails(intake, text) {
     const q = normalise(text), year = q.match(/\b((?:19|20)\d{2})\b/);
     const make = q.match(/\b(audi|bmw|ford|holden|honda|hyundai|kia|mazda|mercedes(?: benz)?|mitsubishi|nissan|porsche|skoda|subaru|suzuki|tesla|toyota|volkswagen|vw|volvo|byd|mg|gwm|lexus|isuzu|jeep|land rover|peugeot|renault|ferrari|lamborghini|polestar|cupra|chery|mini)\b/);
@@ -86,6 +90,7 @@
       return ({ service: 'Which service is due, or is there a particular concern?',
         dyno: 'What’s the current setup, transmission, fuel and tuning goal? Include whether you want engine tuning, transmission tuning or both.',
         'specific tuning': 'What exact tuning or testing work do you need, and what engine, transmission, fuel and modifications does the car have?',
+        'transmission tuning': 'Which transmission does the car have, and what is the current setup, modifications and tuning goal?',
         cam: 'What engine, transmission and current setup do you have, and what driving result are you after?',
         exhaust: 'Do you want a rear section, headers or a full system, and supply only or fitted? Include any product link and whether tuning is needed.',
         parts: 'Which product or part number do you need, and is it supply only or fitted?',
@@ -170,8 +175,13 @@
     if (state.intake.active && !response.collect && !directQuestion && !helpStatement) return continueIntake(state, message, now + 1);
     if (response.collect) {
       if (!state.intake.active) state.intake = newIntake();
+      const requestedWork = workFrom(message) || topicWork[state.topic];
+      if (requestedWork && requestedWork !== state.intake.work) {
+        state.intake.work = requestedWork;
+        state.intake.details = null;
+      }
       state.intake.active = true; collectDetails(state.intake, message);
-      if (!state.intake.work) state.intake.work = topicWork[state.topic] || null;
+      state.topic = null;
       state.intent = 'quote'; state.guide = null; promptIntake(state, now + 1, quoteIntro(state.intake.work) + ' '); return { ok: true };
     }
     state.intent = response.intent;
