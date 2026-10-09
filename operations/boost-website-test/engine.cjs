@@ -61,8 +61,8 @@
       if (/\b(include\w*|comes with|contents|cover\w*)\b/.test(q) && /\b(fitting|labour|labor|tuning|tune|cam|springs?|pushrods?|timing|gaskets?|coolant)\b/.test(q) && !/\b(transmission|tcu|cpc|unlock|lifters?|heads?|spark plugs|sump|rocker)\b/.test(q)) return toFAQ(knowledge.BY_ID['cam-inclusions']);
       if (/\b(lifters?|head gaskets?|head bolts?|spark plugs|sump gasket|rocker cover|exhaust manifold)\b/.test(q) && /\b(include\w*|extra|optional)\b/.test(q)) return toFAQ(knowledge.BY_ID['cam-options']);
     }
-    const supportingTopic = state.topic || ({ 'CNC head porting': 'cnc-heads', 'valve seat upgrade': 'valve-seats', 'pump and trunnions': 'pump-trunnions' })[state.intake.work];
-    if (['cnc-heads','valve-seats','pump-trunnions','lifter-package'].includes(supportingTopic) && /\b(fitting|labour|labor|removal|install\w*)\b/.test(q) && !knowledge.isPricing(q) && !/\b(other|different)\b/.test(q)) return toFAQ(knowledge.BY_ID[supportingTopic]);
+    const supportingTopic = state.topic || ({ 'CNC head porting': 'cnc-heads', 'valve seat upgrade': 'valve-seats', 'pump and trunnions': 'pump-trunnions', 'sump gasket replacement': 'sump-gasket' })[state.intake.work];
+    if (['cnc-heads','valve-seats','pump-trunnions','lifter-package','sump-gasket'].includes(supportingTopic) && /\b(fitting|labour|labor|removal|install\w*)\b/.test(q) && !knowledge.isPricing(q) && !/\b(other|different)\b/.test(q)) return toFAQ(knowledge.BY_ID[supportingTopic]);
     if (/^(?:is|does) (?:that|it|the price) (?:include|including|includes) gst$/.test(q)) {
       return result('gst', 'Where Boost shows + GST, it also shows the amount including GST. Use the GST inclusive figure for that item. Additional or individually quoted work needs a total confirmed by PSI. I cannot assume the tax or inclusions for an unconfirmed price.', { sources: ['ownerApproval'], prompts: ['Message PSI'] });
     }
@@ -125,6 +125,8 @@
     if (work === 'OTR and tuning' && otherMake && !/\b(holden|hsv)\b/.test(q)) return 'The OTR and tune starting guide applies to Holden and HSV combinations. PSI needs to quote the intake, fitting and tuning for your vehicle individually.';
     if (work === 'electric service') return knowledge.BY_ID['ev-service'].reply;
     if (work === 'hybrid service') return 'Hybrids have a combustion engine. The fully electric service guide does not apply to them. PSI confirms the servicing requirements and price for your hybrid model; please include its year, model and the service due.';
+    if (work === 'sump gasket replacement' && otherMake && !/\b(ls1|ls2|ls3|lsa|l77|l76|l98)\b/.test(q)) return 'The approved sump gasket guide relates to PSI’s LS work. PSI needs to confirm the gasket, labour and any relief valve work for this vehicle individually.';
+    if (work === 'sump gasket replacement') return knowledge.BY_ID['sump-gasket'].reply;
     if (work === 'head removal and lifters') return knowledge.BY_ID['lifter-package'].reply;
     if (work === 'EV check' && /\b(service|servicing|maintenance)\b/.test(q)) return knowledge.BY_ID['ev-service'].reply;
     if (work === 'transmission tuning') return knowledge.BY_ID['ecu-tcu'].reply;
@@ -146,6 +148,7 @@
     for (const [work, pattern] of [
       ['electric service', /\b(fully electric|full electric|electric vehicle|electric car|bev)\b.*\b(service|servicing|maintenance|oil|filter)\b|\b(service|servicing|maintenance|oil|filter)\b.*\b(fully electric|full electric|electric vehicle|electric car|bev)\b/],
       ['hybrid service', /\b(hybrid|hev|phev)\b.*\b(service|servicing|maintenance)\b|\b(service|servicing|maintenance)\b.*\b(hybrid|hev|phev)\b/],
+      ['sump gasket replacement', /\b(sump gasket|oil pan gasket|oil pressure relief valve)\b/],
       ['head removal and lifters', /\b(head removal|lifter package|lifter kit|ls7 lifters|ls2 lifter buckets)\b/],
       ['coding', /\b(coding|carplay|mbux)\b/],
       ['CNC head porting', /\b(cnc|head porting|port.*heads?)\b/], ['valve seat upgrade', /\bvalve seats?\b/],
@@ -162,7 +165,7 @@
     ]) if (pattern.test(q)) return work;
     return null;
   }
-  const topicWork = { 'ev-service': 'electric service', 'lifter-package': 'head removal and lifters', 'cam-inclusions': 'cam', 'cam-options': 'cam', 'module-tuning': 'module tuning', 'cam-extras': 'cam extras', 'cam-engines': 'cam', 'dod-delete': 'DOD delete', 'cnc-heads': 'CNC head porting', 'valve-seats': 'valve seat upgrade', 'pump-trunnions': 'pump and trunnions', otr: 'OTR and tuning', 'scan-price': 'diagnostics', service: 'service', logbook: 'service', 'service-report': 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'transmission tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
+  const topicWork = { 'sump-gasket': 'sump gasket replacement', 'ev-service': 'electric service', 'lifter-package': 'head removal and lifters', 'cam-inclusions': 'cam', 'cam-options': 'cam', 'module-tuning': 'module tuning', 'cam-extras': 'cam extras', 'cam-engines': 'cam', 'dod-delete': 'DOD delete', 'cnc-heads': 'CNC head porting', 'valve-seats': 'valve seat upgrade', 'pump-trunnions': 'pump and trunnions', otr: 'OTR and tuning', 'scan-price': 'diagnostics', service: 'service', logbook: 'service', 'service-report': 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'transmission tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
   function collectDetails(intake, text) {
     const q = normalise(text), year = q.match(/\b((?:19|20)\d{2})\b/);
     const make = q.match(/\b(audi|bmw|ford|holden|hsv|chev(?:rolet)?|honda|hyundai|kia|mazda|mercedes(?: benz)?|mitsubishi|nissan|porsche|skoda|subaru|suzuki|tesla|toyota|volkswagen|vw|volvo|byd|mg|gwm|lexus|isuzu|jeep|land rover|peugeot|renault|ferrari|lamborghini|polestar|cupra|chery|mini)\b/);
@@ -182,6 +185,7 @@
       intake.pending = 'details';
       return ({ 'electric service': 'Which scheduled service is due, and are there any warning messages or concerns?',
         'hybrid service': 'Which service is due, what hybrid powertrain does it have, and are there any concerns?',
+        'sump gasket replacement': 'Which engine does the car have, and is this a gasket leak repair or part of a planned cam job?',
         'head removal and lifters': 'Which LS engine and cam job is planned, and do you want any optional head work quoted?',
         service: 'Which service is due, or is there a particular concern?',
         dyno: 'What’s the current setup, transmission, fuel and tuning goal? Include whether you want engine tuning, transmission tuning or both.',

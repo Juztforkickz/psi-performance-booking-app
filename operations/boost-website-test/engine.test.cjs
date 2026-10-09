@@ -459,3 +459,20 @@ test('BEV service guide does not become a hybrid price or an engine oil change',
     assert.equal(hybrid.intake.work, 'hybrid service'); assert.equal(hybrid.queued, false);
   }
 });
+
+test('sump gasket guide includes GST and fitting without confusing other service or DOD charges', () => {
+  for (const question of ['What does sump gasket replacement cost?', 'Is the oil pressure relief valve included?', 'Do you replace an oil pan gasket?']) {
+    const reply = engine.answer(question).reply;
+    assert.match(reply, /750 including GST/); assert.match(reply, /parts and labour included/);
+    assert.match(reply, /relief valve where fitted/); assert.match(reply, /additional to the base cam package/);
+    assert.doesNotMatch(reply, /750 \+ GST|825 including GST|extra fitting/);
+  }
+  const state = engine.createSession(); send(state, 'Sump gasket replacement price for my 2012 Holden LS3?');
+  assert.equal(state.intake.work, 'sump gasket replacement'); assert.equal(state.intake.pending, 'details');
+  assert.match(last(state).text, /750 including GST/); assert.equal(state.queued, false);
+  send(state, 'Does that include fitting?'); assert.match(last(state).text, /parts and labour included/);
+  assert.equal(state.intake.details, null);
+  assert.doesNotMatch(engine.answer('What does Service & Report cover?').reply, /sump gasket|relief valve|750/);
+  const other = engine.createSession(); send(other, 'Sump gasket price for my 2018 Mercedes C200?');
+  assert.match(last(other).text, /individually/); assert.doesNotMatch(last(other).text, /750/);
+});

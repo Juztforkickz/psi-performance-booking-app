@@ -69,6 +69,10 @@
     {
       "topic": "Fully electric servicing",
       "detail": "BEV servicing starts from AUD $325 including GST. No combustion engine, so no engine oil or engine oil filter replacement. This is AUD $98.50 below the AUD $423.50 engine service guide. Exact service scope and additional work need confirmation. Do not apply this price to HEV or PHEV models; hybrids retain a combustion engine and their service price needs model confirmation."
+    },
+    {
+      "topic": "Sump gasket replacement",
+      "detail": "AUD $750 including GST to supply and fit the sump gasket, including parts and labour and blocking off the oil pressure relief valve where fitted. An additional job to the base cam package, distinct from routine sump plug washer replacement. Recorded in the existing LS work context; other vehicles and the actual relief valve need applicability and scope confirmation. GST is already included, not added again."
     }
   ],
   "questions": [],
