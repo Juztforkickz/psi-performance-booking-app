@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { buildFragment } from './build-preview.mjs';
 import { buildWebsiteFragment } from './build-website-preview.mjs';
+import { buildReviewDocument } from './build-review.mjs';
 
 const HOST = '127.0.0.1';
 const PORT = 8780;
@@ -22,9 +23,9 @@ export async function createPreviewServer() {
   const originAllowed = !request.headers.origin || request.headers.origin === origin;
   const localNavigation = !request.headers['sec-fetch-site'] || ['same-origin', 'none'].includes(request.headers['sec-fetch-site']);
   if (request.headers.host !== authority || !originAllowed || !localNavigation) { response.writeHead(403); response.end('Local test only.'); return; }
-  if (request.method !== 'GET' || !['/', '/index.html', '/website.html'].includes(request.url)) { response.writeHead(404); response.end('No test endpoint here.'); return; }
+  if (request.method !== 'GET' || !['/', '/index.html', '/website.html', '/review.html'].includes(request.url)) { response.writeHead(404); response.end('No test endpoint here.'); return; }
   response.setHeader('Content-Type', 'text/html; charset=utf-8');
-  response.end(request.url === '/website.html' ? websiteDocument : document);
+  response.end(request.url === '/review.html' ? buildReviewDocument() : request.url === '/website.html' ? websiteDocument : document);
   });
   return server;
 }

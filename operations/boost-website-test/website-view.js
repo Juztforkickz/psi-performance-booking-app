@@ -18,6 +18,10 @@
     render();
   }
   function error(id, message) { el(id).textContent = message || ''; el(id).hidden = !message; }
+  function scrollLatest() {
+    const target = el('bp-transcript'), last = target.lastElementChild;
+    if (last && !target.hidden) target.scrollTop += last.getBoundingClientRect().top - target.getBoundingClientRect().top - 8;
+  }
   function render() {
     const inbox = state.mode === 'inbox';
     el('bp-chat').hidden = !state.open;
@@ -50,9 +54,10 @@
       time.className = 'bp-time';
       time.textContent = clock(message.at) + (message.role === 'boost' ? '' : message.readAt ? ' · Read ' + clock(message.readAt) : ' · Sent');
       item.append(byline, bubble, time);
+      window.appendBoostActions(item, message, send, !inbox && !state.queued && !state.closed && message === state.messages.at(-1));
       target.append(item);
     });
-    target.scrollTop = target.scrollHeight;
+    scrollLatest();
   }
   function send(value) {
     const result = engine.send(state, value);
@@ -99,6 +104,7 @@
   function fitViewport() {
     if (document.body.classList.contains('boost-website-standalone') && window.visualViewport) {
       root.style.height = Math.round(window.visualViewport.height) + 'px';
+      requestAnimationFrame(scrollLatest);
     }
   }
   if (window.visualViewport) window.visualViewport.addEventListener('resize', fitViewport);

@@ -5,15 +5,17 @@ import vm from 'node:vm';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 export async function buildFragment() {
-  const [markup, engine, view, image] = await Promise.all([
+  const [markup, knowledge, engine, actions, view, image] = await Promise.all([
     readFile(path.join(directory, 'preview.fragment.html'), 'utf8'),
+    readFile(path.join(directory, 'knowledge.cjs'), 'utf8'),
     readFile(path.join(directory, 'engine.cjs'), 'utf8'),
+    readFile(path.join(directory, 'message-actions.js'), 'utf8'),
     readFile(path.join(directory, 'view.js'), 'utf8'),
-    readFile(path.resolve(directory, '../../mobile/assets/images/boost-assistant.png')),
+    readFile(path.join(directory, 'assets/boost-display.webp')),
   ]);
-  new vm.Script(engine); new vm.Script(view);
-  const fragment = markup.replace('__BOOST_IMAGE__', 'data:image/png;base64,' + image.toString('base64'))
-    .replace('/*__BOOST_ENGINE__*/', engine.replaceAll('</script', '<\\/script'))
+  for (const source of [knowledge, engine, actions, view]) new vm.Script(source);
+  const fragment = markup.replace('__BOOST_IMAGE__', 'data:image/webp;base64,' + image.toString('base64'))
+    .replace('/*__BOOST_ENGINE__*/', [knowledge, engine, actions].join('\n').replaceAll('</script', '<\\/script'))
     .replace('/*__BOOST_VIEW__*/', view.replaceAll('</script', '<\\/script'));
   if (Buffer.byteLength(fragment) >= 1_000_000) throw new Error('Preview exceeds the inline size limit.');
   if (/__(BOOST_IMAGE)__|\/\*__BOOST_(ENGINE|VIEW)__\*\//.test(fragment)) throw new Error('Unresolved preview placeholder.');

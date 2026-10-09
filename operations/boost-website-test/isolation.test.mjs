@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
 test('the self contained preview has no external resources or message endpoints', async () => {
   const fragment = await buildFragment();
   assert.ok(Buffer.byteLength(fragment) < 1_000_000);
-  assert.match(fragment, /src="data:image\/png;base64,/);
+  assert.match(fragment, /src="data:image\/webp;base64,/);
   assert.doesNotMatch(fragment, /\b(?:fetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon|Notification\s*\()/);
   assert.doesNotMatch(fragment, /(?:src|href|action)="https?:/);
   assert.doesNotMatch(fragment, /<!doctype\s|<\s*(?:html|head|body)(?:\s|>)/i);
@@ -62,6 +62,11 @@ test('the local server blocks connections, writes, filesystem routes and foreign
   assert.match(website.body, /boost-website-standalone/);
   assert.match(website.headers['content-security-policy'], /connect-src 'none'/);
   assert.equal((await request(port, { path: '/website.html', method: 'POST' })).status, 404);
+  const review = await request(port, { path: '/review.html' });
+  assert.equal(review.status, 200);
+  assert.match(review.body, /12 decisions for Matt/);
+  assert.match(review.headers['content-security-policy'], /connect-src 'none'/);
+  assert.equal((await request(port, { path: '/review.html', method: 'POST' })).status, 404);
   assert.equal((await request(port, { method: 'POST' })).status, 404);
   assert.equal((await request(port, { path: '/.env' })).status, 404);
   assert.equal((await request(port, { path: '/../mobile/app.json' })).status, 404);

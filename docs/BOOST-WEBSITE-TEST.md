@@ -4,11 +4,11 @@ Created 8 October 2026 from the preserved Boost work, following Matt's instructi
 
 ## What this test does
 
-The test reuses the approved transparent Boost image and PSI colours. It contains visitor and workshop views in the same local session. Servicing and location questions get short deterministic draft FAQ replies. Dyno, EV and Hybrid and pricing enquiries can collect the vehicle, year and relevant missing details before the visitor chooses a handoff. Guarantees, existing bookings, private records, unknown answers and questions needing direct workshop review explicitly hand over to a simulated PSI inbox.
+The test reuses the approved transparent Boost image and PSI colours. It contains visitor and workshop views in the same local session. The current 9 October expansion has 64 prepared answers across app downloads, account setup, Performance+, bookings, servicing, diagnostics, tuning, builds, parts, EV work, location and contact. Account setup and booking also have five step interactive guides. Prices needing approval collect the vehicle and relevant scope before the visitor chooses a handoff. Private records, actual booking changes and safety concerns require direct review. Unknown questions offer Message PSI without inventing an answer or automatically filling the inbox.
 
-These are draft replies for Matt to inspect. They are not an AI connection, a diagnosis, a price confirmation or an approved live knowledge base. An FAQ answer does not create a booking. Unknown questions receive a workshop handoff rather than invented facts. Once a conversation is handed over, further visitor messages wait for Matt instead of continuing automated replies. The conversation header then reads Waiting for PSI reply. Boost does not ask another question after announcing a handoff.
+These are draft replies for Matt to inspect. They are prepared answers and conversation rules, not a connected language model, a diagnosis, a price confirmation or a live knowledge base. An FAQ answer does not create a booking. Once a conversation is handed over, further visitor messages wait for Matt instead of continuing automated replies. The conversation header then reads Waiting for PSI reply. Boost does not ask another question after announcing a handoff.
 
-The 8 October reply revision keeps most answers to one or two short sentences. Quote intake asks for one missing detail at a time, keeps vehicle and year details already supplied and requires the visitor to confirm before sending that enquiry to the test inbox. No workshop price has been invented or added. For example, How much is it to service my 2021 Audi RS3? receives PSI will confirm the price. What’s the odometer reading? A mileage reply leads to a clear offer to send the details. Yes or Message PSI then completes the simulated handoff. Visitors can decline or skip a missing detail. Known side questions are answered; unknown side questions offer Message PSI without silently recording the question as a quote detail.
+Quote intake keeps vehicle and year details already supplied, asks for the remaining scope and requires the visitor to confirm before sending the enquiry to the test inbox. A service enquiry asks for kilometres and the service due or concern. Tuning asks for setup, transmission, fuel and goal. Exhaust, cam, engine build, coding, parts, cooling and EV enquiries have relevant scope questions. Visitors can decline or skip a missing detail. Known side questions are answered without being stored as quote details; Resume quote returns to the pending question. Follow up pricing questions retain the preceding service topic. No historical individual workshop price is treated as a current public offer.
 
 Selecting Matt's test inbox marks visitor messages as read. Sending a test reply and returning to Visitor view marks the reply as read by the visitor. These timestamps are local simulations. Closing and reopening the conversation can also be tested. Reset affects only this test session.
 
@@ -28,11 +28,14 @@ Use the sample buttons or type these commands into the visitor message field:
 
 | Command | Local test |
 | --- | --- |
-| `/service` | Explain website enquiry and date review |
-| `/dyno` | Collect the car, year, setup and tuning goal |
-| `/ev` | Collect the car, year and what needs checking |
-| `/booking` | Hand over a booking confirmation request |
-| `/hard` | Hand over a fault, quote and outcome request |
+| `/service` | Explain Service & Report and offer the next step |
+| `/dyno` | Explain the details needed for tuning |
+| `/ev` | Explain EV and hybrid service selection |
+| `/app` | Offer verified iPhone and Android download links |
+| `/signup` | Start the account setup guide |
+| `/booking` | Start the booking request guide |
+| `/quote` | Collect a proposed job for PSI review |
+| `/hard` | Explain that outcomes need assessment |
 | `/human` | Hand over to the simulated PSI inbox |
 | `/help` | Show available commands |
 | `/reset` | Clear this test and return to the greeting |
@@ -40,7 +43,7 @@ Use the sample buttons or type these commands into the visitor message field:
 Suggested walkthrough:
 
 1. Ask about servicing, dyno tuning and an EV.
-2. Ask what servicing your 2021 Audi RS3 will cost, then reply with 65,000 km. Confirm Boost asks whether to send the details before handing over. Ask about a guaranteed result and confirm he leaves that decision to PSI.
+2. Ask what servicing your 2021 Audi RS3 will cost, reply with 65,000 km and the service due. Confirm Boost asks whether to send the details before handing over. Ask about a guaranteed result and confirm he leaves that decision to PSI.
 3. Try an unknown question or account question. Confirm no private data is shown.
 4. Choose Message PSI, then open Matt's test inbox. Write a test reply and return to Visitor view to see it and its read time.
 5. Close and reopen the conversation from the test inbox. Close the chat panel and reopen it by tapping Boost. Confirm the conversation stays in the same session.
@@ -54,7 +57,19 @@ The server serves only the test pages. It does not expose a file browser, messag
 
 The website placement preview is available at `http://127.0.0.1:8780/website.html`. See [the placement preview guide](BOOST-WEBSITE-PLACEMENT-PREVIEW.md) for its scope, assets and checks. It keeps this original conversation test available.
 
-The 9 October wording revision removes the app’s Service & Report instructions from the website servicing reply. Routine booking questions now point to Book an appointment on the website or Message PSI in the chat. Asking whether the app is required explains that a website enquiry does not require downloading it. These explanations do not automatically hand over a conversation. Existing booking changes, confirmations and private account questions still require PSI review. The quote intake and explicit handoff safeguards are preserved. All 22 targeted automated checks pass.
+The latest 9 October direction supersedes the earlier website first wording. Matt now prefers app downloads and app booking guidance, with website enquiry retained as an alternative. Public store links open only after a visitor clicks. They contain no transcript or visitor details. All message handling remains local. General account and subscription instructions can be answered without accessing an account; actual account changes and refunds still require PSI.
+
+The current tests cover every prepared question, suggested follow ups, common paraphrases, guides, scoped quote collection, side questions, consent, inbox read times, unknown questions, literal markup, bounded state and isolation. The review page at `http://127.0.0.1:8780/review.html` contains all 64 replies and 12 pricing decisions for Matt. It has no save or submission action. `node operations/boost-website-test/build-review.mjs` also saves a local HTML copy in the ignored artifacts directory.
+
+Current validation on 9 October: 19 test groups pass, covering every prepared answer and suggested follow up as well as the scenarios above. Browser checks verified account guide buttons, both download destinations, the service enquiry and consent flow, Matt’s test reply and read time, long reply scrolling and a 320 pixel viewport with no horizontal overflow. Physical phone keyboard behaviour and actual Shopify delivery remain outside this local test.
+
+## Research and pricing approval
+
+Reviewed on 9 October: PSI homepage and enquiry form, Workshop Services, EV & Hybrid, Coding, Power Estimator, public Apple and Google listings, current mobile account and booking screens, and saved booking and content notes. Read 22 selected Microsoft Outlook messages from relevant customer enquiry threads. This was targeted research, not an audit of every mailbox or note. No email was sent. No raw email, customer identity, private payment instruction or individual quote was copied into browser knowledge or committed source.
+
+Recurring topics include supply versus fitting, ECU versus TCU tuning, supporting parts, vehicle compatibility, fault diagnosis, stock and lead times. Numeric workshop answers await Matt’s scope and price approval in `pricing-questions.json`. App notes show service and dyno starting guides, but their exact inclusions need clarification. The coding page has conflicting credit examples, so no coding price is automated. The Power Estimator labels its figures unapproved for customer quotations. Performance+ pricing is a verified public Australian guide, with the current store price and terms controlling the purchase.
+
+Public evidence: [PSI website](https://psiperformance.com.au/), [Workshop Services](https://psiperformance.com.au/pages/workshop-services-pakenham), [EV & Hybrid](https://psiperformance.com.au/pages/ev-hybrid), [Coding](https://psiperformance.com.au/pages/coding), [Power Estimator](https://psiperformance.com.au/pages/power-estimator), [Apple listing](https://apps.apple.com/au/app/psi-performance-garage/id6806902732), [Google listing](https://play.google.com/store/apps/details?id=com.psiperformance.booking). Recheck changing prices, links, hours and app labels before any future launch. `knowledge.cjs` attaches source categories and the verification date to each prepared answer.
 
 Run the relevant checks:
 

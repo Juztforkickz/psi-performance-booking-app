@@ -20,7 +20,7 @@ Boost has a transparent background and sits at the bottom right. The conversatio
 
 The popup starts open to make its appearance immediately visible. Servicing, Dyno tuning and EV & Hybrid buttons use the existing offline engine. Visitors can write replies, continue collecting enquiry details and choose Message PSI. Matt’s test inbox in the preview toolbar shows the simulated handoff and allows a test reply. Returning to the visitor view marks that reply as read. The toolbar, Preview indicator and Local test labels are deliberately visible during this review. The test inbox is not a proposed public customer control and is not a Shopify Inbox connection.
 
-The initial placement preview reused the existing replies. The 9 October follow up makes servicing and routine booking guidance specific to website visitors: use Book an appointment on the website or Message PSI in this chat. The app is not required to send a website enquiry. Existing booking changes and confirmations still need PSI review. Message text stays in page memory and disappears after refresh. Only open state, selected view, intent and the fact of a test handoff may be retained by the inline preview host. Message text is not persisted or sent to an external service.
+The latest 9 October expansion follows Matt’s preference to promote the app. It offers both store links, account and booking guides, 64 prepared answers and relevant follow up buttons. Website enquiry remains available without the app. Existing booking changes and confirmations still need PSI review. Message text stays in page memory and disappears after refresh. Only open state, selected view, intent and the fact of a test handoff may be retained by the inline preview host. Message text is not persisted or sent to an external service. The pricing and reply review is at `/review.html`.
 
 The follow up also keeps the narrow screen popup stationary when focus moves from its message field to Send, Reply or another chat control. Moving the popup during that focus change could otherwise interrupt the button tap. Boost remains hidden while the chat controls have focus and returns when focus leaves the popup or it is closed.
 
@@ -32,7 +32,7 @@ The follow up also keeps the narrow screen popup stationary when focus moves fro
 
 `boost-display.webp` is a small, lossless WebP display derivative of the approved transparent Boost PNG, sized for the launcher. The character design is unchanged and the original PNG is preserved. `prepare-display-assets.py` regenerates this display packaging using Pillow. The original PNG SHA256 is `cad94613b982797e02c407caeba748f2cab1746b8c6eb35af5aa525249ef0ea2`.
 
-Both previews embed their assets. The server permits only the three explicit page paths, binds only to 127.0.0.1 and rejects foreign hosts, origins, cross site requests and POST requests. Its browser policy blocks outbound connections and form actions. No production credentials, customer data, real messages, emails, push notifications, bookings, payments or database writes are used.
+Both previews embed their assets. The server permits only `/`, `/index.html`, `/website.html` and `/review.html`, binds only to 127.0.0.1 and rejects foreign hosts, origins, cross site requests and POST requests. Its browser policy blocks outbound connections and form actions. Curated public links open on a deliberate click without passing message text. No production credentials, customer data, real messages, emails, push notifications, bookings, payments or database writes are used.
 
 Generate the inline website preview:
 
@@ -46,6 +46,6 @@ Run the targeted checks:
 node --test operations/boost-website-test/engine.test.cjs operations/boost-website-test/isolation.test.mjs
 ```
 
-The placement preview and the engine pass 22 automated checks, including website booking guidance, enquiries without the app, continued quote intake and preservation of booking and account review requirements. Browser review covers visitor follow up messages, confirmed handoff, Matt’s test reply and read time, closing and reopening, scrolling, narrow screen layout and typing clearance. Native phone keyboard behaviour and live Shopify delivery remain unverified by this simulation.
+The current automated suite checks all prepared questions and suggested follow ups, common paraphrases, guides, quote collection, privacy, handoff and local server isolation. Browser review covers visitor follow up messages, confirmed handoff, Matt’s test reply and read time, narrow screen layout and typing clearance. Native phone keyboard behaviour and live Shopify delivery remain unverified by this simulation.
 
 No Shopify theme, app source, Expo configuration, OTA channel, native build, store listing, owner entitlement or public integration is changed. Boost remains unpublished. Preserve unrelated edits in the shared working directory when committing these preview files.

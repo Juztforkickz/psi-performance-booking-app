@@ -33,9 +33,11 @@
       const readBy = message.role === 'visitor' ? 'Matt' : 'visitor';
       time.textContent = 'Sent ' + clock(message.at) + (message.role === 'boost' ? '' : message.readAt ? ' · Read by ' + readBy + ' ' + clock(message.readAt) : ' · Not read yet');
       item.append(byline, bubble, time);
+      window.appendBoostActions(item, message, send, state.mode === 'customer' && !state.queued && !state.closed && message === state.messages.at(-1));
       target.append(item);
     });
-    target.scrollTop = target.scrollHeight;
+    const last = target.lastElementChild;
+    if (last) target.scrollTop += last.getBoundingClientRect().top - target.getBoundingClientRect().top - 8;
   }
   function render() {
     const customer = state.mode === 'customer';
