@@ -34,13 +34,20 @@ bundle. Update `01a12334-5f2a-767a-9d47-6e9871313a37` is available on the existi
 The private image bytes are excluded from its asset manifest.
 
 Apple release workflow `01a12331-7ee5-71f6-ae32-d27944c5b306` passed validation
-and reached its approval step. At 00:38 UTC on 10 October, the public Apple feed
-still served the previous update, so Apple publication is not yet verified.
-Saved browser permissions currently block the release approval and final
-account preference activation. Readback still shows the public Porsche choice.
-The generic policy is installed, but its migration history entry remains pending
-with that activation transaction. Do not report the personal selection as live
-until account readback and the Apple delivery feed confirm completion.
+and completed its approved publication on 10 October at 12:00 pm Sydney time.
+The Apple delivery feed confirms update `01a12353-63a9-7268-a723-c95634915b41`
+on the existing `app-store-release` channel and `1.0.0-app-store-release-1`
+runtime. Update group `efba12ff-47e6-495a-834a-a1a1ea694475` uses the approved
+source checkpoint `596e565`. The private image bytes are excluded from its
+asset manifest. Feed verification completed at 12:01 pm Sydney time.
+
+Normal browser access was restored in the resumed chat. The prepared narrow
+activation transaction completed successfully. Fresh database readback confirms
+the verified owner's primary Porsche selects `personal-vehicle-artwork`, the
+generic migration `20261010001141` is recorded, and the image bucket remains
+private. Private account identifiers and release evidence remain in ignored
+local work files. Device display after the app receives its update has not been
+visually checked in this release verification.
 
 Existing channels, runtimes, subscriptions, bookings and owner benefits remain.
 Reviewer, beta and Boost channels are excluded.
