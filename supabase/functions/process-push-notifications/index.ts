@@ -7,7 +7,8 @@ const env = (name: string) => Deno.env.get(name)?.trim() ?? "";
 type ActionBody = { action?: unknown; askPsiConversationId?: unknown; bookingId?: unknown; carSaleListingId?: unknown; expoPushToken?: unknown; notificationSound?: unknown; platform?: unknown };
 type DeviceRow = { expo_push_token: string; notification_sound: string | null };
 type EventRow = { body: string; deep_link: string; id: string; kind: string; read_at: string | null; recipient_user_id: string; source_event_key: string; title: string };
-type JobRow = { ask_psi_conversation_id: string | null; attempt_count: number; booking_request_id: string | null; event_id: string; id: string; recipient_user_id: string };
+type JobRow = { ask_psi_conversation_id?: string | null; attempt_count: number; booking_request_id: string | null; event_id: string; id: string; recipient_user_id: string };
+const JOB_COLUMNS = "id,event_id,booking_request_id,recipient_user_id,attempt_count";
 const PSI_CASH_NOTIFICATION_SOUND = "psi_cash_receipt.wav";
 const PSI_WORKSHOP_CASH_CHANNEL = "psi-workshop-cash-v1";
 
@@ -27,7 +28,16 @@ Deno.serve(async (request) => {
   const carSaleListingId = typeof body.carSaleListingId === "string" && /^[0-9a-f-]{36}$/iu.test(body.carSaleListingId) ? body.carSaleListingId : null;
   const askPsiConversationId = typeof body.askPsiConversationId === "string" && /^[0-9a-f-]{36}$/iu.test(body.askPsiConversationId) ? body.askPsiConversationId : null;
   if ([bookingId, carSaleListingId, askPsiConversationId].filter(Boolean).length > 1) return json({ error: "invalid_notification_scope" }, 400);
-  const isInternalServiceCall = token === serviceRoleKey;
+  // Scheduled retries use the existing Vault credential, while retaining JWT
+  // verification at the gateway. This credential authorizes only queue dispatch.
+  let isInternalServiceCall = token === serviceRoleKey;
+  const cronToken = request.headers.get("x-psi-cron-token");
+  if (!isInternalServiceCall && cronToken) {
+    if (body.action !== "process_queue" || bookingId || carSaleListingId || askPsiConversationId) return json({ error: "invalid_internal_action" }, 400);
+    const verified = await admin.rpc("verify_service_reminder_cron_token", { p_token: cronToken });
+    if (verified.error || verified.data !== true) return json({ error: "invalid_cron_token" }, 401);
+    isInternalServiceCall = true;
+  }
   const userClient = createClient(supabaseUrl, anonKey, { auth: { autoRefreshToken: false, persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
   let userId = "";
   let isAal2Staff = false;
@@ -123,7 +133,7 @@ Deno.serve(async (request) => {
 
     const { data: createdJobs, error: testJobError } = await admin.from("push_notification_jobs").insert(
       testEvents.map((event) => ({ event_id: event.id, booking_request_id: null, recipient_user_id: event.recipient_user_id })),
-    ).select("id,event_id,booking_request_id,ask_psi_conversation_id,recipient_user_id,attempt_count");
+    ).select(JOB_COLUMNS);
     if (testJobError || !createdJobs || createdJobs.length !== 2) return json({ error: "notification_test_unavailable" }, 500);
     testJobs = createdJobs as JobRow[];
   }
@@ -143,7 +153,7 @@ Deno.serve(async (request) => {
 
   let jobs: JobRow[] | null = testJobs;
   if (!jobs) {
-    let jobsQuery = admin.from("push_notification_jobs").select("id,event_id,booking_request_id,ask_psi_conversation_id,recipient_user_id,attempt_count").in("status", ["pending", "failed"]).lte("available_at", new Date().toISOString()).lt("attempt_count", 20).order("created_at", { ascending: true }).limit(25);
+    let jobsQuery = admin.from("push_notification_jobs").select(JOB_COLUMNS).in("status", ["pending", "failed"]).lte("available_at", new Date().toISOString()).lt("attempt_count", 20).order("created_at", { ascending: true }).limit(25);
     if (bookingId) jobsQuery = jobsQuery.eq("booking_request_id", bookingId);
     if (askPsiConversationId) jobsQuery = jobsQuery.eq("ask_psi_conversation_id", askPsiConversationId);
     if (carSaleListingId) {
@@ -180,7 +190,7 @@ Deno.serve(async (request) => {
     const [eventResult, devicesResult, preferenceResult, countResult] = await Promise.all([
       admin.from("notification_events").select("id,recipient_user_id,title,body,deep_link,kind,source_event_key,read_at").eq("id", queued.event_id).single(),
       admin.from("push_devices").select("expo_push_token,notification_sound").eq("user_id", queued.recipient_user_id).eq("enabled", true),
-      admin.from("notification_preferences").select("booking_reminders_enabled,booking_updates_enabled,car_sale_alerts_enabled,event_alerts_enabled,message_alerts_enabled,workshop_alerts_enabled,sound_enabled").eq("user_id", queued.recipient_user_id).maybeSingle(),
+      admin.from("notification_preferences").select("booking_reminders_enabled,booking_updates_enabled,car_sale_alerts_enabled,event_alerts_enabled,workshop_alerts_enabled,sound_enabled").eq("user_id", queued.recipient_user_id).maybeSingle(),
       admin.from("notification_events").select("id", { count: "exact", head: true }).eq("recipient_user_id", queued.recipient_user_id).is("read_at", null),
     ]);
     // An unavailable preference or device query must not silently cancel a
@@ -193,12 +203,29 @@ Deno.serve(async (request) => {
     const devices = devicesResult.data;
     const preference = preferenceResult.data;
     const count = countResult.count;
+    const messageAlert = event?.kind === "customer_message_received" || event?.kind === "staff_message_received";
+    let messageAlertsEnabled = true;
+    let conversationId: string | null = null;
+    // Messaging fields are optional until the separate private chat migration
+    // is activated. Only message jobs may depend on that schema.
+    if (messageAlert) {
+      const [messagePreference, messageContext] = await Promise.all([
+        admin.from("notification_preferences").select("message_alerts_enabled").eq("user_id", queued.recipient_user_id).maybeSingle(),
+        admin.from("notification_events").select("ask_psi_conversation_id").eq("id", queued.event_id).single(),
+      ]);
+      if (messagePreference.error || messageContext.error) {
+        await admin.from("push_notification_jobs").update({ status: "failed", available_at: new Date(Date.now() + 300000).toISOString(), completed_at: null, last_error_code: "notification_lookup_failed", updated_at: now }).eq("id", queued.id);
+        continue;
+      }
+      messageAlertsEnabled = messagePreference.data?.message_alerts_enabled !== false;
+      conversationId = messageContext.data?.ask_psi_conversation_id ?? null;
+    }
     const allowed = (event as EventRow | null)?.kind === "service_reminder"
       ? preference?.booking_reminders_enabled !== false
       : (event as EventRow | null)?.kind === "car_sale_published"
         ? preference?.car_sale_alerts_enabled !== false
       : ["customer_message_received", "staff_message_received"].includes((event as EventRow | null)?.kind ?? "")
-        ? preference?.message_alerts_enabled !== false
+        ? messageAlertsEnabled
       : (event as EventRow | null)?.deep_link === "/staff"
       ? preference?.workshop_alerts_enabled !== false
       : (event as EventRow | null)?.deep_link === "/events"
@@ -213,9 +240,8 @@ Deno.serve(async (request) => {
     const performanceSubscriptionAlert = event.kind === "performance_subscription_started";
     const historicalImportAlert = event.kind.startsWith("historical_import_");
     const carSaleAlert = event.kind === "car_sale_published";
-    const messageAlert = event.kind === "customer_message_received" || event.kind === "staff_message_received";
-    if (messageAlert && event.read_at) {
-      await admin.from("push_notification_jobs").update({ status: "cancelled", completed_at: now, last_error_code: "message_already_read", updated_at: now }).eq("id", queued.id);
+    if (event.read_at) {
+      await admin.from("push_notification_jobs").update({ status: "cancelled", completed_at: now, last_error_code: messageAlert ? "message_already_read" : "notification_already_read", updated_at: now }).eq("id", queued.id);
       continue;
     }
     const messages = (devices as DeviceRow[]).map((device) => {
@@ -231,7 +257,7 @@ Deno.serve(async (request) => {
             : workshopAlert
               ? "Open the protected workshop portal to review it."
               : "Open PSI to view your private update.",
-        data: { askPsiConversationId: queued.ask_psi_conversation_id, bookingId: queued.booking_request_id, kind: event.kind, sourceEventKey: event.source_event_key, url: event.deep_link },
+        data: { askPsiConversationId: conversationId, bookingId: queued.booking_request_id, kind: event.kind, sourceEventKey: event.source_event_key, url: event.deep_link },
         badge: count ?? 0,
         sound: preference?.sound_enabled === false ? null : cashSoundAvailable ? PSI_CASH_NOTIFICATION_SOUND : "default",
         channelId: workshopAlert ? cashSoundAvailable ? PSI_WORKSHOP_CASH_CHANNEL : "psi-workshop" : "psi-customer",
