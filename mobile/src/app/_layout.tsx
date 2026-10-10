@@ -88,7 +88,7 @@ function ThemeAwareRootShell() {
 }
 
 const styles = StyleSheet.create({
-  startup: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  startup: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   startupHidden: { opacity: 0 },
   shell: { flex: 1 },
   content: { flex: 1, minHeight: 0 },

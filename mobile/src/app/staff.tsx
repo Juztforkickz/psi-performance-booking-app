@@ -371,7 +371,7 @@ export function StaffWorkspace({
     if (noteFrame.current !== null) cancelAnimationFrame(noteFrame.current);
     noteFrame.current = requestAnimationFrame(() => {
       noteFrame.current = null;
-      if (focusedNote.current !== null) scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(focusedNote.current, 24, true);
+      if (focusedNote.current !== null) scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(focusedNote.current, 72, true);
     });
   }, []);
   const focusNote = useCallback((target: number | null) => { focusedNote.current = target; if (target !== null && Keyboard.isVisible()) revealNote(); }, [revealNote]);

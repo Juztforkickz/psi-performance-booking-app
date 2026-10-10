@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { InputAccessoryView, Keyboard, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { MonthCalendarPicker } from '@/components/month-calendar-picker';
@@ -26,6 +26,7 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
   const [action, setAction] = useState<ReviewAction | null>(null);
   const [approvedDate, setApprovedDate] = useState(isoDateToAustralian(booking.approved_date ?? booking.preferred_date) || todayInSydney());
   const [staffNote, setStaffNote] = useState(booking.staff_note ?? '');
+  const [noteFocused, setNoteFocused] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: 'error' | 'success'; text: string } | null>(null);
@@ -166,7 +167,10 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
             </Field>
           ) : null}
           <Field hint={action === 'cancel' ? 'Required' : 'Optional · visible to the customer'} label={action === 'cancel' ? 'Cancellation reason' : 'Customer note'}>
-            <FormInput autoCorrect spellCheck autoCapitalize="sentences" editable={!busy} inputAccessoryViewID="psi-staff-note-keyboard" multiline numberOfLines={3} onFocus={event => onNoteFocus?.(event.nativeEvent.target)} onBlur={() => onNoteFocus?.(null)} onChangeText={(value) => { setStaffNote(value); setConfirmed(false); }} placeholder={action === 'cancel' ? 'Reason for cancellation' : 'Date or arrival details to discuss'} style={styles.notes} textAlignVertical="top" value={staffNote} />
+            <FormInput autoCorrect spellCheck autoCapitalize="sentences" editable={!busy} multiline numberOfLines={3} onFocus={event => { setNoteFocused(true); onNoteFocus?.(event.nativeEvent.target); }} onBlur={() => { setNoteFocused(false); onNoteFocus?.(null); }} onChangeText={(value) => { setStaffNote(value); setConfirmed(false); }} placeholder={action === 'cancel' ? 'Reason for cancellation' : 'Date or arrival details to discuss'} style={styles.notes} textAlignVertical="top" value={staffNote} />
+            {noteFocused ? <View style={styles.keyboardAccessory}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Hide keyboard" onPress={() => Keyboard.dismiss()} style={styles.keyboardDone}><Text style={styles.keyboardDoneText}>Done typing</Text></Pressable>
+            </View> : null}
           </Field>
           <Pressable disabled={busy} accessibilityRole="checkbox" accessibilityState={{ checked: confirmed, disabled: busy }} onPress={() => setConfirmed((value) => !value)} style={styles.confirmRow}>
             <View style={[styles.checkbox, confirmed && styles.checkboxChecked]}>{confirmed ? <Ionicons color={colors.ink} name="checkmark" size={16} /> : null}</View>
@@ -180,11 +184,6 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
           <PrimaryButton disabled={previewMode || !confirmed || (action === 'cancel' && !staffNote.trim())} label={previewMode ? `Preview only · ${actionLabel(action)}` : actionLabel(action)} loading={busy} onPress={() => void submit()} />
         </>
       )}
-      {Platform.OS === 'ios' ? <InputAccessoryView nativeID="psi-staff-note-keyboard">
-        <View style={styles.keyboardAccessory}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Hide keyboard" onPress={() => Keyboard.dismiss()} style={styles.keyboardDone}><Text style={styles.keyboardDoneText}>Done</Text></Pressable>
-        </View>
-      </InputAccessoryView> : null}
     </View>
   );
 }
