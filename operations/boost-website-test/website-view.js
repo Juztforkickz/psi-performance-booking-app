@@ -88,6 +88,14 @@
     error('bp-inbox-error', result.error);
     if (result.ok) { el('bp-reply').value = ''; render(); remember(); }
   });
+  for (const id of ['bp-message', 'bp-reply']) {
+    el(id).addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && event.keyCode !== 229) {
+        event.preventDefault();
+        if (!event.repeat) event.currentTarget.form.requestSubmit();
+      }
+    });
+  }
   root.querySelectorAll('[data-ask]').forEach(button => button.addEventListener('click', () => send(button.dataset.ask)));
   el('bp-handoff').addEventListener('click', () => { const result = engine.handoff(state); error('bp-error', result.error); render(); remember(); });
   el('bp-test-inbox').addEventListener('click', () => view(state.mode === 'customer' ? 'inbox' : 'customer'));

@@ -86,6 +86,14 @@
     showError('boost-inbox-error', result.error);
     if (result.ok) { el('boost-reply').value = ''; render(); remember(); }
   });
+  for (const id of ['boost-message', 'boost-reply']) {
+    el(id).addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && event.keyCode !== 229) {
+        event.preventDefault();
+        if (!event.repeat) event.currentTarget.form.requestSubmit();
+      }
+    });
+  }
   root.querySelectorAll('[data-command]').forEach(button => button.addEventListener('click', () => send(button.dataset.command)));
   el('boost-handoff').addEventListener('click', () => { const result = engine.handoff(state); showError('boost-customer-error', result.error); render(); remember(); });
   for (const [id, mode] of [['boost-customer-tab', 'customer'], ['boost-inbox-tab', 'inbox']]) {
