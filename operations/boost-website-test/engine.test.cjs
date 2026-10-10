@@ -169,16 +169,53 @@ test('all curated entry questions and their suggested follow ups are reachable',
 });
 
 test('upgrades shortcut opens supported options and preserves scope and approval', () => {
-  for (const question of ['Upgrades', 'Performance upgrades', 'What upgrades can you help with?']) {
+  for (const question of ['Upgrades', 'Performance upgrades', 'What upgrades can you help with?', 'I want upgrades', 'Can you upgrade my car?', 'I’m looking to do some mods', 'I need an upgrade quote']) {
     const response = engine.answer(question);
-    assert.equal(response.intent, 'upgrades'); assert.equal(response.handoff, false);
-    for (const scope of ['cam packages', 'intake and exhaust', 'turbo or supercharger', 'brakes', 'suspension', 'supported vehicle coding', 'approval']) assert.ok(response.reply.includes(scope), scope);
+    assert.ok(['upgrades','quote'].includes(response.intent), question); assert.equal(response.handoff, false);
+    assert.equal(response.collect, true);
     assert.doesNotMatch(response.reply, /\$\d/);
+    const session = engine.createSession(); send(session, question);
+    assert.equal(session.intake.work, 'upgrades', question);
+    assert.equal(session.intake.pending, 'upgradeRequest');
+    assert.match(last(session).text, /What upgrades are you looking to do/);
+    assert.equal(session.queued, false);
   }
   const state = engine.createSession(); send(state, '/upgrades');
-  assert.equal(state.topic, 'upgrades'); assert.equal(state.queued, false);
-  assert.equal(last(state).prompts.length, 3);
-  send(state, last(state).prompts[0]); assert.match(last(state).text, /3,450 \+ GST/);
+  assert.equal(state.intake.work, 'upgrades'); assert.equal(state.queued, false);
+  assert.match(last(state).text, /approval/);
+  send(state, 'Cam and intake upgrades');
+  assert.equal(state.intake.upgradeRequest, 'Cam and intake upgrades');
+  assert.equal(state.intake.pending, 'vehicle');
+  send(state, '2013 Holden VF SS, LS3');
+  assert.equal(state.intake.pending, 'currentSetup');
+  assert.match(last(state).text, /modifications are already fitted/);
+  send(state, 'How much is a cam package?');
+  assert.match(last(state).text, /3,450 \+ GST/);
+  assert.equal(state.intake.pending, 'currentSetup');
+  send(state, 'Resume quote');
+  send(state, 'Standard engine, manual, 98 fuel, cat back exhaust');
+  assert.equal(state.intake.pending, 'goal');
+  send(state, 'Daily driving with better response, not a race car');
+  assert.equal(state.intake.pending, 'confirm'); assert.equal(state.queued, false);
+  assert.doesNotMatch(last(state).text, /\$\d/);
+  send(state, 'Yes, send it');
+  const summary = engine.handoffSummary(state);
+  assert.equal(summary.vehicle, '2013 Holden VF SS, LS3');
+  assert.equal(summary.year, '2013');
+  for (const detail of ['Requested upgrades: Cam and intake upgrades', 'Existing setup: Standard engine, manual, 98 fuel, cat back exhaust', 'Goal and use: Daily driving with better response']) assert.ok(summary.details.includes(detail), detail);
+});
+
+test('unknown upgrade choices still collect the car and goal without forcing a handoff', () => {
+  const state = engine.createSession(); send(state, 'upgrades'); send(state, 'Not sure');
+  assert.equal(state.intake.pending, 'vehicle'); assert.equal(state.queued, false);
+  send(state, '2020 Toyota Supra'); send(state, 'Not sure');
+  assert.equal(state.intake.pending, 'goal');
+  send(state, 'A comfortable daily car with a little more response');
+  assert.equal(state.intake.pending, 'confirm');
+  send(state, 'Not yet'); assert.equal(state.queued, false);
+  const unsafe = engine.createSession(); send(unsafe, 'upgrades'); send(unsafe, 'My brakes failed');
+  assert.equal(unsafe.intent, 'workshop-review'); assert.equal(unsafe.queued, true);
+  assert.equal(engine.answer('How do I upgrade Performance+?').intent, 'plus');
 });
 
 test('common paraphrases resolve without speculative pricing or unnecessary handoffs', () => {

@@ -46,13 +46,13 @@
     if (/\b(guide me|step by step|walk me through)\b.*\b(account|sign up|signup)\b/.test(q)) return result('signup', '', { guide: 'signup' });
     if (/\b(guide me|step by step|walk me through)\b.*\b(book|booking)\b/.test(q)) return result('booking', '', { guide: 'booking' });
     const item = knowledge.match(q);
-    if (item) return toFAQ(item);
+    if (item) return item.id === 'upgrades' ? { ...toFAQ(item), collect: true, work: 'upgrades' } : toFAQ(item);
     if (knowledge.isPricing(q)) return result('quote', quoteIntro(workFrom(text), text), { collect: true });
     if (/^(hi|hello|hey|good morning|good afternoon|good evening)\b/.test(q)) return result('welcome', GREETING, { prompts: ['How do I book?', 'I need a quote', 'Where can I download the PSI app?'] });
     if (/^(thanks|thank you|cheers)\b/.test(q)) return result('thanks', 'You’re welcome. Anything else I can help with?');
     return result('needs-review', 'I do not have a verified answer for that yet. Choose Message PSI to ask Matt, or tell me whether it is about a vehicle, the app or a booking.', { prompts: ['Message PSI', 'How do I book?', 'I need a quote'] });
   }
-  function newIntake() { return { active: false, work: null, vehicle: null, year: null, mileage: null, details: null, pending: null }; }
+  function newIntake() { return { active: false, work: null, vehicle: null, year: null, mileage: null, details: null, upgradeRequest: null, currentSetup: null, goal: null, pending: null }; }
   const APP_TOPICS = ['download','iphone','android','installed','signup','signin','free','plus','plus-price','trial','garage'];
   function contextualAnswer(state, text) {
     const response = answer(text), q = normalise(text);
@@ -135,6 +135,7 @@
   function quoteIntro(work, context = '') {
     const q = normalise(context);
     const otherMake = /\b(ford|bmw|audi|mercedes|toyota|nissan|honda|mazda|subaru|volkswagen|vw|hyundai|kia|mitsubishi|porsche|tesla|byd|coyote|barra|2jz)\b/.test(q);
+    if (work === 'upgrades') return 'Let’s narrow it down for your car. PSI checks suitability, quotes the work and gets your approval before proceeding.';
     if (work === 'cam' && /\b(l77|l76)\b/.test(q)) return knowledge.PRICE_GUIDES.cam;
     if (work === 'DOD delete' && /\b(ls1|ls2|ls3|lsa|l98)\b/.test(q) && !/\b(l77|l76)\b/.test(q)) return 'That listed LS engine does not require the L77 or L76 DOD kit for PSI’s cam packages. PSI checks the actual engine and any existing modifications before quoting the work.';
     if (work === 'cam' && otherMake && !/\b(ls1|ls2|ls3|lsa|l77|l76|l98)\b/.test(q)) return 'The cam starting guide is for PSI’s listed Holden and Chevrolet LS engines. Your engine and setup need an individual quote; that guide does not establish the price for this car.';
@@ -178,6 +179,7 @@
       ['specific tuning', /\b(ecu|power runs?|health check)\b/],
       ['service', /\b(service|servicing|maintenance|logbook)\b/], ['dyno', /\b(dyno|tuning|tune)\b/],
       ['EV check', /\b(ev|electric|hybrid|charging|hev|phev|bev)\b/], ['diagnostics', /\b(diagnostics|fault|warning|misfire)\b/],
+      ['upgrades', /\b(upgrades?|modifications|mods)\b/],
     ]) if (pattern.test(q)) return work;
     return null;
   }
@@ -194,8 +196,11 @@
   }
   function intakePrompt(intake) {
     if (!intake.work) { intake.pending = 'work'; return 'What work would you like quoted?'; }
+    if (intake.work === 'upgrades' && !intake.upgradeRequest) { intake.pending = 'upgradeRequest'; return 'What upgrades are you looking to do? If you’re unsure, tell me what you’d like to improve.'; }
     if (!intake.vehicle) { intake.pending = 'vehicle'; return ['electric service','hybrid service','EV check'].includes(intake.work) ? 'What vehicle make, model, year and powertrain is it?' : 'What car, engine and year is it?'; }
     if (!intake.year) { intake.pending = 'year'; return 'What year is the car?'; }
+    if (intake.work === 'upgrades' && !intake.currentSetup) { intake.pending = 'currentSetup'; return 'What modifications are already fitted, or is it standard? Include the engine, transmission and fuel if you know them.'; }
+    if (intake.work === 'upgrades' && !intake.goal) { intake.pending = 'goal'; return 'What result are you after, and how do you use the car? For example, daily driving, better response, more power or track use.'; }
     if (['service','electric service','hybrid service'].includes(intake.work) && !intake.mileage) { intake.pending = 'mileage'; return 'What’s the odometer reading?'; }
     if (!intake.details) {
       intake.pending = 'details';
@@ -247,6 +252,10 @@
       intake.active = false; append(state, 'boost', 'No problem. Nothing sent to the test inbox. What else can I help with?', now); return { ok: true };
     }
     if (/^(not sure|dont know|i dont know|skip|skip this)$/.test(q)) {
+      if (intake.work === 'upgrades' && ['upgradeRequest','currentSetup','goal'].includes(intake.pending)) {
+        intake[intake.pending] = 'Not known, PSI to discuss';
+        updateUpgradeDetails(intake); promptIntake(state, now); return { ok: true };
+      }
       intake.pending = 'confirm'; append(state, 'boost', 'No problem. Send the details you have to Matt’s test inbox?', now, { prompts: ['Yes, send it', 'Not yet'] }); return { ok: true };
     }
     collectDetails(intake, text);
@@ -254,7 +263,14 @@
     if (intake.pending === 'vehicle' && !intake.vehicle && !text.includes('?')) intake.vehicle = text;
     if (intake.pending === 'mileage' && /^\d[\d,]*$/.test(text)) intake.mileage = text + ' km';
     if (intake.pending === 'details') intake.details = text;
+    if (intake.work === 'upgrades' && ['upgradeRequest','currentSetup','goal'].includes(intake.pending)) intake[intake.pending] = text;
+    updateUpgradeDetails(intake);
     promptIntake(state, now); return { ok: true };
+  }
+  function updateUpgradeDetails(intake) {
+    if (intake.work !== 'upgrades') return;
+    intake.details = [['Requested upgrades', intake.upgradeRequest], ['Existing setup', intake.currentSetup], ['Goal and use', intake.goal]]
+      .filter(([, value]) => value).map(([label, value]) => `${label}: ${value}`).join('\n') || null;
   }
   function showGuide(state, now) {
     const { topic, step } = state.guide, steps = GUIDES[topic], last = step === steps.length - 1;
@@ -298,8 +314,11 @@
     }
     if (response.guide) { state.guide = { topic: response.guide, step: 0 }; state.intake.active = false; state.intent = response.intent; showGuide(state, now + 1); return { ok: true }; }
     const directQuestion = message.includes('?') || /^(what|where|how|do|does|can|is|are|when|will|why)\b/.test(q) || /\bbut (?:what|where|how|do|does|can|is|are|when|will|why)\b/.test(q);
+    if (state.intake.active && state.intake.work === 'upgrades' && response.collect && directQuestion && knowledge.isPricing(q)) {
+      response = { ...response, collect: false, reply: [quoteIntro(response.work || workFrom(message), `${state.intake.vehicle || ''} ${message}`), ...(response.extraReplies || [])].join('\n\n') };
+    }
     const helpStatement = ['welcome','thanks','download','iphone','android','installed','signup','signin','password','code-help','free','plus','plus-price','trial','restore','subscription-manage','records-guide','website-enquiry','location','hours','contact','bot','message-delivery','quote-choice'].includes(response.intent);
-    if (state.intake.active && !response.collect && !directQuestion && !helpStatement) return continueIntake(state, message, now + 1);
+    if (state.intake.active && (!response.collect || (state.intake.work === 'upgrades' && response.intent === 'upgrades')) && !directQuestion && !helpStatement) return continueIntake(state, message, now + 1);
     if (response.collect) {
       const requestedWork = response.work || workFrom(message) || topicWork[state.topic];
       if (!state.intake.active) {
@@ -309,6 +328,7 @@
       if (requestedWork && requestedWork !== state.intake.work) {
         state.intake.work = requestedWork;
         state.intake.details = null;
+        state.intake.upgradeRequest = null; state.intake.currentSetup = null; state.intake.goal = null;
       }
       state.intake.active = true; collectDetails(state.intake, message);
       state.topic = null;

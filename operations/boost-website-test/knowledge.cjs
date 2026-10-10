@@ -210,7 +210,7 @@
     ['forced-induction', /\b(supercharg\w*|turbo kit|turbo upgrade|forced induction|harrop|whipple)\b/],
     ['otr', /\botr\b/],
     ['exhaust', /\b(exhaust|headers|extractors|varex|cat back|downpipe|intake)\b/],
-    ['upgrades', /^(?:upgrades|performance upgrades)$|\b(?:what|which)\b.*\bupgrades?\b|\bupgrade options\b/],
+    ['upgrades', /\b(upgrades?|modifications|mods)\b/],
     ['hours', /\b(hours|opening|closing|saturday|weekend|sunday|holiday)\b|\b(are you open|when.*open|when.*close|what time)\b/],
     ['contact', /\b(contact|phone number|email address|telephone)\b/],
     ['location', /\b(address|location|where are you|where is psi|pakenham)\b/],
