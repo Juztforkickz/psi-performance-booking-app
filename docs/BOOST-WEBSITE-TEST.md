@@ -192,3 +192,9 @@ Matt requested Upgrades alongside the existing website chat choices. Added the s
 All 64 engine, conversation and isolation checks passed. All four local artifacts rebuilt and the server refreshed. Browser verification confirmed the four choices fit without overlap and clicking Upgrades opens the intended answer and follow ups. The conversation was reset ready for Matt’s testing. Screenshot: `artifacts/boost-website-test/boost-upgrades-option.png`.
 
 This scoped change begins from `72a37a5`, preserving unrelated mobile work currently in the shared directory. Only the private Boost source, test and guide changes belong to this checkpoint. No Shopify chat, public app Boost, OTA or external delivery is enabled. Revert only this scoped change if needed.
+
+## Compact website launcher, 10 October 2026
+
+Matt requested that Boost’s conversation panel not open automatically on the homepage. Website sessions and resets now start closed, with the existing transparent character and a small clickable Ask PSI speech bubble. Either opens the conversation; closing returns focus to Boost and restores the bubble. The initial HTML also hides the panel to avoid a flash before the view script loads. Saved preview open state no longer automatically opens the website panel. The standalone test bench and response engine remain unchanged.
+
+All 64 existing conversation and isolation checks passed. The website artifact and local server refreshed. Browser verification covered initial collapsed state, bubble and character activation, closing, reset and page scrolling. The four service choices including Upgrades remain available after opening. Screenshot: `artifacts/boost-website-test/boost-compact-launcher.png`. Nothing is activated on Shopify or in the public app. Rollback predecessor: `6fe28b4`; revert only this scoped website launcher change.

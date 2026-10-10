@@ -3,7 +3,12 @@
   const root = document.getElementById('psi-boost-website-placement');
   const engine = window.BoostWebsiteTest;
   const el = id => root.querySelector('#' + id);
-  let state = engine.createSession();
+  function newWebsiteSession() {
+    const session = engine.createSession();
+    session.open = false;
+    return session;
+  }
+  let state = newWebsiteSession();
   const clock = stamp => new Date(stamp).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
 
   function remember() {
@@ -13,7 +18,6 @@
   }
   function restore(globals) {
     const saved = globals && globals.widgetState && globals.widgetState.privateContent;
-    if (saved && typeof saved.open === 'boolean') state.open = saved.open;
     if (saved && ['customer', 'inbox'].includes(saved.mode)) state.mode = saved.mode;
     render();
   }
@@ -26,6 +30,7 @@
     const inbox = state.mode === 'inbox';
     el('bp-chat').hidden = !state.open;
     el('bp-ask-label').hidden = state.open;
+    el('bp-ask-label').setAttribute('aria-expanded', String(state.open));
     el('bp-launcher').setAttribute('aria-expanded', String(state.open));
     el('bp-launcher').setAttribute('aria-label', state.open ? 'Minimise Boost conversation' : 'Open Boost conversation');
     el('bp-chat-title').firstChild.textContent = inbox ? 'Matt’s test inbox ' : 'Ask PSI ';
@@ -62,7 +67,7 @@
   }
   function send(value) {
     const result = engine.send(state, value);
-    if (result.reset) state = result.state;
+    if (result.reset) { state = result.state; state.open = false; }
     error('bp-error', result.error);
     if (result.ok) {
       el('bp-message').value = '';
@@ -89,8 +94,9 @@
   el('bp-visitor').addEventListener('click', () => view('customer'));
   el('bp-close').addEventListener('click', close);
   el('bp-launcher').addEventListener('click', () => { if (state.open) close(); else view('customer'); });
+  el('bp-ask-label').addEventListener('click', () => view('customer'));
   el('bp-reset').addEventListener('click', () => {
-    state = engine.createSession();
+    state = newWebsiteSession();
     el('bp-message').value = ''; el('bp-reply').value = '';
     error('bp-error', ''); error('bp-inbox-error', ''); render(); remember();
   });

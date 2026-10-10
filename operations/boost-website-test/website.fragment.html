@@ -65,7 +65,9 @@
     #psi-boost-website-placement .bp-launcher{position:absolute;right:20px;bottom:15px;z-index:6;width:104px;height:104px;background:transparent;border:0;padding:0;filter:drop-shadow(0 4px 10px rgba(0,0,0,.65));transition:transform .18s ease}
     #psi-boost-website-placement .bp-launcher:hover{transform:translateY(-3px)}
     #psi-boost-website-placement .bp-launcher img{width:100%;height:100%;display:block;object-fit:contain}
-    #psi-boost-website-placement .bp-ask-label{position:absolute;right:132px;bottom:44px;z-index:5;border:1px solid #4c6c84;border-radius:9px;padding:8px 15px;background:#202f3f;color:#e7f4fd;font-weight:700;font-size:13px;pointer-events:none}
+    #psi-boost-website-placement .bp-ask-label{position:absolute;right:132px;bottom:44px;z-index:5;border:1px solid #4c6c84;border-radius:18px;padding:8px 15px;min-height:44px;background:#202f3f;color:#e7f4fd;font-weight:700;font-size:13px;cursor:pointer}
+    #psi-boost-website-placement .bp-ask-label::after{content:"";position:absolute;right:-6px;top:50%;width:10px;height:10px;background:inherit;border-top:1px solid #4c6c84;border-right:1px solid #4c6c84;transform:translateY(-50%) rotate(45deg)}
+    #psi-boost-website-placement .bp-ask-label:focus-visible,#psi-boost-website-placement .bp-launcher:focus-visible{outline:2px solid #65cef8;outline-offset:4px}
     #psi-boost-website-placement .bp-inbox-empty{padding:24px 18px;color:#cbdae5;font-size:14px}
     #psi-boost-website-placement .bp-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
     #psi-boost-website-placement button:disabled{opacity:.6}
@@ -126,7 +128,7 @@
     <section class="bp-booking" id="bp-contact"><p class="bp-eyebrow">BOOK YOUR CAR</p><h2>Let’s get you sorted.</h2><p>Send an enquiry first. PSI will review the work and contact you to confirm the next step.</p><p>Try Boost in the corner to ask a question.</p></section>
     <footer class="bp-footer">PSI Performance Garage<br>21 Exchange Drive, Pakenham VIC 3810<br>0433 431 781</footer>
   </div>
-  <section class="bp-panel" id="bp-chat" aria-labelledby="bp-chat-title">
+  <section class="bp-panel" id="bp-chat" aria-labelledby="bp-chat-title" hidden>
     <header class="bp-chathead"><div><h2 id="bp-chat-title">Ask PSI <span class="bp-preview-tag">PREVIEW</span></h2><p id="bp-status">Quick answers from Boost</p></div><button class="bp-close cursor-interaction" id="bp-close" type="button" aria-label="Close conversation">×</button></header>
     <div id="bp-transcript" class="bp-transcript" role="log" aria-live="polite" aria-label="Conversation"></div>
     <div id="bp-inbox-empty" class="bp-inbox-empty" hidden>No conversation handed over yet. Return to the visitor view and select Message PSI.</div>
@@ -139,8 +141,8 @@
     </form>
     <form id="bp-inbox-form" class="bp-composer" hidden><label class="bp-sr" for="bp-reply">Matt’s test reply</label><div class="bp-compose-row"><textarea id="bp-reply" rows="1" maxlength="1500" placeholder="Write Matt’s test reply…"></textarea><button class="bp-send cursor-interaction" type="submit">Reply</button></div><p id="bp-inbox-error" class="bp-error" role="alert" hidden></p><div class="bp-compose-footer"><button class="bp-handoff cursor-interaction" id="bp-visitor" type="button">Return to visitor view</button><span>Simulated inbox</span></div></form>
   </section>
-  <span id="bp-ask-label" class="bp-ask-label" hidden>Ask PSI</span>
-  <button id="bp-launcher" class="bp-launcher cursor-interaction" type="button" aria-label="Open Boost conversation" aria-controls="bp-chat" aria-expanded="true"><img src="__BOOST_PREVIEW_IMAGE__" alt="Boost, PSI’s turbo assistant"></button>
+  <button id="bp-ask-label" class="bp-ask-label cursor-interaction" type="button" aria-controls="bp-chat" aria-expanded="false">Ask PSI</button>
+  <button id="bp-launcher" class="bp-launcher cursor-interaction" type="button" aria-label="Open Boost conversation" aria-controls="bp-chat" aria-expanded="false"><img src="__BOOST_PREVIEW_IMAGE__" alt="Boost, PSI’s turbo assistant"></button>
   <script>/*__BOOST_ENGINE__*/</script>
   <script>/*__WEBSITE_VIEW__*/</script>
 </div>
