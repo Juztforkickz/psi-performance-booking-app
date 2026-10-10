@@ -1,7 +1,7 @@
 (function () {
   'use strict';
   // Only curated link IDs become anchors. Never turn visitor text into a URL.
-  window.appendBoostActions = function (item, message, send, active) {
+  window.appendBoostActions = function (item, message, send, active, getEnquiry) {
     if (message.role !== 'boost' || !active) return;
     const actions = document.createElement('div');
     actions.className = 'boost-answer-actions';
@@ -22,6 +22,46 @@
       button.className = 'cursor-interaction';
       button.addEventListener('click', () => send(text));
       actions.append(button);
+    }
+    if (message.copyEnquiry && typeof getEnquiry === 'function') {
+      const button = document.createElement('button');
+      button.type = 'button'; button.textContent = 'Copy my enquiry';
+      button.className = 'cursor-interaction';
+      const panel = document.createElement('div'); panel.className = 'boost-copy-panel';
+      const status = document.createElement('p');
+      status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
+      const fallback = document.createElement('label');
+      fallback.textContent = 'Your enquiry to copy'; fallback.hidden = true;
+      const draft = document.createElement('textarea');
+      draft.readOnly = true; draft.rows = 7;
+      draft.setAttribute('aria-label', 'Your enquiry to copy');
+      fallback.append(draft); panel.append(status, fallback);
+      button.addEventListener('click', async () => {
+        button.disabled = true;
+        status.textContent = ''; fallback.hidden = true; draft.value = '';
+        try {
+          // Ask the engine for the curated draft only. Do not copy the conversation or send it.
+          const text = getEnquiry();
+          if (typeof text !== 'string' || !text.trim()) {
+            status.textContent = 'There is no enquiry to copy yet. Add your vehicle and requested work first.';
+            return;
+          }
+          try {
+            if (!window.navigator.clipboard || typeof window.navigator.clipboard.writeText !== 'function') throw new Error('Clipboard unavailable');
+            await window.navigator.clipboard.writeText(text);
+            status.textContent = 'Enquiry copied. Paste it into your app booking notes or website enquiry. Nothing has been sent.';
+          } catch {
+            draft.value = text; fallback.hidden = false;
+            status.textContent = 'Copy was unavailable. Select and copy your enquiry below. Nothing has been sent.';
+            draft.focus(); draft.select();
+          }
+        } catch {
+          status.textContent = 'The enquiry could not be prepared. Choose Review my request and try again.';
+        } finally {
+          button.disabled = false;
+        }
+      });
+      actions.append(button, panel);
     }
     if (actions.childElementCount) item.append(actions);
   };

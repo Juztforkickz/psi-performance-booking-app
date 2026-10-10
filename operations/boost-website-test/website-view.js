@@ -60,7 +60,7 @@
       time.className = 'bp-time';
       time.textContent = clock(message.at) + (message.role === 'boost' ? '' : message.readAt ? ' · Read ' + clock(message.readAt) : ' · Sent');
       item.append(byline, bubble, time);
-      window.appendBoostActions(item, message, send, !inbox && !state.queued && !state.closed && message === state.messages.at(-1));
+      window.appendBoostActions(item, message, send, !inbox && !state.queued && !state.closed && message === state.messages.at(-1), () => engine.enquiryText(state));
       target.append(item);
     });
     scrollLatest();

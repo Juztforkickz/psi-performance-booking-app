@@ -41,19 +41,21 @@
     if ((!recordsGuide && /\b(show|send|get|open|download|find|check)\b.*\b(invoice|my records|customer record|account balance)\b/.test(q)) || /\b(refund|charged twice|paid twice|cant access my email|cannot access my email|my.*(?:record|invoice|vehicle).*missing|change my (?:account|email)|delete my account|verify my (?:payment|transfer)|mark.*paid|link.*account)\b/.test(q)) return result('account', 'PSI needs to verify the account and vehicle before checking that. The conversation is in Matt’s test inbox. Do not share passwords, sign in codes or card details here.', { handoff: true });
     if (/\b(are you a real person|are you.*bot|who are you|what can you do)\b/.test(q)) return toFAQ(knowledge.BY_ID.bot);
     if (/\b(want|need|speak to|talk to)\b.*\b(real person)\b/.test(q)) return result('human', 'Sent to Matt’s test inbox. You can add details here while waiting for his test reply.', { handoff: true });
-    if (/\b(message psi|speak to|talk to|talk with|human|speak with|contact matt|message matt)\b/.test(q) || /^matt$/.test(q)) return result('human', 'Sent to Matt’s test inbox. You can add details here while waiting for his test reply.', { handoff: true });
+    if (/^(?:how|where)\b.*\b(?:contact|reach|get in touch)\b.*\b(?:psi|matt|workshop)\b/.test(q)) return toFAQ(knowledge.BY_ID.contact);
+    if (/\b(?:message|contact) (?:psi|matt|the workshop)\b|\b(?:speak|talk|chat) (?:to|with) (?:a |an |the )?(?:real person|person|human|someone|staff|team|mechanic|owner|matt|psi)\b/.test(q) || /^(?:matt|human|a real person)(?: please)?$/.test(q)) return result('human', 'Sent to Matt’s test inbox. You can add details here while waiting for his test reply.', { handoff: true });
     if (/\b(confirm|cancel|reschedule|change)\b.*\b(my booking|my appointment|booking date|booking for|appointment for)\b/.test(q) || /\b(cancel|reschedule|change)\b.*\b(booking|appointment)\b/.test(q) || /\b(can you confirm|is my booking confirmed)\b/.test(q)) return result('booking-action', 'PSI must check or change the actual booking. The conversation is in Matt’s test inbox. No booking has been changed by this preview.', { handoff: true });
     if (/\b(guarantee|guaranteed|promise)\b/.test(q)) return result('assessment', 'PSI needs to assess the car before confirming a diagnosis, price or expected result. Boost cannot guarantee a fix or power gain.', { prompts: ['I need a quote', 'Message PSI'] });
     if (/\b(guide me|step by step|walk me through)\b.*\b(account|sign up|signup)\b/.test(q)) return result('signup', '', { guide: 'signup' });
     if (/\b(guide me|step by step|walk me through)\b.*\b(book|booking)\b/.test(q)) return result('booking', '', { guide: 'booking' });
     const item = knowledge.match(q);
     if (item) return item.id === 'upgrades' ? { ...toFAQ(item), collect: true, work: 'upgrades' } : toFAQ(item);
+    if ((/\b(?:better|more|improve\w*) (?:everyday |throttle |engine )?response\b|\b(?:smooth|smoother|lumpy) idle\b|\b(?:more|extra) power\b/.test(q) && /\b(?:want|after|looking|like|need|prefer)\b/.test(q)) || /^(?:better (?:everyday |throttle )?response|smooth idle|more power)$/.test(q)) return result('upgrade-goal', 'We can start with how you want the car to feel. PSI checks the combination before recommending parts. You do not need to choose a package yet.', { collect: true, work: 'upgrades', goalFirst: true });
     if (knowledge.isPricing(q)) return result('quote', quoteIntro(workFrom(text), text), { collect: true });
     if (/^(hi|hello|hey|good morning|good afternoon|good evening)\b/.test(q)) return result('welcome', GREETING, { prompts: ['How do I book?', 'I need a quote', 'Where can I download the PSI app?'] });
     if (/^(thanks|thank you|cheers)\b/.test(q)) return result('thanks', 'You’re welcome. Anything else I can help with?');
     return result('needs-review', 'I do not have a verified answer for that yet. Choose Message PSI to ask Matt, or tell me whether it is about a vehicle, the app or a booking.', { prompts: ['Message PSI', 'How do I book?', 'I need a quote'] });
   }
-  function newIntake() { return { active: false, work: null, vehicle: null, year: null, mileage: null, details: null, upgradeRequest: null, currentSetup: null, goal: null, extraDetails: [], pending: null }; }
+  function newIntake() { return { active: false, work: null, vehicle: null, year: null, mileage: null, details: null, upgradeRequest: null, currentSetup: null, goal: null, setup: {}, timing: null, budget: null, extraDetails: [], pending: null }; }
   const APP_TOPICS = ['download','iphone','android','installed','signup','signin','free','plus','plus-price','trial','garage','app-benefits','chat-transfer'];
   function contextualAnswer(state, text) {
     const response = answer(text), q = normalise(text);
@@ -77,7 +79,7 @@
     if (APP_TOPICS.includes(state.topic) && /^(is it free|is that free|do i have to pay)$/.test(q)) return toFAQ(knowledge.BY_ID.free);
     if (['plus','plus-price','trial'].includes(state.topic) && /\b(pay|cover|include)\w*\b.*\b(service|workshop|tune|deposit)\b/.test(q)) return result('free', 'Performance+ is optional app access. Servicing, tuning, parts and workshop deposits are charged separately.', { sources: ['plus'], prompts: ['How do I book?'] });
     if (['stock','shipping','fitment','exhaust'].includes(state.topic) && /\b(arrive|arriving|delivered|delivery)\b/.test(q)) return toFAQ(knowledge.BY_ID.shipping);
-    if (/\b(include\w*|cover\w*)\b/.test(q) && /\b(ev|hybrid|electric)\b/.test(q) && /\b(price|every|all|423|service)\b/.test(q)) return result('service-inclusions', 'PSI must confirm the service price and inclusions for your exact EV or hybrid. Fully electric BEV servicing starts from AUD $325 including GST, with no engine oil or engine oil filter change. That BEV guide does not apply to hybrids with a combustion engine or confirm the price of additional work.', { sources: ['pricingApproval','ev'], prompts: ['I need a service quote', 'Message PSI'] });
+    if (/\b(include\w*|cover\w*)\b/.test(q) && /\b(ev|hybrid|electric)\b/.test(q) && /\b(price|every|all|423|service)\b/.test(q)) return result('service-inclusions', 'PSI must confirm the service price and inclusions for your exact EV or hybrid. Fully electric BEV servicing starts from AUD $325 including GST, with no engine oil or engine oil filter change. That BEV guide does not apply to hybrids with a combustion engine or confirm the price of additional work.', { requiresReview: true, sources: ['pricingApproval','ev'], prompts: ['I need a service quote', 'Message PSI'] });
     return response;
   }
   function conversationAnswer(state, text) {
@@ -99,7 +101,7 @@
       extraReplies: unique.filter(response => response !== primary).map(response => response.reply),
       sources: [...new Set(unique.flatMap(response => response.sources))],
       links: [...new Set(unique.flatMap(response => response.links))],
-      unanswered: questions.filter((_, index) => ['needs-review','warranty','service-inclusions'].includes(responses[index].intent)) };
+      unanswered: questions.filter((_, index) => responses[index].intent === 'needs-review' || responses[index].requiresReview) };
   }
   function rememberPreferences(state, text) {
     const q = normalise(text);
@@ -187,6 +189,37 @@
     return null;
   }
   const topicWork = { 'sump-gasket': 'sump gasket replacement', 'ev-service': 'electric service', 'lifter-package': 'head removal and lifters', 'cam-inclusions': 'cam', 'cam-options': 'cam', 'module-tuning': 'module tuning', 'cam-extras': 'cam extras', 'cam-engines': 'cam', 'dod-delete': 'DOD delete', 'dod-price': 'DOD delete', 'cnc-heads': 'CNC head porting', 'valve-seats': 'valve seat upgrade', 'pump-trunnions': 'pump and trunnions', otr: 'OTR and tuning', 'scan-price': 'diagnostics', service: 'service', logbook: 'service', 'service-report': 'service', 'service-inclusions': 'service', dyno: 'dyno', 'dyno-details': 'dyno', 'ecu-tcu': 'transmission tuning', ev: 'EV check', 'ev-scope': 'EV check', charging: 'EV check', cam: 'cam', exhaust: 'exhaust', 'forced-induction': 'forced induction', interchiller: 'cooling upgrade', 'engine-build': 'engine build', coding: 'coding', brakes: 'brakes or suspension', fitment: 'parts', diagnostics: 'diagnostics' };
+  const UNKNOWN = 'Not known, PSI to discuss';
+  const describesFutureSetup = text => /\b(?:want|would like|id like|planning|plan to|looking to|looking for|im after|consider\w*|switch\w*|conversion|convert\w*|change to)\b/.test(normalise(text));
+  const setupQuestions = {
+    transmission: 'Is it manual or automatic? If you know the gearbox model, include it. Not sure is fine.',
+    fuel: 'What fuel do you normally use? For example, 95, 98, diesel or E85. Tell me what you use now, not a fuel you are considering.',
+    modifications: 'What modifications are already fitted, or is the car standard? If you do not know its history, say Not sure.',
+    goal: 'What would you like to improve, and how do you use the car? For example, everyday response, smoother shifts or weekend driving.',
+  };
+  function setupFields(intake) {
+    if (intake.work === 'upgrades') return ['transmission', 'fuel', 'modifications'];
+    if (['dyno','specific tuning','cam','OTR and tuning','forced induction'].includes(intake.work)) return ['transmission', 'fuel', 'modifications', 'goal'];
+    if (intake.work === 'transmission tuning') return ['transmission', 'modifications', 'goal'];
+    return [];
+  }
+  function collectSetup(intake, text) {
+    const q = normalise(text);
+    intake.setup ||= {};
+    // Extract only stated details. Never infer fuel or transmission from a model.
+    const transmission = q.match(/\b(manual|automatic|auto|dsg|dct|cvt|[468]l[689]0\w*|zf[68]\w*)\b/);
+    const fuel = q.match(/\b(9[158]|e85|e10|diesel|flex fuel|petrol)\b/);
+    if (transmission && !describesFutureSetup(text)) intake.setup.transmission = transmission[0];
+    if (fuel && !describesFutureSetup(text)) intake.setup.fuel = fuel[0];
+    if (/\b(stock|standard|unmodified|no mods|no modifications|exhaust|extractors?|headers?|cat back|otr|intake|cammed|supercharged|turbocharged)\b/.test(q) && !describesFutureSetup(text)) intake.setup.modifications = text;
+    if (/\b(daily|weekend\w*|track|street|response|power|reliab\w*|smooth\w*|drivability|driveability|economy|towing|tow|idle)\b/.test(q)) intake.setup.goal = text;
+  }
+  function missingSetupPrompt(intake) {
+    const key = setupFields(intake).find(field => !intake.setup?.[field]);
+    if (!key) return null;
+    intake.pending = 'setup:' + key;
+    return setupQuestions[key];
+  }
   function collectDetails(intake, text) {
     const q = normalise(text), year = q.match(/\b((?:19|20)\d{2})\b/);
     const make = q.match(/\b(audi|bmw|ford|holden|hsv|chev(?:rolet)?|honda|hyundai|kia|mazda|mercedes(?: benz)?|mitsubishi|nissan|porsche|skoda|subaru|suzuki|tesla|toyota|volkswagen|vw|volvo|byd|mg|gwm|lexus|isuzu|jeep|land rover|peugeot|renault|ferrari|lamborghini|polestar|cupra|chery|mini)\b/);
@@ -196,6 +229,7 @@
     if (!make && year && /\b(vf|ve|vx|vy|vz|commodore|falcon|mustang|corolla|hilux|ranger|rs3|golf|model 3|model y)\b/.test(q)) intake.vehicle = text;
     if (mileage) intake.mileage = mileage[0];
     if (!intake.work) intake.work = workFrom(text);
+    if (!(intake.work === 'upgrades' && (!intake.pending || intake.pending === 'upgradeRequest')) && !text.includes('?') && !/^(?:what|how|does|is|can|do|will|why)\b/.test(q)) collectSetup(intake, text);
   }
   function intakePrompt(intake) {
     if (!intake.work) { intake.pending = 'work'; return 'What work would you like quoted?'; }
@@ -203,6 +237,10 @@
     if (!intake.vehicle) { intake.pending = 'vehicle'; return ['electric service','hybrid service','EV check'].includes(intake.work) ? 'What vehicle make, model, year and powertrain is it?' : 'What car, engine and year is it?'; }
     if (!intake.year) { intake.pending = 'year'; return 'What year is the car?'; }
     if (intake.work === 'upgrades' && !intake.currentSetup) { intake.pending = 'currentSetup'; return 'What modifications are already fitted, or is it standard? Include the engine, transmission and fuel if you know them.'; }
+    if (intake.work === 'upgrades' && intake.currentSetup) {
+      const missing = missingSetupPrompt(intake);
+      if (missing) return missing;
+    }
     if (intake.work === 'upgrades' && !intake.goal) { intake.pending = 'goal'; return 'What result are you after, and how do you use the car? For example, daily driving, better response, more power or track use.'; }
     if (['service','electric service','hybrid service'].includes(intake.work) && !intake.mileage) { intake.pending = 'mileage'; return 'What’s the odometer reading?'; }
     if (!intake.details) {
@@ -234,6 +272,8 @@
         'EV check': 'What would you like checked? Include any warning message or what happens while charging.',
       })[intake.work] || 'What would you like done, and what is the current setup or concern?';
     }
+    const missing = missingSetupPrompt(intake);
+    if (missing) return missing;
     intake.pending = 'confirm';
     return 'Thanks, I have the basics. What else would you like to know? You can keep chatting or add details. Choose Yes, send it when you want PSI to review this in Matt’s test inbox. No price or booking is confirmed.';
   }
@@ -242,7 +282,8 @@
     state.messages.push({ id: state.messages.length ? state.messages.at(-1).id + 1 : 1, role, text, at: now, readAt: null,
       prompts: role === 'boost' ? [...(meta.prompts || [])].slice(0, 3) : [],
       links: role === 'boost' ? (meta.links || []).filter(key => Object.hasOwn(knowledge.LINKS, key)) : [],
-      sources: role === 'boost' ? (meta.sources || []).filter(key => Object.hasOwn(knowledge.SOURCES, key)) : [] });
+      sources: role === 'boost' ? (meta.sources || []).filter(key => Object.hasOwn(knowledge.SOURCES, key)) : [],
+      copyEnquiry: role === 'boost' && Boolean(meta.copyEnquiry) });
     state.messages = state.messages.slice(-MAX_MESSAGES);
   }
   function promptIntake(state, now, intro = '') {
@@ -256,6 +297,20 @@
   }
   function continueIntake(state, text, now) {
     const intake = state.intake, q = normalise(text);
+    const previousSetup = { ...intake.setup };
+    const unknown = /^(not sure|dont know|i dont know|skip|skip this|prefer not to say|i dont know yet)$/.test(q);
+    if (['timing','budget'].includes(intake.pending)) {
+      const field = intake.pending;
+      intake[field] = unknown ? 'Not supplied, optional' : text;
+      if (field === 'timing') {
+        intake.pending = 'budget';
+        append(state, 'boost', 'Optional: do you have a budget in AUD, or would you prefer PSI to suggest a scope? This is a preference, not an agreed price. You can skip it.', now, { prompts: ['Suggest a scope', 'Skip'] });
+      } else {
+        intake.pending = 'confirm';
+        append(state, 'boost', 'Added your preferences. They do not reserve a date or approve a price. You can review or copy the enquiry before deciding to send it.', now, { prompts: ['Review my request', 'Keep chatting', 'Yes, send it'], copyEnquiry: true });
+      }
+      return { ok: true };
+    }
     if (intake.pending === 'confirm' && /^(?:yes(?: (?:please|send it|send them|go ahead|thanks|thank you))*|(?:yep|yeah|sure|ok|okay)(?: please)? (?:send it|send them|go ahead)|send it|send them|please do|go ahead)$/.test(q)) return handoff(state, now);
     if (intake.pending === 'confirm' && /^(no|no thanks|not yet)$/.test(q)) {
       intake.active = false; append(state, 'boost', 'No problem. Nothing sent to the test inbox. What else can I help with?', now); return { ok: true };
@@ -271,18 +326,39 @@
       append(state, 'boost', 'Added that to your request. What else would you like to ask? Nothing has been sent to PSI.', now, { prompts: ['Keep chatting', 'Add more details', 'Yes, send it'] });
       return { ok: true };
     }
-    if (/^(not sure|dont know|i dont know|skip|skip this)$/.test(q)) {
+    if (unknown || /^please assess the existing setup$/.test(q)) {
+      if (intake.pending?.startsWith('setup:')) {
+        intake.setup[intake.pending.slice(6)] = UNKNOWN;
+        promptIntake(state, now, 'That is fine. I’ll mark it for PSI to check.\n\n'); return { ok: true };
+      }
       if (intake.work === 'upgrades' && ['upgradeRequest','currentSetup','goal'].includes(intake.pending)) {
-        intake[intake.pending] = 'Not known, PSI to discuss';
+        intake[intake.pending] = UNKNOWN;
+        if (intake.pending === 'currentSetup') for (const field of setupFields(intake)) intake.setup[field] = UNKNOWN;
         updateUpgradeDetails(intake); promptIntake(state, now); return { ok: true };
       }
-      intake.pending = 'confirm'; append(state, 'boost', 'No problem. Send the details you have to Matt’s test inbox?', now, { prompts: ['Yes, send it', 'Not yet'] }); return { ok: true };
+      if (['work','vehicle','year','mileage','details'].includes(intake.pending)) intake[intake.pending] = UNKNOWN;
+      if (intake.pending === 'details') for (const field of setupFields(intake)) intake.setup[field] ||= UNKNOWN;
+      promptIntake(state, now, 'No problem. We can use the details you do know and leave this for PSI to check.\n\n'); return { ok: true };
     }
     collectDetails(intake, text);
     if (intake.pending === 'work' && !intake.work) intake.work = text;
     if (intake.pending === 'vehicle' && !intake.vehicle && !text.includes('?')) intake.vehicle = text;
     if (intake.pending === 'mileage' && /^\d[\d,]*$/.test(text)) intake.mileage = text + ' km';
     if (intake.pending === 'details') intake.details = text;
+    if (intake.pending?.startsWith('setup:')) {
+      const field = intake.pending.slice(6);
+      if (field !== 'goal' && describesFutureSetup(text)) {
+        intake.extraDetails = [...(intake.extraDetails || []), `Planned change: ${text}`].slice(-8);
+        append(state, 'boost', 'I’ve noted that as a planned change. What is fitted or used now? Not sure is fine.\n\n' + setupQuestions[field], now, { prompts: ['Not sure', 'Message PSI'] }); return { ok: true };
+      }
+      if (!intake.setup[field]) {
+        const answeredAnotherField = Object.keys(intake.setup).some(key => key !== field && intake.setup[key] !== previousSetup[key]);
+        if (answeredAnotherField) {
+          append(state, 'boost', 'I’ve noted that detail.\n\n' + setupQuestions[field], now, { prompts: ['Not sure', 'Message PSI'] }); return { ok: true };
+        }
+        intake.setup[field] = text;
+      }
+    }
     if (intake.work === 'upgrades' && ['upgradeRequest','currentSetup','goal'].includes(intake.pending)) intake[intake.pending] = text;
     updateUpgradeDetails(intake);
     promptIntake(state, now); return { ok: true };
@@ -301,7 +377,7 @@
   }
   function createSession(now = Date.now(), options = {}) {
     const surface = options.surface === 'app' ? 'app' : 'website';
-    const state = { version: 4, surface, mode: 'customer', open: true, ticket: 'PREVIEW 001', queued: false, closed: false, intent: 'welcome', topic: null, guide: null, intake: newIntake(), preferences: { platform: null, installed: surface === 'app', booking: 'app', appDeclined: false, appEncouragementShown: false }, reviewQuestions: [], handoffReason: null, notice: '', messages: [] };
+    const state = { version: 4, surface, mode: 'customer', open: true, ticket: 'PREVIEW 001', queued: false, closed: false, intent: 'welcome', topic: null, guide: null, intake: newIntake(), preferences: { platform: null, installed: surface === 'app', booking: 'app', appDeclined: false, appEncouragementShown: false }, reviewQuestions: [], pendingResolution: null, handoffReason: null, notice: '', messages: [] };
     append(state, 'boost', GREETING, now); return state;
   }
   function send(state, raw, now = Date.now()) {
@@ -324,18 +400,32 @@
       state.queued = true; state.intake.active = false; state.guide = null; state.intent = response.intent;
       append(state, 'boost', response.reply, now + 1, response); state.notice = 'Waiting for PSI to reply in the test inbox.'; return { ok: true };
     }
+    if (state.pendingResolution && /^(?:yes that answers it|that answers (?:it|my question)|that answered my question)$/.test(q)) {
+      state.reviewQuestions = state.reviewQuestions.filter(question => question !== state.pendingResolution);
+      state.pendingResolution = null;
+      append(state, 'boost', 'Great. I’ve removed that question from the items for PSI to review. Your vehicle details are still here. What else would you like to know?', now + 1, { prompts: ['Review my request', 'How do I book?'] }); return { ok: true };
+    }
+    if (state.pendingResolution && q === 'no i meant something else') {
+      state.pendingResolution = null;
+      append(state, 'boost', 'Tell me which part you still need help with. I’ll keep the original question for PSI until it is answered.', now + 1); return { ok: true };
+    }
     if (/^(stop guide|finish guide|stop quote|start over)$/.test(q)) {
-      state.guide = null; state.intake = newIntake(); state.topic = null; state.reviewQuestions = []; append(state, 'boost', 'We’ve stopped the guide. Nothing was submitted here. What else can I help with?', now + 1, { prompts: ['How do I book?', 'I need a quote'] }); return { ok: true };
+      state.guide = null; state.intake = newIntake(); state.topic = null; state.reviewQuestions = []; state.pendingResolution = null; append(state, 'boost', 'We’ve stopped the guide. Nothing was submitted here. What else can I help with?', now + 1, { prompts: ['How do I book?', 'I need a quote'] }); return { ok: true };
     }
     if (q === 'resume quote' && state.intake.active) { promptIntake(state, now + 1); return { ok: true }; }
     if (/^(review my request|show my summary|review my enquiry)$/.test(q)) {
       const summary = requestSummary(state);
       const ready = summary && state.intake.pending === 'confirm';
       if (ready) state.intake.active = true;
-      const text = summary ? `Your draft enquiry\nVehicle: ${summary.vehicle}\nYear: ${summary.year}\nWork: ${summary.work}\nOdometer: ${summary.mileage}\n${summary.details}\n\nQuestions for PSI: ${summary.needsReview.join('; ') || 'Confirm suitability, scope, price and availability.'}\n\nThis stays in the preview. It is not a quote, booking or automatic transfer to the app.` : 'Tell me the vehicle and work you are considering first. I can then organise your draft enquiry.';
-      append(state, 'boost', text, now + 1, { prompts: ready ? ['Keep chatting', 'Add more details', 'Yes, send it'] : state.intake.active ? ['Resume quote', 'Message PSI'] : ['Upgrades', 'I need a quote'] });
+      const text = enquiryText(state) || 'Tell me the vehicle and work you are considering first. I can then organise your draft enquiry.';
+      append(state, 'boost', text, now + 1, { prompts: ready ? ['Add timing or budget', 'Keep chatting', 'Yes, send it'] : state.intake.active ? ['Resume quote', 'Message PSI'] : ['Upgrades', 'I need a quote'], copyEnquiry: Boolean(summary) });
       return { ok: true };
     }
+    if (q === 'add timing or budget' && state.intake.pending === 'confirm') {
+      state.intake.active = true; state.intake.pending = 'timing';
+      append(state, 'boost', 'Optional: are you researching for later, or looking to arrange the work? You can give a preferred timeframe. PSI still needs to confirm availability.', now + 1, { prompts: ['Just researching', 'Ready to arrange', 'Skip'] }); return { ok: true };
+    }
+    if (state.intake.active && ['timing','budget'].includes(state.intake.pending) && !message.includes('?') && !/^(?:what|how|can|does|is|do|why)\b/.test(q)) return continueIntake(state, message, now + 1);
     if (state.intake.active && ['confirm','additionalDetails'].includes(state.intake.pending) && ['keep chatting','ask another question','add more details'].includes(q)) {
       if (q === 'add more details') {
         state.intake.pending = 'additionalDetails';
@@ -353,12 +443,17 @@
     }
     if (response.guide) { state.guide = { topic: response.guide, step: 0 }; state.intake.active = false; state.intent = response.intent; showGuide(state, now + 1); return { ok: true }; }
     const directQuestion = message.includes('?') || /^(what|where|how|do|does|can|is|are|when|will|why)\b/.test(q) || /\bbut (?:what|where|how|do|does|can|is|are|when|will|why)\b/.test(q);
+    if (state.intake.active && response.goalFirst) {
+      state.intake.goal = message;
+      collectSetup(state.intake, message); updateUpgradeDetails(state.intake);
+      promptIntake(state, now + 1, 'I’ve noted that goal.\n\n'); return { ok: true };
+    }
     if (state.intake.active && state.intake.pending === 'confirm' && response.intent === 'upgrades') response = { ...response, collect: false };
     if (state.intake.active && (state.intake.work === 'upgrades' || state.intake.pending === 'confirm') && response.collect && directQuestion && knowledge.isPricing(q)) {
       response = { ...response, collect: false, reply: [quoteIntro(response.work || workFrom(message) || state.intake.work, `${state.intake.vehicle || ''} ${message}`), ...(response.extraReplies || [])].join('\n\n') };
     }
-    const vehicleUseAnswer = state.intake.pending === 'goal' && /\b(weekends?|daily|track|street|driving|drive)\b/.test(q);
-    const helpStatement = ['welcome','thanks','download','iphone','android','installed','signup','signin','password','code-help','free','plus','plus-price','trial','restore','subscription-manage','records-guide','website-enquiry','app-benefits','chat-transfer','location','hours','contact','bot','message-delivery','quote-choice'].includes(response.intent) && !(vehicleUseAnswer && response.intent === 'hours');
+    const vehicleUseAnswer = !directQuestion && (['goal','setup:goal'].includes(state.intake.pending) || (['details','currentSetup'].includes(state.intake.pending) && setupFields(state.intake).length)) && /\b(weekends?|daily|track|street|driving|drive)\b/.test(q);
+    const helpStatement = ['welcome','thanks','download','iphone','android','installed','signup','signin','password','code-help','free','plus','plus-price','trial','restore','subscription-manage','records-guide','website-enquiry','app-benefits','chat-transfer','location','hours','contact','bot','message-delivery','quote-choice','otr-explained','cam-explained','dod-explained','controller-communication','transmission-explained','upgrade-comparison','tune-preparation'].includes(response.intent) && !(vehicleUseAnswer && response.intent === 'hours');
     const requestDetail = /^(?:also|and|actually|it has|it is|its|i have|ive got|my car|my engine|i also|i want|i would like|id like)\b/.test(q);
     const collectingAnswer = state.intake.pending !== 'confirm' || !knowledge.BY_ID[response.intent] || requestDetail;
     if (state.intake.active && collectingAnswer && (!response.collect || (state.intake.work === 'upgrades' && response.intent === 'upgrades')) && !directQuestion && !helpStatement) return continueIntake(state, message, now + 1);
@@ -372,24 +467,37 @@
         state.intake.work = requestedWork;
         state.intake.details = null;
         state.intake.upgradeRequest = null; state.intake.currentSetup = null; state.intake.goal = null;
-        state.intake.extraDetails = [];
+        state.intake.extraDetails = []; state.intake.setup = {}; state.intake.timing = null; state.intake.budget = null;
       }
       state.intake.active = true; collectDetails(state.intake, message);
+      if (response.goalFirst) {
+        state.intake.goal = message; state.intake.upgradeRequest = 'PSI to discuss suitable options for the stated goal';
+        updateUpgradeDetails(state.intake);
+      }
       state.topic = null;
-      if (response.unanswered) state.reviewQuestions = [...state.reviewQuestions, ...response.unanswered].slice(-8);
-      state.intent = 'quote'; state.guide = null; promptIntake(state, now + 1, [quoteIntro(state.intake.work, state.intake.vehicle || message), ...(response.extraReplies || [])].join('\n\n') + '\n\n'); return { ok: true };
+      rememberReview(state, message, response);
+      state.intent = 'quote'; state.guide = null; promptIntake(state, now + 1, [response.goalFirst ? response.reply : quoteIntro(state.intake.work, state.intake.vehicle || message), ...(response.extraReplies || [])].join('\n\n') + '\n\n'); return { ok: true };
     }
     const vehicleContext = /\b(my|i have|ive got|i own|it is|its|sorry)\b/.test(q);
     if (vehicleContext) collectDetails(state.intake, message);
-    if (['needs-review','warranty','service-inclusions'].includes(response.intent)) state.reviewQuestions = [...state.reviewQuestions, message].slice(-8);
-    if (response.unanswered) state.reviewQuestions = [...state.reviewQuestions, ...response.unanswered].slice(-8);
+    const clarifies = (state.intent === 'needs-review' || /^(?:i mean|i meant|to clarify)\b/.test(q)) && knowledge.BY_ID[response.intent] && !response.requiresReview && !response.unanswered?.length && state.reviewQuestions.length;
+    rememberReview(state, message, response);
     response = personalise(state, response);
     state.intent = response.intent;
     if (knowledge.BY_ID[response.intent]) state.topic = response.intent;
     const meta = { ...response };
     if (state.intake.active) meta.prompts = state.intake.pending === 'confirm' ? ['Keep chatting', 'Add more details', 'Yes, send it'] : ['Resume quote', 'Message PSI'];
     else if (state.guide) meta.prompts = ['Resume guide', 'Stop guide'];
+    if (clarifies) {
+      state.pendingResolution = state.reviewQuestions.at(-1);
+      response.reply += `\n\nDid that answer your earlier question: “${state.pendingResolution}”?`;
+      meta.prompts = ['Yes, that answers it', 'No, I meant something else'];
+    }
     append(state, 'boost', response.reply, now + 1, meta); return { ok: true };
+  }
+  function rememberReview(state, message, response) {
+    const questions = response.unanswered || (response.intent === 'needs-review' || response.requiresReview ? [message] : []);
+    state.reviewQuestions = [...new Set([...state.reviewQuestions, ...questions])].slice(-8);
   }
   function handoff(state, now = Date.now()) {
     if (state.closed) return { ok: false, error: 'Reopen this test conversation first.' };
@@ -415,10 +523,11 @@
   function requestSummary(state) {
     const intake = state.intake;
     if (!intake.work && !intake.vehicle && !intake.details) return null;
+    const setupDetails = Object.entries(intake.setup || {}).filter(([key, value]) => setupFields(intake).includes(key) && (!intake.details || !normalise(intake.details).includes(normalise(value)))).map(([key, value]) => `${({ transmission: 'Transmission', fuel: 'Current fuel', modifications: 'Existing modifications', goal: 'Goal and use' })[key]}: ${value}`);
     return {
       vehicle: intake.vehicle || 'Not supplied', year: intake.year || 'Not supplied',
       work: intake.work || 'PSI to review', mileage: intake.mileage || 'Not supplied',
-      details: [intake.details || 'See visitor messages', ...(intake.extraDetails || []).map(detail => `Additional detail: ${detail}`)].join('\n'),
+      details: [intake.details || 'Scope still to discuss', ...setupDetails, intake.timing ? `Timing preference: ${intake.timing}` : null, intake.budget ? `Budget preference, AUD: ${intake.budget}` : null, ...(intake.extraDetails || []).map(detail => `Additional detail: ${detail}`)].filter(Boolean).join('\n'),
       needsReview: [...new Set(state.reviewQuestions)].filter(question => !/^(message psi|message matt|matt)$/i.test(question)).slice(-8),
       recentMessages: state.messages.filter(message => message.role === 'visitor').slice(-4).map(message => message.text),
       reason: state.handoffReason || 'Visitor requested PSI review',
@@ -429,6 +538,11 @@
     if (!state.queued) return null;
     return requestSummary(state) || { vehicle: 'Not supplied', year: 'Not supplied', work: 'PSI to review', mileage: 'Not supplied', details: 'See visitor messages', needsReview: [...new Set(state.reviewQuestions)].slice(-8), recentMessages: state.messages.filter(message => message.role === 'visitor').slice(-4).map(message => message.text), reason: state.handoffReason || 'Visitor requested PSI review', status: 'Private test only. No price or booking confirmed.' };
   }
-  const api = Object.freeze({ MAX_MESSAGE, MAX_MESSAGES, GREETING, HELP, SAMPLES, GUIDES, answer, createSession, send, handoff, view, reply, requestSummary, handoffSummary });
+  function enquiryText(state) {
+    const summary = requestSummary(state);
+    if (!summary) return null;
+    return `Your draft enquiry\nVehicle: ${summary.vehicle}\nYear: ${summary.year}\nWork: ${summary.work}\nOdometer: ${summary.mileage}\n${summary.details}\n\nQuestions for PSI: ${summary.needsReview.join('; ') || 'No unanswered general questions. PSI still needs to confirm suitability, scope, price and availability.'}\n\nThis is not a quote, booking or automatic transfer to the app. Copying this draft does not send it to PSI.`;
+  }
+  const api = Object.freeze({ MAX_MESSAGE, MAX_MESSAGES, GREETING, HELP, SAMPLES, GUIDES, answer, createSession, send, handoff, view, reply, requestSummary, handoffSummary, enquiryText });
   if (typeof module === 'object' && module.exports) module.exports = api; else root.BoostWebsiteTest = api;
 })(typeof window === 'object' ? window : globalThis);

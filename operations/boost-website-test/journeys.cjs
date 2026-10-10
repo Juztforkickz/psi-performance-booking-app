@@ -68,7 +68,7 @@ module.exports = [
     { say: '2020 Hyundai i30', pending: 'mileage' },
     { say: '60000 km', pending: 'details' },
     { say: 'Annual service', pending: 'confirm' },
-    { say: 'Yes send it', queued: true, summary: ['spark plugs', '2020 Hyundai i30'] },
+    { say: 'Yes send it', queued: true, summary: ['2020 Hyundai i30', 'Annual service'] },
   ] },
   { title: 'Safety takes priority over price', steps: [
     { say: 'How much is a service? My brakes failed, is it safe to drive?', includes: ['Do not drive', 'cannot alert PSI'], excludes: ['423.50'], queued: true },
