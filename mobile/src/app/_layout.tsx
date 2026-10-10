@@ -26,7 +26,12 @@ void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 function GarageStartupGate({ children }: PropsWithChildren) {
   const { ready } = useGarageStartupArtwork();
   useEffect(() => { if (ready) void SplashScreen.hideAsync().catch(() => undefined); }, [ready]);
-  return ready ? children : <View style={styles.startup}><ActivityIndicator color={colors.accent} /></View>;
+  // Keep the navigator mounted for cold notification links while the first
+  // frame remains covered until the account's artwork selection is hydrated.
+  return <View style={styles.shell}>
+    <View style={[styles.shell, !ready && styles.startupHidden]} pointerEvents={ready ? 'auto' : 'none'} accessibilityElementsHidden={!ready}>{children}</View>
+    {!ready ? <View style={styles.startup}><ActivityIndicator color={colors.accent} /></View> : null}
+  </View>;
 }
 
 function ThemeAwareRootShell() {
@@ -83,7 +88,8 @@ function ThemeAwareRootShell() {
 }
 
 const styles = StyleSheet.create({
-  startup: { flex: 1, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  startup: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  startupHidden: { opacity: 0 },
   shell: { flex: 1 },
   content: { flex: 1, minHeight: 0 },
 });
