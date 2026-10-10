@@ -2,11 +2,12 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, type PropsWithChildren } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { PersistentBottomNavigation } from '@/components/persistent-bottom-navigation';
+import { GarageStartupScreen } from '@/components/garage-startup-screen';
 import { AppleReviewBanner } from '@/components/apple-review-banner';
 import { AppModeGate } from '@/components/app-mode-gate';
 import { AskPsiLauncher } from '@/components/ask-psi-launcher';
@@ -30,7 +31,7 @@ function GarageStartupGate({ children }: PropsWithChildren) {
   // frame remains covered until the account's artwork selection is hydrated.
   return <View style={styles.shell}>
     <View style={[styles.shell, !ready && styles.startupHidden]} pointerEvents={ready ? 'auto' : 'none'} accessibilityElementsHidden={!ready}>{children}</View>
-    {!ready ? <View style={styles.startup}><ActivityIndicator color={colors.accent} /></View> : null}
+    {!ready ? <GarageStartupScreen /> : null}
   </View>;
 }
 
@@ -88,7 +89,6 @@ function ThemeAwareRootShell() {
 }
 
 const styles = StyleSheet.create({
-  startup: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   startupHidden: { opacity: 0 },
   shell: { flex: 1 },
   content: { flex: 1, minHeight: 0 },
