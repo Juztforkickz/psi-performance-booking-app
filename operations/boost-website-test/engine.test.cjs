@@ -218,6 +218,51 @@ test('unknown upgrade choices still collect the car and goal without forcing a h
   assert.equal(engine.answer('How do I upgrade Performance+?').intent, 'plus');
 });
 
+test('completed upgrade intake supports ongoing questions and extra details before consent', () => {
+  const state = engine.createSession();
+  send(state, 'upgrades', 'Cam upgrade', '2013 Holden VF LS3', 'Standard engine, manual, exhaust, 98 fuel', 'Weekend driving');
+  assert.equal(state.intake.pending, 'confirm');
+  assert.match(last(state).text, /keep chatting or add details/);
+  assert.deepEqual(last(state).prompts, ['Keep chatting', 'Add more details', 'Yes, send it']);
+  send(state, 'Keep chatting'); assert.equal(state.queued, false);
+  send(state, 'What upgrades do you offer?');
+  assert.match(last(state).text, /cam packages/);
+  assert.doesNotMatch(last(state).text, /I have the basics/);
+  send(state, 'What does a cam package include?');
+  assert.match(last(state).text, /valve springs/);
+  send(state, 'transmission tuning');
+  assert.match(last(state).text, /Transmission tuning costs extra/);
+  assert.equal(state.intake.work, 'upgrades');
+  send(state, 'How much is a cam package?');
+  assert.match(last(state).text, /3,450 \+ GST/);
+  assert.equal(state.intake.pending, 'confirm');
+  send(state, 'Okay'); assert.equal(state.queued, false);
+  assert.deepEqual(state.intake.extraDetails, []);
+  send(state, 'Add more details', 'It also has an OTR intake');
+  assert.match(last(state).text, /Added that to your request/);
+  assert.doesNotMatch(last(state).text, /Send these details/);
+  send(state, 'Also interested in improving handling');
+  assert.equal(state.intake.pending, 'confirm'); assert.equal(state.queued, false);
+  send(state, 'Will you ask before doing extra work?');
+  assert.match(last(state).text, /approval before/);
+  assert.equal(state.queued, false);
+  send(state, 'Yes, send it');
+  const summary = engine.handoffSummary(state);
+  for (const detail of ['Weekend driving','OTR intake','improving handling']) assert.ok(summary.details.includes(detail), detail);
+});
+
+test('completed service intake keeps its scope during price questions and still prioritises safety', () => {
+  const state = engine.createSession();
+  send(state, 'Service quote for a 2020 Toyota Corolla with 60000 km', 'Annual service');
+  send(state, 'How much is transmission tuning?');
+  assert.match(last(state).text, /Transmission tuning costs extra/);
+  assert.equal(state.intake.work, 'service'); assert.equal(state.intake.pending, 'confirm');
+  send(state, 'Keep chatting', 'Add more details', 'Keep chatting');
+  assert.deepEqual(state.intake.extraDetails, []);
+  send(state, 'My brakes failed');
+  assert.equal(state.intent, 'workshop-review'); assert.equal(state.queued, true);
+});
+
 test('common paraphrases resolve without speculative pricing or unnecessary handoffs', () => {
   const cases = [
     ['Where do I download it?', 'download'], ['I need the app', 'download'], ['I have a Samsung phone', 'android'],

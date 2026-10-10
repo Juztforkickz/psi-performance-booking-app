@@ -52,7 +52,7 @@
     if (/^(thanks|thank you|cheers)\b/.test(q)) return result('thanks', 'You’re welcome. Anything else I can help with?');
     return result('needs-review', 'I do not have a verified answer for that yet. Choose Message PSI to ask Matt, or tell me whether it is about a vehicle, the app or a booking.', { prompts: ['Message PSI', 'How do I book?', 'I need a quote'] });
   }
-  function newIntake() { return { active: false, work: null, vehicle: null, year: null, mileage: null, details: null, upgradeRequest: null, currentSetup: null, goal: null, pending: null }; }
+  function newIntake() { return { active: false, work: null, vehicle: null, year: null, mileage: null, details: null, upgradeRequest: null, currentSetup: null, goal: null, extraDetails: [], pending: null }; }
   const APP_TOPICS = ['download','iphone','android','installed','signup','signin','free','plus','plus-price','trial','garage'];
   function contextualAnswer(state, text) {
     const response = answer(text), q = normalise(text);
@@ -232,7 +232,7 @@
       })[intake.work] || 'What would you like done, and what is the current setup or concern?';
     }
     intake.pending = 'confirm';
-    return 'Thanks. PSI has enough context to review the request, but no price or date is confirmed. Send these details to Matt’s test inbox?';
+    return 'Thanks, I have the basics. What else would you like to know? You can keep chatting or add details. Choose Yes, send it when you want PSI to review this in Matt’s test inbox. No price or booking is confirmed.';
   }
   function append(state, role, text, now, meta = {}) {
     if (role === 'boost') meta = personalise(state, meta);
@@ -243,13 +243,24 @@
     state.messages = state.messages.slice(-MAX_MESSAGES);
   }
   function promptIntake(state, now, intro = '') {
-    append(state, 'boost', intro + intakePrompt(state.intake), now, { prompts: state.intake.pending === 'confirm' ? ['Yes, send it', 'Not yet'] : ['Not sure', 'Message PSI'] });
+    append(state, 'boost', intro + intakePrompt(state.intake), now, { prompts: state.intake.pending === 'confirm' ? ['Keep chatting', 'Add more details', 'Yes, send it'] : ['Not sure', 'Message PSI'] });
   }
   function continueIntake(state, text, now) {
     const intake = state.intake, q = normalise(text);
-    if (intake.pending === 'confirm' && /^(?:(?:yes|yep|yeah|sure|ok|okay)(?: (?:please|send it|send them|go ahead|thanks|thank you))*|send it|send them|please do|go ahead)$/.test(q)) return handoff(state, now);
+    if (intake.pending === 'confirm' && /^(?:yes(?: (?:please|send it|send them|go ahead|thanks|thank you))*|(?:yep|yeah|sure|ok|okay)(?: please)? (?:send it|send them|go ahead)|send it|send them|please do|go ahead)$/.test(q)) return handoff(state, now);
     if (intake.pending === 'confirm' && /^(no|no thanks|not yet)$/.test(q)) {
       intake.active = false; append(state, 'boost', 'No problem. Nothing sent to the test inbox. What else can I help with?', now); return { ok: true };
+    }
+    if (intake.pending === 'confirm' || intake.pending === 'additionalDetails') {
+      if (intake.pending === 'confirm' && /^(ok|okay|sure|yep|yeah)$/.test(q)) {
+        append(state, 'boost', 'What else would you like to know? We can keep chatting. Nothing has been sent to PSI.', now, { prompts: ['Keep chatting', 'Add more details', 'Yes, send it'] });
+        return { ok: true };
+      }
+      collectDetails(intake, text);
+      intake.extraDetails = [...(intake.extraDetails || []), text].slice(-8);
+      intake.pending = 'confirm';
+      append(state, 'boost', 'Added that to your request. What else would you like to ask? Nothing has been sent to PSI.', now, { prompts: ['Keep chatting', 'Add more details', 'Yes, send it'] });
+      return { ok: true };
     }
     if (/^(not sure|dont know|i dont know|skip|skip this)$/.test(q)) {
       if (intake.work === 'upgrades' && ['upgradeRequest','currentSetup','goal'].includes(intake.pending)) {
@@ -307,6 +318,16 @@
       state.guide = null; state.intake = newIntake(); state.topic = null; state.reviewQuestions = []; append(state, 'boost', 'We’ve stopped the guide. Nothing was submitted here. What else can I help with?', now + 1, { prompts: ['How do I book?', 'I need a quote'] }); return { ok: true };
     }
     if (q === 'resume quote' && state.intake.active) { promptIntake(state, now + 1); return { ok: true }; }
+    if (state.intake.active && ['confirm','additionalDetails'].includes(state.intake.pending) && ['keep chatting','ask another question','add more details'].includes(q)) {
+      if (q === 'add more details') {
+        state.intake.pending = 'additionalDetails';
+        append(state, 'boost', 'What would you like to add or correct about your car, setup or planned work? Type it below. Nothing has been sent to PSI.', now + 1, { prompts: ['Keep chatting'] });
+      } else {
+        state.intake.pending = 'confirm';
+        append(state, 'boost', 'Of course. Ask me about the work, inclusions, pricing or booking. Your vehicle details are kept here, and nothing has been sent to PSI.', now + 1, { prompts: ['Will you ask before doing extra work?', 'How do I book?', 'Add more details'] });
+      }
+      return { ok: true };
+    }
     if (q === 'resume guide' && state.guide) { showGuide(state, now + 1); return { ok: true }; }
     if (state.guide && /^(next|next step|done|continue|previous|previous step|back)$/.test(q)) {
       const backwards = /^(previous|previous step|back)$/.test(q);
@@ -314,11 +335,15 @@
     }
     if (response.guide) { state.guide = { topic: response.guide, step: 0 }; state.intake.active = false; state.intent = response.intent; showGuide(state, now + 1); return { ok: true }; }
     const directQuestion = message.includes('?') || /^(what|where|how|do|does|can|is|are|when|will|why)\b/.test(q) || /\bbut (?:what|where|how|do|does|can|is|are|when|will|why)\b/.test(q);
-    if (state.intake.active && state.intake.work === 'upgrades' && response.collect && directQuestion && knowledge.isPricing(q)) {
-      response = { ...response, collect: false, reply: [quoteIntro(response.work || workFrom(message), `${state.intake.vehicle || ''} ${message}`), ...(response.extraReplies || [])].join('\n\n') };
+    if (state.intake.active && state.intake.pending === 'confirm' && response.intent === 'upgrades') response = { ...response, collect: false };
+    if (state.intake.active && (state.intake.work === 'upgrades' || state.intake.pending === 'confirm') && response.collect && directQuestion && knowledge.isPricing(q)) {
+      response = { ...response, collect: false, reply: [quoteIntro(response.work || workFrom(message) || state.intake.work, `${state.intake.vehicle || ''} ${message}`), ...(response.extraReplies || [])].join('\n\n') };
     }
-    const helpStatement = ['welcome','thanks','download','iphone','android','installed','signup','signin','password','code-help','free','plus','plus-price','trial','restore','subscription-manage','records-guide','website-enquiry','location','hours','contact','bot','message-delivery','quote-choice'].includes(response.intent);
-    if (state.intake.active && (!response.collect || (state.intake.work === 'upgrades' && response.intent === 'upgrades')) && !directQuestion && !helpStatement) return continueIntake(state, message, now + 1);
+    const vehicleUseAnswer = state.intake.pending === 'goal' && /\b(weekends?|daily|track|street|driving|drive)\b/.test(q);
+    const helpStatement = ['welcome','thanks','download','iphone','android','installed','signup','signin','password','code-help','free','plus','plus-price','trial','restore','subscription-manage','records-guide','website-enquiry','location','hours','contact','bot','message-delivery','quote-choice'].includes(response.intent) && !(vehicleUseAnswer && response.intent === 'hours');
+    const requestDetail = /^(?:also|and|actually|it has|it is|its|i have|ive got|my car|my engine|i also|i want|i would like|id like)\b/.test(q);
+    const collectingAnswer = state.intake.pending !== 'confirm' || !knowledge.BY_ID[response.intent] || requestDetail;
+    if (state.intake.active && collectingAnswer && (!response.collect || (state.intake.work === 'upgrades' && response.intent === 'upgrades')) && !directQuestion && !helpStatement) return continueIntake(state, message, now + 1);
     if (response.collect) {
       const requestedWork = response.work || workFrom(message) || topicWork[state.topic];
       if (!state.intake.active) {
@@ -329,6 +354,7 @@
         state.intake.work = requestedWork;
         state.intake.details = null;
         state.intake.upgradeRequest = null; state.intake.currentSetup = null; state.intake.goal = null;
+        state.intake.extraDetails = [];
       }
       state.intake.active = true; collectDetails(state.intake, message);
       state.topic = null;
@@ -343,7 +369,7 @@
     state.intent = response.intent;
     if (knowledge.BY_ID[response.intent]) state.topic = response.intent;
     const meta = { ...response };
-    if (state.intake.active) meta.prompts = ['Resume quote', 'Message PSI'];
+    if (state.intake.active) meta.prompts = state.intake.pending === 'confirm' ? ['Keep chatting', 'Add more details', 'Yes, send it'] : ['Resume quote', 'Message PSI'];
     else if (state.guide) meta.prompts = ['Resume guide', 'Stop guide'];
     append(state, 'boost', response.reply, now + 1, meta); return { ok: true };
   }
@@ -374,7 +400,7 @@
     return {
       vehicle: intake.vehicle || 'Not supplied', year: intake.year || 'Not supplied',
       work: intake.work || 'PSI to review', mileage: intake.mileage || 'Not supplied',
-      details: intake.details || 'See visitor messages',
+      details: [intake.details || 'See visitor messages', ...(intake.extraDetails || []).map(detail => `Additional detail: ${detail}`)].join('\n'),
       needsReview: [...new Set(state.reviewQuestions)].filter(question => !/^(message psi|message matt|matt)$/i.test(question)).slice(-8),
       recentMessages: state.messages.filter(message => message.role === 'visitor').slice(-4).map(message => message.text),
       reason: state.handoffReason || 'Visitor requested PSI review',
