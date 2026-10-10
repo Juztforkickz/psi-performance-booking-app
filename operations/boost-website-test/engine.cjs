@@ -4,10 +4,11 @@
   const knowledge = typeof module === 'object' && module.exports ? require('./knowledge.cjs') : root.BoostKnowledge;
   const { normalise } = knowledge;
   const MAX_MESSAGE = 1500, MAX_MESSAGES = 60;
-  const GREETING = 'Hi, I’m Boost. I can help with PSI services, the app or a booking request. What do you need?';
-  const HELP = 'Try /service, /dyno, /ev, /app, /signup, /booking, /quote, /hard, /human or /reset. Messages and read times are simulated.';
+  const GREETING = 'Hi, I’m Boost. I can help with PSI services, upgrades, the app or a booking request. What do you need?';
+  const HELP = 'Try /service, /dyno, /ev, /upgrades, /app, /signup, /booking, /quote, /hard, /human or /reset. Messages and read times are simulated.';
   const SAMPLES = Object.freeze({
     '/service': 'What does Service & Report cover?', '/dyno': 'What details do I need for tuning?',
+    '/upgrades': 'What upgrades do you offer?',
     '/ev': 'Do you service electric and hybrid cars?', '/app': 'Where can I download the PSI app?',
     '/signup': 'Guide me through account setup', '/booking': 'Guide me through a booking',
     '/quote': 'I need a quote', '/hard': 'Can you guarantee the fix, price and power gain?',

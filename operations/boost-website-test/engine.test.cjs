@@ -168,6 +168,19 @@ test('all curated entry questions and their suggested follow ups are reachable',
   }
 });
 
+test('upgrades shortcut opens supported options and preserves scope and approval', () => {
+  for (const question of ['Upgrades', 'Performance upgrades', 'What upgrades can you help with?']) {
+    const response = engine.answer(question);
+    assert.equal(response.intent, 'upgrades'); assert.equal(response.handoff, false);
+    for (const scope of ['cam packages', 'intake and exhaust', 'turbo or supercharger', 'brakes', 'suspension', 'supported vehicle coding', 'approval']) assert.ok(response.reply.includes(scope), scope);
+    assert.doesNotMatch(response.reply, /\$\d/);
+  }
+  const state = engine.createSession(); send(state, '/upgrades');
+  assert.equal(state.topic, 'upgrades'); assert.equal(state.queued, false);
+  assert.equal(last(state).prompts.length, 3);
+  send(state, last(state).prompts[0]); assert.match(last(state).text, /3,450 \+ GST/);
+});
+
 test('common paraphrases resolve without speculative pricing or unnecessary handoffs', () => {
   const cases = [
     ['Where do I download it?', 'download'], ['I need the app', 'download'], ['I have a Samsung phone', 'android'],

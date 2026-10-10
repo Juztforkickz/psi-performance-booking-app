@@ -184,3 +184,11 @@ The invitation is offered once per conversation and skipped if the visitor alrea
 All 63 engine, conversation and isolation checks passed, including store link selection, repeat requests, explicit refusals, existing installations and the 20 conversation journeys. The predecessor checkpoint is `5b0b869`. Only the private Boost kit and this guide change; no Shopify, app, OTA or real delivery is enabled.
 
 All four local artifacts rebuilt and the server refreshed. Browser verification confirmed the first online booking enquiry recommends the app and offers both store links alongside the website enquiry. Screenshot: `artifacts/boost-website-test/boost-app-encouragement.png`.
+
+## Selectable Upgrades option, 10 October 2026
+
+Matt requested Upgrades alongside the existing website chat choices. Added the same shortcut to the standalone test page and the /upgrades command. The concise introductory answer covers already supported cam packages, intake and exhaust work, turbo or supercharger projects, brakes, suspension and supported coding. It requests vehicle, setup and goals, with suitability, quote and prior approval safeguards. Follow up choices reuse existing cam pricing, exhaust and chassis replies; no price or service is invented.
+
+All 64 engine, conversation and isolation checks passed. All four local artifacts rebuilt and the server refreshed. Browser verification confirmed the four choices fit without overlap and clicking Upgrades opens the intended answer and follow ups. The conversation was reset ready for Matt’s testing. Screenshot: `artifacts/boost-website-test/boost-upgrades-option.png`.
+
+This scoped change begins from `72a37a5`, preserving unrelated mobile work currently in the shared directory. Only the private Boost source, test and guide changes belong to this checkpoint. No Shopify chat, public app Boost, OTA or external delivery is enabled. Revert only this scoped change if needed.
