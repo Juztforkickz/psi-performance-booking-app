@@ -28,6 +28,19 @@ car and interior references. Its final edit lowered the plate below the bumper
 crease while preserving the car, lighting and framing. Full source and private
 release evidence remain in ignored local work files.
 
-Apple and Android publication identifiers are recorded after release checks.
+Android publication was verified against its public delivery feed and delivered
+bundle. Update `01a12334-5f2a-767a-9d47-6e9871313a37` is available on the existing
+`android-play-internal` channel and `1.0.0-android-play-internal-1` runtime.
+The private image bytes are excluded from its asset manifest.
+
+Apple release workflow `01a12331-7ee5-71f6-ae32-d27944c5b306` passed validation
+and reached its approval step. At 00:38 UTC on 10 October, the public Apple feed
+still served the previous update, so Apple publication is not yet verified.
+Saved browser permissions currently block the release approval and final
+account preference activation. Readback still shows the public Porsche choice.
+The generic policy is installed, but its migration history entry remains pending
+with that activation transaction. Do not report the personal selection as live
+until account readback and the Apple delivery feed confirm completion.
+
 Existing channels, runtimes, subscriptions, bookings and owner benefits remain.
 Reviewer, beta and Boost channels are excluded.
