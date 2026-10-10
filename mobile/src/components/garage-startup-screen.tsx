@@ -1,22 +1,22 @@
 import { Image, StyleSheet, View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /** Bundled public artwork can appear before account data or private images load. */
 export function GarageStartupScreen() {
-  return <View style={styles.screen} accessibilityLabel="Opening PSI">
-    <Image source={require('../../assets/images/psi-splash-logo.png')} style={styles.logo} resizeMode="contain" accessible={false} />
+  const insets = useSafeAreaInsets();
+  return <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right }]} accessibilityLabel="Opening PSI">
     <Image
-      source={require('../../assets/images/psi-gtsr-porsche-mobile-clean.jpg')}
-      style={styles.cars}
+      source={require('../../assets/images/psi-startup-wallpaper.png')}
+      style={styles.artwork}
       resizeMode="contain"
-      accessibilityLabel="PSI GT3 RS and GTSR"
+      accessibilityLabel="PSI screensaver artwork with the Manthey GT3 RS, GTSR and BYD"
       onLoadEnd={() => { void SplashScreen.hideAsync().catch(() => undefined); }}
     />
   </View>;
 }
 
 const styles = StyleSheet.create({
-  screen: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: '#050505', alignItems: 'center', justifyContent: 'center', gap: 24 },
-  logo: { width: '66%', maxWidth: 300, height: 100 },
-  cars: { width: '100%', aspectRatio: 1, maxWidth: 600, maxHeight: '65%' },
+  screen: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: '#050505' },
+  artwork: { width: '100%', height: '100%' },
 });
