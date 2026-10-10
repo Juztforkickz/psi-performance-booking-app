@@ -443,7 +443,12 @@ export async function sendTestPushNotifications() {
   const { data, error } = await getSupabaseClient().functions.invoke('process-push-notifications', {
     body: { action: 'send_test_alerts' },
   });
-  if (error) throw error;
+  if (error) {
+    const response = (error as { context?: Response }).context;
+    const detail = response && typeof response.json === 'function' ? await response.json().catch(() => null) as { error?: string } | null : null;
+    if (detail?.error) throw new Error(detail.error);
+    throw error;
+  }
   return data as { processed: number; sent: number };
 }
 

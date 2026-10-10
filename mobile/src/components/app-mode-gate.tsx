@@ -1,5 +1,6 @@
 import { type PropsWithChildren, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { PrimaryButton } from '@/components/ui';
 import { initializeAppMode, restartInAppMode } from '@/lib/app-mode-storage';
 import { DEMO_MODE_AVAILABLE } from '@/lib/review-environment';
@@ -12,6 +13,7 @@ export function AppModeGate({ children }: PropsWithChildren) {
     void initializeAppMode().then(() => { if (active) setReady(true); }, () => { if (active) setError(true); });
     return () => { active = false; };
   }, []);
+  useEffect(() => { if (error) void SplashScreen.hideAsync().catch(() => undefined); }, [error]);
   if (ready) return children;
   return <View style={styles.screen}>
     {error ? <>

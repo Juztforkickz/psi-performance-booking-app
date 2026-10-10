@@ -1,0 +1,13 @@
+# Mobile usability update, 10 October 2026
+
+The owner verified that both test alerts now produce the banner, sound and badge. Both corresponding push jobs succeeded on their first attempt. The earlier screenshot was taken before the notification worker repair. The test button now distinguishes a one minute cooldown, protected session verification and connectivity failure, and reports partial delivery accurately.
+
+Startup uses a device cache for the selected home vehicle and illustration. Private artwork is fetched through authenticated Storage access and cached as image bytes in the app sandbox, outside public source and update bundles. The provider is shared across screens. It checks the signed in identity, excludes private bytes for other accounts, clears the old account cache on sign out or switching accounts, and preserves cached artwork during network failures. The home screen waits for startup selection hydration before rendering, avoiding the default vehicle appearing first. The first run of this update must populate the cache; later launches can use it while network requests continue.
+
+The owner's home profile button supports two taps within 320 milliseconds to open the existing protected staff portal. Two taps on the portal profile return to the customer home screen without changing the signed in account. Single taps retain profile and portal settings actions. Existing staff authorization, authenticator checks, busy action protection and unsaved change confirmation remain in place.
+
+Normal prose fields enable autocorrect and spell checking. Email, numeric, password and character code fields retain suitable defaults and explicit field overrides are honored. Booking notes request sentence capitalization and correction, have an iOS Done control and a bounded scrolling text area. iOS uses the native scroll view keyboard inset rather than applying a second keyboard avoidance offset. Android retains height avoidance. Focused booking notes are scrolled into view when the keyboard opens or the user refocuses the field.
+
+Validation includes mobile typecheck and lint, notification regression tests, owner cache isolation and purge, cold start with unfinished network requests, base64 encoding, double tap and single tap behavior, and booking typing controls. Actual device confirmation of the new mobile behavior follows installation of the update. No account protection, vehicle artwork source or private messaging activation was changed.
+
+Release status: source prepared for the existing Apple App Store and Android internal update channels.

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, BackHandler, Image, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
@@ -19,6 +19,7 @@ import { StaffHistoryImports } from '@/components/staff-history-imports';
 import { colors, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
+import { useProfileDoubleTap } from '@/hooks/use-profile-double-tap';
 import { formatAustralianDate, formatAustralianDateTime } from '@/lib/australian-date';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { accountDeletionErrorMessage } from '@/lib/deletion-errors';
@@ -363,6 +364,21 @@ export function StaffWorkspace({
   const [actionNotice, setActionNotice] = useState('');
   const [notificationSaving, setNotificationSaving] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const focusedNote = useRef<number | null>(null);
+  const noteFrame = useRef<number | null>(null);
+  const revealNote = useCallback(() => {
+    if (Platform.OS === 'web') return;
+    if (noteFrame.current !== null) cancelAnimationFrame(noteFrame.current);
+    noteFrame.current = requestAnimationFrame(() => {
+      noteFrame.current = null;
+      if (focusedNote.current !== null) scrollRef.current?.scrollResponderScrollNativeHandleToKeyboard(focusedNote.current, 24, true);
+    });
+  }, []);
+  const focusNote = useCallback((target: number | null) => { focusedNote.current = target; if (target !== null && Keyboard.isVisible()) revealNote(); }, [revealNote]);
+  useEffect(() => {
+    const shown = Keyboard.addListener('keyboardDidShow', revealNote);
+    return () => { shown.remove(); if (noteFrame.current !== null) cancelAnimationFrame(noteFrame.current); };
+  }, [revealNote]);
   const [recordDirty, setRecordDirty] = useState(false);
   const [recordBusy, setRecordBusy] = useState(false);
   const [bookingDirty, setBookingDirty] = useState(false);
@@ -508,6 +524,7 @@ export function StaffWorkspace({
       afterNavigate?.();
     });
   }, [bookingFilter, confirmLeaving, params.bookingId, router, section]);
+  const pressPortalProfile = useProfileDoubleTap(() => navigate('settings'), () => confirmLeaving(() => router.replace('/')), role === 'owner' && !previewMode);
   const openVerifiedCustomerInvitation = useCallback((email: string, workshopContactId = '') => {
     navigate('invitations', {}, () => {
       setInvitationEmail(email.trim().toLowerCase());
@@ -631,13 +648,13 @@ export function StaffWorkspace({
             <Text style={styles.workspaceStatus}>{previewMode ? 'Preview · Sample data' : `${REVIEW_ENVIRONMENT.enabled ? 'Demo' : 'Live'} · ${role === 'owner' ? 'Owner' : 'Staff'}`}</Text>
           </View>
           {previewMode ? <Pressable accessibilityRole="button" accessibilityLabel="Close portal preview" onPress={() => confirmLeaving(() => router.replace('/'))} style={styles.headerButton}><Ionicons name="close-outline" color={colors.accent} size={23} /></Pressable> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel="Portal settings" onPress={() => navigate('settings')} style={styles.headerButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Portal settings" accessibilityHint={role === 'owner' && !previewMode ? 'Tap for portal settings. Tap twice quickly to return to your customer account.' : undefined} onPress={pressPortalProfile} style={styles.headerButton}>
             {portalProfilePhotoUri ? <Image source={{ uri: portalProfilePhotoUri }} style={styles.headerAvatar} /> : <Ionicons color={colors.accent} name="settings-outline" size={23} />}
           </Pressable>
         </View>
       </View>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0} style={styles.flex}>
-      <ScrollView ref={scrollRef} automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive" contentContainerStyle={[styles.workspaceContent, { paddingHorizontal: horizontalPadding, paddingBottom: spacing.xl * 4 }]} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView enabled={Platform.OS === 'android'} behavior="height" style={styles.flex}>
+      <ScrollView ref={scrollRef} automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'} keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} contentContainerStyle={[styles.workspaceContent, { paddingHorizontal: horizontalPadding, paddingBottom: spacing.xl * 4 }]} keyboardShouldPersistTaps="handled">
         <View style={styles.pageHeading}>
           {section !== 'dashboard' ? <Pressable accessibilityRole="button" accessibilityLabel="Back in workshop portal" onPress={goBack} style={styles.pageBack}><Ionicons name="chevron-back" color={colors.accent} size={22} /></Pressable> : null}
           <Text accessibilityRole="header" style={styles.pageTitle}>{selectedBooking ? 'Booking details' : selectedLookupCustomer ? 'Customer details' : connectionTool ? { xero: 'Xero invoices', calendar: 'Email & Calendar', payments: 'Payments', uploads: 'PC uploads' }[connectionTool] : STAFF_SECTIONS[section].title}</Text>
@@ -736,7 +753,7 @@ export function StaffWorkspace({
               </View> : null}
               {!selectedBookingArchived ? <PrimaryButton label="Open workshop actions" onPress={() => setBookingPanel('actions')} /> : null}
               </> : <>
-              <StaffBookingReview previewMode={previewMode} booking={booking} onRefresh={onRefresh} onDirtyChange={setBookingDirty} onBusyChange={setBookingBusy} />
+              <StaffBookingReview previewMode={previewMode} booking={booking} onRefresh={onRefresh} onDirtyChange={setBookingDirty} onBusyChange={setBookingBusy} onNoteFocus={focusNote} />
               {!previewMode ? <StaffWorkshopJob key={booking.id} booking={booking} vehicle={vehicle} /> : null}
               {previewMode ? booking.state === 'confirmed' ? <PreviewNotice title="Complete service">Record completed work and publish it to this vehicle. Completion is disabled in the design preview.</PreviewNotice> : ['cancelled', 'completed'].includes(booking.state) ? <PreviewNotice title="Archived booking">This visit is kept in the booking history.</PreviewNotice> : null : <StaffServiceCompletion
                 booking={booking}

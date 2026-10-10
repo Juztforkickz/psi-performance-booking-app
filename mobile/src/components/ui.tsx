@@ -137,11 +137,14 @@ export function FormInput({ error, style, accessibilityLabel, inputAccessoryView
   const bookingTone = tone === 'booking';
   const staffTone = tone === 'staff';
   const [focused, setFocused] = useState(false);
+  const proseInput = !props.secureTextEntry && props.autoCapitalize !== 'characters'
+    && (!props.keyboardType || props.keyboardType === 'default');
 
   return (
     <TextInput
       accessibilityLabel={accessibilityLabel ?? fieldLabel}
-      autoCorrect={false}
+      autoCorrect={proseInput}
+      spellCheck={proseInput}
       inputAccessoryViewID={inputAccessoryViewID ?? (bookingTone ? BOOKING_INPUT_ACCESSORY_ID : undefined)}
       maxFontSizeMultiplier={2}
       placeholderTextColor={bookingTone ? bookingColors.placeholder : staffTone ? colors.muted : colors.mutedDark}

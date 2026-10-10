@@ -379,10 +379,15 @@ export default function AlertsScreen() {
                 setNotificationFeedback('');
                 setNotificationSaving(true);
                 void sendTestPushNotifications()
-                  .then((result) => setNotificationFeedback(result.sent > 0
-                    ? 'Test alerts sent. Lock your phone or leave PSI open to check the banner and sound.'
-                    : 'No test alert was sent. Check that this phone is registered for device notifications.'))
-                  .catch(() => setNotificationFeedback('The test alert could not be sent yet. Wait one minute, then try again.'))
+                  .then((result) => setNotificationFeedback(result.sent === 2
+                    ? 'Both test alerts sent. Check the banners, sound and badge on this phone.'
+                    : result.sent === 1 ? 'One test alert sent. Check your workshop and booking alert switches for the other.'
+                    : 'No test alerts were delivered. Check your alert switches and this phone’s device registration.'))
+                  .catch((error: unknown) => setNotificationFeedback(error instanceof Error && error.message === 'notification_test_rate_limited'
+                    ? 'Please wait one minute before sending another test.'
+                    : error instanceof Error && error.message === 'aal2_staff_access_required'
+                      ? 'Open the PSI portal and verify your authenticator, then try the test again.'
+                      : 'The test alerts could not be delivered. Check your internet connection and try again.'))
                   .finally(() => setNotificationSaving(false));
               }} style={({ pressed }) => [styles.openBookings, pressed && !notificationSaving && styles.pressed]}>
                 <Ionicons color={colors.white} name="notifications-outline" size={18} />

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { InputAccessoryView, Keyboard, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { MonthCalendarPicker } from '@/components/month-calendar-picker';
@@ -14,11 +14,12 @@ import { useStaffDiscardConfirmation } from '@/hooks/use-staff-discard-confirmat
 
 type ReviewAction = StaffBookingReviewInput['action'];
 
-export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyChange, previewMode = false }: {
+export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyChange, onNoteFocus, previewMode = false }: {
   booking: BookingRequestRow;
   onRefresh: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   onBusyChange?: (busy: boolean) => void;
+  onNoteFocus?: (target: number | null) => void;
   previewMode?: boolean;
 }) {
   const { confirmDiscard, discardDialog } = useStaffDiscardConfirmation();
@@ -51,6 +52,7 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
 
   const close = () => {
     if (busy) return;
+    Keyboard.dismiss();
     const discard = () => {
       if (bankOpen) { setBankReference(''); setBankChecked(false); setBankOpen(false); }
       else {
@@ -164,7 +166,7 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
             </Field>
           ) : null}
           <Field hint={action === 'cancel' ? 'Required' : 'Optional · visible to the customer'} label={action === 'cancel' ? 'Cancellation reason' : 'Customer note'}>
-            <FormInput editable={!busy} multiline numberOfLines={3} onChangeText={(value) => { setStaffNote(value); setConfirmed(false); }} placeholder={action === 'cancel' ? 'Reason for cancellation' : 'Date or arrival details to discuss'} style={styles.notes} textAlignVertical="top" value={staffNote} />
+            <FormInput autoCorrect spellCheck autoCapitalize="sentences" editable={!busy} inputAccessoryViewID="psi-staff-note-keyboard" multiline numberOfLines={3} onFocus={event => onNoteFocus?.(event.nativeEvent.target)} onBlur={() => onNoteFocus?.(null)} onChangeText={(value) => { setStaffNote(value); setConfirmed(false); }} placeholder={action === 'cancel' ? 'Reason for cancellation' : 'Date or arrival details to discuss'} style={styles.notes} textAlignVertical="top" value={staffNote} />
           </Field>
           <Pressable disabled={busy} accessibilityRole="checkbox" accessibilityState={{ checked: confirmed, disabled: busy }} onPress={() => setConfirmed((value) => !value)} style={styles.confirmRow}>
             <View style={[styles.checkbox, confirmed && styles.checkboxChecked]}>{confirmed ? <Ionicons color={colors.ink} name="checkmark" size={16} /> : null}</View>
@@ -178,6 +180,11 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
           <PrimaryButton disabled={previewMode || !confirmed || (action === 'cancel' && !staffNote.trim())} label={previewMode ? `Preview only · ${actionLabel(action)}` : actionLabel(action)} loading={busy} onPress={() => void submit()} />
         </>
       )}
+      {Platform.OS === 'ios' ? <InputAccessoryView nativeID="psi-staff-note-keyboard">
+        <View style={styles.keyboardAccessory}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Hide keyboard" onPress={() => Keyboard.dismiss()} style={styles.keyboardDone}><Text style={styles.keyboardDoneText}>Done</Text></Pressable>
+        </View>
+      </InputAccessoryView> : null}
     </View>
   );
 }
@@ -202,6 +209,9 @@ function todayInSydney() {
 }
 
 const styles = StyleSheet.create({
+  keyboardAccessory: { backgroundColor: colors.inkSoft, alignItems: 'flex-end', borderTopWidth: 1, borderTopColor: colors.line, paddingHorizontal: 16 },
+  keyboardDone: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
+  keyboardDoneText: { color: colors.accent, fontWeight: '700', fontSize: 16 },
   workspace: { borderTopWidth: 1, borderTopColor: colors.line, gap: spacing.md, marginTop: spacing.md, paddingTop: spacing.md },
   heading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
   title: { flex: 1, color: colors.white, fontSize: 16, fontWeight: '700' },
@@ -212,7 +222,7 @@ const styles = StyleSheet.create({
   bankVerification: { gap: spacing.md },
   bankCopy: { color: colors.muted, fontSize: 13, lineHeight: 19 },
   dateSelection: { color: colors.accent, fontSize: 15, fontWeight: '800', marginBottom: spacing.sm },
-  notes: { minHeight: 88 },
+  notes: { minHeight: 88, maxHeight: 180 },
   confirmRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm },
   checkbox: { alignItems: 'center', borderColor: colors.accent, borderWidth: 1, borderRadius: 4, height: 24, justifyContent: 'center', width: 24 },
   checkboxChecked: { backgroundColor: colors.accent },

@@ -7,6 +7,7 @@ import { colors } from '@/constants/brand';
 import { usePrivateGarageArtwork } from '@/hooks/use-private-garage-artwork';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
+import { useCustomerAccount } from '@/lib/customer-account-context';
 import { GARAGE_ART, garageArtById } from '@/lib/garage-art-assets';
 import { canUseGarageArtwork, findGarageArtwork, GARAGE_ART_MAKES, PERSONAL_GARAGE_ART_ID, type GarageArtVehicle } from '@/lib/garage-art-catalog';
 import { shouldPersistGarageArtwork } from '@/lib/garage-artwork-selection';
@@ -20,6 +21,7 @@ const subscribe = (listener: () => void) => { listeners.add(listener); return ()
 export function useGarageArtwork(vehicleId: string, prefetchedId?: string) {
   const revision = useSyncExternalStore(subscribe, () => artworkRevision, () => 0);
   const auth = useCustomerAuth();
+  const { refreshAccount } = useCustomerAccount();
   const privateArtwork = usePrivateGarageArtwork();
   const key = `${auth.user?.id ?? 'demo'}:${vehicleId}`;
   const persistToAccount = shouldPersistGarageArtwork(CUSTOMER_AUTH.enabled, auth.status);
@@ -60,6 +62,7 @@ export function useGarageArtwork(vehicleId: string, prefetchedId?: string) {
     artworkChoices[key] = id;
     artworkRevision += 1;
     listeners.forEach(listener => listener());
+    if (persistToAccount) refreshAccount();
     return true;
   };
   const art = garageArtById(id, Boolean(privateArtwork));

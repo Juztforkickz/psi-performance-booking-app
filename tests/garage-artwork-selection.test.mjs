@@ -82,53 +82,62 @@ test('restricted saved IDs resolve to the public fallback without private image 
   assert.doesNotMatch(source, /require\([^)]*personal-vehicle-artwork/);
 });
 
-test('private artwork requests require owner auth and disappear immediately on account switching', async () => {
+test('private artwork provider scopes cached images to owner auth and purges on account switching', async () => {
+  const cacheHelpers = await transpiledExports('../mobile/src/lib/garage-startup-cache.ts');
   const source = await readFile(new URL('../mobile/src/hooks/use-private-garage-artwork.ts', import.meta.url), 'utf8');
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
-  const exports = {};
-  let auth = { status: 'signed_out', user: null };
-  let state = null;
-  let effects = [];
-  let calls = 0;
-  let removed = false;
+  const exports = {}, store = new Map();
+  let auth = { status: 'signed_out', user: null }, account = null, state, effects = [], calls = 0, context, offline = false;
+  const currentUser = { current: undefined };
   vm.runInNewContext(compiled, {
-    exports, Date, setInterval: () => 1, clearInterval: () => {}, setTimeout: () => 2, clearTimeout: () => {},
+    exports, Date, Uint8Array, setInterval: () => 1, clearInterval() {},
+    fetch: async () => { if (offline) return new Promise(() => {}); return { ok: true, arrayBuffer: async () => Uint8Array.from([255, 216, 255, 1]).buffer }; },
     require: id => {
-      if (id === 'react') return { useState: () => [state, value => { state = typeof value === 'function' ? value(state) : value; }], useEffect: callback => { effects.push(callback); } };
-      if (id === 'react-native') return { AppState: { addEventListener: () => ({ remove: () => { removed = true; } }) } };
+      if (id === 'react') return {
+        createContext: value => { context = { value, Provider: {} }; return context; },
+        createElement: (_, props) => { context.value = props.value; }, useContext: value => value.value,
+        useRef: () => currentUser,
+        useState: initial => { state ??= initial; return [state, next => { state = typeof next === 'function' ? next(state) : next; }]; },
+        useEffect: callback => { effects.push(callback); },
+      };
+      if (id === '@react-native-async-storage/async-storage') return { getItem: async key => store.get(key) ?? null, setItem: async (key, value) => { store.set(key, value); }, removeItem: async key => { store.delete(key); } };
+      if (id === 'react-native') return { AppState: { addEventListener: () => ({ remove() {} }) } };
       if (id === '@/lib/customer-auth-context') return { useCustomerAuth: () => auth };
+      if (id === '@/lib/customer-account-context') return { useCustomerAccount: () => ({ account, status: account ? 'ready' : 'loading' }) };
+      if (id === '@/lib/garage-startup-cache') return cacheHelpers;
       if (id === '@/lib/supabase') return { getSupabaseClient: () => ({ storage: { from: bucket => {
         assert.equal(bucket, 'owner-garage-artwork');
-        return { createSignedUrls: async (paths, expires) => {
-          calls++;
-          assert.equal(expires, 600);
-          assert.ok(paths.every(path => path.startsWith(`${auth.user.id}/`)));
-          if (auth.user.id !== 'private-owner-test') return { data: null, error: new Error('denied') };
-          return { data: [{ signedUrl: 'https://private.test/full' }, { signedUrl: 'https://private.test/thumb' }], error: null };
+        return { createSignedUrls: async paths => {
+          calls++; assert.ok(paths.every(path => path.startsWith('owner/')));
+          return { data: [{ signedUrl: 'https://private.invalid/full' }, { signedUrl: 'https://private.invalid/thumb' }], error: null };
         } };
       } } }) };
       throw new Error(`Unexpected import ${id}`);
     },
   });
-  assert.equal(exports.usePrivateGarageArtwork(), null);
-  effects[0]();
-  assert.equal(calls, 0);
-  auth = { status: 'signed_in', user: { id: 'private-owner-test' } };
-  effects = [];
-  exports.usePrivateGarageArtwork();
-  const cleanup = effects[0]();
+  const render = () => { effects = []; exports.PrivateGarageArtworkProvider({}); };
+  render(); assert.equal(exports.usePrivateGarageArtwork(), null);
+  auth = { status: 'signed_in', user: { id: 'owner', email: 'matt@psiperformance.com.au' } };
+  account = { user: auth.user, vehicles: [{ id: 'car', is_primary: true }], vehicleDisplayPreferences: [{ vehicle_id: 'car', illustration_id: 'personal-vehicle-artwork' }] };
+  render(); effects[0](); const cleanup = effects[1]();
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(exports.usePrivateGarageArtwork().preview.uri, 'https://private.test/thumb');
+  render(); effects[2](); await new Promise(resolve => setImmediate(resolve));
   assert.equal(calls, 1);
-  auth = { status: 'signed_in', user: { id: 'another-account' } };
-  effects = [];
-  assert.equal(exports.usePrivateGarageArtwork(), null);
-  effects[0]();
+  assert.match(exports.usePrivateGarageArtwork().preview.uri, /^data:image\/jpeg;base64,/);
+  assert.equal(exports.useGarageStartupArtwork().ready, true);
+  assert.ok(store.has(cacheHelpers.garageStartupKey('owner')));
+  // A cold start can display the saved selection before either account or
+  // image network requests complete, without a public Porsche substitution.
+  offline = true; state = undefined; account = null;
+  render(); effects[0](); const coldCleanup = effects[1]();
+  await new Promise(resolve => setImmediate(resolve)); render();
+  assert.equal(exports.useGarageStartupArtwork().ready, true);
+  assert.equal(exports.useGarageStartupArtwork().display.illustrationId, 'personal-vehicle-artwork');
+  assert.match(exports.usePrivateGarageArtwork().preview.uri, /^data:image\/jpeg;base64,/);
+  auth = { status: 'signed_in', user: { id: 'another-account', email: 'customer@example.invalid' } }; account = null;
+  render(); assert.equal(exports.usePrivateGarageArtwork(), null); cleanup(); coldCleanup();
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(calls, 2);
-  assert.equal(exports.usePrivateGarageArtwork(), null);
-  auth = { status: 'signed_out', user: null };
-  assert.equal(exports.usePrivateGarageArtwork(), null);
-  cleanup();
-  assert.equal(removed, true);
+  assert.equal(store.has(cacheHelpers.garageStartupKey('owner')), false);
+  effects[0](); effects[1](); await new Promise(resolve => setImmediate(resolve)); render();
+  assert.equal(calls, 2); assert.equal(exports.usePrivateGarageArtwork(), null);
 });

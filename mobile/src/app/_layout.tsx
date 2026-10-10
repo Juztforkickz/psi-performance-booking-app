@@ -1,7 +1,8 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect, type PropsWithChildren } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -18,6 +19,15 @@ import { NotificationProvider } from '@/lib/notifications';
 import { StaffNavigationProvider } from '@/lib/staff-navigation-context';
 import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme-preference';
 import { startSupabaseAuthLifecycle } from '@/lib/supabase';
+import { PrivateGarageArtworkProvider, useGarageStartupArtwork } from '@/hooks/use-private-garage-artwork';
+
+void SplashScreen.preventAutoHideAsync().catch(() => undefined);
+
+function GarageStartupGate({ children }: PropsWithChildren) {
+  const { ready } = useGarageStartupArtwork();
+  useEffect(() => { if (ready) void SplashScreen.hideAsync().catch(() => undefined); }, [ready]);
+  return ready ? children : <View style={styles.startup}><ActivityIndicator color={colors.accent} /></View>;
+}
 
 function ThemeAwareRootShell() {
   const pathname = usePathname();
@@ -41,12 +51,13 @@ function ThemeAwareRootShell() {
     <ThemeProvider value={shellTheme}>
       <CustomerAuthProvider>
         <CustomerAccountProvider>
+          <PrivateGarageArtworkProvider>
           <NotificationProvider>
             <CustomerPreviewProvider>
               <StaffNavigationProvider>
                 <UiToneProvider tone={pathname === '/staff' || pathname === '/staff-security' || pathname === '/staff-messages' || pathname === '/portal-preview' ? 'staff' : 'brand'}>
                 <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
-                <View style={[styles.shell, { backgroundColor: theme.ink }]}>
+                <GarageStartupGate><View style={[styles.shell, { backgroundColor: theme.ink }]}>
                   <AppleReviewBanner />
                   <View style={styles.content}>
                     <Stack
@@ -59,11 +70,12 @@ function ThemeAwareRootShell() {
                   </View>
                   <AskPsiLauncher />
                   <PersistentBottomNavigation />
-                </View>
+                </View></GarageStartupGate>
                 </UiToneProvider>
               </StaffNavigationProvider>
             </CustomerPreviewProvider>
           </NotificationProvider>
+          </PrivateGarageArtworkProvider>
         </CustomerAccountProvider>
       </CustomerAuthProvider>
     </ThemeProvider>
@@ -71,6 +83,7 @@ function ThemeAwareRootShell() {
 }
 
 const styles = StyleSheet.create({
+  startup: { flex: 1, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   shell: { flex: 1 },
   content: { flex: 1, minHeight: 0 },
 });

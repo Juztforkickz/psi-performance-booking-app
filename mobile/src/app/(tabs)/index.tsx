@@ -22,6 +22,8 @@ import { useGarageArtwork } from '@/components/garage-artwork-picker';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
+import { useProfileDoubleTap } from '@/hooks/use-profile-double-tap';
+import { useGarageStartupArtwork } from '@/hooks/use-private-garage-artwork';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatIsoDate } from '@/lib/australian-date';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
@@ -76,12 +78,13 @@ export default function CustomerHomeScreen() {
   const auth = useCustomerAuth();
   const { prepareBookingVehicle, prepareBookingVehicleRecord, selectedVehicleId } = useCustomerPreview();
   const { account: garageAccount } = useCustomerAccount();
+  const { display: startupGarageDisplay } = useGarageStartupArtwork();
   const selectedAccountVehicle = garageAccount?.vehicles.find((vehicle) => vehicle.is_primary)
     ?? garageAccount?.vehicles[0];
-  const homeVehicleId = selectedAccountVehicle?.id ?? selectedVehicleId;
+  const homeVehicleId = selectedAccountVehicle?.id ?? startupGarageDisplay?.vehicleId ?? selectedVehicleId;
   const homeArtworkId = garageAccount
     ? garageAccount.vehicleDisplayPreferences.find((preference) => preference.vehicle_id === homeVehicleId)?.illustration_id ?? 'porsche'
-    : undefined;
+    : startupGarageDisplay?.illustrationId;
   const garageArtwork = useGarageArtwork(homeVehicleId, homeArtworkId);
   const { compact, horizontalPadding, largeText, tablet, width } = useResponsiveLayout();
   const { activeTheme, theme } = useThemePreference();
@@ -95,6 +98,8 @@ export default function CustomerHomeScreen() {
   const [weatherError, setWeatherError] = useState(false);
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const profilePhotoUri = useCustomerProfilePhotoUri();
+  const ownerProfileShortcut = auth.status === 'signed_in' && auth.user?.email?.toLowerCase() === 'matt@psiperformance.com.au';
+  const pressProfile = useProfileDoubleTap(() => router.push('/account'), () => router.push('/staff'), ownerProfileShortcut);
   const { resetShortcuts, shortcutIds, toggleShortcut } = useHomeShortcutPreferences();
   const threeColumns = tablet && width >= 780 && !largeText;
   const privateAccountMode = SUPABASE_CONNECTION.authEnabled;
@@ -312,10 +317,10 @@ export default function CustomerHomeScreen() {
             )}
           </View>
           <Pressable
-            accessibilityHint="Opens passwordless customer account access"
+            accessibilityHint={ownerProfileShortcut ? 'Tap to open your profile. Tap twice quickly to enter the PSI portal.' : 'Opens passwordless customer account access'}
             accessibilityLabel="Customer account"
             accessibilityRole="button"
-            onPress={() => router.push('/account')}
+            onPress={pressProfile}
             style={({ pressed }) => [
               styles.accountButton,
               pressed && styles.pressed,
