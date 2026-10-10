@@ -263,6 +263,61 @@ test('completed service intake keeps its scope during price questions and still 
   assert.equal(state.intent, 'workshop-review'); assert.equal(state.queued, true);
 });
 
+test('completed enquiries encourage the app once with the relevant store and preserve chat controls', () => {
+  const state = engine.createSession();
+  send(state, 'I use Android', 'upgrades', 'Cam upgrade', '2013 Holden VF LS3', 'Manual, exhaust, 98 fuel', 'Weekend driving');
+  assert.match(last(state).text, /free PSI app keeps your vehicles and booking requests together/);
+  assert.match(last(state).text, /Download it for Android/);
+  assert.deepEqual(last(state).links, ['android']);
+  assert.deepEqual(last(state).prompts, ['Keep chatting', 'Add more details', 'Yes, send it']);
+  assert.equal(state.queued, false);
+  send(state, 'Resume quote'); assert.doesNotMatch(last(state).text, /Download it/);
+  send(state, 'Website enquiry'); assert.doesNotMatch(last(state).text, /Download it/);
+  assert.deepEqual(last(state).links, ['enquiry']);
+  for (const preference of ['I already have the app', 'I do not want the app']) {
+    const other = engine.createSession(); send(other, preference, 'Service quote for a 2020 Toyota Corolla with 60000 km', 'Annual service');
+    assert.doesNotMatch(last(other).text, /Download it/); assert.deepEqual(last(other).links, []);
+  }
+});
+
+test('self service suggestions follow the actual work without assuming an LS build or quoting totals', () => {
+  const cam = engine.createSession();
+  send(cam, 'upgrades', 'Cam upgrade', '2013 Holden VF LS3', 'Manual, exhaust, 98 fuel', 'Weekend driving', 'Keep chatting');
+  assert.deepEqual(last(cam).prompts, [knowledge.BY_ID['cam-inclusions'].question, knowledge.BY_ID['cam-options'].question, 'Review my request']);
+  send(cam, 'Does that include labour and fitting?'); assert.match(last(cam).text, /labour and engine ECU dyno tuning/);
+  send(cam, 'What about the transmission?'); assert.match(last(cam).text, /Transmission tuning costs extra/);
+  const rebuild = engine.createSession();
+  send(rebuild, 'Engine rebuild quote for a 2018 Ford Mustang', 'Stock Coyote, reliable street use', 'Keep chatting');
+  assert.deepEqual(last(rebuild).prompts, [knowledge.BY_ID.plan.question, knowledge.BY_ID['own-parts'].question, 'Review my request']);
+  assert.doesNotMatch(last(rebuild).text, /\$\d/);
+});
+
+test('draft enquiry review preserves details without sending or falsely transferring into the app', () => {
+  const state = engine.createSession(); send(state, '/summary'); assert.match(last(state).text, /vehicle and work/);
+  send(state, 'upgrades', 'Cam upgrade', '2013 Holden VF LS3', 'Manual, exhaust, 98 fuel', 'Weekend driving', 'Add more details', 'Also has OTR intake', '/summary');
+  assert.match(last(state).text, /Your draft enquiry/);
+  for (const detail of ['2013 Holden VF LS3','Cam upgrade','Weekend driving','OTR intake']) assert.ok(last(state).text.includes(detail), detail);
+  assert.match(last(state).text, /not a quote, booking or automatic transfer/);
+  assert.equal(state.queued, false); assert.equal(engine.handoffSummary(state), null);
+  assert.ok(engine.requestSummary(state));
+  send(state, 'Will this chat transfer to the app?'); assert.match(last(state).text, /Not in this private preview/);
+  assert.match(last(state).text, /Job and Setup/);
+  assert.equal(state.queued, false);
+  send(state, 'Yes, send it'); assert.equal(state.queued, true);
+  assert.match(engine.handoffSummary(state).details, /OTR intake/);
+});
+
+test('future app surface reuses the tested engine without website download encouragement', () => {
+  const state = engine.createSession(1, { surface: 'app' });
+  send(state, 'upgrades', 'Cam upgrade', '2013 Holden VF LS3', 'Manual, exhaust, 98 fuel', 'Weekend driving');
+  assert.equal(state.surface, 'app'); assert.equal(state.preferences.installed, true);
+  assert.doesNotMatch(last(state).text, /Download it/); assert.deepEqual(last(state).links, []);
+  send(state, 'Keep chatting'); assert.match(last(state).prompts[0], /entry cam package/);
+  const reset = engine.send(state, '/reset').state;
+  assert.equal(reset.surface, 'app'); assert.equal(reset.preferences.installed, true);
+  for (const question of ['Why is the price shown as from?', 'Can we plan the upgrades in stages?', 'Why use the app instead of the website?']) assert.notEqual(engine.answer(question).intent, 'needs-review');
+});
+
 test('common paraphrases resolve without speculative pricing or unnecessary handoffs', () => {
   const cases = [
     ['Where do I download it?', 'download'], ['I need the app', 'download'], ['I have a Samsung phone', 'android'],

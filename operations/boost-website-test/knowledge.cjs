@@ -39,6 +39,10 @@
   });
   const faq = (id, category, question, reply, sources, prompts = [], links = []) => Object.freeze({ id, category, question, reply, sources, prompts, links, verifiedOn: VERIFIED_ON });
   const FAQS = Object.freeze([
+    faq('app-benefits', 'App', 'Why use the app instead of the website?', 'The free PSI app keeps your saved vehicles and booking requests together, so you can choose your car when making another request. Create an account, save your vehicle, then use Bookings. Performance+ is optional for the fuller published workshop records and files. You can still ask questions here or use the website enquiry.', ['account','garage','booking','plus'], ['Where can I download the PSI app?', 'Guide me through account setup', 'Website enquiry'], ['apple','android']),
+    faq('chat-transfer', 'App', 'Will this chat transfer to the app?', 'Not in this private preview. Review my request shows a draft you can copy into the app’s Job and Setup notes or the website enquiry. Downloading the app does not send the chat, create a booking or contact PSI. The request still needs PSI review.', ['boundary','booking','website'], ['How do I book?', 'Website enquiry']),
+    faq('starting-price', 'Workshop', 'Why is the price shown as from?', 'It is a starting guide for the stated work and vehicle scope, not a fixed quote for every car. Your vehicle, setup and required work determine the final price. PSI inspects, explains any additional work, quotes it and gets approval before proceeding. Boost does not automatically add optional upgrades to your total.', ['pricingApproval','ownerApproval'], ['Will you ask before doing extra work?', 'I need a quote']),
+    faq('upgrade-planning', 'Workshop', 'Can we plan the upgrades in stages?', 'Yes, use Plan Builder to describe your intended use, priorities, current setup, timing and budget direction. PSI reviews the combination before recommending the order of work or quoting. Do not assume every part can be fitted separately or that a later stage avoids further tuning or labour. Keep the proposed stages in your enquiry for PSI to assess.', ['website','ownerApproval'], ['What is Plan Builder?', 'What upgrades do you offer?', 'Will you ask before doing extra work?']),
     faq('download', 'App', 'Where can I download the PSI app?', 'Download PSI Performance Garage for iPhone or Android. The app is the easiest way to keep your vehicles and booking requests together. Which phone do you use?', ['stores','booking'], ['I use an iPhone', 'I use Android', 'I already have the app'], ['apple','android']),
     faq('iphone', 'App', 'I use an iPhone', 'Open the iPhone App Store link, tap Get and open PSI Performance Garage. If it is already installed, tap Open. Next, sign in with your email code.', ['stores','account'], ['How do I create an account?', 'I already have an account'], ['apple']),
     faq('android', 'App', 'I use Android', 'Open the Google Play link, tap Install and open PSI Performance Garage. Use the same PSI email if you already have an account. Next, request your email sign in code.', ['stores','account'], ['How do I create an account?', 'I already have an account'], ['android']),
@@ -130,6 +134,10 @@
   // Rules are intentionally explicit. Questions needing private access or safety
   // assessment are intercepted by the engine before this public FAQ layer.
   const RULES = [
+    ['app-benefits', /\b(why|benefits?|better|easier)\b.*\bapp\b|\bapp\b.*\b(benefits?|better|easier)\b/],
+    ['chat-transfer', /\b(chat|conversation|details|request)\b.*\b(transfer|carry over|move to|copy to|sync to)\b.*\bapp\b/],
+    ['starting-price', /\bwhy\b.*\b(price|prices|quote)\b|\bwhy\b.*\bfrom\s+(?:aud|\d)|\b(fixed price|exact quote from boost|starting price mean)\b/],
+    ['upgrade-planning', /\b(upgrades?|build|work)\b.*\b(stages?|step by step|over time)\b|\b(stages?|staged)\b.*\b(upgrades?|build|work)\b/],
     ['message-delivery', /\b(test messages|receive.*messages|send.*(?:email|sms|whatsapp|shopify inbox))\b/],
     ['send-photos', /\b(send|upload|attach)\b.*\b(photo|picture|image|file)\b/],
     ['quote-validity', /\b(old quote|previous quote|quote.*valid|quotes.*valid|quote.*expir|honour.*quote|honor.*quote)\b/],
@@ -233,7 +241,7 @@
     if (exact) return exact;
     const pricing = isPricing(q);
     for (const [id, pattern] of RULES) {
-      if (pricing && !['plus-price','plus','free','deposit','payment','shipping','discount','estimator','quote-validity','included-work','ev-battery','scan-price','labour-rate','cancellation-policy','reschedule-policy','extra-work','own-parts','workmanship'].includes(id)) continue;
+      if (pricing && !['starting-price','plus-price','plus','free','deposit','payment','shipping','discount','estimator','quote-validity','included-work','ev-battery','scan-price','labour-rate','cancellation-policy','reschedule-policy','extra-work','own-parts','workmanship'].includes(id)) continue;
       if (pattern.test(q)) return BY_ID[id];
     }
     if (pricing) return null;
