@@ -46,7 +46,9 @@ try {
   $vehicleId = $vehicleIds[0]
 
   $catalog = Get-Content -LiteralPath (Join-Path $reviewRoot 'mobile/src/lib/garage-art-catalog.ts') -Raw
-  $illustrationIds = @([regex]::Matches($catalog, "id:\s*'([^']+)'\s*,\s*make") | ForEach-Object { $_.Groups[1].Value })
+  # Owner artwork is intentionally unavailable to sandbox customer identities.
+  $publicCatalog = ($catalog -split "`n" | Where-Object { $_ -notmatch 'personalOnly:' }) -join "`n"
+  $illustrationIds = @([regex]::Matches($publicCatalog, "id:\s*'([^']+)'\s*,\s*make") | ForEach-Object { $_.Groups[1].Value })
   if ($illustrationIds.Count -eq 0 -or @($illustrationIds | Group-Object | Where-Object Count -gt 1).Count -ne 0) { throw 'Garage illustration catalog IDs are invalid.' }
 
   $existing = @(Invoke-ReviewApi "/rest/v1/vehicle_display_preferences?select=vehicle_id,illustration_id&vehicle_id=eq.$vehicleId" $customer.Headers)

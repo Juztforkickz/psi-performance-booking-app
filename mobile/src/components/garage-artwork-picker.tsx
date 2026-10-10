@@ -4,10 +4,11 @@ import { FlatList, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, Press
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { colors } from '@/constants/brand';
+import { usePrivateGarageArtwork } from '@/hooks/use-private-garage-artwork';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { GARAGE_ART, garageArtById } from '@/lib/garage-art-assets';
-import { findGarageArtwork, GARAGE_ART_MAKES, type GarageArtVehicle } from '@/lib/garage-art-catalog';
+import { canUseGarageArtwork, findGarageArtwork, GARAGE_ART_MAKES, PERSONAL_GARAGE_ART_ID, type GarageArtVehicle } from '@/lib/garage-art-catalog';
 import { shouldPersistGarageArtwork } from '@/lib/garage-artwork-selection';
 import { vaultClient } from '@/lib/performance-plus';
 
@@ -19,6 +20,7 @@ const subscribe = (listener: () => void) => { listeners.add(listener); return ()
 export function useGarageArtwork(vehicleId: string, prefetchedId?: string) {
   const revision = useSyncExternalStore(subscribe, () => artworkRevision, () => 0);
   const auth = useCustomerAuth();
+  const privateArtwork = usePrivateGarageArtwork();
   const key = `${auth.user?.id ?? 'demo'}:${vehicleId}`;
   const persistToAccount = shouldPersistGarageArtwork(CUSTOMER_AUTH.enabled, auth.status);
   const [error, setError] = useState('');
@@ -38,7 +40,7 @@ export function useGarageArtwork(vehicleId: string, prefetchedId?: string) {
   }, [key, vehicleId, auth.status, prefetchedId, revision]);
   const id = artworkChoices[key] ?? prefetchedId ?? 'porsche';
   const select = async (id: string): Promise<boolean> => {
-    if (!GARAGE_ART.some(art => art.id === id)) return false;
+    if (!canUseGarageArtwork(id, Boolean(privateArtwork))) return false;
     setError('');
     if (persistToAccount) {
       if (!auth.user) return false;
@@ -60,7 +62,8 @@ export function useGarageArtwork(vehicleId: string, prefetchedId?: string) {
     listeners.forEach(listener => listener());
     return true;
   };
-  return { art: garageArtById(id), select, error };
+  const art = garageArtById(id, Boolean(privateArtwork));
+  return { art: art.id === PERSONAL_GARAGE_ART_ID && privateArtwork ? { ...art, source: privateArtwork.source, preview: privateArtwork.preview } : art, select, error };
 }
 
 export function GarageArtworkPicker({ selectedId, onSelect, vehicle, hasVehiclePhoto = false }: {
@@ -69,6 +72,11 @@ export function GarageArtworkPicker({ selectedId, onSelect, vehicle, hasVehicleP
   vehicle?: GarageArtVehicle;
   hasVehiclePhoto?: boolean;
 }) {
+  const privateArtwork = usePrivateGarageArtwork();
+  const resolveArtwork = (id: string) => {
+    const art = garageArtById(id, Boolean(privateArtwork));
+    return art.id === PERSONAL_GARAGE_ART_ID && privateArtwork ? { ...art, source: privateArtwork.source, preview: privateArtwork.preview } : art;
+  };
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState('');
@@ -85,10 +93,10 @@ export function GarageArtworkPicker({ selectedId, onSelect, vehicle, hasVehicleP
     return () => { show.remove(); hide.remove(); };
   }, []);
   const columns = width < 360 || fontScale > 1.45 ? 1 : width >= 760 ? 3 : 2;
-  const results = findGarageArtwork(query, make, vehicle).map(entry => garageArtById(entry.id));
+  const results = findGarageArtwork(query, make, vehicle, Boolean(privateArtwork)).map(entry => resolveArtwork(entry.id));
   const list = useRef<FlatList<(typeof GARAGE_ART)[number]>>(null);
-  const selected = garageArtById(selectedId);
-  const draft = garageArtById(draftId);
+  const selected = resolveArtwork(selectedId);
+  const draft = resolveArtwork(draftId);
   const close = () => { if (!busy) { Keyboard.dismiss(); setOpen(false); } };
   const openLibrary = () => {
     setPickedId(null);

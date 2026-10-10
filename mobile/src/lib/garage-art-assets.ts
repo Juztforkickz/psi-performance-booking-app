@@ -1,5 +1,5 @@
 import type { ImageSourcePropType } from 'react-native';
-import { GARAGE_ART_CATALOG, garageArtLabel } from '@/lib/garage-art-catalog';
+import { GARAGE_ART_CATALOG, canUseGarageArtwork, garageArtLabel } from '@/lib/garage-art-catalog';
 
 // These taller vehicles need the uncropped portrait artwork in landscape frames.
 // Their 16:9 thumbnails trim the roof before the UI can resize them.
@@ -13,6 +13,8 @@ const TALL_GARAGE_ART_IDS = new Set([
 // Static requires keep Metro's native/offline asset resolution intact.
 const images: Record<string, { source: ImageSourcePropType; thumbnail: ImageSourcePropType }> = {
   'porsche': { source: require('../../assets/images/garage-vehicles/porsche.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/porsche.jpg') },
+  // Safe placeholder until the owner-only private Storage image loads.
+  'personal-vehicle-artwork': { source: require('../../assets/images/garage-vehicles/porsche.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/porsche.jpg') },
   'hsv-gts': { source: require('../../assets/images/garage-vehicles/hsv-gts.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/hsv-gts.jpg') },
   'holden-commodore-vf': { source: require('../../assets/images/garage-vehicles/holden-commodore-vf.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/holden-commodore-vf.jpg') },
   'hsv-vs-gts': { source: require('../../assets/images/garage-vehicles/hsv-vs-gts.jpg'), thumbnail: require('../../assets/images/garage-vehicles/thumbs/hsv-vs-gts.jpg') },
@@ -96,4 +98,5 @@ export const GARAGE_ART = GARAGE_ART_CATALOG.map(entry => {
     previewResizeMode: isTallArtwork ? 'cover' as const : 'contain' as const,
   };
 });
-export const garageArtById = (id: string) => GARAGE_ART.find(entry => entry.id === id) ?? GARAGE_ART[0];
+export const garageArtById = (id: string, hasPersonalArtwork = false) =>
+  (canUseGarageArtwork(id, hasPersonalArtwork) ? GARAGE_ART.find(entry => entry.id === id) : undefined) ?? GARAGE_ART[0];

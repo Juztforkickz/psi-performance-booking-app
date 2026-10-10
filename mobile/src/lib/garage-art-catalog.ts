@@ -4,11 +4,16 @@ export type GarageArtEntry = {
   model: string;
   generation: string;
   aliases: string;
+  personalOnly?: boolean;
 };
+
+// Private artwork is available only after Storage grants authenticated access.
+export const PERSONAL_GARAGE_ART_ID = 'personal-vehicle-artwork';
 
 // IDs are saved per vehicle. Preserve existing IDs when improving display names.
 export const GARAGE_ART_CATALOG: GarageArtEntry[] = [
   { id: 'porsche', make: 'Porsche', model: '911 GT3', generation: '992', aliases: '911 coupe' },
+  { id: 'personal-vehicle-artwork', make: 'Porsche', model: '911 GT3', generation: '992 · Personal edition', aliases: '911 coupe personal carbon', personalOnly: true },
   { id: 'hsv-gts', make: 'Holden / HSV', model: 'HSV GTS', generation: 'Gen-F2 · VF', aliases: 'holden commodore hsv vf vf2 gts gen f genf' },
   { id: 'holden-commodore-vf', make: 'Holden / HSV', model: 'Commodore SS V', generation: 'VF · Redline', aliases: 'holden commodore vf vf2 ss ssv sedan redline' },
   { id: 'hsv-vs-gts', make: 'Holden / HSV', model: 'HSV GTS', generation: 'VS', aliases: 'holden commodore hsv vs gts 1995 1996 1997' },
@@ -103,7 +108,12 @@ export function garageArtMakeForVehicle(vehicle?: GarageArtVehicle) {
 }
 
 // Suggestions change ordering only. A customer always chooses their own artwork.
-export function findGarageArtwork(query: string, make = '', vehicle?: GarageArtVehicle) {
+export function canUseGarageArtwork(id: string, hasPersonalArtwork = false) {
+  const entry = GARAGE_ART_CATALOG.find(art => art.id === id);
+  return !!entry && (!entry.personalOnly || hasPersonalArtwork);
+}
+
+export function findGarageArtwork(query: string, make = '', vehicle?: GarageArtVehicle, hasPersonalArtwork = false) {
   const tokens = words(query).split(' ').filter(Boolean);
   const vehicleMake = garageArtMakeForVehicle(vehicle);
   const modelTokens = words(vehicle?.model ?? '').split(' ').filter(token => token.length > 1);
@@ -113,6 +123,7 @@ export function findGarageArtwork(query: string, make = '', vehicle?: GarageArtV
     return 10 + modelTokens.filter(token => text.includes(token)).length * 3;
   };
   return GARAGE_ART_CATALOG.filter(entry => {
+    if (!canUseGarageArtwork(entry.id, hasPersonalArtwork)) return false;
     if (make && entry.make !== make) return false;
     const terms = searchable(entry).split(' ');
     return tokens.every(token => terms.some(term => term.startsWith(token)));
