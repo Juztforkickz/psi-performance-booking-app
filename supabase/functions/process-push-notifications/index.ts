@@ -240,6 +240,9 @@ Deno.serve(async (request) => {
     const performanceSubscriptionAlert = event.kind === "performance_subscription_started";
     const historicalImportAlert = event.kind.startsWith("historical_import_");
     const carSaleAlert = event.kind === "car_sale_published";
+    const bulkPsiEventAlert = event.deep_link === "/events"
+      && event.kind === "psi_event_updated"
+      && event.source_event_key.startsWith("psi_events_bulk:");
     if (event.read_at) {
       await admin.from("push_notification_jobs").update({ status: "cancelled", completed_at: now, last_error_code: messageAlert ? "message_already_read" : "notification_already_read", updated_at: now }).eq("id", queued.id);
       continue;
@@ -248,11 +251,11 @@ Deno.serve(async (request) => {
       const cashSoundAvailable = workshopAlert && device.notification_sound === PSI_CASH_NOTIFICATION_SOUND;
       return {
         to: device.expo_push_token,
-        title: invoiceAttentionAlert ? "PSI invoices need attention" : performanceSubscriptionAlert || historicalImportAlert || carSaleAlert || messageAlert ? event.title : "PSI update received",
+        title: invoiceAttentionAlert ? "PSI invoices need attention" : performanceSubscriptionAlert || historicalImportAlert || carSaleAlert || messageAlert || bulkPsiEventAlert ? event.title : "PSI update received",
         subtitle: workshopAlert ? "PSI workshop" : carSaleAlert ? "Customer Cars for Sale" : messageAlert ? "Ask PSI" : "Customer account",
         body: invoiceAttentionAlert
           ? "Open Imports & drafts to review unresolved sales invoices."
-          : performanceSubscriptionAlert || historicalImportAlert || carSaleAlert || messageAlert
+          : performanceSubscriptionAlert || historicalImportAlert || carSaleAlert || messageAlert || bulkPsiEventAlert
             ? event.body
             : workshopAlert
               ? "Open the protected workshop portal to review it."
