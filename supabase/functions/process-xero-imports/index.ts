@@ -3,7 +3,7 @@ import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.1
 import { openXeroTokens, sealXeroTokens } from '../_shared/xero-token-crypto.ts';
 import { xeroInvoiceReader } from '../_shared/xero-invoice-fetch.ts';
 import { xeroInvoiceDate } from '../_shared/xero-invoice-date.ts';
-import { selectPublishedInvoiceByIdentity } from '../_shared/xero-invoice-dedupe.ts';
+import { selectExistingInvoiceByIdentity } from '../_shared/xero-invoice-dedupe.ts';
 import { matchXeroInvoice, type VerifiedContactLink, type XeroInvoice } from '../_shared/xero-invoice-match.ts';
 import { xeroDescriptionRegistration } from '../_shared/xero-invoice-registration.ts';
 import { parseXeroTokenSet, requestXeroTokenRefresh } from '../_shared/xero-token-refresh.ts';
@@ -182,16 +182,20 @@ async function findPublishedWorkshopInvoice(
   const titles = [`Invoice ${invoiceNumber}`, `Xero invoice ${invoiceNumber}`];
   let query = admin
     .from('vault_records')
-    .select('id,job_id,customer_id,vehicle_id,title,occurred_on,published_at')
+    .select('id,job_id,customer_id,vehicle_id,title,occurred_on,published_at,created_at')
     .eq('kind', 'invoice')
-    .not('published_at', 'is', null)
-    .limit(3);
-  if (uuid(confirmedJobId)) query = query.eq('job_id', confirmedJobId);
-  else query = query.in('title', titles);
+    .not('published_at', 'is', null);
+  if (uuid(confirmedJobId)) {
+    query = query.eq('job_id', confirmedJobId).order('created_at', { ascending: true }).limit(200);
+  } else {
+    query = query.in('title', titles).limit(3);
+  }
   const { data: records, error: recordError } = await query;
   if (recordError) throw new Error('workshop_invoice_duplicate_lookup_failed');
   if (!records?.length) return null;
-  if (uuid(confirmedJobId)) return selectPublishedInvoiceByIdentity(records, invoiceNumber);
+  if (uuid(confirmedJobId)) {
+    return selectExistingInvoiceByIdentity(records, invoiceNumber, record => record.title);
+  }
 
   const vehicleIds = [...new Set(records.map(record => record.vehicle_id).filter(uuid))];
   const { data: vehicles, error: vehicleError } = await admin
@@ -213,6 +217,24 @@ async function findPublishedWorkshopInvoice(
     );
   });
   return matches.length === 1 ? matches[0] : null;
+}
+
+async function findExistingVehicleInvoice(
+  admin: SupabaseClient,
+  customerId: string,
+  vehicleId: string,
+  invoiceNumber: string,
+) {
+  const { data: invoices, error } = await admin
+    .from('invoices')
+    .select('id,customer_id,vehicle_id,invoice_number,created_at')
+    .eq('customer_id', customerId)
+    .eq('vehicle_id', vehicleId)
+    .is('archived_at', null)
+    .order('created_at', { ascending: true })
+    .limit(500);
+  if (error) throw new Error('vehicle_invoice_duplicate_lookup_failed');
+  return selectExistingInvoiceByIdentity(invoices ?? [], invoiceNumber, invoice => invoice.invoice_number);
 }
 
 async function alertOwnerForReview(admin: SupabaseClient, ownerId: string, queued: QueueRow, identifiers: Record<string, unknown>) {
@@ -436,13 +458,16 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     matched = { ...jobMatch, partsOnly: false };
   }
 
-  const publishedMatchedInvoice = matched.jobId ? await findPublishedWorkshopInvoice(
-    admin,
-    reference,
-    invoiceNumber,
-    occurredOn,
-    matched.jobId,
-  ) : null;
+  const [publishedMatchedInvoice, existingVehicleInvoice] = await Promise.all([
+    matched.jobId ? findPublishedWorkshopInvoice(
+      admin,
+      reference,
+      invoiceNumber,
+      occurredOn,
+      matched.jobId,
+    ) : null,
+    findExistingVehicleInvoice(admin, matched.customerId, matched.vehicleId, invoiceNumber),
+  ]);
   if (publishedMatchedInvoice) {
     await setQueue(admin, queued.id, {
       status: 'imported',
@@ -454,6 +479,18 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
       last_error_code: null,
     });
     return { id: queued.id, status: 'imported', recordId: publishedMatchedInvoice.id, duplicate: true };
+  }
+  if (existingVehicleInvoice) {
+    await setQueue(admin, queued.id, {
+      status: 'imported',
+      job_id: matched.jobId,
+      record_id: null,
+      identifiers: enriched,
+      reason: 'This invoice number is already in the matched vehicle folder. The Xero copy was not added.',
+      completed_at: new Date().toISOString(),
+      last_error_code: null,
+    });
+    return { id: queued.id, status: 'imported', duplicate: true };
   }
 
   const sourceReference = matched.sourceReference;

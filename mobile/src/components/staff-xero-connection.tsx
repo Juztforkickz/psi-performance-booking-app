@@ -68,6 +68,13 @@ export function StaffXeroConnection() {
     <Text style={styles.copy}>{connected
       ? 'PSI’s Xero organisation is connected. Invoice imports stay off until each customer, vehicle and job match is reviewed.'
       : 'Check the secure connection before connecting or replacing PSI’s Xero organisation. Automatic invoice imports remain off.'}</Text>
+    <View style={styles.protection}>
+      <View style={styles.protectionHeading}>
+        <Text style={styles.businessName}>Duplicate invoice protection</Text>
+        <Text style={styles.protectionStatus}>On</Text>
+      </View>
+      <Text style={styles.copy}>Before a Xero invoice is added, PSI checks the matched vehicle folder. If the same invoice number is already there, the Xero copy is skipped.</Text>
+    </View>
     <PrimaryButton label="Check status" variant="outline" disabled={busy} loading={busyAction === 'check'} onPress={() => void check()} />
     <PrimaryButton label={connected ? 'Reconnect or replace Xero' : 'Connect Xero'} disabled={busy} loading={busyAction === 'connect'} onPress={() => void connect()} />
     {candidates.map(candidate => <View key={candidate.tenant_id} style={styles.candidate}>
@@ -91,6 +98,9 @@ const styles = StyleSheet.create({
   workspace: { gap: spacing.md },
   title: { color: colors.white, fontSize: 16, fontWeight: '700' },
   copy: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+  protection: { borderWidth: 1, borderColor: colors.line, borderRadius: 10, padding: spacing.md, gap: spacing.sm, backgroundColor: colors.panel },
+  protectionHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  protectionStatus: { color: colors.success, fontSize: 13, fontWeight: '700' },
   candidate: { borderWidth: 1, borderColor: colors.line, borderRadius: 10, padding: spacing.md, gap: spacing.sm, backgroundColor: colors.panel },
   businessName: { color: colors.white, fontSize: 14, fontWeight: '600' },
   notice: { color: colors.muted, fontSize: 13, lineHeight: 19, borderTopWidth: 1, borderTopColor: colors.line, paddingTop: spacing.md },

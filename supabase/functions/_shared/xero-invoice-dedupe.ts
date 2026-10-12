@@ -15,3 +15,13 @@ export function selectPublishedInvoiceByIdentity<T extends { title: string }>(re
   const matches = records.filter(record => invoiceIdentity(record.title) === expected);
   return matches.length === 1 ? matches[0] : null;
 }
+
+export function selectExistingInvoiceByIdentity<T>(
+  records: readonly T[],
+  invoiceNumber: string,
+  label: (record: T) => string,
+) {
+  const expected = invoiceIdentity(invoiceNumber);
+  if (!expected) return null;
+  return records.find(record => invoiceIdentity(label(record)) === expected) ?? null;
+}

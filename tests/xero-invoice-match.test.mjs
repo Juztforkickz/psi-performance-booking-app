@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { matchXeroInvoice } from '../supabase/functions/_shared/xero-invoice-match.ts';
-import { invoiceIdentity, selectPublishedInvoiceByIdentity } from '../supabase/functions/_shared/xero-invoice-dedupe.ts';
+import { invoiceIdentity, selectExistingInvoiceByIdentity, selectPublishedInvoiceByIdentity } from '../supabase/functions/_shared/xero-invoice-dedupe.ts';
 import { selectReusableXeroWorkshopJob, xeroWorkshopJobReference } from '../mobile/src/lib/xero-workshop-reference.ts';
 import { xeroDescriptionRegistration } from '../supabase/functions/_shared/xero-invoice-registration.ts';
 
@@ -135,4 +135,17 @@ test('the same verified job invoice is selected despite label formatting or date
   assert.equal(selectPublishedInvoiceByIdentity([invoice], 'INV-1642'), invoice);
   assert.equal(selectPublishedInvoiceByIdentity([invoice], 'INV-1643'), null);
   assert.equal(selectPublishedInvoiceByIdentity([invoice, { id: id(9), title: 'INV 1642' }], 'INV-1642'), null);
+});
+
+test('any existing invoice number blocks another copy even when duplicates already need cleanup', () => {
+  const first = { id: id(8), invoice_number: 'inv 1642' };
+  const second = { id: id(9), invoice_number: 'Invoice INV-1642' };
+  assert.equal(
+    selectExistingInvoiceByIdentity([first, second], 'INV-1642', invoice => invoice.invoice_number),
+    first,
+  );
+  assert.equal(
+    selectExistingInvoiceByIdentity([first], 'INV-1643', invoice => invoice.invoice_number),
+    null,
+  );
 });

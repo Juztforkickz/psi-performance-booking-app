@@ -27,12 +27,13 @@ test('Calendar reconciliation creates, updates and removes one team-visible dete
 });
 
 test('Xero imports rotate tokens, require an owner-confirmed match and publish only a verified PDF', async () => {
-  const [worker, lockMigration, importMigration, hardeningMigration, webhook] = await Promise.all([
+  const [worker, lockMigration, importMigration, hardeningMigration, webhook, connection] = await Promise.all([
     read('../supabase/functions/process-xero-imports/index.ts'),
     read('../supabase/migrations/20260909124112_xero_refresh_token_lock.sql'),
     read('../supabase/migrations/20260910131500_xero_import_processing.sql'),
     read('../supabase/migrations/20260910170451_harden_xero_match_and_vault_foreign_keys.sql'),
     read('../supabase/functions/xero-vault-webhook/index.ts'),
+    read('../mobile/src/components/staff-xero-connection.tsx'),
   ]);
   assert.match(lockMigration, /for update/u);
   assert.match(lockMigration, /refresh_lock_token/u);
@@ -59,6 +60,9 @@ test('Xero imports rotate tokens, require an owner-confirmed match and publish o
   assert.match(worker, /invoice\.Type !== 'ACCREC'[\s\S]*?vault_import_queue'\)\.delete/u);
   assert.match(worker, /findPublishedWorkshopInvoice/u);
   assert.match(worker, /Already published by the PSI workshop sync; the Xero copy was not duplicated\./u);
+  assert.match(worker, /findExistingVehicleInvoice/u);
+  assert.match(worker, /already in the matched vehicle folder\. The Xero copy was not added\./u);
+  assert.match(worker, /findExistingVehicleInvoice[\s\S]*?reader\.pdf\(invoiceId\)/u);
   assert.match(worker, /findPublishedWorkshopInvoice[\s\S]*?reader\.pdf\(invoiceId\)/u);
   assert.match(worker, /xero_invoice_review/u);
   assert.match(worker, /process-push-notifications/u);
@@ -67,6 +71,8 @@ test('Xero imports rotate tokens, require an owner-confirmed match and publish o
   assert.match(worker, /storage\.from\('performance-vault'\)\.upload/u);
   assert.match(worker, /published_at: new Date\(\)\.toISOString\(\)/u);
   assert.doesNotMatch(worker, /body\.(?:customerId|vehicleId|jobId|invoiceUrl|pdfUrl)/u);
+  assert.match(connection, /Duplicate invoice protection/u);
+  assert.match(connection, /same invoice number is already there, the Xero copy is skipped/u);
 });
 
 test('parts-only Xero invoices publish to a verified vehicle without creating a workshop job', async () => {
