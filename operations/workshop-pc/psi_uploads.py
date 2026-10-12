@@ -22,7 +22,7 @@ import urllib.request
 import uuid
 from datetime import date, datetime, timedelta
 import re
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageChops, ImageStat
 from pillow_heif import register_heif_opener
 
 register_heif_opener(thumbnails=False)
@@ -742,7 +742,7 @@ def sync_job_folders(root, connection, days_back=30):
     """Create local folders for recent/future confirmed and manual workshop jobs."""
     earliest = (date.today() - timedelta(days=days_back)).isoformat()
     path = ('/rest/v1/workshop_jobs?select=id,customer_id,vehicle_id,workshop_contact_id,workshop_vehicle_id,reference,title,job_date'
-            '&job_date=gte.' + earliest + '&order=job_date.asc&limit=500')
+            '&or=(job_date.gte.' + earliest + ',reference.like.PSI-PHOTOS-*)&order=job_date.asc&limit=500')
     vehicles = connection.call(
         '/rest/v1/customer_vehicles?select=id,customer_id,registration,year,make,model,archived_at&archived_at=is.null&limit=2000'
     )
@@ -1443,6 +1443,152 @@ def archive_exact_source_duplicates(folder, state):
     return changes
 
 
+def photo_signature(content):
+    """Same conservative RGB cell averages as the portal, with EXIF removed."""
+    with Image.open(io.BytesIO(content)) as source:
+        image = ImageOps.exif_transpose(source).convert('RGB')
+        width, height = image.size
+        pixels = image.load()
+        values = []
+        for y in range(64):
+            for x in range(64):
+                x0, y0 = x * width // 64, y * height // 64
+                x1, y1 = max(x0 + 1, (x + 1) * width // 64), max(y0 + 1, (y + 1) * height // 64)
+                sums = [0, 0, 0]
+                for py in range(y0, y1):
+                    for px in range(x0, x1):
+                        pixel = pixels[min(px, width - 1), min(py, height - 1)]
+                        for channel in range(3):
+                            sums[channel] += pixel[channel]
+                count = (x1 - x0) * (y1 - y0)
+                values.extend(int(total / count + .5) for total in sums)
+        return f'rgb64:{width}:{height}:' + bytes(values).hex()
+
+
+def visually_identical(first, second):
+    pattern = r'rgb64:([1-9][0-9]*):([1-9][0-9]*):([a-f0-9]{24576})'
+    a, b = re.fullmatch(pattern, first or ''), re.fullmatch(pattern, second or '')
+    if not a or not b or abs(int(a[1]) / int(a[2]) - int(b[1]) / int(b[2])) > .001:
+        return False
+    left, right = bytes.fromhex(a[3]), bytes.fromhex(b[3])
+    differences = [abs(x - y) for x, y in zip(left, right)]
+    mean = sum(left) / len(left)
+    return max(differences) <= 3 and sum(differences) / len(left) <= .5 and sum(x * x for x in left) / len(left) - mean * mean > 64
+
+
+def published_photos(connection, manifest):
+    photos = []
+    for offset in range(0, 1000000, 100):
+        rows = connection.call('/rest/v1/vault_assets?select=*,vault_records!inner(kind,published_at,job_id)'
+            + '&customer_id=eq.' + manifest['customer_id'] + '&vehicle_id=eq.' + manifest['vehicle_id']
+            + '&ready=eq.true&vault_records.kind=eq.media&vault_records.published_at=not.is.null'
+            + f'&order=id&limit=100&offset={offset}')
+        photos.extend(rows)
+        if len(rows) < 100:
+            return photos
+    raise ValueError('Photo list is too large; PSI review required')
+
+
+def identical_photo_pixels(first, second):
+    with Image.open(io.BytesIO(first)) as a, Image.open(io.BytesIO(second)) as b:
+        left, right = ImageOps.exif_transpose(a).convert('RGB'), ImageOps.exif_transpose(b).convert('RGB')
+        if left.size != right.size:
+            return False
+        difference = ImageChops.difference(left, right)
+        return max(high for low, high in difference.getextrema()) <= 3 and sum(ImageStat.Stat(difference).mean) / 3 <= .5
+
+
+def read_cloud_photo(connection, asset, manifest):
+    """Validate identity, path, size and digest before accepting cloud bytes."""
+    if asset['customer_id'] != manifest['customer_id'] or asset['vehicle_id'] != manifest['vehicle_id']:
+        raise ValueError('Photo belongs to a different customer or vehicle')
+    for field in ('id', 'record_id'):
+        if str(uuid.UUID(asset[field])) != asset[field]:
+            raise ValueError('Invalid photo identifier')
+    mime = asset['mime_type']
+    suffix = {'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'application/pdf': '.pdf'}.get(mime)
+    if not suffix or not 0 < asset['size_bytes'] <= 20 * 1024 * 1024:
+        raise ValueError('Unsupported photo size or type')
+    expected = f'{manifest["customer_id"]}/{manifest["vehicle_id"]}/{asset["record_id"]}/{asset["id"]}/original{suffix}'
+    if asset['object_path'] != expected:
+        raise ValueError('Photo path does not match its verified profile')
+    content = connection.call('/storage/v1/object/authenticated/performance-vault/' + urllib.parse.quote(expected, safe='/'), read_binary=True)
+    if len(content) != asset['size_bytes'] or hashlib.sha256(content).hexdigest() != asset['sha256']:
+        raise ValueError('Downloaded photo did not pass its integrity check')
+    return content, suffix
+
+
+def sync_portal_photos(folder, connection):
+    """Download published profile photos to their verified desktop job folder."""
+    manifest = manifest_for(folder, connection)
+    if manifest.get('schema') == 2:
+        return 0
+    manifests = [manifest] + linked_job_manifests(folder, manifest, connection)
+    job_ids = {item['job_id'] for item in manifests}
+    destination = folder / 'Workshop photos'
+    if destination.is_symlink():
+        raise ValueError('Photos folder must not be a symlink')
+    destination.mkdir(exist_ok=True)
+    state_path = folder / '.psi-upload-status.json'
+    state = json.loads(state_path.read_text()) if state_path.exists() else {}
+    receipts = state.setdefault('_cloud_photos', {})
+    downloaded = 0
+    for asset in published_photos(connection, manifest):
+        if asset['vault_records']['job_id'] not in job_ids:
+            continue
+        receipt = receipts.get(asset['id'], {})
+        prior_name = receipt.get('name', '')
+        # A receipt cannot redirect reads outside this folder.
+        if prior_name and Path(prior_name).name == prior_name:
+            prior_path = destination / prior_name
+            if prior_path.is_file() and not prior_path.is_symlink() and prior_path.stat().st_size <= 40 * 1024 * 1024:
+                if hashlib.sha256(prior_path.read_bytes()).hexdigest() == receipt.get('sha256'):
+                    continue
+        content, suffix = read_cloud_photo(connection, asset, manifest)
+        target = destination / (asset['id'] + suffix)
+        matched = None
+        for local in destination.iterdir():
+            if local.is_symlink() or not local.is_file() or local.suffix.lower() not in IMAGE_SUFFIXES + ('.pdf',):
+                continue
+            before = (local.stat().st_size, local.stat().st_mtime_ns)
+            if before[0] > 40 * 1024 * 1024 or time.time() - local.stat().st_mtime < 5:
+                continue
+            raw_digest = hashlib.sha256(local.read_bytes()).hexdigest()
+            identical = raw_digest in (asset['sha256'], asset.get('source_sha256'))
+            if not identical and asset.get('visual_signature') and local.suffix.lower() in IMAGE_SUFFIXES:
+                prepared, _, _ = prepare_file(local)
+                identical = visually_identical(photo_signature(prepared), asset['visual_signature']) and identical_photo_pixels(prepared, content)
+            if identical and before == (local.stat().st_size, local.stat().st_mtime_ns):
+                matched = local
+                break
+        if matched is None:
+            if target.exists() or target.is_symlink():
+                if target.is_symlink() or not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != asset['sha256']:
+                    target = _available_destination(destination, target.name)
+            if not target.exists():
+                # Only complete files become visible to the upload scanner.
+                partial = destination / (str(uuid.uuid4()) + '.download')
+                try:
+                    with partial.open('xb') as output:
+                        output.write(content)
+                        output.flush()
+                        os.fsync(output.fileno())
+                    if os.name == 'nt':
+                        os.rename(partial, target)  # Windows refuses replacement.
+                    else:
+                        os.link(partial, target)  # Atomic, exclusive creation.
+                finally:
+                    partial.unlink(missing_ok=True)
+                downloaded += 1
+            matched = target
+        before = (matched.stat().st_size, matched.stat().st_mtime_ns)
+        digest = hashlib.sha256(matched.read_bytes()).hexdigest()
+        state[str(matched.relative_to(folder))] = _source_state('cloud:' + asset['id'], 'uploaded', before, record_id=asset['record_id'])
+        receipts[asset['id']] = {'name': matched.name, 'sha256': digest}
+        atomic_json(state_path, state)
+    return downloaded
+
+
 def mark_folder_review(folder, error):
     """An identity/locked-file error must not erase completed file receipts."""
     path = folder / '.psi-upload-status.json'
@@ -1505,10 +1651,36 @@ def process_job(folder, connection=None):
                 if kind in ('dyno', 'invoice') and mime != 'application/pdf':
                     raise ValueError('Dyno and invoice folders accept PDF files only')
                 digest = hashlib.sha256(content).hexdigest()
+                source_digest = hashlib.sha256(path.read_bytes()).hexdigest() if kind == 'media' else None
+                visual = photo_signature(content) if kind == 'media' and mime.startswith('image/') else None
+                if before != (path.stat().st_size, path.stat().st_mtime_ns):
+                    continue
                 source_key = f'pc:{manifest["job_id"]}:{category_key}:{digest}'
                 if (prior.get('key') == source_key or str(prior.get('key', '')).endswith(':' + digest)) and prior.get('status') == 'uploaded':
                     state[relative] = _source_state(source_key, 'uploaded', before)
                     continue
+                if connection and not workshop_only and kind == 'media':
+                    duplicate = None
+                    for saved in published_photos(connection, manifest):
+                        if saved['sha256'] == digest or saved.get('source_sha256') == source_digest:
+                            duplicate = saved
+                            break
+                        if visual and saved['mime_type'].startswith('image/'):
+                            previous = saved.get('visual_signature')
+                            saved_content = None
+                            if not previous:
+                                saved_content, _ = read_cloud_photo(connection, saved, manifest)
+                                previous = photo_signature(saved_content)
+                            if visually_identical(visual, previous):
+                                if saved_content is None:
+                                    saved_content, _ = read_cloud_photo(connection, saved, manifest)
+                                if identical_photo_pixels(content, saved_content):
+                                    duplicate = saved
+                                    break
+                    if duplicate:
+                        state[relative] = _source_state(source_key, 'uploaded', before, record_id=duplicate['record_id'], deduplicated=True)
+                        atomic_json(state_path, state)
+                        continue
                 if connection and not workshop_only and kind == 'invoice':
                     published_invoice = published_invoice_for_job(connection, manifest['job_id'], path.name)
                     for linked_manifest in linked:
@@ -1553,7 +1725,8 @@ def process_job(folder, connection=None):
                         base = f'{manifest["customer_id"]}/{manifest["vehicle_id"]}/{record["id"]}/{asset_id}'
                         object_path = base + ('/original' + _object_suffix(mime))
                         thumb_path = base + '/thumb.jpg' if thumb else None
-                        connection.call('/rest/v1/vault_assets', 'POST', {'id': asset_id, 'record_id': record['id'], 'customer_id': manifest['customer_id'], 'vehicle_id': manifest['vehicle_id'], 'object_path': object_path, 'thumbnail_path': thumb_path, 'mime_type': mime, 'size_bytes': len(content), 'sha256': digest, 'caption': path.name[:300], 'phase': phase, 'created_by': connection.user_id})
+                        metadata = {'source_sha256': source_digest, 'visual_signature': visual} if kind == 'media' else {}
+                        connection.call('/rest/v1/vault_assets', 'POST', {'id': asset_id, 'record_id': record['id'], 'customer_id': manifest['customer_id'], 'vehicle_id': manifest['vehicle_id'], 'object_path': object_path, 'thumbnail_path': thumb_path, 'mime_type': mime, 'size_bytes': len(content), 'sha256': digest, 'caption': path.name[:300], 'phase': phase, 'created_by': connection.user_id, **metadata})
                         assets = [{'id': asset_id, 'object_path': object_path, 'thumbnail_path': thumb_path,
                                    'sha256': digest, 'size_bytes': len(content), 'ready': False}]
                     if not assets[0]['ready']:
@@ -1650,7 +1823,15 @@ def main():
                 atomic_json(folder / '.psi-upload-status.json', {'status': 'needs_review', 'error': 'No verified psi-job.json; nothing uploaded'})
             for folder in job_folders:
                 try:
+                    download_error = None
+                    if connection:
+                        try:
+                            sync_portal_photos(folder, connection)
+                        except Exception as error:
+                            download_error = str(error)
                     process_job(folder, connection)
+                    if download_error:
+                        mark_folder_review(folder, 'Photo download will retry: ' + download_error)
                 except Exception as error:
                     mark_folder_review(folder, error)
             print('Scan complete. Check each job folder’s .psi-upload-status.json for results.')

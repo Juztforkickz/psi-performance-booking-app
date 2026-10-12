@@ -5,6 +5,7 @@ import { Image } from 'react-native';
 import { getSupabaseClient } from '@/lib/supabase';
 import { vaultClient, type ServiceCompletionCandidate, type VaultKind, type WorkshopJob } from '@/lib/performance-plus';
 import { selectReusableXeroWorkshopJob } from '@/lib/xero-workshop-reference';
+import { readUploadBytes } from '@/lib/upload-file-bytes';
 
 export async function loadServiceCompletionCandidate(bookingId: string): Promise<ServiceCompletionCandidate | null> {
   const { data, error } = await vaultClient()
@@ -73,7 +74,7 @@ export async function publishVaultRecord(job: WorkshopJob, input: { kind: VaultK
       const pdf = file.mimeType === 'application/pdf';
       if (file.size && file.size > 40 * 1024 * 1024) throw new Error('Choose source files smaller than 40 MB.');
       if (pdf) {
-        bytes = await (await fetch(file.uri)).arrayBuffer();
+        bytes = await readUploadBytes(file.uri);
         if (new TextDecoder().decode(bytes.slice(0, 5)) !== '%PDF-') throw new Error('The selected PDF is invalid.');
       } else {
         if (!file.mimeType?.startsWith('image/')) throw new Error('Only images and PDF files are accepted.');
@@ -82,8 +83,8 @@ export async function publishVaultRecord(job: WorkshopJob, input: { kind: VaultK
         const photo = await ImageManipulator.manipulateAsync(file.uri, [{ resize }], { compress: .8, format: ImageManipulator.SaveFormat.JPEG });
         const thumbSize = photo.height > photo.width ? { height: Math.min(360, photo.height) } : { width: Math.min(360, photo.width) };
         const small = await ImageManipulator.manipulateAsync(photo.uri, [{ resize: thumbSize }], { compress: .72, format: ImageManipulator.SaveFormat.JPEG });
-        bytes = await (await fetch(photo.uri)).arrayBuffer();
-        thumb = await (await fetch(small.uri)).arrayBuffer();
+        bytes = await readUploadBytes(photo.uri);
+        thumb = await readUploadBytes(small.uri);
       }
       if (!bytes.byteLength || bytes.byteLength > 20 * 1024 * 1024) throw new Error('Prepared file exceeds the 20 MB limit.');
       const digest = await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, bytes);

@@ -11,6 +11,7 @@ import { colors, spacing } from '@/constants/brand';
 import { australianDateToIso, todayAustralianDate } from '@/lib/australian-date';
 import type { StaffPortalSnapshot } from '@/lib/staff-portal';
 import { createOrFindWorkshopJob, publishVaultRecord } from '@/lib/staff-vault';
+import { publishVehiclePhotos } from '@/lib/staff-photo-upload';
 import { xeroImportFailureMessage } from '@/lib/xero-import-feedback';
 import { xeroWorkshopJobReference } from '@/lib/xero-workshop-reference';
 import { aud, PUBLISHABLE_VAULT_KINDS, VAULT_LABELS, vaultClient, type VaultKind } from '@/lib/performance-plus';
@@ -105,6 +106,15 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
     setBusy(true);
     setMessage('');
     try {
+      if (kind === 'media') {
+        if (!selectedCustomer || !selectedVehicle) throw new Error('Choose the customer and vehicle.');
+        const result = await publishVehiclePhotos({ customerId, vehicleId, date: australianDateToIso(initialDate)!, files, notes }, setMessage);
+        setFiles(result.failed);
+        setConfirmed(result.failed.length > 0);
+        if (!result.failed.length) { setNotes(''); onDirtyChange?.(false); }
+        setMessage(`${result.uploaded} uploaded. ${result.skipped} duplicates skipped.${result.failed.length ? ` ${result.failed.length} not uploaded. ${result.errors[0]} Press Publish to retry only these files. Completed photos are already saved.` : ' Saved photos are in this vehicle’s profile.'}`);
+        return;
+      }
       if ((power && (!Number.isFinite(Number(power)) || !(Number(power) > 0))) || (torque && (!Number.isFinite(Number(torque)) || !(Number(torque) > 0)))) throw new Error('Power and torque must be positive numbers.');
       const { iso, job } = await validatedJob();
       await publishVaultRecord(job, { kind, title, notes, date: iso, files, phase: kind === 'dyno' ? phase : null, powerKw: power ? Number(power) / 1.34102209 : undefined, torqueNm: torque ? Number(torque) : undefined, runStage: kind === 'dyno' ? phase === 'progress' ? 'baseline' : phase : undefined }, setMessage);
@@ -126,9 +136,9 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
       {!fixedIdentity ? <><StaffScrollSelect label="Customer" value={customerId} options={customerOptions(snapshot)} searchable onChange={id => { if (busy) return; setCustomerId(id); setVehicleId(''); setFiles([]); setConfirmed(false); setMessage(''); }} />
       <StaffScrollSelect label="Vehicle" value={vehicleId} options={vehicles.map(v => ({ value: v.id, label: `${v.year} ${v.make} ${v.model}`, sublabel: v.registration }))} searchable onChange={id => { if (busy) return; setVehicleId(id); setFiles([]); setConfirmed(false); setMessage(''); }} /></> : null}
       <View style={styles.card}>
-        <Field label="PSI job reference"><FormInput editable={!busy} value={reference} onChangeText={value => { setReference(value); setConfirmed(false); }} placeholder="PSI-2026-0123" /></Field>
+        {kind !== 'media' ? <><Field label="PSI job reference"><FormInput editable={!busy} value={reference} onChangeText={value => { setReference(value); setConfirmed(false); }} placeholder="PSI-2026-0123" /></Field>
         <Field label="Title"><FormInput editable={!busy} value={title} onChangeText={value => { setTitle(value); setConfirmed(false); }} placeholder="Major service" /></Field>
-        <CalendarDateField disabled={busy} label="Job date" maximumDate={australianDateToIso(initialDate) ?? undefined} onChange={value => { setDate(value); setConfirmed(false); }} value={date} />
+        <CalendarDateField disabled={busy} label="Job date" maximumDate={australianDateToIso(initialDate) ?? undefined} onChange={value => { setDate(value); setConfirmed(false); }} value={date} /></> : null}
         {!fixedKind ? <View style={styles.choices}>{PUBLISHABLE_VAULT_KINDS.map(value => <Choice disabled={busy} key={value} label={value === 'media' ? 'Photos' : VAULT_LABELS[value]} selected={kind === value} onPress={() => { setKind(value); setFiles([]); setConfirmed(false); }} />)}</View> : null}
         {kind === 'dyno' ? <View style={styles.choices}>{(['before', 'progress', 'after'] as const).map(value => <Choice disabled={busy} key={value} label={value === 'progress' ? 'Baseline' : `${value[0].toUpperCase()}${value.slice(1)}`} selected={phase === value} onPress={() => { setPhase(value); setConfirmed(false); }} />)}</View> : null}
         {kind === 'dyno' ? <><Field label="Power · HP at hubs" hint="Optional"><FormInput editable={!busy} value={power} onChangeText={value => { setPower(value); setConfirmed(false); }} keyboardType="decimal-pad" /></Field><Field label="Torque · Nm at hubs" hint="Optional"><FormInput editable={!busy} value={torque} onChangeText={value => { setTorque(value); setConfirmed(false); }} keyboardType="decimal-pad" /></Field></> : null}
@@ -145,10 +155,10 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
         {!fixedIdentity ? selectedCustomer && selectedVehicle ? <Text style={styles.copy}>{displayName(selectedCustomer)}{'\n'}{selectedVehicle.year} {selectedVehicle.make} {selectedVehicle.model} · {selectedVehicle.registration}</Text> : <Text style={styles.muted}>Select the customer and vehicle above.</Text> : null}
         <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: confirmed }} disabled={busy} onPress={() => setConfirmed(value => !value)} style={styles.confirm}>
           <Ionicons color={colors.accent} name={confirmed ? 'checkbox' : 'square-outline'} size={25} />
-          <Text style={styles.confirmText}>I checked the customer, registration and job. These records belong to this vehicle.</Text>
+          <Text style={styles.confirmText}>{kind === 'media' ? 'I checked the customer and registration. These photos and files belong to this vehicle.' : 'I checked the customer, registration and job. These records belong to this vehicle.'}</Text>
         </Pressable>
-        <PrimaryButton disabled={previewMode || !confirmed || busy || !selectedVehicle} label={previewMode ? 'Preview only · Publish' : 'Publish'} loading={busy} onPress={() => void publish()} />
-        {Platform.OS === 'web' ? <PrimaryButton disabled={previewMode || !confirmed || busy || !selectedVehicle} label="Download PC folder file" variant="outline" onPress={() => void downloadManifest()} /> : null}
+        <PrimaryButton disabled={previewMode || !confirmed || busy || !selectedVehicle || (kind === 'media' && !files.length)} label={previewMode ? 'Preview only · Publish' : 'Publish'} loading={busy} onPress={() => void publish()} />
+        {Platform.OS === 'web' && kind !== 'media' ? <PrimaryButton disabled={previewMode || !confirmed || busy || !selectedVehicle} label="Download PC folder file" variant="outline" onPress={() => void downloadManifest()} /> : null}
         {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
       </View>
     </View>

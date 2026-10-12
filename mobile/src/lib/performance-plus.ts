@@ -30,6 +30,7 @@ export type VaultAsset = {
   id: string; record_id: string; customer_id: string; vehicle_id: string; object_path: string;
   thumbnail_path: string | null; mime_type: string; size_bytes: number; sha256: string; caption: string;
   phase: 'before' | 'progress' | 'after' | null; ready: boolean; created_at: string; created_by: string | null;
+  source_sha256?: string | null; visual_signature?: string | null;
 };
 export type WorkshopJob = { id: string; customer_id: string; vehicle_id: string; booking_request_id: string | null; reference: string; title: string; job_date: string; created_at: string; created_by: string | null };
 export type ServiceCompletionCandidate = {

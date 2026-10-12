@@ -65,6 +65,7 @@ function mountComponent(filename, exportName, props, moduleOverrides = {}) {
     '@/lib/review-environment': { REVIEW_ENVIRONMENT: { enabled: false } },
     '@/lib/staff-record-publishing': {},
     '@/lib/staff-vault': {},
+    '@/lib/staff-photo-upload': {},
     '@/lib/xero-import-feedback': { xeroImportFailureMessage },
     '@/lib/xero-workshop-reference': { xeroWorkshopJobReference },
     '@/lib/performance-plus': { PUBLISHABLE_VAULT_KINDS: ['service', 'dyno', 'invoice', 'media', 'document'], VAULT_LABELS: {} },
@@ -285,12 +286,14 @@ test('preview vault forms cannot pick files, create a job, publish, or download 
     'expo-document-picker': { getDocumentAsync: forbidden },
     'expo-image-picker': { launchImageLibraryAsync: forbidden },
     '@/lib/staff-vault': { createOrFindWorkshopJob: forbidden, publishVaultRecord: forbidden },
+    '@/lib/staff-photo-upload': { publishVehiclePhotos: forbidden },
   });
   component.render();
-  component.find('Input', node => node.props.placeholder === 'Major service').props.onChangeText('Example service');
+  component.input('Notes', 'Example photos');
   component.render();
   component.press('I checked the customer');
-  for (const label of ['Preview only · Publish', 'Download PC folder file']) {
+  assert.equal(component.find('Button', node => node.props.label === 'Download PC folder file'), undefined);
+  for (const label of ['Preview only · Publish']) {
     const control = component.find('Button', node => node.props.label === label);
     assert.equal(control.props.disabled, true);
     control.props.onPress();
@@ -314,7 +317,7 @@ test('Photos opens the library first, maps selected photos and publishes without
       return { canceled: false, assets: [{ uri: 'file:///photo.heic', fileName: 'IMG_1234.HEIC', mimeType: 'image/heic', fileSize: 1234 }, { uri: 'file:///photo.jpg' }] };
     } },
     'expo-document-picker': { getDocumentAsync: () => { throw new Error('Photos opened Files'); } },
-    '@/lib/staff-vault': { createOrFindWorkshopJob: async () => ({ id: 'job-a' }), publishVaultRecord: async (job, input) => { published = input; } },
+    '@/lib/staff-photo-upload': { publishVehiclePhotos: async input => { published = input; return { uploaded: 2, skipped: 0, failed: [], errors: [] }; } },
   });
   component.render();
   assert.equal(component.count('Pressable'), 3); // Two upload actions and the existing confirmation.
@@ -324,12 +327,15 @@ test('Photos opens the library first, maps selected photos and publishes without
   assert.deepEqual(Array.from(calls[0].mediaTypes), ['images']);
   assert.equal(calls[0].allowsMultipleSelection, true);
   assert.equal(calls[0].allowsEditing, false);
-  component.input('PSI job reference', 'PSI-2026-1234');
-  component.input('Title', 'Engine repairs');
+  assert.equal(component.find('Field', node => node.props.label === 'PSI job reference'), undefined);
+  assert.equal(component.find('Field', node => node.props.label === 'Title'), undefined);
+  assert.equal(component.count('CalendarDateField'), 0);
   component.press('I checked the customer');
   component.press('Publish');
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(published.phase, null);
+  assert.equal(published.phase, undefined);
+  assert.equal(published.customerId, 'customer-a');
+  assert.equal(published.vehicleId, 'vehicle-a');
   assert.equal(published.runStage, undefined);
   assert.equal(published.files[0].name, 'IMG_1234.HEIC');
   assert.equal(published.files[0].mimeType, 'image/heic');
