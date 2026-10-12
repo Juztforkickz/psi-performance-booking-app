@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -44,7 +45,7 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
   const vehicles = snapshot.vehicles.filter(v => v.customer_id === customerId);
   const selectedCustomer = snapshot.customers.find(c => c.user_id === customerId);
   const selectedVehicle = vehicles.find(v => v.id === vehicleId);
-  const dirty = Boolean(reference || title || notes || power || torque || files.length || confirmed || date !== initialDate || phase !== 'before');
+  const dirty = Boolean(reference || title || notes || power || torque || files.length || confirmed || date !== initialDate || (kind === 'dyno' && phase !== 'before'));
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
   useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
 
@@ -76,6 +77,19 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
     } finally { setBusy(false); }
   };
 
+  const selectPhotos = async () => {
+    if (previewMode || busy) return;
+    setBusy(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: false, allowsMultipleSelection: true, selectionLimit: 50, quality: 1, base64: false, exif: false });
+      if (result.canceled) return;
+      if (!result.assets.length || result.assets.some(asset => !asset.uri)) throw new Error('PHOTO_UNAVAILABLE');
+      setFiles(result.assets.map((asset, index) => ({ uri: asset.uri, name: asset.fileName ?? `Photo ${index + 1}.jpg`, mimeType: asset.mimeType ?? 'image/jpeg', size: asset.fileSize, lastModified: Date.now() })));
+      setConfirmed(false); setMessage('');
+    } catch { setMessage('Photos could not be selected. Please try again.'); }
+    finally { setBusy(false); }
+  };
+
   const selectFiles = async () => {
     if (previewMode || busy) return;
     setBusy(true);
@@ -93,7 +107,7 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
     try {
       if ((power && (!Number.isFinite(Number(power)) || !(Number(power) > 0))) || (torque && (!Number.isFinite(Number(torque)) || !(Number(torque) > 0)))) throw new Error('Power and torque must be positive numbers.');
       const { iso, job } = await validatedJob();
-      await publishVaultRecord(job, { kind, title, notes, date: iso, files, phase, powerKw: power ? Number(power) / 1.34102209 : undefined, torqueNm: torque ? Number(torque) : undefined, runStage: kind === 'dyno' ? phase === 'progress' ? 'baseline' : phase : undefined }, setMessage);
+      await publishVaultRecord(job, { kind, title, notes, date: iso, files, phase: kind === 'dyno' ? phase : null, powerKw: power ? Number(power) / 1.34102209 : undefined, torqueNm: torque ? Number(torque) : undefined, runStage: kind === 'dyno' ? phase === 'progress' ? 'baseline' : phase : undefined }, setMessage);
       setReference(''); setTitle(''); setNotes(''); setPower(''); setTorque('');
       setFiles([]); setConfirmed(false); setDate(initialDate); setPhase('before');
       onDirtyChange?.(false);
@@ -115,11 +129,14 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
         <Field label="PSI job reference"><FormInput editable={!busy} value={reference} onChangeText={value => { setReference(value); setConfirmed(false); }} placeholder="PSI-2026-0123" /></Field>
         <Field label="Title"><FormInput editable={!busy} value={title} onChangeText={value => { setTitle(value); setConfirmed(false); }} placeholder="Major service" /></Field>
         <CalendarDateField disabled={busy} label="Job date" maximumDate={australianDateToIso(initialDate) ?? undefined} onChange={value => { setDate(value); setConfirmed(false); }} value={date} />
-        {!fixedKind ? <View style={styles.choices}>{PUBLISHABLE_VAULT_KINDS.map(value => <Choice disabled={busy} key={value} label={VAULT_LABELS[value]} selected={kind === value} onPress={() => { setKind(value); setFiles([]); setConfirmed(false); }} />)}</View> : null}
-        {kind === 'media' || kind === 'dyno' ? <View style={styles.choices}>{(['before', 'progress', 'after'] as const).map(value => <Choice disabled={busy} key={value} label={value === 'progress' && kind === 'dyno' ? 'Baseline' : `${value[0].toUpperCase()}${value.slice(1)}`} selected={phase === value} onPress={() => { setPhase(value); setConfirmed(false); }} />)}</View> : null}
+        {!fixedKind ? <View style={styles.choices}>{PUBLISHABLE_VAULT_KINDS.map(value => <Choice disabled={busy} key={value} label={value === 'media' ? 'Photos' : VAULT_LABELS[value]} selected={kind === value} onPress={() => { setKind(value); setFiles([]); setConfirmed(false); }} />)}</View> : null}
+        {kind === 'dyno' ? <View style={styles.choices}>{(['before', 'progress', 'after'] as const).map(value => <Choice disabled={busy} key={value} label={value === 'progress' ? 'Baseline' : `${value[0].toUpperCase()}${value.slice(1)}`} selected={phase === value} onPress={() => { setPhase(value); setConfirmed(false); }} />)}</View> : null}
         {kind === 'dyno' ? <><Field label="Power · HP at hubs" hint="Optional"><FormInput editable={!busy} value={power} onChangeText={value => { setPower(value); setConfirmed(false); }} keyboardType="decimal-pad" /></Field><Field label="Torque · Nm at hubs" hint="Optional"><FormInput editable={!busy} value={torque} onChangeText={value => { setTorque(value); setConfirmed(false); }} keyboardType="decimal-pad" /></Field></> : null}
         <Field label="Notes" hint="Optional"><FormInput editable={!busy} value={notes} onChangeText={value => { setNotes(value); setConfirmed(false); }} multiline style={styles.notes} textAlignVertical="top" /></Field>
-        <PrimaryButton disabled={previewMode || busy} label={kind === 'dyno' || kind === 'invoice' ? 'Choose PDFs' : 'Choose files'} variant="outline" onPress={() => void selectFiles()} />
+        {kind === 'media' ? <View style={styles.uploadActions}>
+          <UploadAction label="Upload photos" hint="Choose photos from your photo library" icon="images-outline" primary disabled={previewMode || busy} onPress={() => void selectPhotos()} />
+          <UploadAction label="Upload file" hint="Choose an image or PDF from Files" icon="document-outline" disabled={previewMode || busy} onPress={() => void selectFiles()} />
+        </View> : <PrimaryButton disabled={previewMode || busy} label={kind === 'dyno' || kind === 'invoice' ? 'Choose PDFs' : 'Choose files'} variant="outline" onPress={() => void selectFiles()} />}
         <Text style={styles.muted}>{previewMode ? 'Preview only · File selection is unavailable.' : <>{files.length ? `${files.length} ${files.length === 1 ? 'file' : 'files'} selected` : 'No files selected'}{compact ? '' : ' · Photos resized automatically; PDFs kept intact.'}</>}</Text>
         {files.length ? <PrimaryButton disabled={busy} label="Clear files" variant="outline" onPress={() => { setFiles([]); setConfirmed(false); }} /> : null}
       </View>
@@ -625,6 +642,12 @@ function customerOptions(snapshot: StaffPortalSnapshot) {
 function Choice({ label, selected, onPress, disabled = false }: { label: string; selected: boolean; onPress: () => void; disabled?: boolean }) {
   return <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected, disabled }} disabled={disabled} onPress={onPress} style={[styles.choice, selected && styles.selected]}><Text style={[styles.copy, selected && styles.selectedText]}>{label}</Text></Pressable>;
 }
+function UploadAction({ label, hint, icon, primary = false, disabled, onPress }: { label: string; hint: string; icon: keyof typeof Ionicons.glyphMap; primary?: boolean; disabled: boolean; onPress: () => void }) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[styles.uploadAction, primary && styles.selected, disabled && styles.uploadDisabled]}>
+    <Text style={[styles.uploadText, primary && styles.selectedText]}>Upload</Text>
+    <Ionicons accessible={false} color={primary ? colors.ink : colors.white} name={icon} size={22} />
+  </Pressable>;
+}
 const styles = StyleSheet.create({
   stack: { gap: spacing.md },
   reviewTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
@@ -642,6 +665,10 @@ const styles = StyleSheet.create({
   message: { color: colors.accent, fontSize: 14, lineHeight: 21 },
   error: { color: colors.danger, fontSize: 14, lineHeight: 21 },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  uploadActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  uploadAction: { flexGrow: 1, flexBasis: 120, minHeight: 52, borderWidth: 1.5, borderColor: colors.lineLight, padding: spacing.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
+  uploadText: { color: colors.white, fontSize: 16, fontWeight: '800', flexShrink: 1 },
+  uploadDisabled: { opacity: 0.55 },
   importHeading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between' },
   importStatus: { color: colors.accent, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
   choice: { borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: spacing.sm, minHeight: 44, justifyContent: 'center', flexShrink: 1 },

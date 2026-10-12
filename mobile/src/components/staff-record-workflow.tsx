@@ -18,7 +18,7 @@ const categories: { id: Category; title: string; description?: string; icon: key
   { id: 'recommendation', title: 'Recommended Work', icon: 'alert-circle-outline' },
   { id: 'dyno', title: 'Dyno Results & Graphs', icon: 'speedometer-outline' },
   { id: 'invoice', title: 'Add invoice', description: 'Add an invoice number, AUD amount and PDF.', icon: 'receipt-outline' },
-  { id: 'media', title: 'Workshop Photos', icon: 'images-outline' },
+  { id: 'media', title: 'Photos', icon: 'images-outline' },
   { id: 'document', title: 'Documents & DTCs', icon: 'documents-outline' },
 ];
 const formats: Partial<Record<Category, { title: string; description: string; destination: Destination }[]>> = {

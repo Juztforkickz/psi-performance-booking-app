@@ -51,6 +51,7 @@ function mountComponent(filename, exportName, props, moduleOverrides = {}) {
     },
     '@expo/vector-icons': { Ionicons: 'Icon' },
     'expo-document-picker': {},
+    'expo-image-picker': {},
     '@/components/ui': { PrimaryButton: 'Button', Field: 'Field', FormInput: 'Input' },
     '@/components/calendar-date-field': { CalendarDateField: 'CalendarDateField' },
     '@/components/month-calendar-picker': { MonthCalendarPicker: 'MonthCalendarPicker' },
@@ -164,7 +165,7 @@ test('record creation requires an explicit customer and a vehicle belonging to t
 test('booking/customer shortcuts advance only when both customer and vehicle match', () => {
   const valid = workflow({ customerId: 'customer-a', vehicleId: 'vehicle-a' });
   assert.equal(valid.count('Select'), 0);
-  valid.press('Workshop Photos');
+  valid.press('Photos');
   assert.equal(valid.find('VaultPublisher').props.initialVehicleId, 'vehicle-a');
   const mismatch = workflow({ customerId: 'customer-a', vehicleId: 'vehicle-b' });
   assert.equal(mismatch.count('Select'), 2);
@@ -201,7 +202,7 @@ test('registered header/hardware back respects busy publishing and unsaved chang
   let back = null;
   const flow = workflow({ customerId: 'customer-a', vehicleId: 'vehicle-a', onBackHandlerChange: handler => { back = handler; } });
   assert.equal(typeof back, 'function');
-  flow.press('Workshop Photos');
+  flow.press('Photos');
   flow.find('VaultPublisher').props.onDirtyChange(true);
   flow.find('VaultPublisher').props.onBusyChange(true);
   flow.render();
@@ -282,18 +283,80 @@ test('preview vault forms cannot pick files, create a job, publish, or download 
   }, {
     'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', Platform: { OS: 'web' }, StyleSheet: { create: styles => styles } },
     'expo-document-picker': { getDocumentAsync: forbidden },
+    'expo-image-picker': { launchImageLibraryAsync: forbidden },
     '@/lib/staff-vault': { createOrFindWorkshopJob: forbidden, publishVaultRecord: forbidden },
   });
   component.render();
   component.find('Input', node => node.props.placeholder === 'Major service').props.onChangeText('Example service');
   component.render();
   component.press('I checked the customer');
-  for (const label of ['Choose files', 'Preview only · Publish', 'Download PC folder file']) {
+  for (const label of ['Preview only · Publish', 'Download PC folder file']) {
     const control = component.find('Button', node => node.props.label === label);
     assert.equal(control.props.disabled, true);
     control.props.onPress();
   }
+  for (const label of ['Upload photos', 'Upload file']) {
+    const control = component.find('Pressable', node => node.props.accessibilityLabel === label);
+    assert.equal(control.props.disabled, true);
+    control.props.onPress();
+  }
   assert.equal(operations, 0);
+});
+
+test('Photos opens the library first, maps selected photos and publishes without a stage', async () => {
+  const calls = [];
+  let published;
+  const component = mountComponent('staff-vault-publisher.tsx', 'StaffVaultPublisher', {
+    snapshot, initialCustomerId: 'customer-a', initialVehicleId: 'vehicle-a', fixedIdentity: true, fixedKind: 'media', compact: true,
+  }, {
+    'expo-image-picker': { launchImageLibraryAsync: async options => {
+      calls.push(options);
+      return { canceled: false, assets: [{ uri: 'file:///photo.heic', fileName: 'IMG_1234.HEIC', mimeType: 'image/heic', fileSize: 1234 }, { uri: 'file:///photo.jpg' }] };
+    } },
+    'expo-document-picker': { getDocumentAsync: () => { throw new Error('Photos opened Files'); } },
+    '@/lib/staff-vault': { createOrFindWorkshopJob: async () => ({ id: 'job-a' }), publishVaultRecord: async (job, input) => { published = input; } },
+  });
+  component.render();
+  assert.equal(component.count('Pressable'), 3); // Two upload actions and the existing confirmation.
+  component.find('Pressable', node => node.props.accessibilityLabel === 'Upload photos').props.onPress();
+  await new Promise(resolve => setImmediate(resolve));
+  component.render();
+  assert.deepEqual(Array.from(calls[0].mediaTypes), ['images']);
+  assert.equal(calls[0].allowsMultipleSelection, true);
+  assert.equal(calls[0].allowsEditing, false);
+  component.input('PSI job reference', 'PSI-2026-1234');
+  component.input('Title', 'Engine repairs');
+  component.press('I checked the customer');
+  component.press('Publish');
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(published.phase, null);
+  assert.equal(published.runStage, undefined);
+  assert.equal(published.files[0].name, 'IMG_1234.HEIC');
+  assert.equal(published.files[0].mimeType, 'image/heic');
+  assert.equal(published.files[1].name, 'Photo 2.jpg');
+  assert.equal(published.files[1].mimeType, 'image/jpeg');
+});
+
+test('Photos retains file selection when the library is cancelled and dyno stages stay available', async () => {
+  let libraryCalls = 0;
+  const component = mountComponent('staff-vault-publisher.tsx', 'StaffVaultPublisher', {
+    snapshot, initialCustomerId: 'customer-a', initialVehicleId: 'vehicle-a', fixedIdentity: true, fixedKind: 'media',
+  }, {
+    'expo-document-picker': { getDocumentAsync: async () => ({ canceled: false, assets: [{ uri: 'file:///report.pdf', name: 'Report.pdf', mimeType: 'application/pdf' }] }) },
+    'expo-image-picker': { launchImageLibraryAsync: async () => { libraryCalls++; return { canceled: true, assets: null }; } },
+  });
+  component.render();
+  component.find('Pressable', node => node.props.accessibilityLabel === 'Upload file').props.onPress();
+  await new Promise(resolve => setImmediate(resolve)); component.render();
+  assert(component.find('Button', node => node.props.label === 'Clear files'));
+  component.find('Pressable', node => node.props.accessibilityLabel === 'Upload photos').props.onPress();
+  await new Promise(resolve => setImmediate(resolve)); component.render();
+  assert.equal(libraryCalls, 1);
+  assert(component.find('Button', node => node.props.label === 'Clear files'));
+  const dyno = mountComponent('staff-vault-publisher.tsx', 'StaffVaultPublisher', { snapshot, fixedKind: 'dyno' });
+  dyno.render();
+  assert.equal(dyno.count('Pressable'), 4); // Three dyno stages and confirmation.
+  assert(dyno.find('Button', node => node.props.label === 'Choose PDFs'));
 });
 
 test('preview imports never load protected records, including their mount effect', async () => {

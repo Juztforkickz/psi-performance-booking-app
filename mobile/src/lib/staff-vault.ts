@@ -56,7 +56,7 @@ export async function createOrFindWorkshopJob(input: { customerId: string; vehic
   if (insertError) throw insertError;
   return data;
 }
-export async function publishVaultRecord(job: WorkshopJob, input: { kind: VaultKind; title: string; notes: string; date: string; files: DocumentPickerAsset[]; phase: 'before' | 'progress' | 'after'; powerKw?: number; torqueNm?: number; runStage?: 'before' | 'after' | 'baseline' }, progress: (text: string) => void) {
+export async function publishVaultRecord(job: WorkshopJob, input: { kind: VaultKind; title: string; notes: string; date: string; files: DocumentPickerAsset[]; phase: 'before' | 'progress' | 'after' | null; powerKw?: number; torqueNm?: number; runStage?: 'before' | 'after' | 'baseline' }, progress: (text: string) => void) {
   const { data: auth } = await getSupabaseClient().auth.getUser();
   if (!auth.user) throw new Error('Staff sign-in required.');
   if (!input.title.trim()) throw new Error('Add a title.');
