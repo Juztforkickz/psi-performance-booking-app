@@ -5,6 +5,7 @@ import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'rea
 
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import type { LocalVehiclePhoto } from '@/lib/local-vehicle-photo';
+import { choosePhotoFile } from '@/lib/choose-photo-file';
 
 export function ProfilePhotoPicker({
   initials,
@@ -20,11 +21,16 @@ export function ProfilePhotoPicker({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const choose = async (source: 'camera' | 'library') => {
+  const choose = async (source: 'camera' | 'library' | 'file') => {
     if (busy || saving) return;
     setBusy(true);
     setError('');
     try {
+      if (source === 'file') {
+        const photo = await choosePhotoFile();
+        if (photo) onChange(photo);
+        return;
+      }
       if (source === 'camera') {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
         if (!permission.granted) {
@@ -70,6 +76,7 @@ export function ProfilePhotoPicker({
         <View style={styles.actions}>
           <PhotoAction disabled={disabled} icon="camera-outline" label="Take photo" onPress={() => void choose('camera')} />
           <PhotoAction disabled={disabled} icon="images-outline" label="Choose photo" onPress={() => void choose('library')} />
+          <PhotoAction disabled={disabled} icon="folder-open-outline" label="Upload file" onPress={() => void choose('file')} />
           {uri ? <PhotoAction disabled={disabled} icon="trash-outline" label="Remove" onPress={() => onChange(null)} /> : null}
         </View>
       </View>

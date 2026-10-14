@@ -13,6 +13,7 @@ import {
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { GaragePhotoFraming } from '@/components/garage-photo-framing';
 import { type LocalVehiclePhoto } from '@/lib/local-vehicle-photo';
+import { choosePhotoFile } from '@/lib/choose-photo-file';
 
 export type { LocalVehiclePhoto } from '@/lib/local-vehicle-photo';
 
@@ -40,13 +41,18 @@ export function VehiclePhotoPicker({
   const [error, setError] = useState('');
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
 
-  const pickPhotoFromSource = async (source: 'camera' | 'library') => {
+  const pickPhotoFromSource = async (source: 'camera' | 'library' | 'file') => {
     if (busy || saving || disabled) return;
 
     setBusy(true);
     setError('');
 
     try {
+      if (source === 'file') {
+        const photo = await choosePhotoFile();
+        if (photo) { setPendingPhoto(photo); setQuickMenuOpen(false); }
+        return;
+      }
       if (source === 'camera') {
         const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
         if (!permissionResult.granted) {
@@ -89,7 +95,7 @@ export function VehiclePhotoPicker({
       setPendingPhoto(nextPhoto);
       setQuickMenuOpen(false);
     } catch {
-      setError(source === 'camera' ? 'The camera could not be opened. Try again or choose from your library.' : 'We could not open your photo library. Try again or choose a different image.');
+      setError(source === 'camera' ? 'The camera could not be opened. Try again or choose from your library.' : source === 'file' ? 'That image file could not be opened. Choose another image and try again.' : 'We could not open your photo library. Try again or choose a different image.');
     } finally {
       setBusy(false);
     }
@@ -115,7 +121,7 @@ export function VehiclePhotoPicker({
       <View style={styles.quickContainer}>
         <GaragePhotoFraming photo={pendingPhoto} onCancel={() => setPendingPhoto(null)} onSave={(photo) => { setPendingPhoto(null); onChange(photo); }} />
         <Pressable
-          accessibilityHint="Opens camera and photo-library choices"
+          accessibilityHint="Opens camera, photo library and file choices"
           accessibilityLabel={value ? `Change photo of ${vehicleLabel}` : `Add photo of ${vehicleLabel}`}
           accessibilityRole="button"
           accessibilityState={{ busy: busy || saving, disabled: unavailable, expanded: quickMenuOpen }}
@@ -147,6 +153,16 @@ export function VehiclePhotoPicker({
             >
               <Ionicons color={colors.white} name="images" size={16} />
               <Text style={styles.quickChoiceText}>Photo library</Text>
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Upload vehicle photo from files"
+              accessibilityRole="button"
+              disabled={unavailable}
+              onPress={() => void pickPhotoFromSource('file')}
+              style={({ pressed }) => [styles.quickChoice, pressed && styles.pressed]}
+            >
+              <Ionicons color={colors.white} name="folder-open-outline" size={16} />
+              <Text style={styles.quickChoiceText}>Upload file</Text>
             </Pressable>
             {value ? (
               <Pressable
@@ -196,6 +212,16 @@ export function VehiclePhotoPicker({
       ) : null}
 
       <View style={styles.actions}>
+        <Pressable
+          accessibilityLabel="Upload vehicle photo from files"
+          accessibilityRole="button"
+          accessibilityState={{ busy: busy || saving, disabled: busy || saving || disabled }}
+          disabled={busy || saving || disabled}
+          onPress={() => void pickPhotoFromSource('file')}
+          style={({ pressed }) => [styles.secondaryAction, pressed && styles.pressed, (busy || saving || disabled) && styles.actionDisabled]}
+        >
+          <Text maxFontSizeMultiplier={1.6} style={styles.secondaryActionText}>Upload file</Text>
+        </Pressable>
         <Pressable
           accessibilityLabel="Take a photo from camera"
           accessibilityRole="button"

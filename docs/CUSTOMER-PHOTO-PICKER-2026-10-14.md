@@ -26,3 +26,13 @@ those exact updates, and both downloaded launch bundles match the local tested
 exports byte for byte. Verification uses Expo protocol asset request headers.
 Publication completed at 3:45 pm Sydney time on 14 October 2026.
 Installed devices receive the repair after downloading the update and relaunching.
+
+Customer file selection adds Upload file to both full and compact garage controls
+and to the profile photo controls. It opens the platform file chooser with an
+image filter and copies native selections to cache before image decoding. Selected
+images retain their actual dimensions and enter the existing framing and account
+save flow. Canceling leaves the saved photo intact; nonimage selections and unreadable
+images are rejected. The operating system decides which installed cloud file
+providers appear. No directory scanning or broad device storage permission is needed.
+Fifteen photo component cases pass, including all three platforms, file selection,
+cancellation, invalid files and the compact garage menu. Typecheck and targeted lint pass.
