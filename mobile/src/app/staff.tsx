@@ -999,7 +999,7 @@ export function StaffWorkspace({
         {section === 'connections' ? !connectionTool ? <>
           {role === 'owner' ? <WorkspaceLink title="Xero invoices" detail={REVIEW_ENVIRONMENT.enabled ? 'Unavailable in the demo' : 'Connection and organisation verification'} icon="receipt-outline" onPress={() => navigate('connections', { tool: 'xero' })} /> : null}
           <WorkspaceLink title="Email & Calendar" detail={`${waitingIntegrationJobs.length} waiting delivery jobs`} icon="calendar-outline" onPress={() => navigate('connections', { tool: 'calendar' })} />
-          <WorkspaceLink title="Payments" detail="Setup pending" icon="card-outline" onPress={() => navigate('connections', { tool: 'payments' })} />
+          <WorkspaceLink title="Payments" detail="Booking deposits and invoice syncing" icon="card-outline" onPress={() => navigate('connections', { tool: 'payments' })} />
           <WorkspaceLink title="Workshop PC uploads" detail="Verified folders for photos and dyno PDFs" icon="desktop-outline" onPress={() => navigate('connections', { tool: 'uploads' })} />
         </> : connectionTool === 'xero' ? previewMode ? <PreviewNotice title="Xero invoices">Connect the workshop organisation, then check the customer, vehicle and job before importing an invoice. Live connections are available only in the private portal.</PreviewNotice> : role === 'owner' && !REVIEW_ENVIRONMENT.enabled ? <StaffXeroConnection /> : <EmptyState>Xero setup is available to the owner in the live portal.</EmptyState> : connectionTool === 'calendar' ? <>
         <View style={styles.integrationControls}>
@@ -1064,10 +1064,12 @@ export function StaffWorkspace({
         ) : null}
 
         </> : connectionTool === 'payments' ? <View style={styles.settingsCard}>
-          <Text style={styles.cardTitle}>Payment setup</Text>
-          <Text style={styles.cardCopy}>Bank-transfer deposits are active. Stripe card checkout is optional and has not been connected.</Text>
-          <Text style={styles.cardCopy}>To verify a deposit, open the relevant booking after confirming the payment in PSI’s bank account.</Text>
+          <Text style={styles.cardTitle}>Booking deposits</Text>
+          <Text style={styles.cardCopy}>Card and eligible Apple Pay or Google Pay deposits use Stripe checkout. Stripe confirms their paid status automatically.</Text>
+          <Text style={styles.cardCopy}>Bank transfer deposits need PSI verification after the payment reaches the bank account.</Text>
+          <Text style={styles.cardCopy}>Manage automatic invoice credits and Stripe fee syncing in the Xero connection controls. Deposits wait until the booking invoice is verified.</Text>
           <WorkspaceLink title="Open bookings" icon="calendar-outline" onPress={() => navigate('bookings')} />
+          {role === 'owner' ? <WorkspaceLink title="Xero deposit syncing" icon="receipt-outline" onPress={() => navigate('connections', { tool: 'xero' })} /> : null}
         </View> : <View style={styles.settingsCard}>
           <Text style={styles.cardTitle}>Workshop PC uploads</Text>
           <Text style={styles.cardCopy}>Prepare a separate folder for each PSI job. Photos and dyno PDFs must be linked to a verified customer, vehicle and job.</Text>

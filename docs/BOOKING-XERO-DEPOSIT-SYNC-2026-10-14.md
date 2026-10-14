@@ -62,3 +62,8 @@ customer table privileges denied and anonymous lease execution denied.
 The migration and all three functions are deployed to the existing Supabase
 project with JWT gateway verification enabled. Owner portal controls publish through
 the existing GitHub Pages pipeline. No Netlify deployment is involved.
+
+The workshop Payments screen also removes the outdated claim that Stripe is not
+connected and the Setup pending label. It explains provider confirmed card and
+wallet deposits, manual bank transfer verification, and links owners to the Xero
+deposit controls. Activation remains separately verified by the server.
