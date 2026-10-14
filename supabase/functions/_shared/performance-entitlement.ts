@@ -16,7 +16,7 @@ export function interpretPerformanceEntitlement(subscriber: ProviderSubscriber, 
   const entitlement = subscriber.entitlements?.performance_plus;
   const subscription = entitlement ? subscriber.subscriptions?.[entitlement.product_identifier] : undefined;
   const productsForStore = subscription?.store === 'app_store' ? products.appStore : subscription?.store === 'play_store' ? products.playStore : [];
-  const allowed = !!entitlement && productsForStore.includes(entitlement.product_identifier)
+  const allowed = !!entitlement && !!subscription && productsForStore.includes(entitlement.product_identifier)
     && subscription.ownership_type === 'PURCHASED' && typeof subscription.is_sandbox === 'boolean';
   const sandbox = subscription?.is_sandbox === true;
   if (allowed && sandbox && !allowSandbox) throw new Error('sandbox_subscription_not_allowed');

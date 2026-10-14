@@ -5,8 +5,11 @@ import { xeroInvoiceReader } from '../_shared/xero-invoice-fetch.ts';
 import { xeroInvoiceDate } from '../_shared/xero-invoice-date.ts';
 import { selectExistingInvoiceByIdentity } from '../_shared/xero-invoice-dedupe.ts';
 import { matchXeroInvoice, type VerifiedContactLink, type XeroInvoice } from '../_shared/xero-invoice-match.ts';
-import { xeroDescriptionRegistration } from '../_shared/xero-invoice-registration.ts';
+import { xeroDescriptionRegistration, xeroInvoiceMatchesVehicle } from '../_shared/xero-invoice-registration.ts';
 import { parseXeroTokenSet, requestXeroTokenRefresh } from '../_shared/xero-token-refresh.ts';
+import { waitingInvoiceRefreshReason, reviewNotificationRequired } from '../_shared/xero-sync-decision.ts';
+
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
 type QueueRow = {
   id: string;
@@ -15,6 +18,11 @@ type QueueRow = {
   identifiers: Record<string, unknown>;
   job_id: string | null;
   attempt_count: number;
+  reason: string | null;
+  record_id: string | null;
+  xero_sync_revision: number;
+  xero_sync_lease: string;
+  xero_sync_previous_status: string | null;
 };
 
 type ImportTarget = {
@@ -166,9 +174,12 @@ async function refreshedAccess(admin: SupabaseClient, tenantId: string) {
   }
 }
 
-async function setQueue(admin: SupabaseClient, id: string, values: Record<string, unknown>) {
-  const { error } = await admin.from('vault_import_queue').update(values).eq('id', id);
-  if (error) throw new Error('xero_queue_update_failed');
+async function setQueue(admin: SupabaseClient, queued: QueueRow, values: Record<string, unknown>) {
+  const { data, error } = await admin.rpc('finish_xero_invoice_sync', {
+    p_id: queued.id, p_lease: queued.xero_sync_lease,
+    p_revision: queued.xero_sync_revision, p_values: values,
+  });
+  if (error || data !== true) throw new Error('xero_queue_update_failed');
 }
 
 async function findPublishedWorkshopInvoice(
@@ -238,6 +249,7 @@ async function findExistingVehicleInvoice(
 }
 
 async function alertOwnerForReview(admin: SupabaseClient, ownerId: string, queued: QueueRow, identifiers: Record<string, unknown>) {
+  if (!reviewNotificationRequired(queued.xero_sync_previous_status, queued.reason, String(identifiers.reviewReason ?? ''))) return;
   const invoiceNumber = typeof identifiers.invoiceNumber === 'string' && identifiers.invoiceNumber.trim()
     ? identifiers.invoiceNumber.trim()
     : 'Xero sales invoice';
@@ -333,54 +345,58 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
 
   // Supplier bills belong in Xero, not in the customer-facing PSI workflow.
   // Remove the short-lived webhook queue row as soon as Xero identifies it.
-  if (invoice.Type !== 'ACCREC') {
+  if (invoice.Type !== 'ACCREC' && !queued.record_id && queued.xero_sync_previous_status !== 'waiting_for_customer') {
     const { error } = await admin.from('vault_import_queue').delete().eq('id', queued.id);
     if (error) throw new Error('xero_supplier_bill_cleanup_failed');
     return { id: queued.id, status: 'excluded', reason: 'supplier_bill' };
   }
 
   const enriched = invoiceIdentifiers(queued, invoice);
+  if (queued.xero_sync_previous_status === 'waiting_for_customer') {
+    let changed = invoice.Type !== 'ACCREC' ? 'not_customer_sales_invoice' : waitingInvoiceRefreshReason(queued.identifiers, enriched);
+    if (uuid(queued.identifiers.verifiedWorkshopVehicleId) && uuid(queued.identifiers.verifiedWorkshopContactId)) {
+      const { data: vehicle, error } = await admin.from('workshop_vehicles').select('id,workshop_contact_id,registration,status')
+        .eq('id', queued.identifiers.verifiedWorkshopVehicleId).maybeSingle();
+      if (error) throw new Error('waiting_vehicle_lookup_failed');
+      if (!vehicle || vehicle.status !== 'active' || vehicle.workshop_contact_id !== queued.identifiers.verifiedWorkshopContactId
+        || !xeroInvoiceMatchesVehicle(invoice, '', vehicle.registration)) changed = 'vehicle_ownership_requires_review';
+    }
+    // Legacy waiting entries with no saved target stay waiting. A refresh cannot
+    // infer a target or turn an owner's hold into an import or invitation.
+    await setQueue(admin, queued, {
+      status: changed ? 'needs_review' : 'waiting_for_customer',
+      identifiers: { ...enriched, xeroContactName: enriched.contactName, contactName: queued.identifiers.contactName },
+      reason: changed ?? queued.reason, last_error_code: null,
+    });
+    // Waiting refreshes never invite a customer or publish a new invoice.
+    return { id: queued.id, status: changed ? 'needs_review' : 'waiting_for_customer', reason: changed ?? queued.reason };
+  }
+  if (invoice.Type !== 'ACCREC') {
+    await setQueue(admin, queued, { status: 'needs_review', identifiers: enriched, reason: 'not_customer_sales_invoice', last_error_code: null });
+    return { id: queued.id, status: 'needs_review', reason: 'not_customer_sales_invoice' };
+  }
   if (!['AUTHORISED', 'PAID'].includes(invoice.Status ?? '')) {
-    await setQueue(admin, queued.id, {
+    await setQueue(admin, queued, {
       status: 'needs_review', identifiers: enriched, reason: 'invoice_status_requires_review',
       completed_at: null, last_error_code: null,
     });
-    await alertOwnerForReview(admin, ownerId, queued, enriched).catch(() => undefined);
+    await alertOwnerForReview(admin, ownerId, queued, { ...enriched, reviewReason: 'invoice_status_requires_review' }).catch(() => undefined);
     return { id: queued.id, status: 'needs_review', reason: 'invoice_status_requires_review' };
   }
   const occurredOn = typeof enriched.invoiceDate === 'string' ? enriched.invoiceDate : null;
   if (!occurredOn) {
-    await setQueue(admin, queued.id, {
+    await setQueue(admin, queued, {
       status: 'needs_review', identifiers: enriched, reason: 'invoice_date_requires_review',
       completed_at: null, last_error_code: null,
     });
-    await alertOwnerForReview(admin, ownerId, queued, enriched).catch(() => undefined);
+    await alertOwnerForReview(admin, ownerId, queued, { ...enriched, reviewReason: 'invoice_date_requires_review' }).catch(() => undefined);
     return { id: queued.id, status: 'needs_review', reason: 'invoice_date_requires_review' };
   }
 
   const invoiceNumber = typeof invoice.InvoiceNumber === 'string' && invoice.InvoiceNumber.trim()
     ? invoice.InvoiceNumber.trim().slice(0, 120)
     : invoiceId.slice(0, 8).toUpperCase();
-  // Saved job selections must pass fresh ownership and vehicle evidence checks first.
-  const publishedWorkshopInvoice = queued.job_id ? null : await findPublishedWorkshopInvoice(
-    admin,
-    reference,
-    invoiceNumber,
-    occurredOn,
-    queued.job_id,
-  );
-  if (publishedWorkshopInvoice) {
-    await setQueue(admin, queued.id, {
-      status: 'imported',
-      job_id: publishedWorkshopInvoice.job_id,
-      record_id: publishedWorkshopInvoice.id,
-      identifiers: enriched,
-      reason: 'Already published by the PSI workshop sync; the Xero copy was not duplicated.',
-      completed_at: new Date().toISOString(),
-      last_error_code: null,
-    });
-    return { id: queued.id, status: 'imported', recordId: publishedWorkshopInvoice.id, duplicate: true };
-  }
+  // Every duplicate path must pass fresh verified customer and vehicle checks.
 
   const { data: linked, error: linkError } = uuid(contactId)
     ? await admin.rpc('xero_customer_link_context', { p_tenant_id: tenantId, p_contact_id: contactId })
@@ -447,12 +463,12 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
       confirmedJobId: queued.job_id,
     });
     if (jobMatch.status === 'needs_review') {
-      await setQueue(admin, queued.id, {
+      await setQueue(admin, queued, {
         status: 'needs_review', identifiers: enriched, reason: jobMatch.reason,
         completed_at: null, last_error_code: null,
       });
       // The invoice must remain reviewable even if alert delivery is temporarily unavailable.
-      await alertOwnerForReview(admin, ownerId, queued, enriched).catch(() => undefined);
+      await alertOwnerForReview(admin, ownerId, queued, { ...enriched, reviewReason: jobMatch.reason }).catch(() => undefined);
       return { id: queued.id, status: 'needs_review', reason: jobMatch.reason };
     }
     matched = { ...jobMatch, partsOnly: false };
@@ -469,7 +485,10 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     findExistingVehicleInvoice(admin, matched.customerId, matched.vehicleId, invoiceNumber),
   ]);
   if (publishedMatchedInvoice) {
-    await setQueue(admin, queued.id, {
+    if (publishedMatchedInvoice.customer_id !== matched.customerId || publishedMatchedInvoice.vehicle_id !== matched.vehicleId
+      || (queued.record_id && queued.record_id !== publishedMatchedInvoice.id)) throw new Error('xero_saved_record_target_mismatch');
+    if (matched.jobId) await syncServiceCompletionCandidate(admin, { ...matched, jobId: matched.jobId }, invoice, publishedMatchedInvoice.id);
+    await setQueue(admin, queued, {
       status: 'imported',
       job_id: publishedMatchedInvoice.job_id,
       record_id: publishedMatchedInvoice.id,
@@ -481,7 +500,8 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
     return { id: queued.id, status: 'imported', recordId: publishedMatchedInvoice.id, duplicate: true };
   }
   if (existingVehicleInvoice) {
-    await setQueue(admin, queued.id, {
+    if (queued.record_id) throw new Error('xero_saved_record_target_mismatch');
+    await setQueue(admin, queued, {
       status: 'imported',
       job_id: matched.jobId,
       record_id: null,
@@ -494,12 +514,17 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   }
 
   const sourceReference = matched.sourceReference;
-  const { data: existing, error: existingError } = await admin.from('vault_records').select('id,published_at').eq('source', 'xero').eq('source_reference', sourceReference).maybeSingle();
+  const { data: existing, error: existingError } = await admin.from('vault_records').select('id,published_at,customer_id,vehicle_id,job_id').eq('source', 'xero').eq('source_reference', sourceReference).maybeSingle();
   if (existingError) throw new Error('xero_record_lookup_failed');
+  if (existing && (existing.customer_id !== matched.customerId || existing.vehicle_id !== matched.vehicleId || existing.job_id !== matched.jobId
+    || (queued.record_id && queued.record_id !== existing.id))) throw new Error('xero_saved_record_target_mismatch');
   if (existing?.published_at) {
     if (matched.jobId) await syncServiceCompletionCandidate(admin, { ...matched, jobId: matched.jobId }, invoice, existing.id);
-    await setQueue(admin, queued.id, { status: 'imported', job_id: matched.jobId, record_id: existing.id, identifiers: enriched, reason: 'Invoice already imported.', completed_at: new Date().toISOString(), last_error_code: null });
+    await setQueue(admin, queued, { status: 'imported', job_id: matched.jobId, record_id: existing.id, identifiers: enriched, reason: 'Invoice already imported.', completed_at: new Date().toISOString(), last_error_code: null });
     return { id: queued.id, status: 'imported', recordId: existing.id };
+  }
+  if (queued.xero_sync_previous_status === 'imported' || queued.record_id) {
+    throw new Error('xero_saved_invoice_requires_review');
   }
 
   const pdf = await reader.pdf(invoiceId);
@@ -555,7 +580,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
 
   if (matched.jobId) await syncServiceCompletionCandidate(admin, { ...matched, jobId: matched.jobId }, invoice, recordId);
 
-  await setQueue(admin, queued.id, {
+  await setQueue(admin, queued, {
     status: 'imported', job_id: matched.jobId, record_id: recordId,
     identifiers: enriched,
     reason: matched.partsOnly
@@ -618,27 +643,30 @@ Deno.serve(async request => {
       return json({ connected: false, error: errorCode(error) }, 503);
     }
   }
-  const processableStatuses = body.queueId ? ['pending','matched','failed','needs_review'] : ['pending','matched','failed'];
-  let query = admin.from('vault_import_queue').select('id,source_key,status,identifiers,job_id,attempt_count').eq('source', 'xero').in('status', processableStatuses).lt('attempt_count', 20).order('created_at').limit(limit);
-  query = body.queueId ? query.eq('id', body.queueId) : query.lte('available_at', new Date().toISOString());
-  const { data: queued, error: queueError } = await query;
+  const { data: queued, error: queueError } = await admin.rpc('claim_xero_invoice_sync', { p_limit: limit, p_queue_id: body.queueId ?? null });
   if (queueError) return json({ error: 'xero_queue_unavailable' }, 500);
 
   const results = [];
-  for (const candidate of (queued ?? []) as QueueRow[]) {
-    const { data: claimed, error: claimError } = await admin.from('vault_import_queue').update({
-      status: 'processing', attempt_count: candidate.attempt_count + 1,
-      last_attempt_at: new Date().toISOString(), last_error_code: null,
-    }).eq('id', candidate.id).eq('status', candidate.status).select('id,source_key,status,identifiers,job_id,attempt_count').maybeSingle();
-    if (claimError || !claimed) continue;
+  for (const claimed of (queued ?? []) as QueueRow[]) {
     try {
       results.push(await importInvoice(admin, claimed as QueueRow));
     } catch (error) {
       const code = errorCode(error);
+      if (code === 'xero_queue_update_failed') { results.push({ id: claimed.id, status: 'superseded' }); continue; }
       const delay = Math.min(60, 2 ** Math.min(5, Number(claimed.attempt_count))) * 60_000;
-      await setQueue(admin, claimed.id, { status: 'failed', reason: 'Secure Xero import will retry. Open the item if owner review is requested.', last_error_code: code, available_at: new Date(Date.now() + delay).toISOString() });
+      const previous = claimed.xero_sync_previous_status;
+      const savedMismatch = code === 'xero_saved_record_target_mismatch' || code === 'xero_saved_invoice_requires_review';
+      await setQueue(admin, claimed, { status: savedMismatch ? 'needs_review' : ['imported','waiting_for_customer'].includes(previous ?? '') ? previous : 'failed',
+        reason: savedMismatch ? code : claimed.reason ?? 'Secure Xero import will retry.', last_error_code: code, available_at: new Date(Date.now() + delay).toISOString() });
       results.push({ id: claimed.id, status: 'failed', errorCode: code });
     }
+  }
+  if (results.some(result => result.status !== 'failed')) {
+    // Drain deliveries received during a lease, without retrying delayed failures.
+    EdgeRuntime.waitUntil(fetch(`${supabaseUrl}/functions/v1/process-xero-imports`, {
+      method: 'POST', headers: { Authorization: `Bearer ${serviceRoleKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ limit }),
+    }).then(response => response.body?.cancel()).catch(() => undefined));
   }
   return json({ processed: results.length, results });
 });

@@ -4,6 +4,9 @@ import { createRequire } from 'node:module';
 import vm from 'node:vm';
 import test from 'node:test';
 import { xeroDescriptionRegistration } from '../supabase/functions/_shared/xero-invoice-registration.ts';
+import { waitingInvoiceRefreshReason, reviewNotificationRequired } from '../supabase/functions/_shared/xero-sync-decision.ts';
+import { xeroInvoiceDate } from '../supabase/functions/_shared/xero-invoice-date.ts';
+import { selectExistingInvoiceByIdentity } from '../supabase/functions/_shared/xero-invoice-dedupe.ts';
 
 const require = createRequire(import.meta.url);
 const ts = require('../mobile/node_modules/typescript');
@@ -39,6 +42,9 @@ function inspectionHost({ invoiceChanges = {}, status = 'needs_review', changedD
     },
   };
   const modules = {
+    '../_shared/xero-invoice-date.ts': { xeroInvoiceDate },
+    '../_shared/xero-invoice-dedupe.ts': { selectExistingInvoiceByIdentity },
+    '../_shared/xero-sync-decision.ts': { waitingInvoiceRefreshReason, reviewNotificationRequired },
     'jsr:@supabase/functions-js/edge-runtime.d.ts': {},
     'npm:@supabase/supabase-js@2.112.3': { createClient: () => authenticated ? admin : { auth: { getUser: async () => ({ data: {} }) } } },
     '../_shared/xero-token-crypto.ts': {},

@@ -48,9 +48,8 @@ test('Xero imports rotate tokens, require an owner-confirmed match and publish o
   assert.match(worker, /body\.action === 'health_check'/u);
   assert.match(worker, /IDs', '00000000-0000-4000-8000-000000000000'/u);
   assert.match(worker, /return json\(\{ connected: true \}\)/u);
-  assert.match(webhook, /status: 'pending'/u);
-  assert.match(webhook, /source_key: `\$\{tenant\}:\$\{e\.resourceId\}`/u);
-  assert.match(webhook, /\.neq\('status', 'ignored'\)/u);
+  assert.match(webhook, /enqueue_xero_invoice_events/u);
+  assert.doesNotMatch(webhook, /\.update\(/u);
   assert.doesNotMatch(webhook, /source_key: `\$\{tenant\}:\$\{e\.resourceId\}:\$\{e\.eventDateUtc\}/u);
   assert.match(webhook, /EdgeRuntime\.waitUntil/u);
   assert.match(webhook, /functions\/v1\/process-xero-imports/u);
@@ -59,7 +58,7 @@ test('Xero imports rotate tokens, require an owner-confirmed match and publish o
   assert.match(worker, /matchXeroInvoice/u);
   assert.match(worker, /invoice\.Type !== 'ACCREC'[\s\S]*?vault_import_queue'\)\.delete/u);
   assert.match(worker, /findPublishedWorkshopInvoice/u);
-  assert.match(worker, /Already published by the PSI workshop sync; the Xero copy was not duplicated\./u);
+  assert.match(worker, /Already published for this verified PSI workshop job; the Xero copy was not duplicated\./u);
   assert.match(worker, /findExistingVehicleInvoice/u);
   assert.match(worker, /already in the matched vehicle folder\. The Xero copy was not added\./u);
   assert.match(worker, /findExistingVehicleInvoice[\s\S]*?reader\.pdf\(invoiceId\)/u);
