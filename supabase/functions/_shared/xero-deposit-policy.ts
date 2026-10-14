@@ -67,3 +67,24 @@ export function verifyStripeDeposit(
 export function allowFinancialWrite(intent: unknown) {
   if (intent) throw new Error("uncertain_previous_write_requires_review");
 }
+
+// A verified Xero import may reuse a published workshop PC invoice. Its durable
+// import identity, rather than the PDF's upload source, identifies the Xero invoice.
+export function selectBookingInvoice(
+  links: Record<string, any>[],
+  record: Record<string, any> | null,
+  context: {tenantId:string;jobId:string;customerId:string;vehicleId:string},
+): string | null {
+  if (!links.length) return null;
+  const link = links[0];
+  const parts = String(link.source_key).split(':');
+  if (links.length !== 1 || link.source !== 'xero' || link.status !== 'imported'
+    || link.job_id !== context.jobId || parts.length !== 2 || parts[0] !== context.tenantId
+    || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(parts[1])
+    || !record || record.id !== link.record_id || record.job_id !== context.jobId
+    || record.customer_id !== context.customerId || record.vehicle_id !== context.vehicleId
+    || record.kind !== 'invoice' || !record.published_at || !Number.isFinite(Date.parse(record.published_at))) {
+    throw new Error('invoice_identity_requires_review');
+  }
+  return parts[1];
+}

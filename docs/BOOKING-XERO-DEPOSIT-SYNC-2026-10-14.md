@@ -12,8 +12,10 @@ live Stripe payment, booking identity, customer, vehicle, verified Xero contact
 link and published invoice from that booking's PSI workshop job. It applies the
 gross deposit as an invoice payment and records the actual processing fee using
 PSI's verified existing bank account and Stripe Fees account. The original invoice
-total remains intact. Its current balance and PDF refresh through the existing
-verified invoice importer.
+total remains intact. Its current Xero balance and payment status refresh through
+the existing verified invoice importer. Duplicate protection may retain a
+previously published workshop PC PDF, which is linked through the durable Xero
+import identity rather than creating a second invoice record.
 
 Payments wait in the queue until the exact booking invoice is published and
 verified. This release does not create Xero prepayments before an invoice exists.
@@ -52,12 +54,19 @@ intentional. No new security warnings were introduced.
 
 ## Validation and release
 
-Eight focused financial policy tests pass. Strict Deno checks pass for the new
+Ten focused financial policy tests pass. Strict Deno checks pass for the new
 worker, connection function and invoice importer. Mobile typecheck and targeted
 owner component lint pass. The live authenticated scheduler smoke test returns
 HTTP 200 with syncing disabled and zero processed entries. Database readback
 confirms two audited deposits synced, two historical deposits held for review,
 customer table privileges denied and anonymous lease execution denied.
+
+On 14 October 2026 the owner authorised Xero access for PSI PERFORMANCE.
+Activation verified the granted scopes and account mapping, and the persisted
+configuration now shows enabled. The live worker returned HTTP 200 with enabled
+true and zero due entries. The two corrected deposits remain synced, while the
+other two historical deposits remain held for separate review. No payment was
+repeated during activation.
 
 The migration and all three functions are deployed to the existing Supabase
 project with JWT gateway verification enabled. Owner portal controls publish through

@@ -15,6 +15,7 @@ import {
   allowFinancialWrite,
   cents,
   requireDepositScopes,
+  selectBookingInvoice,
   verifyDepositInvoice,
   verifyStripeDeposit,
 } from "../_shared/xero-deposit-policy.ts";
@@ -214,16 +215,11 @@ async function processDeposit(admin: SupabaseClient, api: Xero, row: Row) {
     job.customer_id !== booking.customer_id ||
     job.vehicle_id !== booking.vehicle_id
   ) throw new Error("job_identity_requires_review");
-  const { data: records, error: recordError } = await admin.from(
-    "vault_records",
-  ).select("id,customer_id,vehicle_id,source_reference,published_at")
-    .eq("job_id", job.id).eq("source", "xero").eq("kind", "invoice").not(
-      "published_at",
-      "is",
-      null,
-    );
-  if (recordError) throw new Error("invoice_lookup_failed");
-  if (!records?.length) {
+  const {data: links,error: linkLookupError} = await admin.from('vault_import_queue')
+    .select('id,source,source_key,status,job_id,record_id').eq('source','xero')
+    .eq('status','imported').eq('job_id',job.id).limit(2);
+  if (linkLookupError) throw new Error('invoice_lookup_failed');
+  if (!links?.length) {
     await save(admin, row, {
       status: "waiting_invoice",
       available_at: new Date(Date.now() + 300000).toISOString(),
@@ -231,14 +227,12 @@ async function processDeposit(admin: SupabaseClient, api: Xero, row: Row) {
     });
     return;
   }
-  if (
-    records.length !== 1 || records[0].customer_id !== booking.customer_id ||
-    records[0].vehicle_id !== booking.vehicle_id
-  ) throw new Error("invoice_identity_requires_review");
-  const [tenant, invoiceId] = String(records[0].source_reference).split(":");
-  if (tenant !== PSI.tenant || !uuid(invoiceId)) {
-    throw new Error("invoice_identity_requires_review");
-  }
+  if (links.length !== 1 || !uuid(links[0].record_id)) throw new Error('invoice_identity_requires_review');
+  const recordLookup = await admin.from('vault_records')
+    .select('id,job_id,customer_id,vehicle_id,kind,published_at').eq('id',links[0].record_id).maybeSingle();
+  if (recordLookup.error) throw new Error('invoice_lookup_failed');
+  const invoiceId = selectBookingInvoice(links,recordLookup.data,{tenantId:PSI.tenant,jobId:job.id,customerId:booking.customer_id,vehicleId:booking.vehicle_id});
+  if (!invoiceId) throw new Error('invoice_identity_requires_review');
   const invoiceResponse = await api(`Invoices/${invoiceId}`);
   if (invoiceResponse.Invoices?.length !== 1) {
     throw new Error("invoice_identity_requires_review");
@@ -366,7 +360,8 @@ async function processDeposit(admin: SupabaseClient, api: Xero, row: Row) {
       await save(admin, row, { fee_transaction_id: feeId });
     }
   }
-  // Refresh the customer's original invoice PDF and current balance through the existing verified importer.
+  // Refresh current Xero balance and status. Duplicate protection retains an
+  // existing workshop PC PDF instead of creating a second invoice record.
   const refreshed = await admin.from("vault_import_queue").update({
     status: "matched",
     available_at: now(),
