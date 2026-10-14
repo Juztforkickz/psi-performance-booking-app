@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "version": "1.2.15",
-  "publishedAt": "2026-10-14T22:45:20.594Z",
+  "version": "1.2.16",
+  "publishedAt": "2026-10-14T23:21:45.585Z",
   "baseUrl": "https://raw.githubusercontent.com/Juztforkickz/psi-performance-booking-app/main/operations/workshop-pc/",
   "files": [
     {
       "name": "psi_uploads.py",
-      "sha256": "dcd3398aa9c9d94001cac4206aeb751ab29655d11bb547122bbf42ce064ca87e"
+      "sha256": "a30a49116cf36e5607195b5b3a4a335ddf024486474ed3ce76d4259348e5b76a"
     },
     {
       "name": "requirements.txt",

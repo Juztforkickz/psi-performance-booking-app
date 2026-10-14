@@ -32,7 +32,11 @@ For a phone or walk-in job, open the desktop shortcut and choose **Create a phon
 
 Files for a workshop-only customer are prepared once and marked `waiting_for_customer_account`; they remain local and private rather than being attached to the wrong identity, and unchanged files are not repeatedly prepared or reported as errors. The customer creates their own app account and enters their vehicle. A matching registration plus either the verified account email, or exact normalized full name and mobile, automatically links the eligible workshop vehicles and jobs. The existing folder manifest upgrades automatically and the next watcher scan uploads each waiting file once. Its local terminal status becomes `uploaded` (synced), so unchanged files are not retried or alerted again. This rule applies equally to invoices, workshop photos, documents/DTCs, dyno PDFs, service history notes and recommended-work notes. Anything without that deterministic match remains in the owner portal for manual review. Similarity alone never transfers records automatically.
 
-The upload root contains one folder per customer. Every verified vehicle job sits inside that customer folder and keeps its own category folders. For example, one customer can contain `2010 HOLDEN VE SSV REDLINE - 1YT9HQ - PSI-PHONE-...` and `2008 FORD FALCON - ABC123 - PSI-PHONE-...`. The registration and unique PSI job reference keep vehicles and visits separate. Synchronization safely moves older verified flat folders into this structure by reading protected customer, vehicle and job IDs. When an eligible workshop-only job is claimed by a newly registered customer, the existing customer folder is kept and its protected marker is upgraded in place. This preserves every local file and avoids an unnecessary Windows rename when the verified app profile uses slightly different punctuation or capitalization. A verified retry also clears any stale whole-folder review message. Completed files are not changed or re-uploaded.
+The upload root contains one folder per customer and one canonical workspace per verified vehicle. Inside each vehicle, **Jobs** contains dated visit folders with their original job references and IDs. Each visit keeps its own six category folders, manifest, upload receipts and photo attribution. For example, `ALEX CROKER/2016 HOLDEN VF2 SSV - 2CF9JD/Jobs/` can contain separate 12 October booking and 13 October engine repair visits. They are not duplicate vehicle workspaces and their database jobs are never collapsed. Place files inside the correct dated visit's categories, not directly in the vehicle workspace. New manual jobs, background sync and downloaded manifests all resolve this same vehicle workspace first.
+
+Workspace ownership uses project, customer and vehicle IDs, checked with registration, year, make and model. Matching names or registrations with different IDs never merges customers or vehicles. Multiple canonical folders with the same identity or conflicting known vehicle details stop for review before a manual job is created. Missing older display metadata can be filled without changing ownership. The account-claim rules remain unchanged.
+
+Legacy job folders are moved intact into their verified vehicle's Jobs directory. Before each move, the updater's uploader copies every source file, including hidden receipts and manifests, into hidden `.psi-workspace-recovery/<checkpoint>/original` under the upload root. A `migration.json` records original and destination paths and every file's size and SHA256. The source, backup and moved destination must match; occupied destinations are never overwritten. Recovery storage is never scanned for upload. This is reversible: with watching paused, compare the destination with the journal inventory, then restore the saved original to its recorded source path without overwriting later work. Retain the checkpoint if anything changed. Empty app-managed vehicle/customer containers may be removed after a verified move; no customer file is deleted.
 
 When creating a job for an existing app vehicle, eligible invoice-only Xero jobs for that exact customer and vehicle are displayed. Select the matching invoice job to reuse its desktop folder, reference and original invoice date. Its published invoice stays linked. Choose **Create a separate visit** for genuinely different work. Jobs with a booking or any non-invoice record are never offered for reuse. A matching name alone never merges jobs.
 
@@ -49,14 +53,16 @@ python psi_uploads.py --root "C:/PSI Uploads" --add-job "C:/Users/YOU/Downloads/
 ```text
 C:/PSI Uploads/
   CUSTOMER NAME/
-    2020 FORD MUSTANG - ABC123 - PSI-2026-0123/
-      psi-job.json
-      Service & repair history/
-      Recommended work/        (.txt notes only)
-      Dyno results & graphs/   (PDF only)
-      Invoice archive/         (PDF only)
-      Workshop photos/
-      Documents + DTC's/
+    2020 FORD MUSTANG - ABC123/
+      Jobs/
+        2026-10-15 - PSI-2026-0123 - job-id/
+          psi-job.json
+          Service & repair history/
+          Recommended work/        (.txt notes only)
+          Dyno results & graphs/   (PDF only)
+          Invoice archive/         (PDF only)
+          Workshop photos/
+          Documents + DTC's/
 ```
 
 To inspect local preparation without upload:
@@ -78,6 +84,8 @@ Add `--watch`, `--session-file` and `--manifest-inbox` to match the installed au
 - The menu requests a graceful handover before creating a walk-in job. The watcher checks pause requests between files, downloads, photo comparisons and read requests, rather than waiting for a whole workshop scan. In-progress upload writes and completed receipts finish safely. The menu and updater allow a slow current transfer to finish, keep showing progress, and never force-kill uploads. Returning to the menu, including a handover timeout, restores automatic watching. Photo matching uses native image cell sums and reuses local signatures within a download scan; its identity thresholds are unchanged.
 
 - Every live watcher scan checks for byte-identical source copies inside each verified job/category before upload. One source is kept, preferring its already-uploaded copy; extras and their previous statuses are retained in hidden `.psi-duplicate-originals` recovery storage, never permanently deleted. Different categories, vehicles, jobs, changed content and unfinished transfers are never merged by this rule. The hidden upload-root `.psi-duplicate-review.json` is refreshed on every job sync with uncertain same-account, same-vehicle, same-date invoice jobs and sync errors. Those require reviewed workspace linking; date or name similarity alone never authorizes consolidation. Published cloud records are not deleted or reassigned.
+
+- One vehicle workspace is a filesystem grouping, not permission to merge different database jobs or job histories. Portal photo downloads filter on each visit's original job ID, and uploads use that visit's own job ID and date. Existing owner-approved same-visit invoice links keep their original protections. Differently dated jobs do not use a shared primary manifest.
 
 - An owner-approved `.psi-linked-jobs.json` groups existing published invoice jobs into one primary desktop job workspace. The watcher verifies every linked job against live project, account, vehicle, registration and visit date before reusing the folder. It never guesses links from names and never changes published record IDs or storage objects. A linked invoice PDF placed in the primary `Invoice archive` is matched across these verified jobs rather than uploaded again. A stale link or an existing second folder stops for review. The original job associations remain protected in the app. Separate visits are not grouped automatically.
 

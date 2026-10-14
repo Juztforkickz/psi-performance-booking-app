@@ -22,6 +22,7 @@ import urllib.request
 import uuid
 from datetime import date, datetime, timedelta
 import re
+import shutil
 from PIL import Image, ImageOps, ImageChops, ImageStat
 from pillow_heif import register_heif_opener
 
@@ -52,6 +53,8 @@ TEXT_RECORD_CATEGORIES = {
 CUSTOMER_FOLDER_MARKER = '.psi-customer-folder.json'
 LEGACY_VEHICLE_INDEX_FOLDER = '00 CUSTOMER VEHICLES - VIEW ONLY'
 LEGACY_VEHICLE_INDEX_MARKER = 'psi-vehicle-index.json'
+VEHICLE_WORKSPACE_MARKER = '.psi-vehicle-workspace.json'
+WORKSPACE_RECOVERY_FOLDER = '.psi-workspace-recovery'
 
 
 class PauseRequested(BaseException):
@@ -373,7 +376,7 @@ def _customer_folder_for(root, manifest, existing_folder=None, existing_manifest
 
     desired = root / _customer_folder_label(manifest)
     folder = matches[0] if matches else None
-    existing_parent = existing_folder.parent if existing_folder and existing_folder.parent != root else None
+    existing_parent = _customer_parent(root, existing_folder) if existing_folder else None
     claim_upgrade = (
         folder is None and existing_parent is not None and _read_customer_marker(existing_parent)
         and existing_manifest is not None and _manifest_update_allowed(existing_manifest, manifest)
@@ -485,13 +488,7 @@ def _manifest_update_allowed(existing, manifest, allow_workshop_identity_repair=
 def _existing_job_folder(root, job_id):
     matches = []
     if root.is_dir():
-        candidates = []
-        for top in root.iterdir():
-            if top.is_symlink() or not top.is_dir():
-                continue
-            candidates.append(top)
-            if _read_customer_marker(top):
-                candidates.extend(child for child in top.iterdir() if child.is_dir() and not child.is_symlink())
+        candidates, _ = local_folder_scan(root)
         for candidate in candidates:
             manifest_path = candidate / 'psi-job.json'
             if not manifest_path.is_file():
@@ -505,6 +502,174 @@ def _existing_job_folder(root, job_id):
     if len(matches) > 1:
         raise ValueError('More than one local folder has this PSI job ID; PSI review required')
     return matches[0] if matches else (None, None)
+
+
+def _customer_parent(root, folder):
+    """Find the managed customer above either a legacy job or a vehicle visit."""
+    for parent in (folder, *folder.parents):
+        if parent == root:
+            break
+        if parent.parent == root and _read_customer_marker(parent):
+            return parent
+    return None
+
+
+def _workspace_identity(manifest):
+    owner_key, owner_id = _customer_identity(manifest)
+    vehicle_id = manifest.get('vehicle_id') if manifest.get('schema') == 1 else manifest.get('workshop_vehicle_id')
+    return manifest.get('project_ref'), owner_key, owner_id, vehicle_id
+
+
+def _vehicle_description(manifest):
+    return (
+        re.sub(r'[^A-Z0-9]', '', str(manifest.get('registration', '')).upper()),
+        str(manifest.get('vehicle_year') or ''),
+        ' '.join(str(manifest.get('vehicle_make') or '').casefold().split()),
+        ' '.join(str(manifest.get('vehicle_model') or '').casefold().split()),
+    )
+
+
+def _compatible_vehicle_description(first, second):
+    return len(first) == len(second) == 4 and all(not a or not b or a == b for a, b in zip(first, second))
+
+
+def vehicle_workspace_label(manifest):
+    text = ' '.join(str(manifest.get(key) or '') for key in ('vehicle_year', 'vehicle_make', 'vehicle_model')).strip()
+    return (_safe_folder_part(text, 100) + ' - ' + _safe_folder_part(manifest['registration'], 20)).upper().strip(' .-')
+
+
+def _read_vehicle_workspace(folder):
+    path = folder / VEHICLE_WORKSPACE_MARKER
+    if folder.is_symlink() or path.is_symlink():
+        raise ValueError('Vehicle workspaces must not use symlinks')
+    if not path.is_file():
+        return None
+    marker = json.loads(path.read_text(encoding='utf-8-sig'))
+    if marker.get('schema') != 1 or marker.get('purpose') != 'vehicle_workspace':
+        raise ValueError('Invalid vehicle workspace marker')
+    return marker
+
+
+def _preflight_vehicle_workspace(root, manifest, connection=None):
+    """IDs decide ownership; matching labels with different IDs never merge."""
+    matches = []
+    for customer in root.iterdir() if root.is_dir() else []:
+        if not _marker_matches(_read_customer_marker(customer), _customer_identity(manifest)):
+            continue
+        for candidate in customer.iterdir():
+            if not candidate.is_dir() or candidate.is_symlink():
+                continue
+            marker = _read_vehicle_workspace(candidate)
+            if marker is not None:
+                if tuple(marker.get('identity', [])) != _workspace_identity(manifest):
+                    if (tuple(marker.get('identity', []))[:3] == _workspace_identity(manifest)[:3]
+                            and tuple(marker.get('description', [])) == _vehicle_description(manifest)):
+                        raise ValueError('Matching vehicle details have different vehicle IDs; PSI review required')
+                    continue
+                if not _compatible_vehicle_description(tuple(marker.get('description', [])), _vehicle_description(manifest)):
+                    raise ValueError('Vehicle workspace details conflict with the verified vehicle; PSI review required')
+                matches.append(candidate)
+            elif (candidate / 'psi-job.json').is_file():
+                existing = manifest_for(candidate)
+                if _workspace_identity(existing) != _workspace_identity(manifest):
+                    if (_workspace_identity(existing)[:3] == _workspace_identity(manifest)[:3]
+                            and _vehicle_description(existing) == _vehicle_description(manifest)):
+                        raise ValueError('Matching legacy vehicle details have different vehicle IDs; PSI review required')
+                    continue
+                verify_manifest(existing, connection)
+                if _workspace_identity(existing) == _workspace_identity(manifest) and not _compatible_vehicle_description(_vehicle_description(existing), _vehicle_description(manifest)):
+                    raise ValueError('Legacy vehicle details conflict; preserve and review both folders')
+    if len(matches) > 1:
+        raise ValueError('More than one canonical workspace has this vehicle ID; PSI review required')
+    return matches[0] if matches else None
+
+
+def _vehicle_workspace_for(root, customer, manifest):
+    workspace = _preflight_vehicle_workspace(root, manifest)
+    if workspace is not None:
+        marker = _read_vehicle_workspace(workspace)
+        description = [old or new for old, new in zip(marker['description'], _vehicle_description(manifest))]
+        if description != marker['description']:
+            desired = customer / vehicle_workspace_label(manifest)
+            if workspace != desired and not desired.exists():
+                _move_job_into_workspace(root, workspace, desired)
+                workspace = desired
+            marker['description'] = description
+            atomic_json(workspace / VEHICLE_WORKSPACE_MARKER, marker)
+    if workspace is None:
+        workspace = customer / vehicle_workspace_label(manifest)
+        if workspace.exists():
+            workspace = customer / (vehicle_workspace_label(manifest) + ' - ' + _workspace_identity(manifest)[3][:8].upper())
+        if workspace.exists():
+            raise ValueError('Vehicle workspace destination is occupied; nothing overwritten')
+        workspace.mkdir()
+        atomic_json(workspace / VEHICLE_WORKSPACE_MARKER, {
+            'schema': 1, 'purpose': 'vehicle_workspace', 'identity': list(_workspace_identity(manifest)),
+            'description': list(_vehicle_description(manifest)),
+        })
+        hide_windows_folder(workspace / VEHICLE_WORKSPACE_MARKER)
+    jobs = workspace / 'Jobs'
+    if jobs.is_symlink():
+        raise ValueError('Vehicle Jobs directory must not be a symlink')
+    jobs.mkdir(exist_ok=True)
+    return workspace
+
+
+def workspace_inventory(folder):
+    """Recovery proof includes receipts and hidden metadata, not just visible files."""
+    result = {}
+    for path in sorted(folder.rglob('*')):
+        if path.is_symlink():
+            raise ValueError('A migration source contains a symlink; nothing moved')
+        if path.is_file():
+            result[str(path.relative_to(folder))] = {
+                'bytes': path.stat().st_size, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+            }
+    return result
+
+
+def _move_job_into_workspace(root, source, destination):
+    if source.resolve().is_relative_to(root.resolve()) is False or destination.resolve().is_relative_to(root.resolve()) is False:
+        raise ValueError('Workspace migration must stay inside the upload root')
+    if destination.exists() or destination.is_symlink():
+        raise ValueError('Job destination is occupied; nothing overwritten')
+    recovery = root / WORKSPACE_RECOVERY_FOLDER
+    if recovery.is_symlink():
+        raise ValueError('Workspace recovery must not be a symlink')
+    recovery.mkdir(exist_ok=True)
+    marker = recovery / '.psi-recovery.json'
+    if marker.is_symlink():
+        raise ValueError('Invalid recovery marker')
+    if not marker.exists():
+        atomic_json(marker, {'schema': 1, 'purpose': 'vehicle_workspace_recovery'})
+    elif json.loads(marker.read_text(encoding='utf-8-sig')) != {'schema': 1, 'purpose': 'vehicle_workspace_recovery'}:
+        raise ValueError('Recovery folder is not app-managed; nothing moved')
+    hide_windows_folder(recovery)
+    checkpoint = recovery / uuid.uuid4().hex
+    checkpoint.mkdir()
+    inventory = workspace_inventory(source)
+    shutil.copytree(source, checkpoint / 'original', copy_function=shutil.copy2)
+    if workspace_inventory(checkpoint / 'original') != inventory or workspace_inventory(source) != inventory:
+        raise ValueError('Files changed during backup; source left untouched')
+    journal = {'schema': 1, 'source': str(source.relative_to(root)), 'destination': str(destination.relative_to(root)),
+               'inventory': inventory, 'state': 'backed_up'}
+    atomic_json(checkpoint / 'migration.json', journal)
+    source.rename(destination)
+    if workspace_inventory(destination) != inventory:
+        raise ValueError('Migration verification failed; recovery copy preserved')
+    journal['state'] = 'complete'
+    atomic_json(checkpoint / 'migration.json', journal)
+
+
+def _cleanup_empty_vehicle_workspace(folder):
+    if not folder or not _read_vehicle_workspace(folder):
+        return
+    jobs = folder / 'Jobs'
+    if jobs.is_dir() and not jobs.is_symlink() and not any(jobs.iterdir()):
+        if set(item.name for item in folder.iterdir()) == {VEHICLE_WORKSPACE_MARKER, 'Jobs'}:
+            jobs.rmdir()
+            (folder / VEHICLE_WORKSPACE_MARKER).unlink()
+            folder.rmdir()
 
 
 def _available_photo_destination(photos, phase, name):
@@ -653,32 +818,44 @@ def _linked_workspace(root, manifest, connection):
 
 def create_folder_from_manifest(root, manifest, allow_workshop_identity_repair=False, connection=None):
     root.mkdir(parents=True, exist_ok=True)
+    verify_manifest(manifest, connection)
     linked_folder = _linked_workspace(root, manifest, connection)
     if linked_folder is not None:
         return linked_folder
     folder, existing = _existing_job_folder(root, manifest['job_id'])
-    previous_parent = folder.parent if folder else None
-    customer_folder = _customer_folder_for(root, manifest, folder, existing)
-    if folder is not None and not folder.exists() and (customer_folder / folder.name).exists():
-        folder = customer_folder / folder.name
-    desired = customer_folder / folder_label_for(manifest)
-    if folder is None:
-        folder = desired
-        folder.mkdir(exist_ok=True)
-        destination = folder / 'psi-job.json'
-        existing = json.loads(destination.read_text(encoding='utf-8-sig')) if destination.exists() else None
-    else:
-        destination = folder / 'psi-job.json'
     if existing is not None and existing != manifest and not _manifest_update_allowed(
         existing, manifest, allow_workshop_identity_repair
     ):
         raise ValueError('This folder already contains a different PSI job manifest')
+    previous_parent = _customer_parent(root, folder) if folder else None
+    previous_workspace = folder.parent.parent if folder and folder.parent.name == 'Jobs' else None
+    customer_folder = _customer_folder_for(root, manifest, folder, existing)
+    if folder is not None and not folder.exists():
+        folder, _ = _existing_job_folder(root, manifest['job_id'])
+        if folder is None:
+            raise ValueError('The existing job folder moved unexpectedly; PSI review required')
+        previous_workspace = folder.parent.parent if folder.parent.name == 'Jobs' else None
+    workspace = _vehicle_workspace_for(root, customer_folder, manifest)
+    if folder is not None and not folder.exists():
+        folder, _ = _existing_job_folder(root, manifest['job_id'])
+        if folder is None:
+            raise ValueError('Job missing after verified workspace rename; recovery backup preserved')
+    visit_label = manifest['job_date'] + ' - ' + _safe_folder_part(manifest['reference'], 70) + ' - ' + manifest['job_id'][:8]
+    desired = workspace / 'Jobs' / visit_label
+    if folder is None:
+        folder = desired
+        if folder.exists() or folder.is_symlink():
+            raise ValueError('Job destination contains a different PSI job manifest; nothing overwritten')
+        folder.mkdir(exist_ok=False)
+        destination = folder / 'psi-job.json'
+    else:
+        destination = folder / 'psi-job.json'
     if folder != desired:
-        if desired.exists():
-            raise ValueError('The preferred PSI job folder name is already in use')
-        folder.rename(desired)
+        _move_job_into_workspace(root, folder, desired)
         folder = desired
         destination = folder / 'psi-job.json'
+        if previous_workspace is not None and previous_workspace != workspace:
+            _cleanup_empty_vehicle_workspace(previous_workspace)
         if previous_parent is not None:
             _cleanup_empty_customer_folder(previous_parent, root)
     if existing != manifest:
@@ -831,6 +1008,17 @@ def local_folder_scan(root):
     for top in root.iterdir():
         if top.is_symlink() or not top.is_dir():
             continue
+        if top.name == WORKSPACE_RECOVERY_FOLDER:
+            marker = top / '.psi-recovery.json'
+            try:
+                if not marker.is_symlink() and marker.is_file() and json.loads(marker.read_text(encoding='utf-8-sig')) == {
+                    'schema': 1, 'purpose': 'vehicle_workspace_recovery'
+                }:
+                    continue
+            except (OSError, ValueError):
+                pass
+            review.append(top)
+            continue
         if (top / 'psi-job.json').is_file():
             jobs.append(top)
             continue
@@ -840,6 +1028,19 @@ def local_folder_scan(root):
                     continue
                 if (child / 'psi-job.json').is_file():
                     jobs.append(child)
+                elif (child / VEHICLE_WORKSPACE_MARKER).is_file():
+                    try:
+                        _read_vehicle_workspace(child)
+                        visits = child / 'Jobs'
+                        if visits.is_symlink() or not visits.is_dir():
+                            raise ValueError('Invalid vehicle Jobs directory')
+                        for visit in visits.iterdir():
+                            if visit.is_symlink() or not visit.is_dir() or not (visit / 'psi-job.json').is_file():
+                                review.append(visit)
+                            else:
+                                jobs.append(visit)
+                    except (OSError, ValueError):
+                        review.append(child)
                 else:
                     review.append(child)
             continue
@@ -1229,6 +1430,12 @@ def _create_manual_job_once(root, connection, input_fn):
 
     if selected_choice and selected_choice[0] == 'app':
         _, vehicle, customer_name = selected_choice
+        _preflight_vehicle_workspace(root, {
+            'schema': 1, 'project_ref': urllib.parse.urlparse(connection.url).hostname.split('.')[0],
+            'customer_id': vehicle['customer_id'], 'vehicle_id': vehicle['id'],
+            'registration': vehicle['registration'], 'vehicle_year': vehicle.get('year'),
+            'vehicle_make': vehicle.get('make'), 'vehicle_model': vehicle.get('model'),
+        }, connection)
         job_date, title = _manual_job_details(input_fn, vehicle['registration'])
         job = _reuse_invoice_job(connection, vehicle, title, input_fn)
         if job is None:
@@ -1240,6 +1447,13 @@ def _create_manual_job_once(root, connection, input_fn):
             }, headers={'Prefer': 'return=representation'})[0]
     else:
         existing_vehicle = selected_choice[1] if selected_choice else None
+        if existing_vehicle:
+            _preflight_vehicle_workspace(root, {
+                'schema': 2, 'project_ref': urllib.parse.urlparse(connection.url).hostname.split('.')[0],
+                'workshop_contact_id': existing_vehicle['workshop_contact_id'], 'workshop_vehicle_id': existing_vehicle['id'],
+                'registration': existing_vehicle['registration'], 'vehicle_year': existing_vehicle.get('year'),
+                'vehicle_make': existing_vehicle.get('make'), 'vehicle_model': existing_vehicle.get('model'),
+            }, connection)
         customer_name = selected_choice[2] if selected_choice else None
         customer = {
             'p_display_name': None, 'p_email': None, 'p_mobile': None,
@@ -1261,7 +1475,7 @@ def _create_manual_job_once(root, connection, input_fn):
 
     manifest = manifest_from_job(connection, job, vehicle, customer_name)
     connection.verified_jobs[job['id']] = manifest
-    return create_folder_from_manifest(root, manifest)
+    return create_folder_from_manifest(root, manifest, connection=connection)
 
 
 def create_manual_job(root, connection, input_fn=input):
