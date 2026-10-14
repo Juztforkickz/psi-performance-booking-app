@@ -36,3 +36,11 @@ images are rejected. The operating system decides which installed cloud file
 providers appear. No directory scanning or broad device storage permission is needed.
 Fifteen photo component cases pass, including all three platforms, file selection,
 cancellation, invalid files and the compact garage menu. Typecheck and targeted lint pass.
+
+File chooser source checkpoint `c621e77` is committed and pushed. Web deployment
+run `38513386914` succeeded. Android update `01a138bf-bfd6-7e8e-aaa4-b8d505a9eb06`
+is published in group `c9e1d582-c1c8-4a5a-ab4e-359653fc8b9a`. iOS update
+`01a138c0-b79a-761d-9b7e-656a24643bd5` is published in group
+`b52dd220-bd0b-48d9-93d8-7bf2736d2ea3`. Both feeds and launch bundle downloads
+are verified against the latest local export metadata. Existing runtimes, channels
+and release settings are retained. This release supersedes the earlier picker update.
