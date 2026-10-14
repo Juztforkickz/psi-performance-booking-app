@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import {
   Image,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { PerformancePlanCard } from '@/components/performance-plan-card';
+import { PhoneAppLinks } from '@/components/phone-app-links';
 import { PerformanceUpdates } from '@/components/performance-updates';
 import { CustomerProfileGate } from '@/components/customer-profile-gate';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
@@ -325,7 +327,7 @@ export default function AlertsScreen() {
           ) : null}
           {privateMode && signedIn ? (
             <PreferenceRow
-              copy="Play a sound with alerts. Silent mode and your phone’s sound settings still apply."
+              copy={Platform.OS === 'web' ? 'Save your sound preference for the PSI phone app. Browser sounds are not enabled.' : 'Play a sound with alerts. Silent mode and your phone’s sound settings still apply.'}
               enabled={notifications.preferences?.sound_enabled ?? true}
               icon="volume-high-outline"
               label="Notification sound"
@@ -336,7 +338,15 @@ export default function AlertsScreen() {
           ) : null}
         </View>
 
-        {privateMode && signedIn && (!REVIEW_ENVIRONMENT.enabled || ASK_PSI_DEVICE_QA.allowsUser(auth.user?.id)) ? (
+        {privateMode && signedIn && Platform.OS === 'web' ? <View style={styles.howItWorks}>
+          <Ionicons color={colors.accent} name="notifications-outline" size={30} />
+          <View style={styles.howItWorksCopy}>
+            <Text style={styles.howItWorksTitle}>Your notification inbox</Text>
+            <Text style={styles.bodyCopy}>Booking and workshop updates appear here. For banners, sounds and phone badges, enable device alerts in the installed PSI iPhone or Android app using the same account.</Text>
+          </View>
+          <PhoneAppLinks />
+        </View> : null}
+        {privateMode && signedIn && Platform.OS !== 'web' && (!REVIEW_ENVIRONMENT.enabled || ASK_PSI_DEVICE_QA.allowsUser(auth.user?.id)) ? (
           <View style={styles.howItWorks}>
             <Ionicons color={colors.accent} name="phone-portrait-outline" size={30} />
             <View style={styles.howItWorksCopy}>

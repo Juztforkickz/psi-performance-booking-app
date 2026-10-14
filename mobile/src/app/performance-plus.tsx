@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StaffScrollSelect } from '@/components/staff-scroll-select';
 import { PrimaryButton } from '@/components/ui';
+import { PhoneAppLinks } from '@/components/phone-app-links';
 import { colors } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerAccount } from '@/lib/customer-account-context';
@@ -17,7 +18,7 @@ import { loadPerformancePlusStorePrices, managePerformancePlusSubscription, purc
 
 const VAULT_DESCRIPTIONS = {
   invoice: 'Your in-app invoice and receipt PDF archive. Xero invoices are still emailed to every customer.',
-  media: 'Before, progress and after workshop galleries with full-screen viewing and downloads.',
+  media: 'Workshop photos with full screen viewing and downloads.',
   dyno: 'Mainline PDFs, graph images and historical comparisons.',
   service: 'Detailed PSI service files organised around each workshop visit.',
   document: 'Supporting reports, paperwork and private vehicle documents.',
@@ -40,7 +41,7 @@ const REPORT_UNLOCKS: Record<ReportSection, { icon: keyof typeof Ionicons.glyphM
   recommendation: { icon: 'build-outline', benefits: ['See PSI recommended work and its timing.', 'Keep future repairs with the vehicle history.', 'Review workshop recommendations between bookings.'] },
   dyno: { icon: 'speedometer-outline', benefits: ['See verified power and torque results.', 'Open Mainline graphs and PDF files.', 'Compare historical dyno results.'] },
   invoice: { icon: 'receipt-outline', benefits: ['Open saved invoice copies and PDF files.', 'Keep invoices with the correct vehicle.', 'Download archived paperwork when needed.'] },
-  media: { icon: 'images-outline', benefits: ['View before, progress and after photos.', 'Open full-size workshop images.', 'Download available originals.'] },
+  media: { icon: 'images-outline', benefits: ['View your workshop photos.', 'Open full size workshop images.', 'Download available originals.'] },
   document: { icon: 'documents-outline', benefits: ['Open private reports, DTCs and paperwork.', 'Keep important documents and diagnostic information organised.', 'Download available original files.'] },
 };
 
@@ -185,11 +186,11 @@ export default function PerformancePlusScreen() {
       <Pressable accessibilityLabel={`${annualPrice} annual, best value`} accessibilityRole="radio" accessibilityState={{ checked: selectedPeriod === 'annual', disabled: busy }} disabled={busy} onPress={() => { setSelectedPeriod('annual'); setMessage(''); }} style={({ pressed }) => [s.priceOption, singleColumn && s.priceOptionStacked, s.bestValue, selectedPeriod === 'annual' && s.priceOptionSelected, pressed && s.pressed]}><View style={s.priceChoiceHeading}><View style={s.priceChoiceLabels}><Text style={s.bestValueLabel}>BEST VALUE</Text><Text style={s.priceLabel}>ANNUAL</Text></View><Ionicons name={selectedPeriod === 'annual' ? 'radio-button-on' : 'radio-button-off'} color={colors.accent} size={20} /></View><Text style={s.price}>{storePricesLoading ? `Checking ${storefront ?? 'store'}…` : annualPrice}</Text><Text style={s.priceMeta}>per year · save {annualSavings}</Text></Pressable>
     </View>
     {testPriceMismatch ? <Text accessibilityRole="alert" style={s.notice}>Australian reference prices shown. Apple returned inconsistent test pricing. Continue to check Apple’s confirmation and approve only if it shows AUD and the expected amount.</Text> : null}
-    <Text style={s.selectionHelp}>{appleTestPrices ? 'TestFlight purchases use Apple\u2019s sandbox. You can use your normal Australian Media & Purchases account; a separate sandbox login is optional.' : 'Select monthly or annual above, then continue. Your app store shows the final price before purchase.'}</Text>
-    <PrimaryButton disabled={!purchaseReady} loading={busy || storePricesLoading} label={storePricesLoading ? `Checking ${storefront ?? 'store'} prices` : testPriceMismatch ? `Check ${selectedPeriod} price with Apple` : `Unlock ${selectedPeriod} · ${selectedPrice}`} onPress={() => void subscribe(selectedPeriod)} />
+    <Text style={s.selectionHelp}>{Platform.OS === 'web' ? 'Subscribe in the PSI iPhone or Android app using the same PSI account. Your verified Performance+ access is also available here.' : appleTestPrices ? 'TestFlight purchases use Apple\u2019s sandbox. You can use your normal Australian Media & Purchases account; a separate sandbox login is optional.' : 'Select monthly or annual above, then continue. Your app store shows the final price before purchase.'}</Text>
+    {Platform.OS === 'web' ? <PhoneAppLinks /> : <PrimaryButton disabled={!purchaseReady} loading={busy || storePricesLoading} label={storePricesLoading ? `Checking ${storefront ?? 'store'} prices` : testPriceMismatch ? `Check ${selectedPeriod} price with Apple` : `Unlock ${selectedPeriod} · ${selectedPrice}`} onPress={() => void subscribe(selectedPeriod)} />}
     {!storePricesLoading && storePrices && !audStorePrices && !appleTestPrices ? <Text accessibilityRole="alert" style={s.notice}>An AUD price is unavailable. Check your app store account country, then retry.</Text> : null}
     {purchasesAvailable && auth.user && !paidPlus ? <PrimaryButton label="Retry store prices" variant="outline" disabled={busy || storePricesLoading} onPress={() => { setStorePriceState(null); setRevision(v => v + 1); }} /> : null}
-    {!purchasesAvailable ? <Text style={s.muted}>{demo ? 'Preview only · no payment will be taken.' : 'Purchases are not open in this beta yet. PSI can grant complimentary beta access.'}</Text> : null}
+    {!purchasesAvailable && Platform.OS !== 'web' ? <Text style={s.muted}>{demo ? 'Preview only · no payment will be taken.' : 'Purchases are not open in this beta yet. PSI can grant complimentary beta access.'}</Text> : null}
     {storePricesMessage ? <Text accessibilityRole="alert" style={s.notice}>{storePricesMessage}</Text> : null}
     {message ? <Text accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
     <Text style={s.muted}>Prices are supplied by {storefront ?? 'your app store'} for your storefront. Subscriptions renew automatically unless cancelled before renewal. Cancellation keeps your records safe and locks premium access after the paid period ends.</Text>
@@ -243,7 +244,8 @@ export default function PerformancePlusScreen() {
     </> : null}
     {!openedFromHome ? pricingPanel : null}
     {message && (activePlus || !entitlementReady) ? <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
-    {entitlementReady && !permanentPlus ? <PrimaryButton disabled={!purchasesAvailable} loading={busy} label="Restore purchases" onPress={() => void subscribe('restore')} variant="outline" /> : null}
+    {entitlementReady && !permanentPlus && Platform.OS !== 'web' ? <PrimaryButton disabled={!purchasesAvailable} loading={busy} label="Restore purchases" onPress={() => void subscribe('restore')} variant="outline" /> : null}
+    {entitlementReady && activePlus && !permanentPlus && Platform.OS === 'web' ? <Text style={s.copy}>Manage or restore your subscription in the PSI phone app using the same account. Refresh here to check your verified access.</Text> : null}
     {entitlementReady && !permanentPlus && !trialPlus && storefront ? <PrimaryButton disabled={!purchasesAvailable} label={`Manage ${storefront} subscription`} variant="outline" onPress={() => void manageSubscription()} /> : null}
     <PrimaryButton disabled={busy} label={permanentPlus ? 'Refresh access status' : 'Refresh subscription status'} onPress={() => void refresh()} variant="outline" />
     <View style={s.free}><Text style={s.section}>Always part of PSI Free</Text><Text style={s.copy}>Your profile and garage, profile and vehicle photos, enquiries, every booking option, kilometre recording, service dates, maintenance reminders, notifications and contacting PSI. Add your own notes for PSI in Reports for free. Original invoices are still emailed normally. Performance+ unlocks detailed workshop records, recommendations, dyno results and the file archive.</Text></View>

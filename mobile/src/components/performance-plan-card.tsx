@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/ui';
 import { mobileFrame, spacing } from '@/constants/brand';
@@ -84,7 +84,7 @@ export function PerformancePlanCard({ hideForPermanent = false }: { hideForPerma
       <PrimaryButton label={activePlus ? 'Open Performance+' : 'Upgrade to Performance+'} onPress={openPerformancePlus} />
       {managementMessage ? <Text accessibilityRole="alert" style={[styles.copy, { color: theme.accent }]}>{managementMessage}</Text> : null}
       {activePlus && !permanentPlus && !trialPlus && storefront && auth.user ? <Pressable accessibilityRole="button" accessibilityState={{ busy: managing, disabled: managing }} disabled={managing} onPress={() => void manageSubscription()} style={({ pressed }) => [styles.manage, { borderColor: theme.border }, pressed && styles.pressed]}><Text style={[styles.manageText, { color: theme.accent }]}>{managing ? 'Opening subscription manager…' : `Manage ${storefront} subscription`}</Text><Ionicons color={theme.accent} name="open-outline" size={18} /></Pressable> : null}
-      {!permanentPlus ? <Pressable accessibilityRole="button" onPress={openPerformancePlus} style={({ pressed }) => [styles.restore, pressed && styles.pressed]}><Text style={[styles.restoreText, { color: theme.textMuted }]}>{activePlus ? 'View plan and restore purchases' : 'Already subscribed? Restore purchases'}</Text><Ionicons color={theme.textMuted} name="chevron-forward" size={17} /></Pressable> : null}
+      {!permanentPlus ? <Pressable accessibilityRole="button" onPress={openPerformancePlus} style={({ pressed }) => [styles.restore, pressed && styles.pressed]}><Text style={[styles.restoreText, { color: theme.textMuted }]}>{Platform.OS === 'web' ? 'View plan and subscription access' : activePlus ? 'View plan and restore purchases' : 'Already subscribed? Restore purchases'}</Text><Ionicons color={theme.textMuted} name="chevron-forward" size={17} /></Pressable> : null}
     </View>
   );
 }
