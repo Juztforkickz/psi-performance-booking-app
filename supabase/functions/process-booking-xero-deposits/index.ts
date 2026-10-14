@@ -13,12 +13,15 @@ import {
 } from "../_shared/xero-token-refresh.ts";
 import {
   allowFinancialWrite,
+  bookingPrepaymentApplied,
   cents,
   requireDepositScopes,
   selectBookingInvoice,
   verifyDepositInvoice,
+  verifyBookingPrepayment,
   verifyStripeDeposit,
 } from "../_shared/xero-deposit-policy.ts";
+import { xeroInvoiceDate } from '../_shared/xero-invoice-date.ts';
 
 type Row = Record<string, any>;
 // Account identities verified in the approved PSI reconciliation. No client supplied accounts.
@@ -183,6 +186,27 @@ async function stripe(attempt: Row) {
   }
   return verifyStripeDeposit(await response.json(), attempt);
 }
+
+async function storedPrepayment(admin:SupabaseClient,api:Xero,row:Row,attempt:Row) {
+  if (!row.prepayment_bank_transaction_id) return null;
+  if (!uuid(row.prepayment_bank_transaction_id) || !uuid(row.prepayment_contact_id) || row.payment_id) throw new Error('prepayment_mapping_requires_review');
+  const response = await api(`BankTransactions/${row.prepayment_bank_transaction_id}`);
+  const bank = response.BankTransactions?.[0];
+  if (response.BankTransactions?.length!==1 || bank.BankTransactionID!==row.prepayment_bank_transaction_id
+    || bank.Type!=='RECEIVE-PREPAYMENT' || bank.BankAccount?.AccountID!==PSI.bank
+    || bank.Contact?.ContactID!==row.prepayment_contact_id || bank.CurrencyCode!=='AUD'
+    || bank.Status!=='AUTHORISED' || cents(bank.Total)!==attempt.amount_cents || !uuid(bank.PrepaymentID)
+    || !(bank.Reference===`PSI app deposit ${attempt.provider_payment_id}`
+      || bank.LineItems?.some((item:Row)=>typeof item.Description==='string' && item.Description.includes(`Stripe ${attempt.provider_payment_id}`)))) {
+    throw new Error('prepayment_bank_entry_requires_review');
+  }
+  if (row.prepayment_id && row.prepayment_id!==bank.PrepaymentID) throw new Error('prepayment_mapping_requires_review');
+  const detail = await api(`Prepayments/${bank.PrepaymentID}`);
+  if (detail.Prepayments?.length!==1) throw new Error('prepayment_identity_requires_review');
+  verifyBookingPrepayment(detail.Prepayments[0],bank.PrepaymentID,row.prepayment_contact_id,attempt.amount_cents);
+  await save(admin,row,{prepayment_id:bank.PrepaymentID});
+  return detail.Prepayments[0];
+}
 async function processDeposit(admin: SupabaseClient, api: Xero, row: Row) {
   const { data: attempt, error } = await admin.from("booking_payment_attempts")
     .select("*").eq("id", row.payment_attempt_id).single();
@@ -200,6 +224,7 @@ async function processDeposit(admin: SupabaseClient, api: Xero, row: Row) {
     !booking || booking.customer_id !== attempt.customer_id ||
     !["confirmed", "completed"].includes(booking.state)
   ) throw new Error("booking_identity_requires_review");
+  const prepayment = await storedPrepayment(admin,api,row,attempt);
   const { data: job } = await admin.from("workshop_jobs").select(
     "id,customer_id,vehicle_id",
   ).eq("booking_request_id", booking.id).maybeSingle();
@@ -253,6 +278,26 @@ async function processDeposit(admin: SupabaseClient, api: Xero, row: Row) {
     !["AUTHORISED", "PAID"].includes(invoice.Status)
   ) throw new Error("invoice_identity_requires_review");
   await save(admin, row, { invoice_id: invoiceId });
+  if (prepayment) {
+    if (row.prepayment_contact_id!==contactId) throw new Error('prepayment_contact_requires_review');
+    if (!bookingPrepaymentApplied(prepayment,invoiceId,attempt.amount_cents)) {
+      if (invoice.Payments?.some((p:Row)=>cents(p.Amount)===attempt.amount_cents)) throw new Error('possible_manual_deposit_requires_review');
+      verifyDepositInvoice(invoice,contactId,attempt.amount_cents);
+      const invoiceDate = xeroInvoiceDate(invoice);
+      const allocationDate = invoiceDate > verified.paidDate ? invoiceDate : verified.paidDate;
+      await write(admin,row,'prepayment_allocation',async()=>{
+        await api(`Prepayments/${row.prepayment_id}/Allocations`,'PUT',{
+          Allocations:[{Invoice:{InvoiceID:invoiceId},Amount:attempt.amount_cents/100,Date:allocationDate}],
+        },`psi-deposit-allocation-${attempt.id}`);
+        const proof = await api(`Prepayments/${row.prepayment_id}`);
+        if (proof.Prepayments?.length!==1) throw new Error('prepayment_allocation_unverified');
+        verifyBookingPrepayment(proof.Prepayments[0],row.prepayment_id,contactId,attempt.amount_cents);
+        if (!bookingPrepaymentApplied(proof.Prepayments[0],invoiceId,attempt.amount_cents)) throw new Error('prepayment_allocation_unverified');
+        return row.prepayment_id;
+      });
+    }
+    await save(admin,row,{prepayment_applied:true});
+  } else {
   const reference = `PSI app deposit ${attempt.provider_payment_id}`;
   const paymentLookup = await api(
     `Payments?where=${encodeURIComponent(`Reference=="${reference}"`)}&page=1`,
@@ -302,6 +347,7 @@ async function processDeposit(admin: SupabaseClient, api: Xero, row: Row) {
       return p.PaymentID;
     });
     await save(admin, row, { payment_id: paymentId });
+  }
   }
   if (verified.fee > 0) {
     const feeLookup = await api(

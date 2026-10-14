@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { allowFinancialWrite, cents, requireDepositScopes, selectBookingInvoice, verifyDepositInvoice, verifyStripeDeposit } from '../supabase/functions/_shared/xero-deposit-policy.ts';
+import { allowFinancialWrite, bookingPrepaymentApplied, cents, requireDepositScopes, selectBookingInvoice, verifyBookingPrepayment, verifyDepositInvoice, verifyStripeDeposit } from '../supabase/functions/_shared/xero-deposit-policy.ts';
 const attempt = {id:'attempt',provider_payment_id:'pi_test',booking_request_id:'booking',amount_cents:10000};
 const intent = () => ({id:'pi_test',status:'succeeded',livemode:true,currency:'aud',amount_received:10000,
   metadata:{payment_attempt_id:'attempt',booking_request_id:'booking'},latest_charge:{paid:true,disputed:false,amount_refunded:0,amount:10000,currency:'aud',created:1791417600,balance_transaction:{amount:10000,currency:'aud',fee:195,net:9805}}});
@@ -54,4 +54,20 @@ test('unverified, ambiguous or mismatched invoice links cannot receive a deposit
     assert.throws(()=>selectBookingInvoice([{...link,...change}],record,context));
   for(const change of [{customer_id:'other'},{vehicle_id:'other'},{job_id:'other'},{published_at:null},{kind:'photo'}])
     assert.throws(()=>selectBookingInvoice([link],{...record,...change},context));
+});
+const prepay={PrepaymentID:'prepay',Type:'RECEIVE-PREPAYMENT',Contact:{ContactID:'contact'},CurrencyCode:'AUD',Status:'AUTHORISED',Total:100,RemainingCredit:100,Allocations:[],Payments:[]};
+test('verified unallocated advance credit is available without a second cash receipt',()=>{
+  verifyBookingPrepayment(prepay,'prepay','contact',10000);
+  assert.equal(bookingPrepaymentApplied(prepay,'invoice',10000),false);
+});
+test('existing full allocation to the same invoice is recovered, never repeated',()=>{
+  assert.equal(bookingPrepaymentApplied({...prepay,RemainingCredit:0,Allocations:[{Invoice:{InvoiceID:'invoice'},Amount:100}]},'invoice',10000),true);
+});
+test('partial, other invoice or ambiguous advance allocations need review',()=>{
+  for(const change of [{RemainingCredit:50},{RemainingCredit:0,Allocations:[{Invoice:{InvoiceID:'other'},Amount:100}]},{RemainingCredit:0,Allocations:[{Invoice:{InvoiceID:'invoice'},Amount:50}]}])
+    assert.throws(()=>bookingPrepaymentApplied({...prepay,...change},'invoice',10000));
+});
+test('wrong customer, currency, receipt amount or refunded advance credit cannot be allocated',()=>{
+  for(const change of [{Contact:{ContactID:'other'}},{CurrencyCode:'USD'},{Total:99},{Status:'VOIDED'},{Payments:[{Amount:100}]}])
+    assert.throws(()=>verifyBookingPrepayment({...prepay,...change},'prepay','contact',10000));
 });

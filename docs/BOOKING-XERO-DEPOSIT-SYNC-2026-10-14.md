@@ -22,6 +22,13 @@ verified. This release does not create Xero prepayments before an invoice exists
 The app's paid booking status remains the source of deposit acknowledgement while
 waiting. Processing runs every five minutes, one booking per invocation.
 
+An existing advance credit can now be mapped after individual review. The worker
+verifies its bank transaction, Stripe reference, Xero prepayment identity, customer,
+currency and full amount. Once the exact booking invoice is verified, it allocates
+that credit instead of recording another cash receipt. Existing full allocations
+to that same invoice are reused. Partial allocations, refunds and allocations to
+another invoice require review. No new advance credits are created by the worker.
+
 Existing exact provider references are checked before writes. A persistent write
 intent is saved before calling Xero. An uncertain write cannot be retried without
 first finding its existing remote entry, even after Xero's idempotency key expires.
@@ -54,7 +61,7 @@ intentional. No new security warnings were introduced.
 
 ## Validation and release
 
-Ten focused financial policy tests pass. Strict Deno checks pass for the new
+Fourteen focused financial policy tests pass. Strict Deno checks pass for the new
 worker, connection function and invoice importer. Mobile typecheck and targeted
 owner component lint pass. The live authenticated scheduler smoke test returns
 HTTP 200 with syncing disabled and zero processed entries. Database readback
@@ -76,3 +83,11 @@ The workshop Payments screen also removes the outdated claim that Stripe is not
 connected and the Setup pending label. It explains provider confirmed card and
 wallet deposits, manual bank transfer verification, and links owners to the Xero
 deposit controls. Activation remains separately verified by the server.
+
+The existing advance credit migration is applied and worker version 4 is active.
+Live readback verifies a reviewed advance credit, retaining it until its booking
+invoice exists. Its existing processing fee is mapped for reuse. Payout accounting
+entries were individually verified against Stripe; actual bank statement matching
+remains pending because Xero's reconciliation page returns Unable to load data.
+The second payout paid on 14 October is absent from the imported bank statement,
+whose latest line is dated 13 October. Neither payout is claimed reconciled.

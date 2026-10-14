@@ -68,6 +68,21 @@ export function allowFinancialWrite(intent: unknown) {
   if (intent) throw new Error("uncertain_previous_write_requires_review");
 }
 
+export function verifyBookingPrepayment(prepayment: Record<string, any>, id:string, contactId:string, amount:number) {
+  if (prepayment.PrepaymentID !== id || prepayment.Contact?.ContactID !== contactId
+    || prepayment.Type !== 'RECEIVE-PREPAYMENT' || prepayment.CurrencyCode !== 'AUD'
+    || !['AUTHORISED','PAID'].includes(prepayment.Status) || cents(prepayment.Total) !== amount
+    || (prepayment.Payments?.length ?? 0) > 0) throw new Error('prepayment_identity_requires_review');
+}
+
+export function bookingPrepaymentApplied(prepayment:Record<string,any>, invoiceId:string, amount:number) {
+  const allocations = (prepayment.Allocations ?? []).filter((item:Record<string,any>)=>item.IsDeleted!==true);
+  if (allocations.length===0 && cents(prepayment.RemainingCredit)===amount) return false;
+  if (allocations.length===1 && allocations[0].Invoice?.InvoiceID===invoiceId
+    && cents(allocations[0].Amount)===amount && cents(prepayment.RemainingCredit)===0) return true;
+  throw new Error('prepayment_allocation_requires_review');
+}
+
 // A verified Xero import may reuse a published workshop PC invoice. Its durable
 // import identity, rather than the PDF's upload source, identifies the Xero invoice.
 export function selectBookingInvoice(
