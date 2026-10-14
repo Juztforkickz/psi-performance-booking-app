@@ -167,11 +167,6 @@ function AskPsiThreadContent({ conversationId, keyboardAvoidanceEnabled = true, 
         await sendPhoto(pendingPhoto);
         return;
       }
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setSendError('Allow photo access in your device settings to attach an image.');
-        return;
-      }
       const result = await ImagePicker.launchImageLibraryAsync({
         allowsEditing: false,
         allowsMultipleSelection: false,

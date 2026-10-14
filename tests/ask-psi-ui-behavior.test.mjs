@@ -102,7 +102,7 @@ function mount(name, exportName, props = {}, overrides = {}) {
     '@expo/vector-icons/Ionicons': { default: 'Icon' },
     'expo-crypto': { randomUUID: () => 'nonce-' + ++uuid },
     'expo-image-picker': {
-      requestMediaLibraryPermissionsAsync: async () => ({ granted: true }),
+      requestMediaLibraryPermissionsAsync: async () => { throw new Error('Library access must not be requested'); },
       launchImageLibraryAsync: async () => ({ canceled: false, assets: [{ uri: 'file://private-photo.jpg', mimeType: 'image/jpeg', width: 400, height: 300 }] }),
       ...overrides.picker,
     },
@@ -254,7 +254,7 @@ test('Photo retry preserves upload identifiers and picker failure is handled', a
   assert.equal(calls[0].messageId, calls[1].messageId);
   assert.doesNotMatch(app.text(), /Photo awaiting confirmation/);
   const brokenPicker = mount('thread', 'AskPsiThreadContent', { conversationId: 'conversation-a', role: 'customer' }, {
-    picker: { requestMediaLibraryPermissionsAsync: async () => { throw new Error('picker unavailable'); } },
+    picker: { launchImageLibraryAsync: async () => { throw new Error('picker unavailable'); } },
   });
   brokenPicker.render(); await brokenPicker.settle();
   brokenPicker.press('Attach a photo'); await brokenPicker.settle();

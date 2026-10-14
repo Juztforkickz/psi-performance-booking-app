@@ -25,16 +25,16 @@ export function ProfilePhotoPicker({
     setBusy(true);
     setError('');
     try {
-      const permission = source === 'camera'
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        setError(source === 'camera' ? 'Camera permission is needed to take a profile photo.' : 'Photo permission is needed to choose a profile photo.');
-        return;
+      if (source === 'camera') {
+        const permission = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permission.granted) {
+          setError('Camera permission is needed to take a profile photo.');
+          return;
+        }
       }
       const result = source === 'camera'
         ? await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], mediaTypes: ['images'], quality: 0.9 })
-        : await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, allowsMultipleSelection: false, aspect: [1, 1], mediaTypes: ['images'], quality: 0.9, selectionLimit: 1 });
+        : await ImagePicker.launchImageLibraryAsync({ allowsEditing: false, allowsMultipleSelection: false, mediaTypes: ['images'], quality: 0.9, selectionLimit: 1 });
       if (result.canceled) return;
       const asset = result.assets[0];
       if (!asset?.uri) throw new Error('PROFILE_PHOTO_MISSING');

@@ -47,15 +47,12 @@ export function VehiclePhotoPicker({
     setError('');
 
     try {
-      const requestPermission = source === 'camera'
-        ? ImagePicker.requestCameraPermissionsAsync
-        : ImagePicker.requestMediaLibraryPermissionsAsync;
-      const permissionResult = await requestPermission();
-      if (!permissionResult.granted) {
-        setError(source === 'camera'
-          ? 'Camera permission is needed to take photos for your vehicle record.'
-          : 'Photo permission is needed to choose an existing picture.');
-        return;
+      if (source === 'camera') {
+        const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+        if (!permissionResult.granted) {
+          setError('Camera permission is needed to take photos for your vehicle record.');
+          return;
+        }
       }
 
       const result = source === 'camera'
