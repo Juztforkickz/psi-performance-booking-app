@@ -87,7 +87,11 @@ export default function StaffPortalScreen() {
   const [refreshNonce, setRefreshNonce] = useState(0);
 
   const refreshStaffAccess = () => {
-    setLoadState({ access: null, status: 'loading', userId: auth.user?.id ?? null });
+    // Keep an already verified workspace mounted while refreshing its snapshot.
+    // Replacing it with the access gate loses scroll position and form feedback.
+    setLoadState((current) => current.status === 'ready' && current.userId === auth.user?.id
+      ? current
+      : { access: null, status: 'loading', userId: auth.user?.id ?? null });
     setRefreshNonce((current) => current + 1);
   };
 
@@ -316,8 +320,8 @@ function PortalState({
     <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <View style={[styles.state, { paddingHorizontal: horizontalPadding }]}>
         {loading ? <ActivityIndicator color={colors.accent} size="large" /> : <Ionicons color={colors.accent} name="shield-checkmark" size={42} />}
-        <Text style={styles.stateTitle}>{title}</Text>
-        <Text style={styles.stateCopy}>{copy}</Text>
+        {!loading ? <Text style={styles.stateTitle}>{title}</Text> : null}
+        {!loading ? <Text style={styles.stateCopy}>{copy}</Text> : null}
         {actionLabel && onAction ? <PrimaryButton label={actionLabel} onPress={onAction} /> : null}
         {!loading ? <PrimaryButton label="Back" onPress={() => router.back()} variant="outline" /> : null}
       </View>
@@ -913,10 +917,10 @@ export function StaffWorkspace({
               {awaitingInvitations.map((invitation) => {
                 const profileLabel = invitationCustomerLabel(invitation.email, snapshot.customers);
                 return <View key={invitation.id} style={styles.invitationRow}>
-                  <View style={styles.flex}>
-                    <Text style={styles.cardTitle}>{profileLabel}</Text>
-                    {profileLabel !== invitation.email ? <Text style={styles.cardCopy}>{invitation.email}</Text> : null}
-                    <Text style={styles.cardMeta}>Invited {formatDateTime(invitation.invited_at)}</Text>
+                  <View style={styles.invitationDetails}>
+                    <Text style={styles.invitationTitle}>{profileLabel}</Text>
+                    {profileLabel !== invitation.email ? <Text style={styles.invitationEmail}>{invitation.email}</Text> : null}
+                    <Text style={styles.invitationDate}>Invited {formatDateTime(invitation.invited_at)}</Text>
                   </View>
                   <Text style={styles.badge}>{invitation.email_delivery_status === 'sent' ? 'Email sent · Awaiting setup' : invitation.email_delivery_status === 'failed' ? 'Email failed · Retry' : 'Awaiting email'}</Text>
                 </View>;
@@ -941,10 +945,10 @@ export function StaffWorkspace({
                 const profileLabel = invitationCustomerLabel(invitation.email, snapshot.customers);
                 return (
                   <View key={invitation.id} style={styles.invitationRow}>
-                    <View style={styles.flex}>
-                      <Text style={styles.cardTitle}>{profileLabel}</Text>
-                      {profileLabel !== invitation.email ? <Text style={styles.cardCopy}>{invitation.email}</Text> : null}
-                      <Text style={styles.cardMeta}>Approved {formatDateTime(invitation.invited_at)}</Text>
+                    <View style={styles.invitationDetails}>
+                      <Text style={styles.invitationTitle}>{profileLabel}</Text>
+                      {profileLabel !== invitation.email ? <Text style={styles.invitationEmail}>{invitation.email}</Text> : null}
+                      <Text style={styles.invitationDate}>Approved {formatDateTime(invitation.invited_at)}</Text>
                     </View>
                     <Text style={styles.badge}>Account ready</Text>
                   </View>
@@ -1618,7 +1622,11 @@ const styles = StyleSheet.create({
   invitationNotice: { color: colors.success, fontSize: 12, fontWeight: '800', lineHeight: 18 },
   testFlightStep: { alignItems: 'flex-start', backgroundColor: colors.inkSoft, flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
   approvedAccountsPanel: { ...portalFrame, backgroundColor: colors.inkSoft, gap: spacing.xs, marginTop: spacing.md, padding: spacing.md },
-  invitationRow: { ...portalFrame, alignItems: 'center', backgroundColor: colors.panel, flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xs, padding: spacing.md },
+  invitationRow: { ...portalFrame, alignItems: 'stretch', backgroundColor: colors.panel, flexDirection: 'column', gap: spacing.sm, marginBottom: spacing.xs, padding: spacing.md },
+  invitationDetails: { gap: spacing.xs, minWidth: 0, width: '100%' },
+  invitationTitle: { color: colors.white, fontSize: 16, fontWeight: '700', lineHeight: 23 },
+  invitationEmail: { color: colors.silver, fontSize: 15, lineHeight: 22 },
+  invitationDate: { color: colors.accent, fontSize: 13, lineHeight: 20 },
   badge: { alignSelf: 'flex-start', flexShrink: 1, borderColor: colors.accentDark, borderWidth: 1, color: colors.accent, fontSize: 10, fontWeight: '900', paddingHorizontal: 8, paddingVertical: 5, textTransform: 'uppercase' },
   lookupCustomerCard: { ...portalFrame, backgroundColor: colors.inkSoft, padding: spacing.md },
   lookupIdentity: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
