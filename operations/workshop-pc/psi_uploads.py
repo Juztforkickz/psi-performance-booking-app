@@ -645,14 +645,29 @@ def _move_job_into_workspace(root, source, destination):
     elif json.loads(marker.read_text(encoding='utf-8-sig')) != {'schema': 1, 'purpose': 'vehicle_workspace_recovery'}:
         raise ValueError('Recovery folder is not app-managed; nothing moved')
     hide_windows_folder(recovery)
-    checkpoint = recovery / uuid.uuid4().hex
-    checkpoint.mkdir()
     inventory = workspace_inventory(source)
-    shutil.copytree(source, checkpoint / 'original', copy_function=shutil.copy2)
-    if workspace_inventory(checkpoint / 'original') != inventory or workspace_inventory(source) != inventory:
-        raise ValueError('Files changed during backup; source left untouched')
     journal = {'schema': 1, 'source': str(source.relative_to(root)), 'destination': str(destination.relative_to(root)),
                'inventory': inventory, 'state': 'backed_up'}
+    checkpoint = None
+    # A Windows lock can defer a move. Reuse its verified backup instead of
+    # making another full copy on every 30-second watcher scan.
+    for candidate in recovery.iterdir():
+        candidate_journal = candidate / 'migration.json'
+        if candidate.is_symlink() or not candidate.is_dir() or not candidate_journal.is_file() or candidate_journal.is_symlink():
+            continue
+        previous = json.loads(candidate_journal.read_text(encoding='utf-8-sig'))
+        if (previous.get('state') == 'backed_up' and previous.get('source') == journal['source']
+                and previous.get('destination') == journal['destination'] and previous.get('inventory') == inventory):
+            if workspace_inventory(candidate / 'original') != inventory:
+                raise ValueError('Deferred migration backup changed; source left untouched')
+            checkpoint = candidate
+            break
+    if checkpoint is None:
+        checkpoint = recovery / uuid.uuid4().hex
+        checkpoint.mkdir()
+        shutil.copytree(source, checkpoint / 'original', copy_function=shutil.copy2)
+    if workspace_inventory(checkpoint / 'original') != inventory or workspace_inventory(source) != inventory:
+        raise ValueError('Files changed during backup; source left untouched')
     atomic_json(checkpoint / 'migration.json', journal)
     source.rename(destination)
     if workspace_inventory(destination) != inventory:
@@ -851,7 +866,14 @@ def create_folder_from_manifest(root, manifest, allow_workshop_identity_repair=F
     else:
         destination = folder / 'psi-job.json'
     if folder != desired:
-        _move_job_into_workspace(root, folder, desired)
+        try:
+            _move_job_into_workspace(root, folder, desired)
+        except Exception:
+            # An open Windows directory may defer the move. Do not leave an
+            # empty second vehicle folder visible beside the working legacy job.
+            if previous_workspace != workspace:
+                _cleanup_empty_vehicle_workspace(workspace)
+            raise
         folder = desired
         destination = folder / 'psi-job.json'
         if previous_workspace is not None and previous_workspace != workspace:
@@ -959,6 +981,7 @@ def sync_job_folders(root, connection, days_back=30):
         errors.append('Old customer vehicle index: ' + str(error))
     live_jobs = connection.call(path)
     for job in live_jobs:
+        check_pause(connection)
         try:
             vehicle = vehicles_by_id.get(job.get('vehicle_id')) if job.get('vehicle_id') else workshop_vehicles_by_id.get(job.get('workshop_vehicle_id'))
             customer_name = customer_names.get(job.get('customer_id')) if job.get('customer_id') else workshop_names.get(job.get('workshop_contact_id'))

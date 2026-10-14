@@ -179,6 +179,26 @@ class VehicleWorkspaceTests(unittest.TestCase):
         self.assertEqual(u.workspace_inventory(legacy), before)
         self.assertEqual(self.posts, [])
 
+    def test_locked_directory_retries_reuse_one_verified_backup(self):
+        legacy = self.legacy(self.first)
+        before = u.workspace_inventory(legacy)
+        real_rename = Path.rename
+        def locked(path, target):
+            if path == legacy:
+                raise PermissionError('Simulated open Windows folder')
+            return real_rename(path, target)
+        with patch.object(Path, 'rename', locked):
+            for _ in range(2):
+                with self.assertRaises(PermissionError):
+                    u.create_folder_from_manifest(self.root, self.first, connection=self.c)
+        checkpoints = list((self.root / u.WORKSPACE_RECOVERY_FOLDER).glob('*/migration.json'))
+        self.assertEqual(len(checkpoints), 1)
+        self.assertEqual(u.workspace_inventory(legacy), before)
+        self.assertEqual([p for p in legacy.parent.iterdir() if p.is_dir()], [legacy])
+        moved = u.create_folder_from_manifest(self.root, self.first, connection=self.c)
+        self.assertEqual(u.workspace_inventory(moved), before)
+        self.assertEqual(len(list((self.root / u.WORKSPACE_RECOVERY_FOLDER).glob('*/migration.json'))), 1)
+
     def test_different_visit_photos_download_to_correct_job_with_no_upload_loop(self):
         folders = [u.create_folder_from_manifest(self.root, m, connection=self.c) for m in (self.first, self.second)]
         assets, contents = [], {}
