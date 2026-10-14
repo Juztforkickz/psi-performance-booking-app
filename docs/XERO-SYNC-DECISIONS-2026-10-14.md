@@ -41,9 +41,11 @@ mutation test was rejected by automatic approval review over rollback uncertaint
 it did not execute. Local database fixtures and read-only production checks were
 used instead.
 
-One historical invoice's missing customer link remains unresolved pending content
-verification of its saved PDF through the existing owner confirmation flow.
-Its one saved invoice record, PDF metadata and Xero balances remain unchanged.
+The historical invoice's missing customer link was restored through the existing
+authenticated owner confirmation flow after the owner verified the saved PDF.
+The queue now shows imported and points to the same existing workshop job and
+published record. Readback confirmed exactly one invoice record and one PDF asset,
+with byte-for-byte unchanged asset metadata and unchanged Xero balances.
 The workshop desktop is a separate machine and its folder was not inspected.
 Deployed source backups, queue snapshots and private target evidence are saved
 in the ignored work/xero-sync-repair-2026-10-14 directory. No replacement PDF,
