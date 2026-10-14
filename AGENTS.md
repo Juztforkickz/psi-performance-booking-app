@@ -44,3 +44,12 @@
 - After each approved project change, run the relevant validation, create a checkpoint commit, and push it to the current working branch so its configured public preview can refresh automatically.
 - Treat an automatic GitHub Pages refresh after a push as approved; do not deploy to Netlify unless explicitly requested.
 - For substantial work, report changed files, validation, checkpoint commit, and deployment status.
+
+## Workshop vehicle workspace contract
+
+- Keep one canonical desktop vehicle workspace per verified project, customer and vehicle ID. Registration, year, make and model are consistency checks, never substitutes for ownership IDs.
+- Manual job creation, background sync and downloaded manifests must use the same resolver. Store distinct visits under the vehicle's `Jobs` directory with their own dates, references, manifests, receipts and category folders.
+- Never collapse database jobs or route different visits through one primary manifest merely to remove duplicate-looking vehicle folders. Photo downloads and uploads must retain each original job ID and date.
+- Back up and hash-verify legacy moves, never overwrite destinations, and retain reversible recovery journals. Windows-locked sources remain usable, are flagged for review, and reuse existing verified backups on retry.
+- Test repeated sync, manual creation, manifest import, customer/vehicle separation, ambiguous identities, receipts and per-job photo attribution. Verify the installed running version and public updater hashes before reporting completion.
+- Do not claim missing photos were recovered without locating and verifying the files. Use fictional customer details in public test fixtures and documentation.

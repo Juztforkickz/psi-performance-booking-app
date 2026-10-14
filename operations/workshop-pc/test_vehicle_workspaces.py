@@ -20,10 +20,10 @@ class VehicleWorkspaceTests(unittest.TestCase):
             'job_id': '00000000-0000-4000-8000-000000000001',
             'customer_id': '00000000-0000-4000-8000-000000000010',
             'vehicle_id': '00000000-0000-4000-8000-000000000020',
-            'registration': '2CF9JD', 'vehicle_year': 2016, 'vehicle_make': 'Holden', 'vehicle_model': 'VF2 SSV',
-            'customer_name': 'Alex Croker', 'job_date': '2026-10-12', 'reference': 'PSI-BOOKING'}
+            'registration': 'TEST123', 'vehicle_year': 2016, 'vehicle_make': 'Holden', 'vehicle_model': 'VF2 SSV',
+            'customer_name': 'Example Customer', 'job_date': '2026-10-12', 'reference': 'PSI-BOOKING'}
         self.second = {**self.first, 'job_id': '00000000-0000-4000-8000-000000000002',
-                       'job_date': '2026-10-13', 'reference': 'ALEX VF LS3 ENGINE REPAIRS'}
+                       'job_date': '2026-10-13', 'reference': 'ENGINE REPAIRS'}
         self.posts = []
         outer = self
         class Staff:
@@ -39,9 +39,9 @@ class VehicleWorkspaceTests(unittest.TestCase):
                     return [{'id': m['job_id'], **m} for m in (outer.first, outer.second)]
                 if path.startswith('/rest/v1/customer_vehicles?'):
                     return [{'id': outer.first['vehicle_id'], 'customer_id': outer.first['customer_id'],
-                             'registration': '2CF9JD', 'year': 2016, 'make': 'Holden', 'model': 'VF2 SSV', 'archived_at': None}]
+                             'registration': 'TEST123', 'year': 2016, 'make': 'Holden', 'model': 'VF2 SSV', 'archived_at': None}]
                 if path.startswith('/rest/v1/customer_profiles?'):
-                    return [{'user_id': outer.first['customer_id'], 'first_name': 'Alex', 'last_name': 'Croker', 'email': 'alex@example.invalid'}]
+                    return [{'user_id': outer.first['customer_id'], 'first_name': 'Example', 'last_name': 'Customer', 'email': 'example@example.invalid'}]
                 if path.startswith(('/rest/v1/workshop_vehicles?', '/rest/v1/workshop_contacts?')):
                     return []
                 raise AssertionError((method, path))
@@ -51,7 +51,7 @@ class VehicleWorkspaceTests(unittest.TestCase):
         self.temp.cleanup()
 
     def legacy(self, manifest):
-        customer = self.root / 'ALEX CROKER'
+        customer = self.root / 'EXAMPLE CUSTOMER'
         customer.mkdir(exist_ok=True)
         u.atomic_json(customer / u.CUSTOMER_FOLDER_MARKER, u._customer_marker(manifest))
         folder = customer / u.folder_label_for(manifest)
@@ -66,7 +66,7 @@ class VehicleWorkspaceTests(unittest.TestCase):
         second = u.create_folder_from_manifest(self.root, self.second, connection=self.c)
         self.assertEqual(first.parent, second.parent)
         self.assertNotEqual(first, second)
-        self.assertEqual(first.parent.parent.name, '2016 HOLDEN VF2 SSV - 2CF9JD')
+        self.assertEqual(first.parent.parent.name, '2016 HOLDEN VF2 SSV - TEST123')
         for _ in range(3):
             self.assertEqual(u.create_folder_from_manifest(self.root, self.first, connection=self.c), first)
             self.assertEqual(u.create_folder_from_manifest(self.root, self.second, connection=self.c), second)
@@ -87,7 +87,7 @@ class VehicleWorkspaceTests(unittest.TestCase):
 
     def test_manual_new_job_resolves_existing_vehicle_workspace(self):
         first = u.create_folder_from_manifest(self.root, self.first, connection=self.c)
-        replies = iter(['2CF9JD', '1'])
+        replies = iter(['TEST123', '1'])
         with patch.object(u, '_manual_job_details', return_value=('2026-10-13', 'Engine repair')), \
              patch.object(u, '_reuse_invoice_job', return_value=None):
             second = u.create_manual_job(self.root, self.c, lambda _: next(replies))
@@ -160,7 +160,7 @@ class VehicleWorkspaceTests(unittest.TestCase):
         duplicate.mkdir()
         shutil.copy2(first.parent.parent / u.VEHICLE_WORKSPACE_MARKER, duplicate / u.VEHICLE_WORKSPACE_MARKER)
         (duplicate / 'Jobs').mkdir()
-        replies = iter(['2CF9JD', '1'])
+        replies = iter(['TEST123', '1'])
         with self.assertRaisesRegex(ValueError, 'More than one canonical workspace'):
             u.create_manual_job(self.root, self.c, lambda _: next(replies))
         self.assertEqual(self.posts, [])
