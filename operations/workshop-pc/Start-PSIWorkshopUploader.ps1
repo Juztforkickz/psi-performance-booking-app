@@ -70,10 +70,13 @@ public static class PSIWorkshopWindow {
 [PSIWorkshopWindow]::Center()
 
 function Enter-PSIUploaderLock {
+  param([int]$MaxWaitSeconds = 600, [string]$MutexName = 'Local\PSIWorkshopAutomaticUploader')
+  # Restore watching even if the old worker exits just as a handover times out.
+  $script:RestartWatcher = $true
   Set-Content -LiteralPath $script:StopFile -Value 'stop' -Encoding ASCII
-  $script:WatcherMutex = New-Object System.Threading.Mutex($false, 'Local\PSIWorkshopAutomaticUploader')
+  $script:WatcherMutex = New-Object System.Threading.Mutex($false, $MutexName)
   $WaitingMessageShown = $false
-  for ($Attempt = 0; $Attempt -lt 40 -and -not $script:WatcherLockHeld; $Attempt++) {
+  for ($Attempt = 0; $Attempt -lt $MaxWaitSeconds -and -not $script:WatcherLockHeld; $Attempt++) {
     try {
       $script:WatcherLockHeld = $script:WatcherMutex.WaitOne(1000)
     } catch [System.Threading.AbandonedMutexException] {
@@ -83,12 +86,15 @@ function Enter-PSIUploaderLock {
       Write-Host 'Finishing the current background sync safely...'
       $WaitingMessageShown = $true
     }
+    if (-not $script:WatcherLockHeld -and $Attempt -gt 0 -and ($Attempt % 10) -eq 0) {
+      Write-Host 'Still waiting for the current file to finish. Your uploads are being preserved...'
+    }
   }
   if (-not $script:WatcherLockHeld) {
     $script:WatcherMutex.Dispose()
     $script:WatcherMutex = $null
     Remove-Item -LiteralPath $script:StopFile -Force -ErrorAction SilentlyContinue
-    throw 'The automatic watcher did not pause. Wait 30 seconds and try again.'
+    throw 'Background syncing is still finishing safely. No job was created. Please try again shortly.'
   }
   Remove-Item -LiteralPath $script:StopFile -Force -ErrorAction SilentlyContinue
 }

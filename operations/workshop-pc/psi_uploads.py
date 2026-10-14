@@ -54,6 +54,16 @@ LEGACY_VEHICLE_INDEX_FOLDER = '00 CUSTOMER VEHICLES - VIEW ONLY'
 LEGACY_VEHICLE_INDEX_MARKER = 'psi-vehicle-index.json'
 
 
+class PauseRequested(BaseException):
+    """A graceful control request, not an upload error or a failed receipt."""
+
+
+def check_pause(connection):
+    pause_file = getattr(connection, 'pause_file', None)
+    if pause_file and Path(pause_file).exists():
+        raise PauseRequested()
+
+
 class SessionStore:
     """Persist only the rotating refresh token, protected for this Windows user."""
     class _Blob(ctypes.Structure):
@@ -171,6 +181,8 @@ class Connection:
         self.verified_jobs = {}
 
     def call(self, path, method='GET', data=None, binary=None, headers=None, read_binary=False):
+        if method == 'GET' and not path.startswith('/auth/'):
+            check_pause(self)
         if self.refresh and time.time() > self.expires - 90 and not path.startswith('/auth/'):
             self.set_session(self.call('/auth/v1/token?grant_type=refresh_token', 'POST', {'refresh_token': self.refresh}))
         body = binary if binary is not None else json.dumps(data).encode() if data is not None else None
@@ -1386,8 +1398,9 @@ def published_invoice_for_job(connection, job_id, filename):
     return matches[0] if matches else None
 
 
-def archive_exact_source_duplicates(folder, state):
+def archive_exact_source_duplicates(folder, state, connection=None):
     """Keep one identical source per job/category; retain every extra in recovery."""
+    check_pause(connection)
     recovery = folder / '.psi-duplicate-originals'
     if recovery.is_symlink():
         raise ValueError('Duplicate recovery folder must not be a symlink')
@@ -1448,18 +1461,16 @@ def photo_signature(content):
     with Image.open(io.BytesIO(content)) as source:
         image = ImageOps.exif_transpose(source).convert('RGB')
         width, height = image.size
-        pixels = image.load()
         values = []
         for y in range(64):
             for x in range(64):
                 x0, y0 = x * width // 64, y * height // 64
                 x1, y1 = max(x0 + 1, (x + 1) * width // 64), max(y0 + 1, (y + 1) * height // 64)
-                sums = [0, 0, 0]
-                for py in range(y0, y1):
-                    for px in range(x0, x1):
-                        pixel = pixels[min(px, width - 1), min(py, height - 1)]
-                        for channel in range(3):
-                            sums[channel] += pixel[channel]
+                # Native channel sums preserve the old exact cell averages without
+                # millions of interpreted pixel operations for every comparison.
+                cell = image.crop((min(x0, width - 1), min(y0, height - 1),
+                                   min(x1, width), min(y1, height)))
+                sums = ImageStat.Stat(cell).sum
                 count = (x1 - x0) * (y1 - y0)
                 values.extend(int(total / count + .5) for total in sums)
         return f'rgb64:{width}:{height}:' + bytes(values).hex()
@@ -1479,6 +1490,7 @@ def visually_identical(first, second):
 def published_photos(connection, manifest):
     photos = []
     for offset in range(0, 1000000, 100):
+        check_pause(connection)
         rows = connection.call('/rest/v1/vault_assets?select=*,vault_records!inner(kind,published_at,job_id)'
             + '&customer_id=eq.' + manifest['customer_id'] + '&vehicle_id=eq.' + manifest['vehicle_id']
             + '&ready=eq.true&vault_records.kind=eq.media&vault_records.published_at=not.is.null'
@@ -1520,6 +1532,7 @@ def read_cloud_photo(connection, asset, manifest):
 
 def sync_portal_photos(folder, connection):
     """Download published profile photos to their verified desktop job folder."""
+    check_pause(connection)
     manifest = manifest_for(folder, connection)
     if manifest.get('schema') == 2:
         return 0
@@ -1533,7 +1546,9 @@ def sync_portal_photos(folder, connection):
     state = json.loads(state_path.read_text()) if state_path.exists() else {}
     receipts = state.setdefault('_cloud_photos', {})
     downloaded = 0
+    local_features = {}
     for asset in published_photos(connection, manifest):
+        check_pause(connection)
         if asset['vault_records']['job_id'] not in job_ids:
             continue
         receipt = receipts.get(asset['id'], {})
@@ -1548,16 +1563,25 @@ def sync_portal_photos(folder, connection):
         target = destination / (asset['id'] + suffix)
         matched = None
         for local in destination.iterdir():
+            check_pause(connection)
             if local.is_symlink() or not local.is_file() or local.suffix.lower() not in IMAGE_SUFFIXES + ('.pdf',):
                 continue
             before = (local.stat().st_size, local.stat().st_mtime_ns)
             if before[0] > 40 * 1024 * 1024 or time.time() - local.stat().st_mtime < 5:
                 continue
-            raw_digest = hashlib.sha256(local.read_bytes()).hexdigest()
+            cached = local_features.get(local)
+            if cached is None or cached['stat'] != before:
+                cached = {'stat': before, 'digest': hashlib.sha256(local.read_bytes()).hexdigest()}
+                local_features[local] = cached
+            raw_digest = cached['digest']
             identical = raw_digest in (asset['sha256'], asset.get('source_sha256'))
             if not identical and asset.get('visual_signature') and local.suffix.lower() in IMAGE_SUFFIXES:
-                prepared, _, _ = prepare_file(local)
-                identical = visually_identical(photo_signature(prepared), asset['visual_signature']) and identical_photo_pixels(prepared, content)
+                if 'visual' not in cached:
+                    prepared, _, _ = prepare_file(local)
+                    cached['visual'] = photo_signature(prepared)
+                if visually_identical(cached['visual'], asset['visual_signature']):
+                    prepared, _, _ = prepare_file(local)
+                    identical = identical_photo_pixels(prepared, content)
             if identical and before == (local.stat().st_size, local.stat().st_mtime_ns):
                 matched = local
                 break
@@ -1605,6 +1629,7 @@ def mark_folder_review(folder, error):
     atomic_json(path, state)
 
 def process_job(folder, connection=None):
+    check_pause(connection)
     manifest = manifest_for(folder, connection)
     linked = linked_job_manifests(folder, manifest, connection)
     migrate_category_folders(folder)
@@ -1619,12 +1644,13 @@ def process_job(folder, connection=None):
     if removed_folder_error:
         atomic_json(state_path, state)
     if connection:
-        archive_exact_source_duplicates(folder, state)
+        archive_exact_source_duplicates(folder, state, connection)
     for category, (kind, phase, category_key) in CATEGORIES.items():
         category_path = folder / category
         if not category_path.is_dir() or category_path.is_symlink():
             continue
         for path in sorted(category_path.iterdir()):
+            check_pause(connection)
             if path.is_symlink() or not path.is_file():
                 continue
             is_text_record = path.suffix.lower() == '.txt' and category in TEXT_RECORD_CATEGORIES
@@ -1662,6 +1688,7 @@ def process_job(folder, connection=None):
                 if connection and not workshop_only and kind == 'media':
                     duplicate = None
                     for saved in published_photos(connection, manifest):
+                        check_pause(connection)
                         if saved['sha256'] == digest or saved.get('source_sha256') == source_digest:
                             duplicate = saved
                             break
@@ -1803,6 +1830,8 @@ def main():
             return 10
         print(f'Created phone/walk-in PSI job: {folder}')
         return
+    if connection:
+        connection.pause_file = args.stop_file
     try:
         while True:
             if args.stop_file and Path(args.stop_file).exists():
@@ -1822,6 +1851,7 @@ def main():
             for folder in review_folders:
                 atomic_json(folder / '.psi-upload-status.json', {'status': 'needs_review', 'error': 'No verified psi-job.json; nothing uploaded'})
             for folder in job_folders:
+                check_pause(connection)
                 try:
                     download_error = None
                     if connection:
@@ -1841,6 +1871,9 @@ def main():
                 if args.stop_file and Path(args.stop_file).exists():
                     break
                 time.sleep(1)
+    except PauseRequested:
+        print('Automatic watcher paused safely. Completed uploads and file receipts are preserved.')
+        return 0
     finally:
         if connection and not session_store:
             try: connection.call('/auth/v1/logout?scope=local', 'POST', {})

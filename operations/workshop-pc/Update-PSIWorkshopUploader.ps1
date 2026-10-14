@@ -73,7 +73,7 @@ function Write-UpdateStatus($manifest, [bool]$available, [string]$message) {
 function Stop-PSIWatcherSafely {
   Set-Content -LiteralPath $StopFile -Value 'stop' -Encoding ASCII
   $script:WatcherMutex = New-Object System.Threading.Mutex($false, 'Local\PSIWorkshopAutomaticUploader')
-  for ($attempt = 0; $attempt -lt 45 -and -not $script:WatcherLockHeld; $attempt++) {
+  for ($attempt = 0; $attempt -lt 600 -and -not $script:WatcherLockHeld; $attempt++) {
     try { $script:WatcherLockHeld = $script:WatcherMutex.WaitOne(1000) }
     catch [System.Threading.AbandonedMutexException] { $script:WatcherLockHeld = $true }
   }
