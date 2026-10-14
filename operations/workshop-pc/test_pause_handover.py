@@ -1,5 +1,6 @@
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -39,10 +40,11 @@ class PauseHandoverTests(unittest.TestCase):
         category.mkdir()
         for name in ('first.txt', 'second.txt'):
             (category / name).write_text(name)
+            os.utime(category / name, (1, 1))
         def publish(folder, manifest, connection, state, path, relative, *args):
             state[relative] = {'status': 'uploaded', 'record_id': 'saved-record'}
             self.pause.touch()
-        manifest = {'schema': 1}
+        manifest = {'schema': 1, 'job_id': 'test-job'}
         with patch.object(uploader, 'manifest_for', return_value=manifest), \
              patch.object(uploader, 'linked_job_manifests', return_value=[]), \
              patch.object(uploader, 'archive_exact_source_duplicates'), \

@@ -48,8 +48,9 @@
 ## Workshop vehicle workspace contract
 
 - Keep one canonical desktop vehicle workspace per verified project, customer and vehicle ID. Registration, year, make and model are consistency checks, never substitutes for ownership IDs.
-- Manual job creation, background sync and downloaded manifests must use the same resolver. Store distinct visits under the vehicle's `Jobs` directory with their own dates, references, manifests, receipts and category folders.
-- Never collapse database jobs or route different visits through one primary manifest merely to remove duplicate-looking vehicle folders. Photo downloads and uploads must retain each original job ID and date.
+- Manual job creation, background booking sync and downloaded manifests must check and reuse the same vehicle folder. Keep the six category folders directly inside it. Do not add a visible `Jobs` layer or dated/reference subfolders unless Matt explicitly requests them.
+- Consolidate verified same-vehicle folders and exact duplicate files with recoverable backups. Preserve all distinct content, each existing file's job ID, date and receipt in internal metadata, and every database job. Never merge different customer or vehicle IDs using names or registration alone.
+- New unassigned files use the latest eligible workshop visit, not a future booking or an invoice-only job when an eligible workshop visit exists. Never reassign an existing file just because the active visit changes. Block uploads while a consolidation is incomplete.
 - Back up and hash-verify legacy moves, never overwrite destinations, and retain reversible recovery journals. Windows-locked sources remain usable, are flagged for review, and reuse existing verified backups on retry.
 - Test repeated sync, manual creation, manifest import, customer/vehicle separation, ambiguous identities, receipts and per-job photo attribution. Verify the installed running version and public updater hashes before reporting completion.
 - Do not claim missing photos were recovered without locating and verifying the files. Use fictional customer details in public test fixtures and documentation.

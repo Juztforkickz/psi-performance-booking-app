@@ -329,7 +329,7 @@ class WorkshopImporterTests(unittest.TestCase):
         source.write_text(json.dumps(self.manifest))
         root = self.folder / 'uploads'
         job = create_job_folder(root, source)
-        self.assertEqual(job.name, '2026-09-08 - PSI-TEST - a4300000')
+        self.assertEqual(job.name, 'ABC123')
         self.assertEqual(json.loads((job / 'psi-job.json').read_text()), self.manifest)
         self.assertEqual(set(path.name for path in job.iterdir() if path.is_dir()), set((
             'Service & repair history', 'Recommended work', 'Dyno results & graphs',
@@ -358,10 +358,11 @@ class WorkshopImporterTests(unittest.TestCase):
 
         self.assertFalse((job / 'before').exists())
         self.assertFalse((job / 'after').exists())
-        self.assertEqual((job / 'Workshop photos' / 'car.jpg').read_bytes(), b'before')
-        self.assertEqual((job / 'Workshop photos' / 'after - car.jpg').read_bytes(), b'after')
+        photos = list((job / 'Workshop photos').iterdir())
+        self.assertEqual({p.read_bytes() for p in photos}, {b'before', b'after'})
+        before_path = next(p for p in photos if p.read_bytes() == b'before')
         state = json.loads((job / '.psi-upload-status.json').read_text())
-        self.assertEqual(state['Workshop photos\\car.jpg']['status'], 'uploaded')
+        self.assertEqual(state[str(before_path.relative_to(job))]['status'], 'uploaded')
 
     def test_legacy_category_folders_migrate_without_duplicates_or_reupload(self):
         source = self.folder / 'downloaded.json'
@@ -401,9 +402,9 @@ class WorkshopImporterTests(unittest.TestCase):
         }
         source.write_text(json.dumps(named))
         renamed = create_job_folder(root, source)
-        self.assertEqual(renamed.parents[2].name, 'TYRONE BROWN')
+        self.assertEqual(renamed.parent.name, 'TYRONE BROWN')
         self.assertEqual(
-            renamed.parent.parent.name,
+            renamed.name,
             '2011 PORSCHE CAYENNE - ABC123',
         )
         self.assertFalse(old_folder.exists())
@@ -424,7 +425,7 @@ class WorkshopImporterTests(unittest.TestCase):
         source.write_text(json.dumps(self.manifest))
         root = self.folder / 'uploads'
         job = create_job_folder(root, source)
-        changed = {**self.manifest, 'job_id': 'a4300000-0000-4000-8000-000000000009'}
+        changed = {**self.manifest, 'reference': 'UNVERIFIED-CHANGE'}
         source.write_text(json.dumps(changed))
         with self.assertRaisesRegex(ValueError, 'different PSI job'):
             create_job_folder(root, source)
@@ -451,10 +452,10 @@ class WorkshopImporterTests(unittest.TestCase):
         folder = create_job_folder(root, source)
         source.write_text(json.dumps(app_manifest))
         claimed = create_job_folder(root, source)
-        self.assertFalse(folder.exists())
-        self.assertEqual(claimed.parents[2].name, 'DYAN DSOUZA')
+        self.assertEqual(folder, claimed)
+        self.assertEqual(claimed.parent.name, 'DYAN DSOUZA')
         self.assertEqual(json.loads((claimed / 'psi-job.json').read_text()), app_manifest)
-        marker = json.loads((claimed.parents[2] / '.psi-customer-folder.json').read_text())
+        marker = json.loads((claimed.parent / '.psi-customer-folder.json').read_text())
         self.assertEqual(marker['customer_id'], self.manifest['customer_id'])
         self.assertNotIn('workshop_contact_id', marker)
 
@@ -633,8 +634,8 @@ class WorkshopImporterTests(unittest.TestCase):
         second, repeated_errors = sync_job_folders(root, FakeConnection())
         self.assertEqual(errors + repeated_errors, [])
         self.assertEqual(first, second)
-        self.assertEqual(first[0].parents[2].name, 'TEST CUSTOMER')
-        self.assertEqual(first[0].parent.parent.name, '2020 FORD MUSTANG - ABC123')
+        self.assertEqual(first[0].parent.name, 'TEST CUSTOMER')
+        self.assertEqual(first[0].name, '2020 FORD MUSTANG - ABC123')
         self.assertTrue((first[0] / 'Dyno results & graphs').is_dir())
 
     def test_one_customer_folder_groups_multiple_vehicle_jobs_for_upload(self):
@@ -657,10 +658,10 @@ class WorkshopImporterTests(unittest.TestCase):
         second = create_job_folder(root, source)
         jobs, review = local_folder_scan(root)
 
-        self.assertEqual(first.parents[2], second.parents[2])
-        self.assertEqual(first.parents[2].name, 'ANTONIO NESCI')
-        self.assertEqual(first.parent.parent.name, '1963 CHEVROLET IMPALA - 9573-H3')
-        self.assertEqual(second.parent.parent.name, '2004 HOLDEN MONARO - RBJ575')
+        self.assertEqual(first.parent, second.parent)
+        self.assertEqual(first.parent.name, 'ANTONIO NESCI')
+        self.assertEqual(first.name, '1963 CHEVROLET IMPALA - 9573-H3')
+        self.assertEqual(second.name, '2004 HOLDEN MONARO - RBJ575')
         self.assertEqual(set(jobs), {first, second})
         self.assertEqual(review, [])
         for job in jobs:
@@ -721,9 +722,9 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(connection.posted['title'], 'Phone service')
         self.assertTrue(connection.posted['reference'].startswith('PSI-PHONE-20260915-'))
         self.assertTrue((folder / 'psi-job.json').is_file())
-        self.assertEqual(folder.parents[2].name, 'TEST CUSTOMER')
-        self.assertEqual(folder.parent.parent.name, '2020 FORD MUSTANG - ABC123')
-        self.assertIn('PSI-PHONE-', folder.name)
+        self.assertEqual(folder.parent.name, 'TEST CUSTOMER')
+        self.assertEqual(folder.name, '2020 FORD MUSTANG - ABC123')
+        self.assertIn('PSI-PHONE-', manifest_for(folder)['reference'])
 
     def test_manual_job_date_accepts_australian_iso_and_past_formats(self):
         self.assertEqual(_parse_job_date('23/09/2026'), '2026-09-23')
@@ -845,9 +846,9 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(manifest['schema'], 2)
         self.assertEqual(manifest['owner_type'], 'workshop')
         self.assertEqual(manifest['workshop_contact_id'], workshop_contact_id)
-        self.assertEqual(folder.parents[2].name, 'PHONE CUSTOMER')
+        self.assertEqual(folder.parent.name, 'PHONE CUSTOMER')
         self.assertEqual(
-            folder.parent.parent.name,
+            folder.name,
             '2018 TOYOTA 86 - 2FC2BJ',
         )
 
@@ -897,7 +898,7 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(connection.vehicle_post['workshop_contact_id'], contact_id)
         self.assertEqual(connection.rpc_payload['p_existing_workshop_vehicle_id'], vehicle_id)
         self.assertIsNone(connection.rpc_payload['p_display_name'])
-        self.assertEqual(folder.parents[2].name, 'BEN LAUGHTON')
+        self.assertEqual(folder.parent.name, 'BEN LAUGHTON')
 
     def test_new_registration_reuses_exact_existing_app_customer(self):
         customer_id = 'a4100000-0000-4000-8000-000000000010'
@@ -941,7 +942,7 @@ class WorkshopImporterTests(unittest.TestCase):
         manifest = json.loads((folder / 'psi-job.json').read_text())
         self.assertEqual(manifest['schema'], 1)
         self.assertEqual(manifest['customer_id'], customer_id)
-        self.assertEqual(folder.parents[2].name, 'BEN LAUGHTON')
+        self.assertEqual(folder.parent.name, 'BEN LAUGHTON')
 
     def test_new_registration_can_find_existing_customer_by_partial_name(self):
         customer_id = 'a4100000-0000-4000-8000-000000000020'
@@ -985,7 +986,7 @@ class WorkshopImporterTests(unittest.TestCase):
         self.assertEqual(connection.vehicle_post['customer_id'], customer_id)
         manifest = json.loads((folder / 'psi-job.json').read_text())
         self.assertEqual(manifest['customer_id'], customer_id)
-        self.assertEqual(folder.parents[2].name, 'BEN LAUGHTON')
+        self.assertEqual(folder.parent.name, 'BEN LAUGHTON')
 
     def test_verified_sync_can_repair_workshop_identity_without_losing_files(self):
         root = self.folder / 'repair-root'
@@ -1020,7 +1021,7 @@ class WorkshopImporterTests(unittest.TestCase):
         repaired = create_folder_from_manifest(root, repaired_manifest, allow_workshop_identity_repair=True)
 
         self.assertEqual((repaired / 'Workshop photos' / 'keep.jpg').read_bytes(), b'keep this exact file')
-        self.assertEqual(repaired.parents[2], canonical.parents[2])
+        self.assertEqual(repaired.parent, canonical.parent)
         self.assertFalse(folder.parent.exists())
         self.assertEqual(json.loads((repaired / 'psi-job.json').read_text()), repaired_manifest)
 
