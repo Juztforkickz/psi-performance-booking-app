@@ -10,12 +10,13 @@ export function StaffXeroConnection() {
   const busy = !!busyAction;
   const [message, setMessage] = useState('');
   const [connected, setConnected] = useState<boolean | null>(null);
+  const [depositStatus, setDepositStatus] = useState('Check status to view deposit syncing.');
   const [candidates, setCandidates] = useState<{ tenant_id: string; tenant_name: string }[]>([]);
-  async function connect() {
+  async function connect(deposits = false) {
     if (busy) return;
     setBusyAction('connect');
     try {
-      const { data, error } = await getSupabaseClient().functions.invoke('start-xero-connection');
+      const { data, error } = await getSupabaseClient().functions.invoke('start-xero-connection', { body: { deposits } });
       if (error || !data?.authorizationUrl) {
         setMessage('Connection unavailable. Check Xero setup or sign in again as the owner.');
         return;
@@ -23,7 +24,7 @@ export function StaffXeroConnection() {
       const url = new URL(data.authorizationUrl);
       if (url.origin !== 'https://login.xero.com' || url.pathname !== '/identity/connect/authorize' || url.username || url.password) throw new Error('invalid_destination');
       await Linking.openURL(url.toString());
-      setMessage('Complete the Xero connection, then check the status here.');
+      setMessage(deposits ? 'Approve the payment and bank transaction permissions in Xero, then return here to check and enable deposit syncing.' : 'Complete the Xero connection, then check the status here.');
     } catch { setMessage('Could not open the secure Xero connection. Please try again.'); }
     finally { setBusyAction(''); }
   }
@@ -37,6 +38,12 @@ export function StaffXeroConnection() {
       setCandidates(pending.data ?? []);
       const isConnected = !pending.data?.length && Array.isArray(data) && data.length > 0;
       setConnected(isConnected);
+      if (isConnected) {
+        const deposit = await getSupabaseClient().functions.invoke('process-booking-xero-deposits', {body:{action:'status'}});
+        setDepositStatus(deposit.error ? 'Deposit syncing status is unavailable.' : deposit.data?.enabled
+          ? `Automatic deposit syncing is on. ${deposit.data.counts?.waiting_invoice ?? 0} waiting for a verified invoice. ${deposit.data.counts?.needs_review ?? 0} need owner review.`
+          : 'Automatic deposit syncing is off. Authorise Xero access, then enable below.');
+      }
       if (pending.data?.length) {
         setMessage('Select PSI’s organisation below. Check the business name carefully.');
       } else if (isConnected && showBusy) {
@@ -63,6 +70,20 @@ export function StaffXeroConnection() {
     if (busy) return;
     await loadStatus(true);
   }
+  async function enableDeposits() {
+    if (busy) return;
+    setBusyAction('deposits');
+    try {
+      const result = await getSupabaseClient().functions.invoke('process-booking-xero-deposits', {body:{action:'enable'}});
+      if (result.error || result.data?.enabled !== true) {
+        setMessage('Approve deposit syncing access in Xero first. If already approved, check your owner verification and try again.');
+        return;
+      }
+      setDepositStatus('Automatic deposit syncing is on. Confirmed deposits are checked every five minutes and applied once the booking invoice is verified.');
+      setMessage('Deposits and actual Stripe fees will sync once per verified booking. Stripe payout bank matching remains separate.');
+    } catch { setMessage('Deposit syncing could not be enabled. Check the Xero connection and owner verification.'); }
+    finally { setBusyAction(''); }
+  }
   return <View style={styles.workspace}>
     <Text style={styles.title}>Xero invoices</Text>
     <Text style={styles.copy}>{connected
@@ -77,6 +98,13 @@ export function StaffXeroConnection() {
     </View>
     <PrimaryButton label="Check status" variant="outline" disabled={busy} loading={busyAction === 'check'} onPress={() => void check()} />
     <PrimaryButton label={connected ? 'Reconnect or replace Xero' : 'Connect Xero'} disabled={busy} loading={busyAction === 'connect'} onPress={() => void connect()} />
+    <View style={styles.protection}>
+      <Text style={styles.businessName}>Booking deposit syncing</Text>
+      <Text style={styles.copy}>Allow PSI to credit verified booking deposits against invoices and record the actual Stripe fees. Xero requires your consent for payment and bank transaction access.</Text>
+      <PrimaryButton label="Authorise deposit syncing in Xero" variant="outline" disabled={busy} onPress={() => void connect(true)} />
+      <PrimaryButton label="Enable automatic deposit sync" disabled={busy} loading={busyAction === 'deposits'} onPress={() => void enableDeposits()} />
+      <Text style={styles.copy}>{depositStatus}</Text>
+    </View>
     {candidates.map(candidate => <View key={candidate.tenant_id} style={styles.candidate}>
       <Text style={styles.businessName}>{candidate.tenant_name}</Text>
       <PrimaryButton label={`Confirm ${candidate.tenant_name}`} variant="outline" disabled={busy} loading={busyAction === candidate.tenant_id} onPress={async () => {

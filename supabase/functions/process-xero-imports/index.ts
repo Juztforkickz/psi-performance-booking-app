@@ -151,7 +151,7 @@ async function refreshedAccess(admin: SupabaseClient, tenantId: string) {
   try {
     const current = parseXeroTokenSet(await openXeroTokens(claim.sealed_tokens, tenantId, encryptionKey));
     const refreshed = await requestXeroTokenRefresh(current.refresh_token, clientId, clientSecret);
-    const sealed = await sealXeroTokens({ ...refreshed, refreshed_at: new Date().toISOString() }, tenantId, encryptionKey);
+    const sealed = await sealXeroTokens({ ...refreshed, scope: refreshed.scope ?? current.scope, refreshed_at: new Date().toISOString() }, tenantId, encryptionKey);
     const { error: commitError } = await admin.rpc('commit_xero_refresh', {
       p_tenant_id: tenantId,
       p_lock_token: claim.lock_token,

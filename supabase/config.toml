@@ -517,3 +517,8 @@ enabled = true
 # Xero redirects here without a PSI JWT; a single-use owner-created state is required.
 verify_jwt = false
 entrypoint = "./functions/xero-oauth-callback/index.ts"
+
+[functions.process-booking-xero-deposits]
+verify_jwt = true
+enabled = true
+entrypoint = "./functions/process-booking-xero-deposits/index.ts"
