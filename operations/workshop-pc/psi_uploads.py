@@ -2008,11 +2008,22 @@ def sync_portal_photos(folder, connection):
         if prior_name and Path(prior_name).name == prior_name:
             prior_path = destination / prior_name
             if prior_path.is_file() and not prior_path.is_symlink() and prior_path.stat().st_size <= 40 * 1024 * 1024:
-                if hashlib.sha256(prior_path.read_bytes()).hexdigest() == receipt.get('sha256'):
+                prior_before = (prior_path.stat().st_size, prior_path.stat().st_mtime_ns)
+                if (hashlib.sha256(prior_path.read_bytes()).hexdigest() == receipt.get('sha256')
+                        and prior_before == (prior_path.stat().st_size, prior_path.stat().st_mtime_ns)):
+                    relative = str(prior_path.relative_to(folder))
+                    before = prior_before
+                    prior = state.get(relative, {})
+                    state[relative] = {**prior, 'status': 'uploaded', 'source_size': before[0], 'source_mtime_ns': before[1],
+                                      'job_id': prior.get('job_id') or asset['vault_records']['job_id']}
+                    state[relative].setdefault('key', 'cloud:' + asset['id'])
+                    state[relative].setdefault('record_id', asset['record_id'])
+                    atomic_json(state_path, state)
                     continue
         content, suffix = read_cloud_photo(connection, asset, manifest)
         target = destination / (asset['id'] + suffix)
         matched = None
+        matched_digest, matched_before = asset['sha256'], None
         for local in destination.iterdir():
             check_pause(connection)
             if local.is_symlink() or not local.is_file() or local.suffix.lower() not in IMAGE_SUFFIXES + ('.pdf',):
@@ -2035,6 +2046,7 @@ def sync_portal_photos(folder, connection):
                     identical = identical_photo_pixels(prepared, content)
             if identical and before == (local.stat().st_size, local.stat().st_mtime_ns):
                 matched = local
+                matched_digest, matched_before = raw_digest, before
                 break
         if matched is None:
             if target.exists() or target.is_symlink():
@@ -2048,6 +2060,12 @@ def sync_portal_photos(folder, connection):
                         output.write(content)
                         output.flush()
                         os.fsync(output.fileno())
+                    before = (partial.stat().st_size, partial.stat().st_mtime_ns)
+                    relative = str(target.relative_to(folder))
+                    state[relative] = _source_state('cloud:' + asset['id'], 'uploaded', before,
+                        record_id=asset['record_id'], job_id=asset['vault_records']['job_id'], cloud_origin=True)
+                    receipts[asset['id']] = {'name': target.name, 'sha256': asset['sha256']}
+                    atomic_json(state_path, state)
                     if os.name == 'nt':
                         os.rename(partial, target)  # Windows refuses replacement.
                     else:
@@ -2058,12 +2076,318 @@ def sync_portal_photos(folder, connection):
             matched = target
         before = (matched.stat().st_size, matched.stat().st_mtime_ns)
         digest = hashlib.sha256(matched.read_bytes()).hexdigest()
+        if (digest != matched_digest or before != (matched.stat().st_size, matched.stat().st_mtime_ns)
+                or (matched_before is not None and before != matched_before)):
+            raise ValueError('Local photo changed during download verification; retrying without overwriting it')
         relative = str(matched.relative_to(folder))
         # Never replace the existing per-file visit route with a later asset.
         if state.get(relative, {}).get('status') != 'uploaded':
             state[relative] = _source_state('cloud:' + asset['id'], 'uploaded', before, record_id=asset['record_id'], job_id=asset['vault_records']['job_id'])
         receipts[asset['id']] = {'name': matched.name, 'sha256': digest}
         atomic_json(state_path, state)
+    return downloaded
+
+
+REPORT_CATEGORIES = {
+    'service': 'Service & repair history', 'recommendation': 'Recommended work',
+    'dyno': 'Dyno results & graphs', 'invoice': 'Invoice archive',
+    'media': 'Workshop photos', 'document': "Documents + DTC's", 'modification': "Documents + DTC's",
+}
+REPORT_TABLES = ('vault_records', 'vault_assets', 'repair_records', 'recommended_work', 'dyno_records', 'invoices', 'vehicle_files')
+
+
+def configure_report_scan(connection, folders):
+    """Batch only live-verified owner/vehicle pairs, with a fresh cache per scan."""
+    scopes = set()
+    for folder in folders:
+        check_pause(connection)
+        try:
+            marker = _read_vehicle_workspace(folder)
+            if marker and marker.get('pending_merge'):
+                continue
+            manifest = manifest_for(folder, connection)
+            if manifest['schema'] == 1:
+                scopes.add((manifest['customer_id'], manifest['vehicle_id']))
+        except (OSError, ValueError):
+            # The normal per-folder checks surface the precise error below.
+            continue
+    connection.report_scopes = scopes
+    connection.report_rows = {}
+
+
+def _report_rows(connection, table, manifest, select='*', filters=''):
+    if table not in REPORT_TABLES:
+        raise ValueError('Unsupported report source')
+    own = (manifest['customer_id'], manifest['vehicle_id'])
+    scopes = getattr(connection, 'report_scopes', set())
+    scopes = scopes if own in scopes else {own}
+    cache = getattr(connection, 'report_rows', None)
+    key = (table, select, filters, tuple(sorted(scopes)))
+    if cache is not None and key in cache:
+        return [row for row in cache[key] if (row['customer_id'], row['vehicle_id']) == own]
+    result = []
+    # Keep each URL bounded, even if the workshop grows beyond the current PC.
+    ordered = sorted(scopes)
+    for start in range(0, len(ordered), 20):
+        batch = ordered[start:start+20]
+        ownership = ','.join(f'and(customer_id.eq.{owner},vehicle_id.eq.{vehicle})' for owner, vehicle in batch)
+        for offset in range(0, 1000000, 100):
+            check_pause(connection)
+            page = connection.call(f'/rest/v1/{table}?select={select}&or=({ownership}){filters}&order=id&limit=100&offset={offset}')
+            if any((row.get('customer_id'), row.get('vehicle_id')) not in batch for row in page):
+                raise ValueError('Report response does not match its verified ownership scope')
+            result.extend(page)
+            if len(page) < 100:
+                break
+        else:
+            raise ValueError('Report list is too large; PSI review required')
+    if cache is not None:
+        cache[key] = result
+    return [row for row in result if (row['customer_id'], row['vehicle_id']) == own]
+
+
+def _report_revision(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
+
+
+def _report_owned(row, manifest):
+    if row.get('customer_id') != manifest['customer_id'] or row.get('vehicle_id') != manifest['vehicle_id']:
+        raise ValueError('Report belongs to a different customer or vehicle')
+    if str(uuid.UUID(row['id'])) != row['id']:
+        raise ValueError('Invalid report identifier')
+
+
+def _download_payload(content, mime):
+    suffix = {'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp',
+              'text/plain': '.txt'}.get(mime)
+    if not suffix or not content or len(content) > (256 * 1024 if suffix == '.txt' else 20 * 1024 * 1024):
+        raise ValueError('Unsupported or oversized report file')
+    if suffix == '.pdf' and not content.startswith(b'%PDF-'):
+        raise ValueError('Invalid downloaded PDF')
+    if suffix == '.txt':
+        content.decode('utf-8-sig')
+    elif mime.startswith('image/'):
+        with Image.open(io.BytesIO(content)) as image:
+            image.verify()
+    return suffix
+
+
+def _save_report_download(folder, category, source, revision, filename, content_fn, state, manifest,
+                          record_id, connection, notes=None, source_reference=None):
+    """Receipt before atomic visibility: a crash cannot turn a download into a new upload."""
+    destination = folder / category
+    if destination.is_symlink():
+        raise ValueError('Report category must not be a symlink')
+    destination.mkdir(exist_ok=True)
+    state_path = folder / '.psi-upload-status.json'
+    receipts = state.setdefault('_cloud_downloads', {})
+    receipt = receipts.get(source, {})
+    matched = None
+    expected_local_digest = None
+    relative = receipt.get('path', '')
+    if relative and Path(relative).parts[:-1] == (category,) and Path(relative).name:
+        local = folder / relative
+        if (receipt.get('revision') == revision and local.is_file() and not local.is_symlink()
+                and local.stat().st_size <= 40 * 1024 * 1024
+                and hashlib.sha256(local.read_bytes()).hexdigest() == receipt.get('sha256')):
+            matched = local
+            expected_local_digest = receipt['sha256']
+    # Text uploaded from this PC already exists, usually without export headers.
+    if matched is None and notes is not None:
+        for relative, prior in list(state.items()):
+            check_pause(connection)
+            if not isinstance(prior, dict) or prior.get('record_id') != record_id or prior.get('status') != 'uploaded':
+                continue
+            if Path(relative).parts[:-1] != (category,):
+                continue
+            local = folder / relative
+            if local.is_file() and not local.is_symlink() and local.stat().st_size <= 256 * 1024:
+                try:
+                    raw = local.read_bytes()
+                    local_note = raw.decode('utf-8-sig').replace('\r\n', '\n').replace('\r', '\n').strip()
+                    remote_note = str(notes).replace('\r\n', '\n').replace('\r', '\n').strip()
+                    if local_note == remote_note:
+                        matched = local
+                        expected_local_digest = hashlib.sha256(raw).hexdigest()
+                        break
+                except UnicodeError:
+                    pass
+    created = False
+    if matched is None:
+        content, mime = content_fn()
+        suffix = _download_payload(content, mime)
+        for local in sorted(destination.iterdir()):
+            check_pause(connection)
+            if not local.is_file() or local.is_symlink() or local.stat().st_size > 40 * 1024 * 1024:
+                continue
+            raw = local.read_bytes()
+            identical = raw == content
+            # A prepared JPEG may correspond to an untouched local HEIC/PNG.
+            if not identical and mime.startswith('image/') and local.suffix.lower() in IMAGE_SUFFIXES:
+                prepared, _, _ = prepare_file(local)
+                identical = prepared == content
+            if identical:
+                matched = local
+                expected_local_digest = hashlib.sha256(raw).hexdigest()
+                break
+        if matched is None:
+            label = _safe_folder_part(Path(filename).stem, 90) or ('Report ' + record_id[:8])
+            target = _available_destination(destination, label + suffix)
+            partial = destination / (uuid.uuid4().hex + '.download')
+            try:
+                with partial.open('xb') as output:
+                    output.write(content)
+                    output.flush()
+                    os.fsync(output.fileno())
+                before = (partial.stat().st_size, partial.stat().st_mtime_ns)
+                relative = str(target.relative_to(folder))
+                state[relative] = _source_state('cloud:' + source, 'uploaded', before,
+                    record_id=record_id, job_id=manifest['job_id'], cloud_origin=True)
+                receipts[source] = {'path': relative, 'revision': revision, 'sha256': hashlib.sha256(content).hexdigest()}
+                atomic_json(state_path, state)
+                if os.name == 'nt':
+                    os.rename(partial, target)
+                else:
+                    os.link(partial, target)
+                matched, created = target, True
+                expected_local_digest = hashlib.sha256(content).hexdigest()
+            finally:
+                partial.unlink(missing_ok=True)
+    before = (matched.stat().st_size, matched.stat().st_mtime_ns)
+    digest = hashlib.sha256(matched.read_bytes()).hexdigest()
+    if digest != expected_local_digest or before != (matched.stat().st_size, matched.stat().st_mtime_ns):
+        raise ValueError('Local report changed during download verification')
+    relative = str(matched.relative_to(folder))
+    prior = state.get(relative, {})
+    # Preserve the original visit and source key for an already synced PC file.
+    state[relative] = {**prior, 'status': 'uploaded', 'source_size': before[0], 'source_mtime_ns': before[1],
+                      'record_id': prior.get('record_id') or record_id, 'job_id': prior.get('job_id') or manifest['job_id']}
+    state[relative].setdefault('key', source_reference or 'cloud:' + source)
+    receipts[source] = {'path': relative, 'revision': revision, 'sha256': digest}
+    atomic_json(state_path, state)
+    return int(created)
+
+
+def _report_text(record, kind):
+    title = record.get('title') or record.get('invoice_number') or ('Dyno results' if kind == 'dyno' else 'Vehicle record')
+    when = record.get('occurred_on') or record.get('repair_date') or record.get('invoice_date') or record.get('tested_at') or record.get('created_at', '')[:10]
+    lines = [str(title), 'Date: ' + str(when), 'Source: ' + str(record.get('record_source') or record.get('source') or 'PSI')]
+    for field, label in (('odometer_km','Odometer km'),('status','Status'),('timing','Timing'),('fuel','Fuel'),
+                         ('power_kw_at_hubs','Power kW'),('torque_nm_at_hubs','Torque Nm'),('power_kw','Power kW'),('torque_nm','Torque Nm')):
+        if record.get(field) is not None:
+            lines.append(label + ': ' + str(record[field]))
+    if record.get('amount_cents') is not None:
+        if record.get('currency', 'AUD') != 'AUD':
+            raise ValueError('Non-AUD invoice requires PSI review')
+        lines.append('Amount: A$' + format(record['amount_cents'] / 100, '.2f') + ' AUD')
+    lines += ['', str(record.get('notes') or record.get('summary') or '')]
+    return ('\n'.join(lines)).encode('utf-8'), str(when)[:10] + ' ' + str(title) + '.txt'
+
+
+def _read_legacy_report(connection, row, manifest):
+    _report_owned(row, manifest)
+    path = row['object_path']
+    parts = path.split('/')
+    if (row['bucket_id'] != 'vehicle-documents' or not path.startswith(manifest['customer_id'] + '/vehicles/' + manifest['vehicle_id'] + '/')
+            or any(part in ('', '.', '..') for part in parts) or '\\' in path or '%' in path or '?' in path or '#' in path):
+        raise ValueError('Private report path does not match its verified vehicle')
+    if not 0 < row['file_size_bytes'] <= 20 * 1024 * 1024:
+        raise ValueError('Invalid report size')
+    content = connection.call('/storage/v1/object/authenticated/vehicle-documents/' + urllib.parse.quote(path, safe='/'), read_binary=True)
+    if len(content) != row['file_size_bytes']:
+        raise ValueError('Private report size verification failed')
+    _download_payload(content, row['mime_type'])
+    return content, row['mime_type']
+
+
+def sync_portal_records(folder, connection):
+    """All six report categories, read-only in the cloud and non-destructive locally."""
+    check_pause(connection)
+    marker = _read_vehicle_workspace(folder)
+    if marker and marker.get('pending_merge'):
+        raise ValueError('Folder consolidation is not complete; no reports downloaded')
+    primary = manifest_for(folder, connection)
+    if primary['schema'] == 2:
+        return 0
+    manifests = {m['job_id']: m for m in [primary] + linked_job_manifests(folder, primary, connection)}
+    downloaded = 0
+    state_path = folder / '.psi-upload-status.json'
+    state = json.loads(state_path.read_text()) if state_path.exists() else {}
+    errors = []
+    def save(category, source, revision, name, reader, manifest, record_id, **kwargs):
+        nonlocal downloaded
+        try:
+            downloaded += _save_report_download(folder, category, source, revision, name, reader, state, manifest,
+                                                 record_id, connection, **kwargs)
+        except Exception as error:
+            errors.append(source + ': ' + str(error))
+    records = _report_rows(connection, 'vault_records', primary, filters='&published_at=not.is.null&kind=neq.media')
+    by_id = {}
+    for record in records:
+        _report_owned(record, primary)
+        if record.get('published_at') and record.get('job_id') in manifests and record['kind'] in REPORT_CATEGORIES:
+            by_id[record['id']] = record
+    attached = set()
+    assets = _report_rows(connection, 'vault_assets', primary, select='*,vault_records!inner(kind,published_at)',
+                          filters='&ready=eq.true&vault_records.published_at=not.is.null&vault_records.kind=neq.media')
+    for asset in assets:
+        record = by_id.get(asset['record_id'])
+        if not record or not asset.get('ready'):
+            continue
+        _report_owned(asset, primary)
+        attached.add(record['id'])
+        title = (re.sub(r'^(?:xero\s+)?invoice\s+', '', record['title'], flags=re.IGNORECASE).strip()
+                 if record['kind'] == 'invoice' and invoice_identity(record['title']) else None)
+        title = title or asset.get('caption') or record['title'] or asset['id']
+        save(REPORT_CATEGORIES[record['kind']], 'vault_asset:' + asset['id'], _report_revision(asset), title,
+             lambda a=asset: (read_cloud_photo(connection, a, primary)[0], a['mime_type']),
+             manifests[record['job_id']], record['id'], source_reference=record.get('source_reference'))
+    for record in by_id.values():
+        if record['kind'] != 'service' and record['id'] in attached:
+            continue
+        content, name = _report_text(record, record['kind'])
+        save(REPORT_CATEGORIES[record['kind']], 'vault_record:' + record['id'], _report_revision(record), name,
+             lambda b=content: (b, 'text/plain'), manifests[record['job_id']], record['id'],
+             notes=record.get('notes') if record['kind'] == 'service' else None, source_reference=record.get('source_reference'))
+    legacy = {}
+    for table in ('repair_records', 'recommended_work', 'dyno_records', 'invoices'):
+        rows = _report_rows(connection, table, primary, filters='&archived_at=is.null')
+        legacy[table] = {row['id']: row for row in rows if row.get('archived_at') is None}
+    attached_legacy = set()
+    for row in _report_rows(connection, 'vehicle_files', primary, filters='&archived_at=is.null&file_kind=neq.vehicle_photo'):
+        _report_owned(row, primary)
+        if row.get('archived_at') is not None:
+            continue
+        kind = {'invoice': 'invoice', 'dyno_graph': 'dyno', 'repair_document': 'document'}.get(row['file_kind'])
+        if not kind:
+            continue
+        table = 'invoices' if kind == 'invoice' else 'dyno_records'
+        parent_id = row.get('invoice_id') if kind == 'invoice' else row.get('dyno_record_id')
+        parent = legacy[table].get(parent_id) if kind != 'document' else None
+        if kind != 'document' and not parent:
+            raise ValueError('Private attachment has no active verified parent record')
+        title = parent.get('invoice_number') if kind == 'invoice' else 'Dyno graph' if kind == 'dyno' else 'Document ' + row['id'][:8]
+        if parent:
+            attached_legacy.add((table, parent_id))
+        save(REPORT_CATEGORIES[kind], 'vehicle_file:' + row['id'], _report_revision(row), title,
+             lambda r=row: _read_legacy_report(connection, r, primary), primary, parent_id or row['id'])
+    for table, kind in (('repair_records','service'),('recommended_work','recommendation'),('dyno_records','dyno'),('invoices','invoice')):
+        for record in legacy[table].values():
+            _report_owned(record, primary)
+            if (table, record['id']) in attached_legacy:
+                continue
+            content, name = _report_text(record, kind)
+            save(REPORT_CATEGORIES[kind], table + ':' + record['id'], _report_revision(record), name,
+                 lambda b=content: (b, 'text/plain'), primary, record['id'],
+                 notes=record.get('notes') if kind in ('service','recommendation') else None)
+    # Do not hold invoices and text records behind a first-time photo comparison.
+    # The photo pass reloads the just-saved receipt file, preserving both indexes.
+    try:
+        downloaded += sync_portal_photos(folder, connection)
+    except Exception as error:
+        errors.append('Workshop photos: ' + str(error))
+    if errors:
+        raise ValueError('Report downloads need review: ' + '; '.join(errors))
     return downloaded
 
 
@@ -2319,20 +2643,16 @@ def main():
                     if imported:
                         print(f'Imported {len(imported)} downloaded PSI job file(s).')
             job_folders, review_folders = local_folder_scan(root)
+            if connection:
+                configure_report_scan(connection, job_folders)
             for folder in review_folders:
                 atomic_json(folder / '.psi-upload-status.json', {'status': 'needs_review', 'error': 'No verified psi-job.json; nothing uploaded'})
             for folder in job_folders:
                 check_pause(connection)
                 try:
-                    download_error = None
                     if connection:
-                        try:
-                            sync_portal_photos(folder, connection)
-                        except Exception as error:
-                            download_error = str(error)
+                        sync_portal_records(folder, connection)
                     process_job(folder, connection)
-                    if download_error:
-                        mark_folder_review(folder, 'Photo download will retry: ' + download_error)
                 except Exception as error:
                     mark_folder_review(folder, error)
             print('Scan complete. Check each job folder’s .psi-upload-status.json for results.')
