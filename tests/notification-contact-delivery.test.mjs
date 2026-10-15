@@ -20,7 +20,8 @@ test('push delivery distinguishes roles without exposing workshop enquiry detail
     read('../supabase/migrations/20261007001544_preserve_owner_ios_cash_notification_sound.sql'),
   ]);
   assert.match(worker, /channelId: workshopAlert \? cashSoundAvailable \? PSI_WORKSHOP_CASH_CHANNEL : "psi-workshop" : "psi-customer"/u);
-  assert.match(worker, /title: invoiceAttentionAlert \? "PSI invoices need attention" : performanceSubscriptionAlert \|\| historicalImportAlert \|\| carSaleAlert(?: \|\| messageAlert)? \? event\.title : "PSI update received"/u);
+  assert.match(worker, /title: invoiceAttentionAlert \? "PSI invoices need attention" : performanceSubscriptionAlert \|\| historicalImportAlert \|\| carSaleAlert(?: \|\| messageAlert)?(?: \|\| bulkPsiEventAlert)? \? event\.title : "PSI update received"/u);
+  assert.match(worker, /bulkPsiEventAlert = event\.deep_link === "\/events"[\s\S]*?event\.kind === "psi_event_updated"[\s\S]*?event\.source_event_key\.startsWith\("psi_events_bulk:"\)/u);
   assert.match(worker, /Open Imports & drafts to review unresolved sales invoices/u);
   assert.match(worker, /workshopAlert[\s\S]*?"Open the protected workshop portal to review it\."[\s\S]*?"Open PSI to view your private update\."/u);
   assert.doesNotMatch(worker, /bookingId: event\.booking_request_id/u);
@@ -61,3 +62,4 @@ test('new booking notification migration includes customer, vehicle and enquiry 
   assert.match(migration, /staff_request_received:/u);
   assert.match(migration, /security definer[\s\S]*set search_path = ''/u);
 });
+
