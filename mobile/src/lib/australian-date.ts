@@ -66,6 +66,11 @@ export function shiftIsoMonth(value: { month: number; year: number }, offset: nu
   return { month: absoluteMonth - year * 12 + 1, year };
 }
 
+export function monthCalendarWeeks(year: number, month: number) {
+  const days = monthCalendarGrid(year, month);
+  return Array.from({ length: days.length / 7 }, (_, index) => days.slice(index * 7, index * 7 + 7));
+}
+
 export function addIsoMonths(value: string, months: number) {
   const parts = isoDateParts(value);
   if (!parts || !Number.isInteger(months)) return null;

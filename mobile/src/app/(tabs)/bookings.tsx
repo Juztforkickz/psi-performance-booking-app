@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import { formatAustralianDate, formatAustralianDateTime, formatIsoDate } from '@/lib/australian-date';
+import { formatAustralianDate, formatAustralianDateTime, formatIsoDate, monthCalendarWeeks } from '@/lib/australian-date';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { CUSTOMER_PREVIEW } from '@/lib/customer-preview';
@@ -28,7 +28,7 @@ import { beginBookingPayment, openStripeCheckout, type BankTransferInstructions 
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 
 const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const;
-const SEPTEMBER_2026 = [null, ...Array.from({ length: 30 }, (_, index) => index + 1), null, null, null, null];
+const SEPTEMBER_2026 = monthCalendarWeeks(2026, 9);
 
 export default function BookingsScreen() {
   const router = useRouter();
@@ -228,8 +228,9 @@ export default function BookingsScreen() {
           <View style={styles.weekRow}>
             {WEEKDAYS.map((day, index) => <Text key={`${day}-${index}`} style={styles.weekday}>{day}</Text>)}
           </View>
-          <View style={styles.daysGrid}>
-            {SEPTEMBER_2026.map((day, index) => {
+          <View>
+            {SEPTEMBER_2026.map((week, weekIndex) => <View key={`week-${weekIndex}`} style={styles.weekRow}>
+            {week.map((day, index) => {
               const appointment = day === 16;
               return (
                 <View
@@ -242,6 +243,7 @@ export default function BookingsScreen() {
                 </View>
               );
             })}
+            </View>)}
           </View>
           <View style={styles.calendarLegend}>
             <View style={styles.legendMark} />
@@ -630,9 +632,8 @@ const styles = StyleSheet.create({
   calendarKicker: { color: colors.accent, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   calendarTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
   weekRow: { flexDirection: 'row' },
-  weekday: { width: '14.2857%', color: colors.muted, fontSize: 9, fontWeight: '900', textAlign: 'center' },
-  daysGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  dayCell: { width: '14.2857%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, backgroundColor: colors.inkSoft },
+  weekday: { flex: 1, minWidth: 0, color: colors.muted, fontSize: 9, fontWeight: '900', textAlign: 'center' },
+  dayCell: { flex: 1, minWidth: 0, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line, backgroundColor: colors.inkSoft },
   dayCellEmpty: { borderColor: 'transparent', backgroundColor: 'transparent' },
   dayCellBooked: { borderWidth: 3, borderColor: colors.white, backgroundColor: colors.silver },
   dayText: { color: colors.silver, fontSize: 11, fontWeight: '800' },

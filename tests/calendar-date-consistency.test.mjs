@@ -65,7 +65,7 @@ test('customer, portal and integration date only paths use fixed UTC calendar ca
     readFile(new URL('../supabase/functions/process-booking-integrations/index.ts', import.meta.url), 'utf8'),
   ]);
 
-  assert.match(picker, /monthCalendarGrid/u);
+  assert.match(picker, /monthCalendarWeeks/u);
   assert.match(picker, /formatIsoDate/u);
   assert.doesNotMatch(picker, /new Date\(year, month/u);
   assert.match(bookingFlow, /getUTCDay\(\)/u);

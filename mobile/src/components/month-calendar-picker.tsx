@@ -7,7 +7,7 @@ import {
   daysInIsoMonth,
   formatIsoDate,
   isoDateParts,
-  monthCalendarGrid,
+  monthCalendarWeeks,
   shiftIsoMonth,
 } from '@/lib/australian-date';
 
@@ -33,7 +33,7 @@ export function MonthCalendarPicker({
   const initial = isoDateParts(value) ?? isoDateParts(minimumDate ?? '') ?? todayParts();
   const [visibleMonth, setVisibleMonth] = useState(() => ({ month: initial.month, year: initial.year }));
 
-  const days = useMemo(() => monthGrid(visibleMonth.year, visibleMonth.month), [visibleMonth]);
+  const weeks = useMemo(() => monthCalendarWeeks(visibleMonth.year, visibleMonth.month), [visibleMonth]);
   const monthLabel = new Intl.DateTimeFormat('en-AU', { month: 'long', timeZone: 'UTC', year: 'numeric' })
     .format(new Date(Date.UTC(visibleMonth.year, visibleMonth.month - 1, 1, 12)));
   const previousDisabled = disabled || !monthCanContainDate(shiftMonth(visibleMonth, -1), minimumDate, maximumDate);
@@ -74,8 +74,9 @@ export function MonthCalendarPicker({
       <View style={styles.weekRow}>
         {WEEKDAYS.map((weekday) => <Text key={weekday} style={styles.weekday}>{weekday}</Text>)}
       </View>
-      <View style={styles.grid}>
-        {days.map((day, index) => {
+      <View>
+        {weeks.map((week, weekIndex) => <View key={`week-${weekIndex}`} style={styles.weekRow}>
+        {week.map((day, index) => {
           if (!day) return <View key={`empty-${index}`} style={styles.cell} />;
           const isoDate = `${visibleMonth.year}-${String(visibleMonth.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           const outOfRange = Boolean((minimumDate && isoDate < minimumDate) || (maximumDate && isoDate > maximumDate));
@@ -102,6 +103,7 @@ export function MonthCalendarPicker({
             </View>
           );
         })}
+        </View>)}
       </View>
     </View>
   );
@@ -116,10 +118,6 @@ function todayParts() {
   }).formatToParts(new Date());
   const read = (type: 'day' | 'month' | 'year') => Number(parts.find((part) => part.type === type)?.value ?? '0');
   return { day: read('day'), month: read('month'), year: read('year') };
-}
-
-function monthGrid(year: number, month: number) {
-  return monthCalendarGrid(year, month);
 }
 
 function shiftMonth(value: { month: number; year: number }, offset: number) {
@@ -138,9 +136,8 @@ const styles = StyleSheet.create({
   monthButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   monthLabel: { color: colors.white, flex: 1, fontSize: 15, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
   weekRow: { flexDirection: 'row', marginBottom: 4 },
-  weekday: { color: colors.muted, flex: 1, fontSize: 9, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  cell: { aspectRatio: 1, padding: 2, width: `${100 / 7}%` },
+  weekday: { color: colors.muted, flex: 1, minWidth: 0, fontSize: 9, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
+  cell: { aspectRatio: 1, flex: 1, minWidth: 0, padding: 2 },
   day: { alignItems: 'center', borderColor: 'transparent', borderRadius: 5, borderWidth: 1, flex: 1, justifyContent: 'center' },
   daySelected: { backgroundColor: colors.accent, borderColor: colors.accent },
   dayDisabled: { opacity: 0.28 },
