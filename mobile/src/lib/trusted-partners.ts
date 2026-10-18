@@ -22,7 +22,7 @@ const PARTNERS: readonly TrustedPartner[] = [
     category: 'Finance',
     businessName: 'Fastr Finance',
     contactName: 'Danny Tomaino, Finance Expert',
-    summary: 'Car, caravan, boat and equipment finance, with support from application to settlement.',
+    summary: 'Finance for cars, caravans, boats and equipment, plus PSI parts, servicing and repairs.',
     phoneDisplay: '0400 567 041',
     phoneUrl: 'tel:+61400567041',
     email: 'danny@fastrfinance.com.au',
