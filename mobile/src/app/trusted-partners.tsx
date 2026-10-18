@@ -22,7 +22,7 @@ import { useThemePreference } from '@/lib/theme-preference';
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
 const PARTNER_LOGOS: Readonly<Record<string, ImageSourcePropType>> = {
-  'fastr-finance': require('../../assets/images/partners/fastr-finance.png'),
+  'fastr-finance': require('../../assets/images/partners/fastr-finance.jpg'),
   'dark-side-film': require('../../assets/images/partners/dark-side-film.jpg'),
   'grace-insurance': require('../../assets/images/partners/grace-insurance.png'),
   'elite-autobody': require('../../assets/images/partners/elite-autobody.jpg'),
@@ -53,7 +53,7 @@ const PARTNER_LOGO_OPACITY: Readonly<Record<string, number>> = {
 };
 
 const PARTNER_LOGO_BACKGROUNDS: Readonly<Record<string, string>> = {
-  'fastr-finance': '#FFFFFF',
+  'fastr-finance': '#F6F6F6',
   'martini-racing-products': colors.white,
   'fab-car-audio': colors.white,
 };
@@ -341,7 +341,7 @@ const styles = StyleSheet.create({
   partnerTopCompact: { alignItems: 'flex-start' },
   logoFrame: { width: 92, height: 92, flexShrink: 0, overflow: 'hidden', borderWidth: 2, borderRadius: 46 },
   logo: { width: '100%', height: '100%' },
-  containedLogo: { width: '80%', height: '80%', alignSelf: 'center', marginTop: '10%' },
+  containedLogo: { width: '90%', height: '90%', alignSelf: 'center', marginTop: '5%' },
   partnerHeading: { flex: 1, minWidth: 0, gap: 3 },
   partnerIndex: { fontSize: 9, fontWeight: '900', letterSpacing: 1 },
   category: { fontSize: 10, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
