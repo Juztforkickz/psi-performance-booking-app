@@ -83,7 +83,7 @@ test('Every trusted partner action uses a valid destination', async () => {
       assert.match(phoneUrl[1], /^tel:\+61\d{9}$/u);
     }
 
-    for (const link of block.matchAll(/(?:websiteUrl|instagramUrl): '([^']+)'/gu)) {
+    for (const link of block.matchAll(/(?:websiteUrl|facebookUrl|instagramUrl): '([^']+)'/gu)) {
       const parsed = new URL(link[1]);
       assert.equal(parsed.protocol, 'https:');
     }

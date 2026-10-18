@@ -171,6 +171,7 @@ function PartnerCard({
   if (partner.phoneUrl) actions.push({ icon: 'call-outline', label: 'Call', url: partner.phoneUrl });
   if (partner.emailUrl) actions.push({ icon: 'mail-outline', label: 'Email', url: partner.emailUrl });
   if (partner.websiteUrl) actions.push({ icon: 'globe-outline', label: 'Website', url: partner.websiteUrl });
+  if (partner.facebookUrl) actions.push({ icon: 'logo-facebook', label: 'Facebook', url: partner.facebookUrl });
   if (partner.instagramUrl) actions.push({ icon: 'logo-instagram', label: 'Instagram', url: partner.instagramUrl });
 
   return (
@@ -209,6 +210,7 @@ function PartnerCard({
       <Text style={[styles.summary, { color: theme.textMuted }]}>{partner.summary}</Text>
 
       <View style={[styles.details, { borderTopColor: theme.border }]}>
+        {partner.contactName ? <PartnerDetail icon="person-outline" value={partner.contactName} /> : null}
         {partner.address ? <PartnerDetail icon="location-outline" value={partner.address} /> : null}
         {partner.phoneDisplay ? <PartnerDetail icon="call-outline" value={partner.phoneDisplay} /> : null}
         {partner.secondaryPhoneDisplay ? (

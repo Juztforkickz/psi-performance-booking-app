@@ -2,8 +2,10 @@ export type TrustedPartner = {
   address?: string;
   businessName: string;
   category: string;
+  contactName?: string;
   email?: string;
   emailUrl?: string;
+  facebookUrl?: string;
   id: string;
   instagramUrl?: string;
   secondaryPhoneDisplay?: string;
@@ -19,12 +21,15 @@ const PARTNERS: readonly TrustedPartner[] = [
     id: 'fastr-finance',
     category: 'Finance',
     businessName: 'Fastr Finance',
-    summary: 'Danny Tomaino, Finance Expert.',
+    contactName: 'Danny Tomaino, Finance Expert',
+    summary: 'Your trusted finance partner.\n\nFastr Finance helps Australians secure fast, flexible finance for caravans, cars, boats, trucks, machinery and more. With access to 40+ lenders, we compare options to find suitable finance solutions for every customer. Our experienced team manages the process from application to settlement, making finance simple, seamless and hassle-free.\n\nWhy choose Fastr?\n\nCompetitive rates, personalised service, fast approvals and a dedicated team committed to helping your referrals get moving sooner.',
     phoneDisplay: '0400 567 041',
     phoneUrl: 'tel:+61400567041',
     email: 'danny@fastrfinance.com.au',
     emailUrl: 'mailto:danny@fastrfinance.com.au',
     websiteUrl: 'https://fastrfinance.com.au/',
+    facebookUrl: 'https://www.facebook.com/people/Fastr-Finance/100088513164361/',
+    instagramUrl: 'https://www.instagram.com/fastrfinance_au/',
   },
   {
     id: 'dark-side-film',
