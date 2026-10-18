@@ -16,6 +16,17 @@ export type TrustedPartner = {
 
 const PARTNERS: readonly TrustedPartner[] = [
   {
+    id: 'fastr-finance',
+    category: 'Finance',
+    businessName: 'Fastr Finance',
+    summary: 'Danny Tomaino, Finance Expert.',
+    phoneDisplay: '0400 567 041',
+    phoneUrl: 'tel:+61400567041',
+    email: 'danny@fastrfinance.com.au',
+    emailUrl: 'mailto:danny@fastrfinance.com.au',
+    websiteUrl: 'https://fastrfinance.com.au/',
+  },
+  {
     id: 'dark-side-film',
     category: 'Window Tinting',
     businessName: 'Dark Side of the Film',
