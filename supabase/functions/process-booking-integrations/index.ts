@@ -406,7 +406,7 @@ const googleCalendarConfiguration = () => {
   return { calendarId, clientId, clientSecret, missing, refreshToken };
 };
 
-const googleCalendarAccessToken = async () => {
+const googleCalendarAccessToken = async (): Promise<{ blocked: string[] } | { accessToken: string; calendarId: string }> => {
   const config = googleCalendarConfiguration();
   if (config.missing.length) return { blocked: config.missing } as const;
   const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -501,16 +501,14 @@ const syncGoogleCalendar = async (admin: SupabaseClient, job: IntegrationJob, co
     return { providerReference: eventId } as const;
   }
 
-  const booking = bookingLabel(context);
+  const booking = context.booking.booking_type === "dyno" ? "Dyno tuning" : "Service & Report";
   const eventBody = {
     id: eventId,
-    summary: `[CONFIRMED] ${booking} · ${context.vehicle.registration}`,
+    summary: `${customerName(context)} · ${booking} · ${context.vehicle.registration}`,
     description: [
       `Customer: ${customerName(context)}`,
       `Vehicle: ${vehicleLabel(context)}`,
       `Mobile: ${context.customer.mobile ?? "Not supplied"}`,
-      `PSI booking reference: ${context.booking.id}`,
-      "PSI workshop event. Customer attendee invitations are intentionally disabled.",
     ].join("\n"),
     start: { date: approvedDate },
     end: { date: nextCalendarDate(approvedDate!) },

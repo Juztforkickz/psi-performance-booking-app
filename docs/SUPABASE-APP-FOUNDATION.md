@@ -343,8 +343,11 @@ The current protected integration flow is:
 5. No pending or merely date-approved booking is written to Google Calendar.
    Only the future trusted payment-confirmed transition queues the customer/PSI
    confirmation emails and one internal Calendar event. The event is all-day,
-   clearly labelled `[CONFIRMED]`, deterministic for retry safety and does not
-   invite the customer.
+   titled with the customer's full name, `Service & Report` (or `Dyno tuning`)
+   and registration. The description contains the customer, vehicle and mobile
+   details. The booking ID remains in private event metadata for deterministic
+   retries, without a visible booking reference or invitation status notice.
+   The event does not invite the customer.
 
 Resend and Google Calendar provider credentials belong only in encrypted Edge
 Function secrets. Booking-specific email delivery is active in controlled QA.
