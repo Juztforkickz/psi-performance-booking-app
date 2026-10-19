@@ -21,7 +21,7 @@ const PARTNERS: readonly TrustedPartner[] = [
     id: 'fastr-finance',
     category: 'Finance',
     businessName: 'Fastr Finance',
-    contactName: 'Danny Tomaino, Finance Expert',
+    contactName: 'Danny Tomaino, Finance Specialist',
     summary: 'Finance for cars, caravans, boats and equipment, plus PSI parts, servicing and repairs.',
     phoneDisplay: '0400 567 041',
     phoneUrl: 'tel:+61400567041',
