@@ -522,6 +522,7 @@ const syncGoogleCalendar = async (admin: SupabaseClient, job: IntegrationJob, co
   }
 
   const booking = context.booking.booking_type === "diagnostics" ? "Diagnostics & Repairs" : context.booking.booking_type === "dyno" ? "Dyno tuning" : "Service & Report";
+  const visitDetails = requestContextLines(context.booking.request_context);
   const eventBody = {
     id: eventId,
     summary: `${customerName(context)} · ${booking} · ${context.vehicle.registration}`,
@@ -529,7 +530,13 @@ const syncGoogleCalendar = async (admin: SupabaseClient, job: IntegrationJob, co
       `Customer: ${customerName(context)}`,
       `Vehicle: ${vehicleLabel(context)}`,
       `Mobile: ${context.customer.mobile ?? "Not supplied"}`,
-    ].join("\n"),
+      ...(context.booking.request_notes?.trim()
+        ? ["", "Customer booking notes (as supplied):", context.booking.request_notes]
+        : []),
+      ...(visitDetails.length ? ["", "Booking details:", ...visitDetails] : []),
+    // Calendar descriptions accept HTML. Show customer input as literal text,
+    // preserving their wording and line breaks, never as active markup.
+    ].map(escapeHtml).join("\n"),
     start: { date: approvedDate },
     end: { date: nextCalendarDate(approvedDate!) },
     attendees: [],

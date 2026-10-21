@@ -82,3 +82,11 @@ pending or date-approved request and never adds the customer as an attendee.
 The portal's AAL2-gated queue check also performs a read-only live Calendar
 health request. A real event acceptance check still waits for a legitimately
 confirmed booking.
+
+Confirmed Calendar descriptions include the customer, vehicle and mobile,
+followed by the complete customer booking notes as supplied and the selected
+visit details. Notes are labelled as customer reports, not verified diagnoses.
+Customer wording and line breaks are retained, with HTML escaped so literal
+text cannot become active Calendar markup. The existing deterministic event
+ID, confirmed date, Calendar visibility and no-customer-invitation rules are
+unchanged. Updating a description does not create another booking or event.
