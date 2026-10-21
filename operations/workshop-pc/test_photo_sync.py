@@ -1,7 +1,9 @@
 import hashlib
 import io
 import json
+import os
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -40,6 +42,25 @@ class PhotoSyncTests(unittest.TestCase):
     def sync(self):
         with patch.object(uploader, 'manifest_for', return_value=self.manifest), patch.object(uploader, 'linked_job_manifests', return_value=[]):
             return uploader.sync_portal_photos(self.folder, self.connection)
+
+    def test_lean_download_reuses_local_photo_without_stored_signature(self):
+        destination = self.folder / 'Workshop photos'
+        destination.mkdir()
+        local = destination / 'original.png'
+        image = Image.new('RGB', (96, 96))
+        image.putdata([((i * 7) % 256, (i * 13) % 256, (i * 19) % 256) for i in range(96 * 96)])
+        image.save(local)
+        os.utime(local, (time.time() - 10, time.time() - 10))
+        self.content, _, _ = uploader.prepare_file(local)
+        self.asset.update(mime_type='image/jpeg', size_bytes=len(self.content),
+                          sha256=hashlib.sha256(self.content).hexdigest())
+        self.asset['object_path'] = self.asset['object_path'].removesuffix('.pdf') + '.jpg'
+        original = local.read_bytes()
+        self.assertNotIn('visual_signature', self.asset)
+        self.assertEqual(self.sync(), 0)
+        self.assertEqual(list(destination.iterdir()), [local])
+        self.assertEqual(local.read_bytes(), original)
+        self.assertEqual(self.sync(), 0)
 
     def test_download_repeated_sync_and_upload_loop_prevention(self):
         self.assertEqual(self.sync(), 1)
