@@ -12,6 +12,8 @@ const compiled = ts.transpileModule(source + '\nexport { syncGoogleCalendar };\n
 }).outputText;
 const bookingId = '00000000-0000-4000-8000-000000000001';
 const eventId = 'psi' + bookingId.replaceAll('-', '');
+const calendarText = text => text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;').replaceAll("'", '&#039;').replace(/\r\n?|\n/g, '<br>\n');
 
 function harness({ existing = true } = {}) {
   const requests = [], records = [];
@@ -74,7 +76,7 @@ for (const bookingType of ['service', 'dyno', 'diagnostics']) {
     h.context.booking.request_notes = notes;
     await h.run();
     const body = h.writes()[0];
-    assert.ok(body.description.includes('Customer booking notes (as supplied):\n' + notes));
+    assert.ok(body.description.includes('Customer booking notes (as supplied):<br>\n' + calendarText(notes)));
     assert.ok(body.description.includes('Arrival: Business Hours'));
     assert.ok(body.description.includes('Requested services: Diagnostics Warning Lights'));
     assert.equal(body.id, eventId);
@@ -93,7 +95,7 @@ test('customer markup is displayed as literal text rather than active HTML', asy
   h.context.booking.request_context.diagnosticsDetails = { helpNeeded: 'diagnosis', previousDiagnosis: '<b>P0123</b> & wiring' };
   await h.run();
   const { description } = h.writes()[0];
-  assert.ok(description.includes('&lt;img src=&quot;https://example.invalid/track&quot;&gt;\n'));
+  assert.ok(description.includes('&lt;img src=&quot;https://example.invalid/track&quot;&gt;<br>\n'));
   assert.ok(description.includes('Voltage &lt; 10 &amp; sensor &gt; 0. Customer&#039;s guess.'));
   assert.ok(description.includes('Previous diagnosis or fault codes: &lt;b&gt;P0123&lt;/b&gt; &amp; wiring'));
   assert.ok(!description.includes('<img'));
@@ -107,7 +109,7 @@ for (const notes of [null, '', ' \n ']) {
     h.context.booking.request_context = {};
     await h.run();
     const { description } = h.writes()[0];
-    assert.equal(description, 'Customer: Example Customer\nVehicle: 2017 Example Sedan (TEST001)\nMobile: 0400000000');
+    assert.equal(description, 'Customer: Example Customer<br>\nVehicle: 2017 Example Sedan (TEST001)<br>\nMobile: 0400000000');
   });
 }
 
@@ -126,7 +128,7 @@ test('a missing confirmed event is inserted once with the same notes and identit
   await h.run();
   assert.equal(h.writes().length, 1);
   assert.equal(h.writes()[0].id, eventId);
-  assert.ok(h.writes()[0].description.includes(h.context.booking.request_notes));
+  assert.ok(h.writes()[0].description.includes(calendarText(h.context.booking.request_notes)));
 });
 
 test('unconfirmed requests never create a Calendar event', async () => {

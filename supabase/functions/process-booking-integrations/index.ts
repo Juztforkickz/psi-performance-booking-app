@@ -536,7 +536,7 @@ const syncGoogleCalendar = async (admin: SupabaseClient, job: IntegrationJob, co
       ...(visitDetails.length ? ["", "Booking details:", ...visitDetails] : []),
     // Calendar descriptions accept HTML. Show customer input as literal text,
     // preserving their wording and line breaks, never as active markup.
-    ].map(escapeHtml).join("\n"),
+    ].map((line) => escapeHtml(line).replace(/\r\n?|\n/g, "<br>\n")).join("<br>\n"),
     start: { date: approvedDate },
     end: { date: nextCalendarDate(approvedDate!) },
     attendees: [],
