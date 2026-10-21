@@ -316,7 +316,8 @@ class VehicleWorkspaceTests(unittest.TestCase):
         def read(path, method='GET', **kwargs):
             self.assertEqual(method, 'GET')
             if path.startswith('/rest/v1/vault_assets?'):
-                return assets
+                asset_id = path.split('&id=eq.')[1].split('&')[0] if '&id=eq.' in path else None
+                return [asset for asset in assets if asset_id is None or asset['id'] == asset_id]
             if path.startswith('/storage/v1/object/authenticated/performance-vault/'):
                 return contents[path.split('/performance-vault/')[1]]
             raise AssertionError(path)

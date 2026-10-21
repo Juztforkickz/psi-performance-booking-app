@@ -1945,10 +1945,12 @@ def visually_identical(first, second):
 
 def published_photos(connection, manifest, *, for_download=False):
     if for_download:
-        # Routine receipt checks do not need the 24 KB comparison signature.
+        # Routine receipt checks need only this fresh identity index, not file
+        # paths, checksums or the 24 KB comparison signature. New/missing files
+        # fetch their complete checked download metadata below.
         # Reuse only this scan's verified ownership batch, never a stale scan.
         return _report_rows(connection, 'vault_assets', manifest,
-            select='id,record_id,customer_id,vehicle_id,object_path,mime_type,size_bytes,sha256,source_sha256,vault_records!inner(kind,published_at,job_id)',
+            select='id,record_id,customer_id,vehicle_id,vault_records!inner(job_id)',
             filters='&ready=eq.true&vault_records.kind=eq.media&vault_records.published_at=not.is.null')
     photos = []
     for offset in range(0, 1000000, 100):
@@ -1990,6 +1992,22 @@ def read_cloud_photo(connection, asset, manifest):
     if len(content) != asset['size_bytes'] or hashlib.sha256(content).hexdigest() != asset['sha256']:
         raise ValueError('Downloaded photo did not pass its integrity check')
     return content, suffix
+
+
+def photo_download_details(connection, index, manifest):
+    """Hydrate only a needed download, with the same fresh publication/owner scope."""
+    for field in ('id', 'record_id', 'customer_id', 'vehicle_id'):
+        if str(uuid.UUID(index[field])) != index[field]:
+            raise ValueError('Invalid photo identity')
+    if index['customer_id'] != manifest['customer_id'] or index['vehicle_id'] != manifest['vehicle_id']:
+        raise ValueError('Photo belongs to a different customer or vehicle')
+    rows = connection.call('/rest/v1/vault_assets?select=id,record_id,customer_id,vehicle_id,object_path,mime_type,size_bytes,sha256,source_sha256,vault_records!inner(job_id)'
+        + '&id=eq.' + index['id'] + '&customer_id=eq.' + manifest['customer_id'] + '&vehicle_id=eq.' + manifest['vehicle_id']
+        + '&ready=eq.true&vault_records.kind=eq.media&vault_records.published_at=not.is.null')
+    if (len(rows) != 1 or any(rows[0].get(field) != index[field] for field in ('id', 'record_id', 'customer_id', 'vehicle_id'))
+            or rows[0].get('vault_records', {}).get('job_id') != index['vault_records']['job_id']):
+        raise ValueError('Photo publication or verified identity changed; retrying without saving it')
+    return rows[0]
 
 
 def sync_portal_photos(folder, connection):
@@ -2034,6 +2052,7 @@ def sync_portal_photos(folder, connection):
                     state[relative].setdefault('record_id', asset['record_id'])
                     atomic_json(state_path, state)
                     continue
+        asset = photo_download_details(connection, asset, manifest)
         content, suffix = read_cloud_photo(connection, asset, manifest)
         # Only new/missing local photos reach this point. Derive the same
         # signature from integrity-checked bytes instead of fetching it on
