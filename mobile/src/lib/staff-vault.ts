@@ -1,3 +1,5 @@
+import { workshopOdometerInput } from '@/lib/workshop-odometer';
+import { isoDateToAustralian } from '@/lib/australian-date';
 import * as Crypto from 'expo-crypto';
 import * as ImageManipulator from 'expo-image-manipulator';
 import type { DocumentPickerAsset } from 'expo-document-picker';
@@ -57,14 +59,15 @@ export async function createOrFindWorkshopJob(input: { customerId: string; vehic
   if (insertError) throw insertError;
   return data;
 }
-export async function publishVaultRecord(job: WorkshopJob, input: { kind: VaultKind; title: string; notes: string; date: string; files: DocumentPickerAsset[]; phase: 'before' | 'progress' | 'after' | null; powerKw?: number; torqueNm?: number; runStage?: 'before' | 'after' | 'baseline' }, progress: (text: string) => void) {
+export async function publishVaultRecord(job: WorkshopJob, input: { odometerKm?: string; odometerDate?: string; kind: VaultKind; title: string; notes: string; date: string; files: DocumentPickerAsset[]; phase: 'before' | 'progress' | 'after' | null; powerKw?: number; torqueNm?: number; runStage?: 'before' | 'after' | 'baseline' }, progress: (text: string) => void) {
   const { data: auth } = await getSupabaseClient().auth.getUser();
   if (!auth.user) throw new Error('Staff sign-in required.');
   if (!input.title.trim()) throw new Error('Add a title.');
   if (input.kind === 'dyno' && (!input.files.length || input.files.some(f => f.mimeType !== 'application/pdf'))) throw new Error('Dyno records require an original PDF report.');
   if (input.files.length > 50) throw new Error('Select up to 50 files per batch.');
+  const odometer = workshopOdometerInput(input.odometerKm, input.odometerDate, isoDateToAustralian(input.date));
   const client = vaultClient();
-  const { data: record, error } = await client.from('vault_records').insert({ job_id: job.id, customer_id: job.customer_id, vehicle_id: job.vehicle_id, kind: input.kind, title: input.title.trim(), notes: input.notes.trim(), occurred_on: input.date, created_by: auth.user.id, power_kw: input.powerKw, torque_nm: input.torqueNm, run_stage: input.runStage }).select('*').single();
+  const { data: record, error } = await client.from('vault_records').insert({ job_id: job.id, customer_id: job.customer_id, vehicle_id: job.vehicle_id, kind: input.kind, title: input.title.trim(), notes: input.notes.trim(), occurred_on: input.date, created_by: auth.user.id, power_kw: input.powerKw, torque_nm: input.torqueNm, run_stage: input.runStage, ...odometer }).select('*').single();
   if (error) throw error;
   try {
     for (let i = 0; i < input.files.length; i++) {

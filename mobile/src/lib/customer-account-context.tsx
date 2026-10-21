@@ -7,6 +7,8 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { AppState } from 'react-native';
+import { getSupabaseClient } from '@/lib/supabase';
 
 import {
   loadCustomerAccount,
@@ -43,6 +45,25 @@ export function CustomerAccountProvider({ children }: PropsWithChildren) {
   const refreshAccount = useCallback(() => {
     setRefreshIndex((current) => current + 1);
   }, []);
+
+  useEffect(() => {
+    if (authStatus !== 'signed_in' || !authUserId) return;
+    let active = true;
+    let busy = false;
+    const refreshSummaries = async () => {
+      if (busy || AppState.currentState !== 'active') return;
+      busy = true;
+      try {
+        const { data, error } = await getSupabaseClient().from('vehicle_service_summary').select('*').eq('customer_id', authUserId);
+        if (active && !error && data) setLoadedState(current => current?.userId === authUserId && current.account
+          ? { ...current, account: { ...current.account, serviceSummaries: data } } : current);
+      } catch { /* Keep the last verified reading during an interrupted connection. */ }
+      finally { busy = false; }
+    };
+    const timer = setInterval(() => { void refreshSummaries(); }, 60_000);
+    const subscription = AppState.addEventListener('change', value => { if (value === 'active') void refreshSummaries(); });
+    return () => { active = false; clearInterval(timer); subscription.remove(); };
+  }, [authStatus, authUserId, authSessionRevision]);
 
   useEffect(() => {
     if (authStatus !== 'signed_in' || !authUserId) return;

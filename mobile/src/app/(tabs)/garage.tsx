@@ -1,3 +1,4 @@
+import { workshopOdometerDate } from '@/lib/workshop-odometer';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -79,6 +80,7 @@ function AccountGarageScreen() {
         isPrimary: vehicle.is_primary,
         lastVisit: summary?.latest_psi_service_at ?? null,
         latestPsiOdometerKm: summary?.latest_psi_odometer_km ?? null,
+        latestPsiOdometerRecordedOn: summary?.latest_psi_odometer_recorded_on ?? null,
         make: vehicle.make,
         model: vehicle.model,
         nextDue: summary?.next_psi_check_in_date ?? null,
@@ -495,7 +497,7 @@ function GarageContent({
               />
               <VehicleStat label="Last PSI service" value={formatShortDate(selectedVehicle.lastVisit)} />
               <VehicleStat label="Next PSI check-in" value={formatShortDate(selectedVehicle.nextDue)} />
-              {secureVehicles ? <VehicleStat label="Latest PSI odometer" value={formatOdometer(selectedVehicle.latestPsiOdometerKm)} /> : null}
+              {secureVehicles ? <VehicleStat label="Latest PSI odometer" value={formatOdometer(selectedVehicle.latestPsiOdometerKm)} detail={selectedVehicle.latestPsiOdometerKm != null ? workshopOdometerDate(selectedVehicle.latestPsiOdometerRecordedOn) : undefined} /> : null}
               {secureVehicles ? <VehicleStat label="Next PSI odometer" value={formatOdometer(selectedVehicle.nextPsiCheckInOdometerKm)} /> : null}
             </View>
           </View>
@@ -620,11 +622,12 @@ function GarageContent({
   );
 }
 
-function VehicleStat({ label, value }: { label: string; value: string }) {
+function VehicleStat({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
     <View style={styles.stat}>
       <Text style={styles.statLabel}>{label}</Text>
       <Text style={styles.statValue}>{value}</Text>
+        {detail ? <Text style={styles.statLabel}>{detail}</Text> : null}
     </View>
   );
 }

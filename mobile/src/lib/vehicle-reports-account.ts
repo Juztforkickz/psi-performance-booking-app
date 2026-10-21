@@ -62,6 +62,7 @@ export function getAccountReportVehicles(account: CustomerAccountSnapshot): Prev
       isPrimary: vehicle.is_primary,
       lastVisit: summary?.latest_psi_service_at ?? null,
       latestPsiOdometerKm: summary?.latest_psi_odometer_km ?? null,
+        latestPsiOdometerRecordedOn: summary?.latest_psi_odometer_recorded_on ?? null,
       make: vehicle.make,
       model: vehicle.model,
       nextDue: summary?.next_psi_check_in_date ?? null,

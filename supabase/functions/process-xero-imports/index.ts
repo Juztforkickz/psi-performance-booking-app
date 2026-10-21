@@ -2,6 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.112.3';
 import { openXeroTokens, sealXeroTokens } from '../_shared/xero-token-crypto.ts';
 import { xeroInvoiceReader } from '../_shared/xero-invoice-fetch.ts';
+import { xeroInvoiceOdometerKm, xeroWorkshopOdometer } from '../_shared/xero-invoice-odometer.ts';
 import { xeroInvoiceDate } from '../_shared/xero-invoice-date.ts';
 import { selectExistingInvoiceByIdentity } from '../_shared/xero-invoice-dedupe.ts';
 import { matchXeroInvoice, type VerifiedContactLink, type XeroInvoice } from '../_shared/xero-invoice-match.ts';
@@ -332,6 +333,33 @@ async function inspectInvoice(admin: SupabaseClient, queueId: string) {
   return { identifiers };
 }
 
+async function invoiceWorkshopReading(admin: SupabaseClient, matched: ImportTarget, invoice: XeroInvoice) {
+  let odometer = { odometer_km: null as number | null, odometer_recorded_on: null as string | null };
+  if (!matched.partsOnly && matched.jobId && xeroInvoiceOdometerKm(invoice) !== null) {
+    const { data: readingJob, error: readingError } = await admin.from('workshop_jobs')
+    .select('id,customer_id,vehicle_id,job_date').eq('id', matched.jobId)
+    .eq('customer_id', matched.customerId).eq('vehicle_id', matched.vehicleId).maybeSingle();
+    if (readingError) throw new Error('xero_odometer_job_lookup_failed');
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+    const datePart = (name: string) => parts.find(part => part.type === name)?.value ?? '';
+    const today = `${datePart('year')}-${datePart('month')}-${datePart('day')}`;
+    odometer = xeroWorkshopOdometer(invoice, matched, readingJob, today);
+  }
+  return odometer;
+}
+
+async function fillMissingInvoiceOdometer(admin: SupabaseClient, matched: ImportTarget, invoice: XeroInvoice, recordId: string, legacy = false) {
+  const odometer = await invoiceWorkshopReading(admin, matched, invoice);
+  if (odometer.odometer_km === null) return;
+  let query = admin.from(legacy ? 'invoices' : 'vault_records').update(odometer)
+    .eq('id', recordId).eq('customer_id', matched.customerId).eq('vehicle_id', matched.vehicleId)
+    .is('odometer_km', null).is('odometer_recorded_on', null);
+  query = legacy ? query.eq('record_source', 'psi_record').is('archived_at', null)
+    : query.eq('kind', 'invoice').eq('job_id', matched.jobId).neq('source', 'customer_entry').not('published_at', 'is', null);
+  const { error } = await query;
+  if (error) throw new Error('xero_odometer_save_failed');
+}
+
 async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   const tenantId = queued.identifiers.tenantId;
   const invoiceId = queued.identifiers.invoiceId;
@@ -487,6 +515,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   if (publishedMatchedInvoice) {
     if (publishedMatchedInvoice.customer_id !== matched.customerId || publishedMatchedInvoice.vehicle_id !== matched.vehicleId
       || (queued.record_id && queued.record_id !== publishedMatchedInvoice.id)) throw new Error('xero_saved_record_target_mismatch');
+    await fillMissingInvoiceOdometer(admin, matched, invoice, publishedMatchedInvoice.id);
     if (matched.jobId) await syncServiceCompletionCandidate(admin, { ...matched, jobId: matched.jobId }, invoice, publishedMatchedInvoice.id);
     await setQueue(admin, queued, {
       status: 'imported',
@@ -501,6 +530,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   }
   if (existingVehicleInvoice) {
     if (queued.record_id) throw new Error('xero_saved_record_target_mismatch');
+    await fillMissingInvoiceOdometer(admin, matched, invoice, existingVehicleInvoice.id, true);
     await setQueue(admin, queued, {
       status: 'imported',
       job_id: matched.jobId,
@@ -519,6 +549,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   if (existing && (existing.customer_id !== matched.customerId || existing.vehicle_id !== matched.vehicleId || existing.job_id !== matched.jobId
     || (queued.record_id && queued.record_id !== existing.id))) throw new Error('xero_saved_record_target_mismatch');
   if (existing?.published_at) {
+    await fillMissingInvoiceOdometer(admin, matched, invoice, existing.id);
     if (matched.jobId) await syncServiceCompletionCandidate(admin, { ...matched, jobId: matched.jobId }, invoice, existing.id);
     await setQueue(admin, queued, { status: 'imported', job_id: matched.jobId, record_id: existing.id, identifiers: enriched, reason: 'Invoice already imported.', completed_at: new Date().toISOString(), last_error_code: null });
     return { id: queued.id, status: 'imported', recordId: existing.id };
@@ -531,6 +562,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
   const sha256 = await hexDigest(pdf);
   const recordId = existing?.id ?? crypto.randomUUID();
   if (!existing) {
+    const odometer = await invoiceWorkshopReading(admin, matched, invoice);
     const { error: recordError } = await admin.from('vault_records').insert({
       id: recordId,
       job_id: matched.jobId,
@@ -542,6 +574,7 @@ async function importInvoice(admin: SupabaseClient, queued: QueueRow) {
         ? 'Original Xero parts-only invoice imported after protected customer and vehicle verification. No PSI workshop job was created.'
         : 'Original Xero invoice imported after protected customer, vehicle and PSI job verification.',
       occurred_on: occurredOn,
+      ...odometer,
       amount_cents: invoiceAmountCents(invoice),
       currency: 'AUD',
       created_by: uuid(links[0]?.verified_by) ? links[0].verified_by : uuid(ownerId) ? ownerId : null,

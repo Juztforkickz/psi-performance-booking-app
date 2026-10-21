@@ -43,10 +43,12 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
   const [message, setMessage] = useState('');
   const [power, setPower] = useState('');
   const [torque, setTorque] = useState('');
+  const [odometer, setOdometer] = useState('');
+  const [odometerDate, setOdometerDate] = useState('');
   const vehicles = snapshot.vehicles.filter(v => v.customer_id === customerId);
   const selectedCustomer = snapshot.customers.find(c => c.user_id === customerId);
   const selectedVehicle = vehicles.find(v => v.id === vehicleId);
-  const dirty = Boolean(reference || title || notes || power || torque || files.length || confirmed || date !== initialDate || (kind === 'dyno' && phase !== 'before'));
+  const dirty = Boolean(reference || title || notes || power || torque || odometer || odometerDate || files.length || confirmed || date !== initialDate || (kind === 'dyno' && phase !== 'before'));
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
   useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
 
@@ -117,13 +119,16 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
       }
       if ((power && (!Number.isFinite(Number(power)) || !(Number(power) > 0))) || (torque && (!Number.isFinite(Number(torque)) || !(Number(torque) > 0)))) throw new Error('Power and torque must be positive numbers.');
       const { iso, job } = await validatedJob();
-      await publishVaultRecord(job, { kind, title, notes, date: iso, files, phase: kind === 'dyno' ? phase : null, powerKw: power ? Number(power) / 1.34102209 : undefined, torqueNm: torque ? Number(torque) : undefined, runStage: kind === 'dyno' ? phase === 'progress' ? 'baseline' : phase : undefined }, setMessage);
-      setReference(''); setTitle(''); setNotes(''); setPower(''); setTorque('');
+      await publishVaultRecord(job, { kind, title, notes, date: iso, odometerKm: odometer, odometerDate: odometerDate || date, files, phase: kind === 'dyno' ? phase : null, powerKw: power ? Number(power) / 1.34102209 : undefined, torqueNm: torque ? Number(torque) : undefined, runStage: kind === 'dyno' ? phase === 'progress' ? 'baseline' : phase : undefined }, setMessage);
+      setReference(''); setTitle(''); setNotes(''); setPower(''); setTorque(''); setOdometer(''); setOdometerDate('');
       setFiles([]); setConfirmed(false); setDate(initialDate); setPhase('before');
       onDirtyChange?.(false);
       setMessage('Published to this vehicle’s Performance+ vault.');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Publication failed. Check your staff session and try again.');
+      setMessage(error instanceof Error
+        ? error.message === 'ODOMETER_INVALID' ? 'Enter whole kilometres from 0 to 9999999, or leave the field blank.'
+          : error.message === 'ODOMETER_DATE_INVALID' ? 'Choose the date the kilometres were recorded, today or earlier.' : error.message
+        : 'Publication failed. Check your staff session and try again.');
     } finally { setBusy(false); }
   };
 
@@ -133,8 +138,8 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
   return (
     <View pointerEvents={busy ? 'none' : 'auto'} style={styles.stack}>
       {previewMode ? <Text style={styles.muted}>Preview only · Try entering job details. Uploads and publishing are unavailable.</Text> : null}
-      {!fixedIdentity ? <><StaffScrollSelect label="Customer" value={customerId} options={customerOptions(snapshot)} searchable onChange={id => { if (busy) return; setCustomerId(id); setVehicleId(''); setFiles([]); setConfirmed(false); setMessage(''); }} />
-      <StaffScrollSelect label="Vehicle" value={vehicleId} options={vehicles.map(v => ({ value: v.id, label: `${v.year} ${v.make} ${v.model}`, sublabel: v.registration }))} searchable onChange={id => { if (busy) return; setVehicleId(id); setFiles([]); setConfirmed(false); setMessage(''); }} /></> : null}
+      {!fixedIdentity ? <><StaffScrollSelect label="Customer" value={customerId} options={customerOptions(snapshot)} searchable onChange={id => { if (busy) return; setCustomerId(id); setVehicleId(''); setOdometer(''); setOdometerDate(''); setFiles([]); setConfirmed(false); setMessage(''); }} />
+      <StaffScrollSelect label="Vehicle" value={vehicleId} options={vehicles.map(v => ({ value: v.id, label: `${v.year} ${v.make} ${v.model}`, sublabel: v.registration }))} searchable onChange={id => { if (busy) return; setVehicleId(id); setOdometer(''); setOdometerDate(''); setFiles([]); setConfirmed(false); setMessage(''); }} /></> : null}
       <View style={styles.card}>
         {kind !== 'media' ? <><Field label="PSI job reference"><FormInput editable={!busy} value={reference} onChangeText={value => { setReference(value); setConfirmed(false); }} placeholder="PSI-2026-0123" /></Field>
         <Field label="Title"><FormInput editable={!busy} value={title} onChangeText={value => { setTitle(value); setConfirmed(false); }} placeholder="Major service" /></Field>
@@ -142,6 +147,10 @@ export function StaffVaultPublisher({ snapshot, fixedKind, initialCustomerId, in
         {!fixedKind ? <View style={styles.choices}>{PUBLISHABLE_VAULT_KINDS.map(value => <Choice disabled={busy} key={value} label={value === 'media' ? 'Photos' : VAULT_LABELS[value]} selected={kind === value} onPress={() => { setKind(value); setFiles([]); setConfirmed(false); }} />)}</View> : null}
         {kind === 'dyno' ? <View style={styles.choices}>{(['before', 'progress', 'after'] as const).map(value => <Choice disabled={busy} key={value} label={value === 'progress' ? 'Baseline' : `${value[0].toUpperCase()}${value.slice(1)}`} selected={phase === value} onPress={() => { setPhase(value); setConfirmed(false); }} />)}</View> : null}
         {kind === 'dyno' ? <><Field label="Power · HP at hubs" hint="Optional"><FormInput editable={!busy} value={power} onChangeText={value => { setPower(value); setConfirmed(false); }} keyboardType="decimal-pad" /></Field><Field label="Torque · Nm at hubs" hint="Optional"><FormInput editable={!busy} value={torque} onChangeText={value => { setTorque(value); setConfirmed(false); }} keyboardType="decimal-pad" /></Field></> : null}
+        {kind !== 'media' ? <>
+          <Field label="Workshop odometer (km)" hint="Optional. Saved with its recorded date for you and the customer."><FormInput editable={!busy} keyboardType="number-pad" maxLength={7} value={odometer} onChangeText={value => { setOdometer(value); setConfirmed(false); }} /></Field>
+          {odometer.trim() ? <CalendarDateField disabled={busy} label="Kilometres recorded on" maximumDate={australianDateToIso(initialDate) ?? undefined} value={odometerDate || date} onChange={value => { setOdometerDate(value); setConfirmed(false); }} /> : null}
+        </> : null}
         <Field label="Notes" hint="Optional"><FormInput editable={!busy} value={notes} onChangeText={value => { setNotes(value); setConfirmed(false); }} multiline style={styles.notes} textAlignVertical="top" /></Field>
         {kind === 'media' ? <View style={styles.uploadActions}>
           <UploadAction label="Upload photos" hint="Choose photos from your photo library" icon="images-outline" primary disabled={previewMode || busy} onPress={() => void selectPhotos()} />

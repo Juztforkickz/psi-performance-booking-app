@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { workshopOdometerDate } from '@/lib/workshop-odometer';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -150,6 +151,7 @@ function VehicleVaultContent() {
       <Text style={s.muted}>{record.source === 'customer_entry' ? 'Customer-supplied · unverified' : 'PSI workshop record · read-only'}</Text>
       <Text style={s.section}>{displayTitle}</Text>
       {fileLabel ? <Text numberOfLines={expanded || noteExpanded ? undefined : 3} style={s.copy}>{fileLabel}</Text> : null}
+      {record.odometer_km != null ? <Text style={s.copy}>{record.odometer_km.toLocaleString('en-AU')} km · {workshopOdometerDate(record.odometer_recorded_on)}</Text> : null}
       {record.power_kw ? <Text style={s.copy}>{Math.round(record.power_kw * 1.34102209)} HP at hubs{record.torque_nm ? ` · ${record.torque_nm} Nm at hubs` : ''}</Text> : null}
       {!hasAttachments && fileLabel ? <Pressable accessibilityRole="button" accessibilityLabel={noteExpanded ? 'Hide full workshop record details' : 'View full workshop record details'} accessibilityState={{ expanded: noteExpanded }} onPress={() => setExpandedNote(noteExpanded ? null : entry.key)} style={({ pressed }) => [archiveStyles.toggle, pressed && { opacity: .78 }]}>
           <View style={archiveStyles.toggleCopy}><Ionicons name="document-text-outline" color="#65CFF8" size={21} /><Text style={archiveStyles.toggleText}>{noteExpanded ? 'Hide details' : 'View full details'}</Text></View>

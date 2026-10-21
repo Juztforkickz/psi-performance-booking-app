@@ -1,3 +1,4 @@
+import { workshopOdometerInput } from '@/lib/workshop-odometer';
 import * as Crypto from 'expo-crypto';
 
 import { australianDateToIso } from '@/lib/australian-date';
@@ -62,6 +63,8 @@ export type DynoPublishInput = VehicleTarget & {
 };
 
 export type InvoicePublishInput = VehicleTarget & {
+  odometerKm?: string;
+  odometerDate?: string;
   amountAud: string;
   date: string;
   image: StaffPublishImage | null;
@@ -208,6 +211,7 @@ export async function publishPsiInvoice(input: InvoicePublishInput): Promise<Pub
     customer_id: input.customerId,
     id: recordId,
     invoice_date: requiredDate(input.date, 'INVOICE_DATE_INVALID'),
+    ...workshopOdometerInput(input.odometerKm, input.odometerDate, input.date),
     invoice_number: requiredText(input.invoiceNumber, 'INVOICE_NUMBER_REQUIRED').toUpperCase(),
     record_source: 'psi_record',
     summary: requiredText(input.summary, 'INVOICE_SUMMARY_REQUIRED'),

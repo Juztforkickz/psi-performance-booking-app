@@ -666,6 +666,8 @@ export type Database = {
           id: string;
           invoice_date: string;
           invoice_number: string;
+          odometer_km: number | null;
+          odometer_recorded_on: string | null;
           record_source: 'customer_entry' | 'psi_record';
           summary: string;
           updated_at: string;
@@ -681,6 +683,8 @@ export type Database = {
           id?: string;
           invoice_date: string;
           invoice_number: string;
+          odometer_km?: number | null;
+          odometer_recorded_on?: string | null;
           record_source: 'customer_entry' | 'psi_record';
           summary: string;
           updated_at?: string;
@@ -692,6 +696,8 @@ export type Database = {
           currency?: 'AUD';
           invoice_date?: string;
           invoice_number?: string;
+          odometer_km?: number | null;
+          odometer_recorded_on?: string | null;
           record_source?: 'customer_entry' | 'psi_record';
           summary?: string;
           updated_at?: string;
@@ -1073,6 +1079,7 @@ export type Database = {
           latest_customer_odometer_km: number | null;
           latest_customer_odometer_recorded_at: string | null;
           latest_psi_odometer_km: number | null;
+          latest_psi_odometer_recorded_on: string | null;
           latest_psi_service_at: string | null;
           next_psi_check_in_date: string | null;
           next_psi_check_in_odometer_km: number | null;

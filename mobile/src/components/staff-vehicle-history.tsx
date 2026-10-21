@@ -1,3 +1,5 @@
+import { workshopOdometerDate } from '@/lib/workshop-odometer';
+import { WorkshopOdometerSummary } from '@/components/workshop-odometer-summary';
 import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -103,6 +105,7 @@ export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicl
   };
   return <View style={{ gap: 14 }}>
     <Text style={{ color: colors.white, fontSize: 18, fontWeight: '800' }}>View vehicle history</Text>
+    {!previewMode ? <WorkshopOdometerSummary vehicleId={vehicleId} revision={revision} /> : null}
     <Text style={copy}>PSI can read workshop records regardless of the customer’s subscription. Customer notes are separately labelled and unverified.</Text>
     {!section ? <View style={styles.categoryList}>
       <HistoryCategory title="Customer notes" detail="Customer-supplied · unverified" icon="chatbox-ellipses-outline" attention onPress={() => setSection('notes')} />
@@ -134,6 +137,7 @@ export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicl
           <Text style={{ color: colors.white, fontWeight: '800', fontSize: 17 }}>{displayTitle}</Text>
           <Text style={copy}>{record.occurred_on.slice(0, 10)}</Text>
           {isGallery ? <Text style={copy}>{fileCount} {fileCount === 1 ? 'photo' : 'photos'} from this workshop visit</Text> : record.notes ? <Text selectable style={copy}>{record.notes}</Text> : null}
+          {record.odometer_km != null ? <Text style={copy}>{record.odometer_km.toLocaleString('en-AU')} km · {workshopOdometerDate(record.odometer_recorded_on)}</Text> : null}
           {record.power_kw != null ? <Text style={copy}>{Math.round(record.power_kw * 1.34102209)} HP at hubs · {record.torque_nm ?? '—'} Nm</Text> : null}
           {isGallery && !cachedGallery && !expanded ? <View style={styles.thumbnailLoading}><ActivityIndicator color={colors.accent} /><Text style={styles.thumbnailLoadingText}>Loading photo thumbnails…</Text></View> : null}
           {visibleAssets.length ? <View style={styles.attachments}>{visibleAssets.map(file => file.mime_type.startsWith('image/')

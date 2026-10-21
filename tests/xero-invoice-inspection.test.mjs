@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import test from 'node:test';
 import { xeroDescriptionRegistration } from '../supabase/functions/_shared/xero-invoice-registration.ts';
 import { waitingInvoiceRefreshReason, reviewNotificationRequired } from '../supabase/functions/_shared/xero-sync-decision.ts';
+import { xeroInvoiceOdometerKm, xeroWorkshopOdometer } from '../supabase/functions/_shared/xero-invoice-odometer.ts';
 import { xeroInvoiceDate } from '../supabase/functions/_shared/xero-invoice-date.ts';
 import { selectExistingInvoiceByIdentity } from '../supabase/functions/_shared/xero-invoice-dedupe.ts';
 
@@ -45,6 +46,7 @@ function inspectionHost({ invoiceChanges = {}, status = 'needs_review', changedD
     '../_shared/xero-invoice-date.ts': { xeroInvoiceDate },
     '../_shared/xero-invoice-dedupe.ts': { selectExistingInvoiceByIdentity },
     '../_shared/xero-sync-decision.ts': { waitingInvoiceRefreshReason, reviewNotificationRequired },
+    '../_shared/xero-invoice-odometer.ts': { xeroInvoiceOdometerKm, xeroWorkshopOdometer },
     'jsr:@supabase/functions-js/edge-runtime.d.ts': {},
     'npm:@supabase/supabase-js@2.112.3': { createClient: () => authenticated ? admin : { auth: { getUser: async () => ({ data: {} }) } } },
     '../_shared/xero-token-crypto.ts': {},

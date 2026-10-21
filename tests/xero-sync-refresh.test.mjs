@@ -7,6 +7,7 @@ import { matchXeroInvoice } from '../supabase/functions/_shared/xero-invoice-mat
 import { xeroDescriptionRegistration, xeroInvoiceMatchesVehicle } from '../supabase/functions/_shared/xero-invoice-registration.ts';
 import { xeroInvoiceDate } from '../supabase/functions/_shared/xero-invoice-date.ts';
 import { waitingInvoiceRefreshReason, reviewNotificationRequired } from '../supabase/functions/_shared/xero-sync-decision.ts';
+import { xeroInvoiceOdometerKm, xeroWorkshopOdometer } from '../supabase/functions/_shared/xero-invoice-odometer.ts';
 
 const ts = createRequire(import.meta.url)('../mobile/node_modules/typescript');
 const id = n => `10000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
@@ -22,16 +23,18 @@ function host({waiting=false,legacy=false,unlinked=false,wrongRecord=false,wrong
       reference:invoiceBase.Reference,invoiceNumber:invoiceBase.InvoiceNumber,invoiceDate:'2026-10-14',currency:'AUD',invoiceStatus:'AUTHORISED',
       contactName:'Saved workshop name',amountPaidCents:10000,amountDueCents:90000,
       ...waiting&&!legacy?{verifiedWorkshopContactId:id(7),verifiedWorkshopVehicleId:id(8),waitingConfirmedBy:id(9)}:{}}};
-  const writes=[]; const completions=[]; let pdfReads=0;
+  const writes=[]; const completions=[]; const odometerWrites=[]; let pdfReads=0;
   const admin={
     from(table){
-      const data=table==='workshop_jobs'?[{id:id(5),reference:'SERVICE TEST42',customer_id:id(11),vehicle_id:id(12),booking_request_id:null}]:
+      const data=table==='workshop_jobs'?[{id:id(5),reference:'SERVICE TEST42',customer_id:id(11),vehicle_id:id(12),booking_request_id:null,job_date:'2026-10-13'}]:
+        table==='vault_records'?{}:
         table==='customer_vehicles'?[{id:id(12),customer_id:id(11),registration:'TEST42',archived_at:null}]:
         table==='customer_profiles'?[{user_id:id(11)}]:
         table==='workshop_vehicles'?{id:id(8),workshop_contact_id:wrongVehicle?id(99):id(7),registration:'TEST42',status:'active'}:undefined;
       assert.notEqual(data,undefined,`Unexpected table access: ${table}`);
-      const builder={select(){return builder;},eq(){return builder;},in(){return builder;},is(){return builder;},
-        limit:async()=>({data}),maybeSingle:async()=>({data}),then:(resolve,reject)=>Promise.resolve({data}).then(resolve,reject)};
+      const builder={select(){return builder;},eq(){return builder;},in(){return builder;},is(){return builder;},not(){return builder;},neq(){return builder;},
+        update(payload){odometerWrites.push({table,payload});return builder;},
+        limit:async()=>({data}),maybeSingle:async()=>({data:table==='workshop_jobs'?data[0]:data}),then:(resolve,reject)=>Promise.resolve({data}).then(resolve,reject)};
       return builder;
     },
     async rpc(name,args){
@@ -46,6 +49,7 @@ function host({waiting=false,legacy=false,unlinked=false,wrongRecord=false,wrong
     '../_shared/xero-invoice-date.ts':{xeroInvoiceDate},'../_shared/xero-invoice-match.ts':{matchXeroInvoice},
     '../_shared/xero-invoice-registration.ts':{xeroDescriptionRegistration,xeroInvoiceMatchesVehicle},
     '../_shared/xero-sync-decision.ts':{waitingInvoiceRefreshReason,reviewNotificationRequired},
+    '../_shared/xero-invoice-odometer.ts':{xeroInvoiceOdometerKm,xeroWorkshopOdometer},
   };
   const context={exports:{},Request,Response,Date,URL,require:name=>{assert.ok(name in modules,name);return modules[name];},
     Deno:{env:{get:()=>''},serve(){}},
@@ -63,13 +67,23 @@ function host({waiting=false,legacy=false,unlinked=false,wrongRecord=false,wrong
     alertOwnerForReview=async()=>{};
     exports.run=importInvoice;
   `,context);
-  return {run:()=>context.exports.run(admin,q),writes,completions,pdfReads:()=>pdfReads};
+  return {run:()=>context.exports.run(admin,q),writes,completions,odometerWrites,pdfReads:()=>pdfReads};
 }
 
 test('payment update refreshes a verified imported invoice without replacing its existing PDF',async()=>{
   const h=host({changes:{AmountPaid:1000,AmountDue:0,Status:'PAID'}}); const result=await h.run();
   assert.equal(result.status,'imported');assert.equal(result.duplicate,true);assert.equal(h.pdfReads(),0);
   assert.equal(h.writes[0].record_id,id(6));assert.equal(h.writes[0].identifiers.amountDueCents,0);assert.equal(h.completions.length,1);
+});
+
+test('refresh copies explicitly labelled invoice kilometres with the matched workshop date',async()=>{
+  const h=host({changes:{LineItems:[{Description:'Registration: TEST42\nKMS : 84.210'}]}});
+  assert.equal((await h.run()).status,'imported');
+  assert.equal(h.pdfReads(),0);
+  assert.equal(h.odometerWrites.length,1);
+  assert.equal(h.odometerWrites[0].table,'vault_records');
+  assert.equal(h.odometerWrites[0].payload.odometer_km,84210);
+  assert.equal(h.odometerWrites[0].payload.odometer_recorded_on,'2026-10-13');
 });
 test('saved published PDF belonging to another customer cannot be reused',async()=>{
   const h=host({wrongRecord:true});await assert.rejects(h.run(),/xero_saved_record_target_mismatch/);assert.equal(h.writes.length,0);assert.equal(h.pdfReads(),0);

@@ -21,6 +21,7 @@ export function reportSectionCount(counts: Partial<Record<ReportKind, number>>, 
   return (counts[section] ?? 0) + (section === 'document' ? counts.modification ?? 0 : 0);
 }
 export type VaultRecord = {
+  odometer_km?: number | null; odometer_recorded_on?: string | null;
   id: string; customer_id: string; vehicle_id: string; job_id: string | null; kind: ReportKind;
   title: string; notes: string; occurred_on: string; power_kw: number | null; torque_nm: number | null;
   run_stage: 'before' | 'after' | 'baseline' | null; amount_cents: number | null; currency: string;
@@ -77,7 +78,7 @@ export async function loadVaultRecords(vehicleId: string) {
   if (error) throw error;
   const legacy = await getSupabaseClient().from('invoices').select('*').eq('vehicle_id', vehicleId).is('archived_at', null).order('invoice_date', { ascending: false }).limit(200);
   if (legacy.error) throw legacy.error;
-  const invoices: VaultRecord[] = (legacy.data ?? []).map(i => ({ id: `legacy:${i.id}`, customer_id: i.customer_id, vehicle_id: i.vehicle_id, job_id: '', kind: 'invoice', title: i.invoice_number, notes: i.summary, occurred_on: i.invoice_date, power_kw: null, torque_nm: null, run_stage: null, amount_cents: i.amount_cents, currency: i.currency, published_at: i.created_at, created_at: i.created_at, created_by: i.created_by, source: i.record_source, source_reference: i.id }));
+  const invoices: VaultRecord[] = (legacy.data ?? []).map(i => ({ id: `legacy:${i.id}`, customer_id: i.customer_id, vehicle_id: i.vehicle_id, job_id: '', kind: 'invoice', title: i.invoice_number, notes: i.summary, odometer_km: i.odometer_km, odometer_recorded_on: i.odometer_recorded_on, occurred_on: i.invoice_date, power_kw: null, torque_nm: null, run_stage: null, amount_cents: i.amount_cents, currency: i.currency, published_at: i.created_at, created_at: i.created_at, created_by: i.created_by, source: i.record_source, source_reference: i.id }));
   const client = getSupabaseClient();
   const [dyno, repairs, recommendations, documents] = await Promise.all([
     client.from('dyno_records').select('*').eq('vehicle_id', vehicleId).is('archived_at', null).order('tested_at', { ascending: false }),

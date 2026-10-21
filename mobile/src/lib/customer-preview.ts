@@ -3,6 +3,7 @@ export type PreviewVehicle = {
   isPrimary: boolean;
   lastVisit: string | null;
   latestPsiOdometerKm?: number | null;
+  latestPsiOdometerRecordedOn?: string | null;
   make: string;
   model: string;
   nextDue: string | null;

@@ -63,6 +63,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
   const [date, setDate] = useState(initialDate);
   const [notes, setNotes] = useState('');
   const [odometer, setOdometer] = useState('');
+  const [odometerDate, setOdometerDate] = useState('');
   const [repairKind, setRepairKind] = useState<'inspection' | 'repair' | 'service'>('service');
   const [recommendationStatus, setRecommendationStatus] = useState<'due_soon' | 'monitor' | 'priority' | 'recommended'>('recommended');
   const [timing, setTiming] = useState('');
@@ -72,7 +73,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [amountAud, setAmountAud] = useState('');
   const [image, setImage] = useState<StaffPublishImage | null>(null);
-  const dirty = Boolean(title || notes || odometer || timing || power || torque || fuel || invoiceNumber || amountAud || image || confirmed || date !== initialDate || repairKind !== 'service' || recommendationStatus !== 'recommended');
+  const dirty = Boolean(title || notes || odometer || odometerDate || timing || power || torque || fuel || invoiceNumber || amountAud || image || confirmed || date !== initialDate || repairKind !== 'service' || recommendationStatus !== 'recommended');
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
   useEffect(() => { onBusyChange?.(busy); }, [busy, onBusyChange]);
   const edit = <T,>(setter: (value: T) => void) => (value: T) => { setter(value); setConfirmed(false); };
@@ -104,6 +105,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
     if (busy) return;
     setCustomerId(nextCustomerId);
     setVehicleId('');
+    setOdometer(''); setOdometerDate('');
     setImage(null);
     setConfirmed(false);
     setFeedback(null);
@@ -134,7 +136,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
           ? { kind: 'warning', text: result.attachmentWarning }
           : { kind: 'success', text: `PSI verified dyno result published${result.attachmentStored ? ' with a private PDF report' : ''}.` });
       } else {
-        const result = await publishPsiInvoice({ amountAud, customerId, date, image, invoiceNumber, summary: notes, vehicleId });
+        const result = await publishPsiInvoice({ amountAud, customerId, date, image, invoiceNumber, summary: notes, vehicleId, odometerKm: odometer, odometerDate: odometerDate || date });
         setFeedback(result.attachmentWarning
           ? { kind: 'warning', text: result.attachmentWarning }
           : { kind: 'success', text: `Invoice published in AUD${result.attachmentStored ? ' with a private PDF attachment' : ''}.` });
@@ -150,7 +152,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
   const resetPublishedFields = () => {
     setTitle('');
     setNotes('');
-    setOdometer('');
+    setOdometer(''); setOdometerDate('');
     setTiming('');
     setPower('');
     setTorque('');
@@ -196,7 +198,7 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
         label="Vehicle"
         onChange={(nextVehicleId) => {
           if (busy) return;
-          setVehicleId(nextVehicleId);
+          setVehicleId(nextVehicleId); setOdometer(''); setOdometerDate('');
           setImage(null);
           setConfirmed(false);
           setFeedback(null);
@@ -271,6 +273,8 @@ export function StaffRecordPublisher({ snapshot, fixedType, initialCustomerId, i
           <>
             <Field label="Invoice number"><FormInput editable={!busy} autoCapitalize="characters" onChangeText={edit(setInvoiceNumber)} placeholder="PSI-INV-2026-0514" value={invoiceNumber} /></Field>
             <CalendarDateField disabled={busy} label="Invoice date" maximumDate={australianDateToIso(initialDate) ?? undefined} onChange={edit(setDate)} value={date} />
+            <Field hint="Optional. The workshop reading and date are shared with the customer." label="Workshop odometer (km)"><FormInput editable={!busy} keyboardType="number-pad" maxLength={7} onChangeText={edit(setOdometer)} value={odometer} /></Field>
+            {odometer.trim() ? <CalendarDateField disabled={busy} label="Kilometres recorded on" maximumDate={australianDateToIso(initialDate) ?? undefined} onChange={edit(setOdometerDate)} value={odometerDate || date} /> : null}
             <Field hint="Optional · AUD" label="Amount"><FormInput editable={!busy} keyboardType="decimal-pad" onChangeText={edit(setAmountAud)} placeholder="423.50" value={amountAud} /></Field>
             <NotesField disabled={busy} label="Summary" onChangeText={edit(setNotes)} value={notes} />
             <PrivateImagePicker
@@ -359,6 +363,7 @@ function publishingErrorMessage(error: unknown) {
   if (code.includes('TITLE_REQUIRED') || code.includes('SUMMARY_REQUIRED') || code.includes('NUMBER_REQUIRED')) return 'Complete the required title, summary or invoice number.';
   if (code.includes('POWER_INVALID') || code.includes('TORQUE_INVALID')) return 'Power and torque must be positive numbers; torque may be left blank.';
   if (code.includes('ODOMETER_INVALID')) return 'Odometer must be a whole number in kilometres.';
+  if (code.includes('ODOMETER_DATE_INVALID')) return 'Choose the date the kilometres were recorded, today or earlier.';
   if (code.includes('AMOUNT_INVALID')) return 'Enter the AUD amount as dollars and cents, for example 423.50.';
   if (code.includes('AAL2') || code.includes('JWT') || code.includes('session')) return 'Your protected staff session needs authenticator verification again. Return to the staff gate and re-open this workspace.';
   if ((error as { code?: string } | null)?.code === '23505') return 'That invoice number already exists. Check the existing record before trying again.';
