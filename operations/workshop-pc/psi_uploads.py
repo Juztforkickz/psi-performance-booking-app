@@ -9,6 +9,7 @@ import base64
 import ctypes
 from ctypes import wintypes
 import getpass
+import gzip
 import hashlib
 import io
 import json
@@ -190,12 +191,19 @@ class Connection:
             self.set_session(self.call('/auth/v1/token?grant_type=refresh_token', 'POST', {'refresh_token': self.refresh}))
         body = binary if binary is not None else json.dumps(data).encode() if data is not None else None
         h = {'apikey': self.key, 'Authorization': 'Bearer ' + (self.token or self.key), 'Content-Type': 'application/json'}
+        # Negotiate transport compression only for JSON Data API reads. The
+        # same fresh ownership checks and scan timing still run on every scan.
+        # Original/thumbnail bytes and all upload/auth requests stay unchanged.
+        if method == 'GET' and path.startswith('/rest/v1/') and not read_binary:
+            h['Accept-Encoding'] = 'gzip'
         h.update(headers or {})
         req = urllib.request.Request(self.url + path, data=body, method=method, headers=h)
         try:
             timeout = 180 if binary is not None or read_binary else 45
             with urllib.request.urlopen(req, timeout=timeout) as response:
                 result = response.read()
+                if not read_binary and response.headers.get('Content-Encoding', '').strip().lower() == 'gzip':
+                    result = gzip.decompress(result)
                 return result if read_binary else json.loads(result) if result else None
         except urllib.error.HTTPError as e:
             # Do not log request tokens, customer response bodies or private file URLs.
@@ -1935,7 +1943,13 @@ def visually_identical(first, second):
     return max(differences) <= 3 and sum(differences) / len(left) <= .5 and sum(x * x for x in left) / len(left) - mean * mean > 64
 
 
-def published_photos(connection, manifest):
+def published_photos(connection, manifest, *, for_download=False):
+    if for_download:
+        # Routine receipt checks do not need the 24 KB comparison signature.
+        # Reuse only this scan's verified ownership batch, never a stale scan.
+        return _report_rows(connection, 'vault_assets', manifest,
+            select='id,record_id,customer_id,vehicle_id,object_path,mime_type,size_bytes,sha256,source_sha256,vault_records!inner(kind,published_at,job_id)',
+            filters='&ready=eq.true&vault_records.kind=eq.media&vault_records.published_at=not.is.null')
     photos = []
     for offset in range(0, 1000000, 100):
         check_pause(connection)
@@ -1998,7 +2012,7 @@ def sync_portal_photos(folder, connection):
     receipts = state.setdefault('_cloud_photos', {})
     downloaded = 0
     local_features = {}
-    for asset in published_photos(connection, manifest):
+    for asset in published_photos(connection, manifest, for_download=True):
         check_pause(connection)
         if asset['vault_records']['job_id'] not in job_ids:
             continue
@@ -2021,6 +2035,10 @@ def sync_portal_photos(folder, connection):
                     atomic_json(state_path, state)
                     continue
         content, suffix = read_cloud_photo(connection, asset, manifest)
+        # Only new/missing local photos reach this point. Derive the same
+        # signature from integrity-checked bytes instead of fetching it on
+        # every scan. Upload duplicate checks still request stored signatures.
+        remote_visual = photo_signature(content) if asset['mime_type'].startswith('image/') else None
         target = destination / (asset['id'] + suffix)
         matched = None
         matched_digest, matched_before = asset['sha256'], None
@@ -2037,11 +2055,11 @@ def sync_portal_photos(folder, connection):
                 local_features[local] = cached
             raw_digest = cached['digest']
             identical = raw_digest in (asset['sha256'], asset.get('source_sha256'))
-            if not identical and asset.get('visual_signature') and local.suffix.lower() in IMAGE_SUFFIXES:
+            if not identical and remote_visual and local.suffix.lower() in IMAGE_SUFFIXES:
                 if 'visual' not in cached:
                     prepared, _, _ = prepare_file(local)
                     cached['visual'] = photo_signature(prepared)
-                if visually_identical(cached['visual'], asset['visual_signature']):
+                if visually_identical(cached['visual'], remote_visual):
                     prepared, _, _ = prepare_file(local)
                     identical = identical_photo_pixels(prepared, content)
             if identical and before == (local.stat().st_size, local.stat().st_mtime_ns):

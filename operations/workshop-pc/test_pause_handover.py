@@ -62,7 +62,7 @@ class PauseHandoverTests(unittest.TestCase):
         original = photos / 'original.jpg'
         original.write_bytes(b'untouched workshop original')
         asset = {'vault_records': {'job_id': 'job'}}
-        def request_photos(*args):
+        def request_photos(*args, **kwargs):
             self.pause.touch()
             return [asset]
         with patch.object(uploader, 'manifest_for', return_value={'schema': 1, 'job_id': 'job'}), \
