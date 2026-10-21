@@ -21,9 +21,9 @@ test('workshop update manifest allowlists and hashes every executable file', asy
   const manifest = JSON.parse(await readFile(path.join(root, 'workshop-update.json'), 'utf8'));
   assert.equal(manifest.schema, 1);
   assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
-  assert.equal(
+  assert.match(
     manifest.baseUrl,
-    'https://raw.githubusercontent.com/Juztforkickz/psi-performance-booking-app/main/operations/workshop-pc/',
+    /^https:\/\/raw\.githubusercontent\.com\/Juztforkickz\/psi-performance-booking-app\/(?:main|[a-f0-9]{40})\/operations\/workshop-pc\/$/,
   );
   assert.deepEqual(manifest.files.map(file => file.name), expectedFiles);
   for (const file of manifest.files) {
