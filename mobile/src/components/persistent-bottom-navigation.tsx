@@ -85,11 +85,11 @@ export function PersistentBottomNavigation() {
   const { theme } = useThemePreference();
   const { customerUnreadCount, staffUnreadCount } = useNotifications();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const isStaffWorkspace = pathname === '/staff' || pathname === '/staff-security' || pathname === '/staff-messages' || pathname === '/portal-preview';
+  const isStaffWorkspace = pathname === '/staff' || pathname === '/staff-security' || pathname === '/staff-messages' || pathname === '/rewards-scan' || pathname === '/portal-preview';
   const currentStaffSection = resolveStaffSection(section);
   const hasBookingDetail = currentStaffSection === 'bookings' && Boolean(Array.isArray(bookingId) ? bookingId[0] : bookingId);
   const hasCustomerDetail = currentStaffSection === 'customers' && Boolean(Array.isArray(customerId) ? customerId[0] : customerId);
-  const currentStaffTab = pathname === '/staff-security' ? 'menu' : staffTabForSection(currentStaffSection);
+  const currentStaffTab = pathname === '/staff-security' || pathname === '/rewards-scan' ? 'menu' : staffTabForSection(currentStaffSection);
   const navigationItems = isStaffWorkspace ? STAFF_NAVIGATION_ITEMS : NAVIGATION_ITEMS;
 
   useEffect(() => {

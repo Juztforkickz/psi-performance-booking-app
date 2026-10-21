@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandRail } from '@/components/brand-rail';
 import { DashboardTile } from '@/components/dashboard-tile';
+import { RewardsTile } from '@/components/rewards-tile';
 import { PrimaryButton } from '@/components/ui';
 import { useGarageArtwork } from '@/components/garage-artwork-picker';
 import { useCustomerAccount } from '@/lib/customer-account-context';
@@ -66,6 +67,7 @@ const HOME_TILE_LABELS: Readonly<Record<HomeTileId, string>> = {
   'trusted-partners': 'Trusted Partners',
   'customer-cars-for-sale': 'Customer Cars for Sale',
   'performance-plus': 'Performance+',
+  rewards: 'PSI Rewards',
 };
 
 const PSI_PROMISES = [
@@ -160,6 +162,7 @@ export default function CustomerHomeScreen() {
 
   const renderHomeTile = (id: HomeTileId) => {
     switch (id) {
+      case 'rewards': return <RewardsTile />;
       case 'garage':
         return (
           <DashboardTile
@@ -432,6 +435,7 @@ export default function CustomerHomeScreen() {
               onPress={() => router.push('/customer-cars-for-sale' as Href)}
             />
           </TileCell>
+          <TileCell threeColumns={threeColumns}><RewardsTile /></TileCell>
         </View>
 
         <View style={styles.sectionHeading}>

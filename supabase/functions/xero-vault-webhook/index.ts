@@ -45,6 +45,9 @@ Deno.serve(async request => {
       // permission to discard a verified target or an owner's waiting decision.
       const { data: changed, error } = await admin.rpc('enqueue_xero_invoice_events', { p_events: rows });
       if (error) throw error;
+      // Rewards use a separate ledger and queue. PDF import decisions stay intact.
+      const rewards = await admin.rpc('enqueue_rewards_invoices', { p_events: rows });
+      if (rewards.error) throw rewards.error;
       if (changed > 0) startImportWorker();
     }
     return json({ received: true });

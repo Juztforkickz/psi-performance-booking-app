@@ -992,6 +992,7 @@ export function StaffWorkspace({
           {ASK_PSI_STAGE.privatePreviewEnabled ? <WorkspaceLink title="Messages" detail="Private customer conversations" icon="chatbubbles-outline" onPress={() => confirmLeaving(() => router.push('/staff-messages' as Href))} /> : null}
           <WorkspaceLink title="PSI events" detail="Upcoming events and customer announcements" icon="flag-outline" onPress={() => navigate('events')} />
           <WorkspaceLink title="Customer cars for sale" detail="Create listings and notify customers" icon="car-sport-outline" onPress={() => navigate('car_sales')} />
+          {!previewMode && !REVIEW_ENVIRONMENT.enabled ? <WorkspaceLink title="PSI Rewards" detail="View loyalty cards and workshop credit" icon="gift-outline" onPress={() => router.push('/rewards-scan' as Href)} /> : null}
           <Text style={styles.groupLabel}>Workshop systems</Text>
           <WorkspaceLink title="Imports & drafts" detail="Review Xero invoices and record imports" icon="file-tray-outline" onPress={() => navigate('imports')} />
           <WorkspaceLink title="Connections" detail="Xero, payments, email and Calendar" icon="link-outline" onPress={() => navigate('connections')} />

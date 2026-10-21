@@ -61,7 +61,7 @@ function ThemeAwareRootShell() {
           <NotificationProvider>
             <CustomerPreviewProvider>
               <StaffNavigationProvider>
-                <UiToneProvider tone={pathname === '/staff' || pathname === '/staff-security' || pathname === '/staff-messages' || pathname === '/portal-preview' ? 'staff' : 'brand'}>
+                <UiToneProvider tone={pathname === '/staff' || pathname === '/staff-security' || pathname === '/staff-messages' || pathname === '/rewards-scan' || pathname === '/portal-preview' ? 'staff' : 'brand'}>
                 <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
                 <GarageStartupGate><View style={[styles.shell, { backgroundColor: theme.ink }]}>
                   <AppleReviewBanner />

@@ -13,6 +13,7 @@ export const HOME_TILE_IDS = [
   'customer-cars-for-sale',
   'performance-plus',
   'alerts',
+  'rewards',
 ] as const;
 
 export type HomeTileId = (typeof HOME_TILE_IDS)[number];
