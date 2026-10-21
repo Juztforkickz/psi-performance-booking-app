@@ -229,7 +229,7 @@ export type Database = {
         Row: {
           archived_at: string | null;
           approved_date: string | null;
-          booking_type: 'dyno' | 'service';
+          booking_type: 'dyno' | 'service' | 'diagnostics';
           client_request_id: string;
           created_at: string;
           created_by: string;
@@ -250,7 +250,7 @@ export type Database = {
         Insert: {
           archived_at?: string | null;
           approved_date?: string | null;
-          booking_type: 'dyno' | 'service';
+          booking_type: 'dyno' | 'service' | 'diagnostics';
           client_request_id?: string;
           created_at?: string;
           created_by: string;

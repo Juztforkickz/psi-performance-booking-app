@@ -1,3 +1,4 @@
+import { diagnosticsSummary } from '@/lib/diagnostics';
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -727,7 +728,7 @@ export function StaffWorkspace({
           return (
             <View key={booking.id} style={styles.card}>
               <View style={styles.cardHeading}>
-                <Text style={styles.cardTitle}>{booking.booking_type === 'dyno' ? 'Dyno tuning' : 'Service & report'}</Text>
+                <Text style={styles.cardTitle}>{booking.booking_type === 'diagnostics' ? 'Diagnostics & Repairs' : booking.booking_type === 'dyno' ? 'Dyno tuning' : 'Service & report'}</Text>
                 <Text style={styles.badge}>{BOOKING_STATUS_LABELS[booking.state]}</Text>
               </View>
               <Text style={styles.cardPrimary}>{customerName(customer)}</Text>
@@ -1165,7 +1166,7 @@ function BookingQueueCard({ booking, customer, vehicle, view, held, archiveStart
       <Text style={styles.bookingQueueCustomer}>{customer}</Text>
       <Text style={styles.bookingQueueStatus}>{BOOKING_STATUS_LABELS[booking.state]}</Text>
     </View>
-    <Text style={styles.bookingQueueService}>{booking.booking_type === 'dyno' ? 'Dyno tuning' : 'Service & report'}</Text>
+    <Text style={styles.bookingQueueService}>{booking.booking_type === 'diagnostics' ? 'Diagnostics & Repairs' : booking.booking_type === 'dyno' ? 'Dyno tuning' : 'Service & report'}</Text>
     <Text style={styles.bookingQueueMeta}>{vehicle} · {date}</Text>
     {actionedAt ? <Text style={styles.bookingQueueMeta}>{actionedAt}</Text> : null}
     {archiveLeavesAt ? <Text style={styles.bookingQueueMeta}>{archiveLeavesAt}</Text> : null}
@@ -1458,6 +1459,7 @@ function bookingContextLines(context: Record<string, unknown>) {
     const selections = context.serviceSelections.filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
     if (selections.length > 0) lines.push(`Requested services · ${selections.map(humanize).join(' · ')}`);
   }
+  lines.push(...diagnosticsSummary(context.diagnosticsDetails).map(item => `${item.label} Â· ${item.value}`));
   if (typeof context.setupConfidence === 'string') lines.push(`Dyno setup · ${humanize(context.setupConfidence)}`);
   if (context.tuningDetails && typeof context.tuningDetails === 'object' && !Array.isArray(context.tuningDetails)) {
     Object.entries(context.tuningDetails as Record<string, unknown>)

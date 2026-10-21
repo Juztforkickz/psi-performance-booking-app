@@ -327,7 +327,7 @@ function GarageContent({
 
   const heroSource = selectedPhoto ? { uri: selectedPhoto.uri } : artwork.art.source;
 
-  const openBookingForVehicle = (type: 'service' | 'dyno') => {
+  const openBookingForVehicle = (type: 'service' | 'dyno' | 'diagnostics') => {
     if (secureVehicles) prepareBookingVehicleRecord(selectedVehicle);
     else prepareBookingVehicle(selectedVehicle.id);
     router.push({ pathname: '/booking', params: { type } });
@@ -600,6 +600,7 @@ function GarageContent({
 
         <View style={styles.actions}>
           <PrimaryButton label="Book service for this vehicle" onPress={() => openBookingForVehicle('service')} />
+          <PrimaryButton label="Book diagnostics or repairs" onPress={() => openBookingForVehicle('diagnostics')} variant="outline" />
           <PrimaryButton label="Book dyno for this vehicle" onPress={() => openBookingForVehicle('dyno')} variant="outline" />
           {secureVehicles && !selectedVehicle.isPrimary ? <PrimaryButton label="Make this my primary vehicle" loading={vehicleActionSaving} onPress={() => void makePrimaryVehicle()} variant="outline" /> : null}
           <PrimaryButton label={secureVehicles ? 'Edit account and primary photo' : 'Open demo account setup'} onPress={() => router.push('/account/sign-up')} variant="outline" />

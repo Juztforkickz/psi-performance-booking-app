@@ -51,8 +51,9 @@ Deno.serve(async (request) => {
     .maybeSingle();
   if (bookingError) return json({ error: "booking_lookup_failed" }, 503);
   if (!booking) return json({ error: "booking_not_found" }, 404);
-  const expectedAmount = booking.booking_type === "service" ? 10_000 : 30_000;
-  if (booking.state !== "date_approved" || !booking.approved_date || booking.deposit_amount_cents !== expectedAmount || booking.currency !== "AUD") {
+  const depositAmounts: Record<string, number> = { service: 10_000, diagnostics: 10_000, dyno: 30_000 };
+  const expectedAmount = depositAmounts[booking.booking_type] ?? null;
+  if (expectedAmount === null || booking.state !== "date_approved" || !booking.approved_date || booking.deposit_amount_cents !== expectedAmount || booking.currency !== "AUD") {
     return json({ error: "booking_not_ready_for_payment" }, 409);
   }
 
@@ -134,7 +135,7 @@ Deno.serve(async (request) => {
     locale: "auto",
     "line_items[0][price_data][currency]": "aud",
     "line_items[0][price_data][unit_amount]": String(expectedAmount),
-    "line_items[0][price_data][product_data][name]": `PSI ${booking.booking_type === "dyno" ? "Dyno Tuning" : "Service & Report"} deposit`,
+    "line_items[0][price_data][product_data][name]": `PSI ${booking.booking_type === "diagnostics" ? "Diagnostics & Repairs" : booking.booking_type === "dyno" ? "Dyno Tuning" : "Service & Report"} deposit`,
     "line_items[0][quantity]": "1",
     "payment_method_types[0]": "card",
     "metadata[payment_attempt_id]": attemptId,

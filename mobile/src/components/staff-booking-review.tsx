@@ -197,7 +197,7 @@ function actionLabel(action: ReviewAction) {
 function reviewErrorMessage(error: unknown) {
   const detail = error instanceof Error ? error.message : `${(error as { message?: string } | null)?.message ?? ''}`;
   if (detail.includes('AAL2') || detail.toLowerCase().includes('staff')) return 'Your protected staff session needs authenticator verification again. Re-open the staff portal.';
-  if (detail.includes('DATE_INVALID') || detail.toLowerCase().includes('date') || detail.toLowerCase().includes('monday')) return 'Choose a valid future workshop date. Service uses Monday–Friday; dyno uses Monday, Wednesday or Thursday.';
+  if (detail.includes('DATE_INVALID') || detail.toLowerCase().includes('date') || detail.toLowerCase().includes('monday')) return 'Choose a valid future workshop date. Service and diagnostics use Monday to Friday. Dyno uses Monday, Wednesday or Thursday.';
   if (detail.includes('CANCELLATION_NOTE_REQUIRED')) return 'Add a reason before cancelling this request.';
   if (detail.toLowerCase().includes('transition')) return 'This request changed or can no longer take that action. Refresh the queue before retrying.';
   return 'The booking was not changed and no notification is being claimed. Refresh the protected queue and try again.';

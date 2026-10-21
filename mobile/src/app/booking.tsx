@@ -1,3 +1,4 @@
+import { DIAGNOSTICS_DESCRIPTION, DIAGNOSTICS_HELP, DIAGNOSTICS_DRIVING, DIAGNOSTICS_WARNINGS, diagnosticsSummary, type DiagnosticsDetails } from '@/lib/diagnostics';
 import { Ionicons } from '@expo/vector-icons';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -175,7 +176,7 @@ const CAMSHAFT_OPTIONS: SelectOption<Exclude<TuningDetails['camshaftType'], ''>>
 
 function bookingTypeFromParam(value?: string | string[]): BookingType | '' {
   const selected = Array.isArray(value) ? value[0] : value;
-  return selected === 'service' || selected === 'dyno' ? selected : '';
+  return selected === 'service' || selected === 'dyno' || selected === 'diagnostics' ? selected : '';
 }
 
 function selectedOptionLabel(options: readonly SelectOption<string>[], value: string) {
@@ -195,7 +196,7 @@ function draftMatchesVehicle(form: BookingFormState, vehicle: PreviewVehicle) {
 }
 
 function firstErrorStep(errors: BookingErrors) {
-  if (errors.bookingType || errors.vehiclePowertrain || errors.serviceSelections || errors.requestDetails || errors.setupConfidence || Object.keys(errors).some((key) => key === 'tuningDetails' || key.startsWith('tuningDetails.'))) return 1;
+  if (errors.bookingType || errors.vehiclePowertrain || errors.serviceSelections || errors.requestDetails || errors.setupConfidence || Object.keys(errors).some((key) => key === 'tuningDetails' || key.startsWith('tuningDetails.') || key === 'diagnosticsDetails' || key.startsWith('diagnosticsDetails.'))) return 1;
   if (errors.vehicleMake || errors.vehicleModel || errors.vehicleYear || errors.registration || errors.vin) return 2;
   if (errors.firstName || errors.lastName || errors.email || errors.mobile) return 3;
   if (errors.preferredDate || errors.appointmentPreferenceMode || errors.arrivalArrangement) return 4;
@@ -468,9 +469,14 @@ function BookingScreenContent({
   const update: UpdateBooking = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
     setErrors((current) => {
-      if (!current[key]) return current;
+      if (!current[key] && key !== 'diagnosticsDetails') return current;
       const next = { ...current };
       delete next[key];
+      if (key === 'diagnosticsDetails') {
+        for (const errorKey of Object.keys(next) as (keyof BookingErrors)[]) {
+          if (errorKey.startsWith('diagnosticsDetails.')) delete next[errorKey];
+        }
+      }
       return next;
     });
     setFormError('');
@@ -630,7 +636,7 @@ function BookingScreenContent({
           <View accessibilityRole="alert" style={styles.draftConflictCard}>
             <Text style={styles.draftLoadingTitle}>Choose which vehicle to continue</Text>
             <Text style={styles.draftLoadingCopy}>
-              This device has an unfinished {initialType === 'dyno' ? 'Dyno Tuning' : 'Service & Report'} draft for {savedVehicle}. You just selected {selectedVehicle}.
+              This device has an unfinished {initialType ? BOOKING_PURPOSES[initialType].label : 'booking'} draft for {savedVehicle}. You just selected {selectedVehicle}.
             </Text>
             <Text style={styles.draftConflictNote}>
               Resuming keeps the saved draft unchanged. Starting for the selected vehicle clears that saved draft only after you choose it.
@@ -907,6 +913,7 @@ function JobStep({
         <View accessibilityLabel={`${purpose.label}. ${purpose.priceGuide}. Available ${purpose.eligibleDays}.`} style={styles.jobSelectedCard}>
           <Text style={styles.jobSelectedKicker}>Selected on PSI home</Text>
           <Text style={styles.jobSelectedTitle}>{purpose.label}</Text>
+          {form.bookingType === 'diagnostics' ? <Text style={styles.jobSelectedCopy}>{DIAGNOSTICS_DESCRIPTION}</Text> : null}
           <Text style={styles.jobSelectedCopy}>{purpose.priceGuide} · Requests available {purpose.eligibleDays}</Text>
           <Text style={styles.jobSelectedDeposit}>
             {displayMoney(purpose.depositAmountCents)} deposit only after PSI approves a date
@@ -915,7 +922,7 @@ function JobStep({
       ) : (
         <View style={styles.missingTypeCard}>
           <Text style={styles.missingTypeTitle}>Booking type needed</Text>
-          <Text style={styles.missingTypeCopy}>Return to the home screen and choose Service & Report or Dyno Tuning once.</Text>
+          <Text style={styles.missingTypeCopy}>Return to the home screen and choose Service & Report, Dyno Tuning or Diagnostics & Repairs.</Text>
           <PrimaryButton label="Choose on PSI home" onPress={onChooseBooking} variant="outline" />
         </View>
       )}
@@ -961,7 +968,7 @@ function JobStep({
         </Field>
       ) : null}
 
-      <Field error={errors.requestDetails} label="What exactly are you after?">
+      <Field error={errors.requestDetails} label={form.bookingType === 'diagnostics' ? 'Describe the problem or repair needed' : 'What exactly are you after?'} hint={form.bookingType === 'diagnostics' ? 'Required. Describe symptoms, noises, leaks or the repair requested. At least 10 characters.' : undefined}>
         <FormInput
           error={errors.requestDetails}
           maxLength={1200}
@@ -975,6 +982,8 @@ function JobStep({
         />
         <Text style={styles.characterCount}>{form.requestDetails.length}/1200</Text>
       </Field>
+
+      {form.bookingType === 'diagnostics' ? <DiagnosticsQuestionnaire form={form} errors={errors} update={update} /> : null}
 
       {form.bookingType === 'dyno' ? (
         <View style={styles.setupConfidenceSection}>
@@ -1012,6 +1021,44 @@ function JobStep({
       ) : null}
     </View>
   );
+}
+
+function DiagnosticsQuestionnaire({ form, errors, update }: { form: BookingFormState; errors: BookingErrors; update: UpdateBooking }) {
+  const details = form.diagnosticsDetails;
+  const change = <K extends keyof DiagnosticsDetails>(key: K, value: DiagnosticsDetails[K]) => update('diagnosticsDetails', { ...details, [key]: value });
+  const textField = (key: 'startedWhen' | 'occursWhen' | 'warningDetails' | 'previousDiagnosis' | 'recentWork', label: string, hint: string) => (
+    <Field key={key} error={errors[`diagnosticsDetails.${key}`]} label={label} hint={hint}>
+      <FormInput autoCorrect spellCheck autoCapitalize="sentences" multiline maxLength={600} numberOfLines={3}
+        onChangeText={value => change(key, value)} style={styles.notesInput} textAlignVertical="top" value={details[key]} />
+    </Field>
+  );
+  return <View style={styles.stepContent}>
+    <Field error={errors['diagnosticsDetails.helpNeeded']} label="What do you need help with?" hint="Required. Choose the closest option.">
+      <View accessibilityRole="radiogroup" style={styles.compactChoices}>
+        {DIAGNOSTICS_HELP.map(option => <ChoiceCard key={option.value} detail="" title={option.label} selected={details.helpNeeded === option.value} onPress={() => change('helpNeeded', option.value)} />)}
+      </View>
+    </Field>
+    {details.helpNeeded !== 'known_repair' ? <>
+      {textField('startedWhen', 'When did the problem start?', 'Required. An approximate date or Not sure is fine.')}
+      {textField('occursWhen', 'When does it happen?', 'Required. For example, cold start, acceleration, braking or intermittently. Enter Not sure if needed.')}
+    </> : null}
+    <Field error={errors['diagnosticsDetails.drivingStatus']} label="What is the current driving status?" hint="Required. This describes the vehicle to PSI and does not confirm it is safe to drive.">
+      <View accessibilityRole="radiogroup" style={styles.compactChoices}>
+        {DIAGNOSTICS_DRIVING.map(option => <ChoiceCard key={option.value} detail="" title={option.label} selected={details.drivingStatus === option.value} onPress={() => change('drivingStatus', option.value)} />)}
+      </View>
+    </Field>
+    <Field error={errors['diagnosticsDetails.warningLights']} label="Any warning lights or dashboard messages?" hint="Required.">
+      <View accessibilityRole="radiogroup" style={styles.compactChoices}>
+        {DIAGNOSTICS_WARNINGS.map(option => <ChoiceCard key={option.value} detail="" title={option.label} selected={details.warningLights === option.value} onPress={() => change('warningLights', option.value)} />)}
+      </View>
+    </Field>
+    {details.warningLights === 'yes' ? textField('warningDetails', 'Which warning lights or messages?', 'Required when Yes is selected. Describe what appears on the dashboard.') : null}
+    <Field error={errors['diagnosticsDetails.odometerKm']} label="Current kilometres" hint="Optional. Whole kilometres only.">
+      <FormInput keyboardType="number-pad" inputMode="numeric" maxLength={7} onChangeText={value => change('odometerKm', value)} value={details.odometerKm} />
+    </Field>
+    {textField('previousDiagnosis', 'Previous diagnosis or fault codes', 'Optional. Add any known fault codes, previous assessment or recommended repair.')}
+    {textField('recentWork', 'Recent work or modifications', 'Optional. Include repairs, replaced parts or changes that may help PSI assess the issue.')}
+  </View>;
 }
 
 function TuningSetup({
@@ -1612,7 +1659,7 @@ function DateStep({
   const [forecastUnavailable, setForecastUnavailable] = useState(false);
   const scheduleCopy = form.bookingType === 'dyno'
     ? 'Dyno requests: Monday, Wednesday and Thursday.'
-    : 'Service requests: Monday to Friday.';
+    : form.bookingType === 'diagnostics' ? 'Diagnostics & Repairs requests: Monday to Friday.' : 'Service requests: Monday to Friday.';
   const selectedDateEligible = form.preferredDate && isEligibleBookingDate(form.bookingType, form.preferredDate);
 
   useEffect(() => {
@@ -1828,6 +1875,7 @@ function ReviewStep({
           <Text style={styles.summaryReference}>Pending staff review</Text>
         </View>
         <SummaryRow label="Work" value={purpose?.label || 'Not selected'} secondary={purpose?.priceGuide} />
+        {form.bookingType === 'diagnostics' ? diagnosticsSummary(form.diagnosticsDetails).map(item => <SummaryRow key={item.label} label={item.label} value={item.value} />) : null}
         <SummaryRow label="Powertrain" value={vehiclePowertrainLabel(form.vehiclePowertrain)} />
         {form.bookingType === 'service' ? (
           <SummaryRow

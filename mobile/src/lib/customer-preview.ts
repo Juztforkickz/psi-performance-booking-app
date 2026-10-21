@@ -59,7 +59,7 @@ export type PreviewBooking = {
   id: string;
   reference: string;
   scheduledFor: string | null;
-  service: 'Dyno Tuning' | 'Service & Report';
+  service: 'Dyno Tuning' | 'Service & Report' | 'Diagnostics & Repairs';
   status: 'awaiting_psi_review' | 'completed' | 'confirmed';
   vehicleId: string;
 };

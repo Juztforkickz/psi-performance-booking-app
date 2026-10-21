@@ -1,10 +1,11 @@
 import { addIsoMonths, formatAustralianDate } from '@/lib/australian-date';
+import { EMPTY_DIAGNOSTICS_DETAILS, sanitiseDiagnosticsDetails, validateDiagnosticsDetails, type DiagnosticsDetails } from '@/lib/diagnostics';
 import type { Database } from '@/lib/database.types';
 import { dispatchBookingIntegrationNotifications } from '@/lib/booking-integrations';
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
 import { dispatchBookingPushNotifications } from '@/lib/notifications';
 
-export type BookingType = 'service' | 'dyno';
+export type BookingType = 'service' | 'dyno' | 'diagnostics';
 export type VehiclePowertrain = '' | 'petrol' | 'diesel' | 'hev' | 'phev' | 'bev';
 export type ServiceSelection =
   | 'scheduled_service'
@@ -138,6 +139,13 @@ export const BOOKING_PURPOSES = {
     depositAmountCents: 10_000,
     eligibleDays: 'Monday–Friday',
   },
+  diagnostics: {
+    label: 'Diagnostics & Repairs',
+    priceGuide: 'Assessment and repair costs confirmed by PSI',
+    priceGuideAmountCents: null,
+    depositAmountCents: 10_000,
+    eligibleDays: 'Monday to Friday',
+  },
   dyno: {
     label: 'Dyno Tuning',
     priceGuide: 'From $649.00 AUD incl. GST',
@@ -148,7 +156,7 @@ export const BOOKING_PURPOSES = {
 } as const;
 
 export function depositAmountForBookingType(type: BookingType | ''): number | null {
-  if (type === 'service' || type === 'dyno') return BOOKING_PURPOSES[type].depositAmountCents;
+  if (type === 'service' || type === 'dyno' || type === 'diagnostics') return BOOKING_PURPOSES[type].depositAmountCents;
   return null;
 }
 
@@ -176,6 +184,7 @@ export type BookingFormState = {
   consent: boolean;
   bookingTermsAccepted: boolean;
   tuningDetails: TuningDetails;
+  diagnosticsDetails: DiagnosticsDetails;
 };
 
 export type BookingRequestResult = {
@@ -199,10 +208,11 @@ export const EMPTY_BOOKING: BookingFormState = {
   arrivalArrangement: 'flexible', afterHoursCollection: false, notifyEarlierAvailability: false,
   serviceReminderConsent: false, setupConfidence: '', consent: false, bookingTermsAccepted: false,
   tuningDetails: { ...EMPTY_TUNING_DETAILS },
+  diagnosticsDetails: { ...EMPTY_DIAGNOSTICS_DETAILS },
 };
 
 export type TuningFieldKey = `tuningDetails.${keyof TuningDetails}`;
-export type BookingErrorKey = Exclude<keyof BookingFormState, 'tuningDetails'> | 'tuningDetails' | TuningFieldKey;
+export type BookingErrorKey = Exclude<keyof BookingFormState, 'tuningDetails'> | 'tuningDetails' | TuningFieldKey | `diagnosticsDetails.${keyof DiagnosticsDetails}`;
 export type BookingErrors = Partial<Record<BookingErrorKey, string>>;
 
 export class BookingApiError extends Error {
@@ -249,8 +259,8 @@ export function maxBookingDate() {
 export function isEligibleBookingDate(type: BookingType | '', isoDate: string) {
   if (!type || !isoDate) return false;
   const weekday = dateFromIso(isoDate).getUTCDay();
-  if (type === 'service') return weekday >= 1 && weekday <= 5;
-  return weekday === 1 || weekday === 3 || weekday === 4;
+  if (type === 'service' || type === 'diagnostics') return weekday >= 1 && weekday <= 5;
+  return type === 'dyno' && (weekday === 1 || weekday === 3 || weekday === 4);
 }
 
 function isValidBookingEmail(rawValue: string) {
@@ -306,10 +316,10 @@ function validateKnownTuning(tuning: TuningDetails, errors: BookingErrors) {
 export function validateBookingStep(form: BookingFormState, step: number): BookingErrors {
   const errors: BookingErrors = {};
   if (step === 1) {
-    if (!form.bookingType) errors.bookingType = 'Choose Service & Report or Dyno Tuning from the PSI home screen.';
+    if (!form.bookingType) errors.bookingType = 'Choose Service & Report, Dyno Tuning or Diagnostics & Repairs from the PSI home screen.';
     if (!form.vehiclePowertrain) errors.vehiclePowertrain = 'Choose the vehicle powertrain.';
     else if (form.bookingType === 'dyno' && form.vehiclePowertrain === 'bev') {
-      errors.vehiclePowertrain = 'Book a battery electric vehicle through Service & Report for diagnostics or inspection.';
+      errors.vehiclePowertrain = 'Choose Diagnostics & Repairs for a battery electric vehicle fault, or Service & Report for servicing.';
     }
     if (form.bookingType === 'service') {
       const allowedSelections = new Set(serviceSelectionsForPowertrain(form.vehiclePowertrain));
@@ -319,6 +329,11 @@ export function validateBookingStep(form: BookingFormState, step: number): Booki
       }
     }
     if (form.requestDetails.trim().length < 10) errors.requestDetails = 'Tell PSI what you need in at least 10 characters.';
+    if (form.bookingType === 'diagnostics') {
+      for (const [key, message] of Object.entries(validateDiagnosticsDetails(form.diagnosticsDetails))) {
+        errors[`diagnosticsDetails.${key as keyof DiagnosticsDetails}`] = message;
+      }
+    }
     if (form.bookingType === 'dyno') {
       if (!form.setupConfidence) errors.setupConfidence = 'Tell PSI whether you know the vehicle setup or want PSI to inspect it.';
       if (form.setupConfidence === 'known') validateKnownTuning(form.tuningDetails, errors);
@@ -350,7 +365,7 @@ export function validateBookingStep(form: BookingFormState, step: number): Booki
       if (!errors.preferredDate && !isEligibleBookingDate(form.bookingType, form.preferredDate)) {
         errors.preferredDate = form.bookingType === 'dyno'
           ? 'Dyno requests are currently available Monday, Wednesday or Thursday.'
-          : 'Service requests are available Monday to Friday.';
+          : 'Service and diagnostics requests are available Monday to Friday.';
       }
     }
   }
@@ -378,6 +393,7 @@ export function bookingRequestApiUrl() {
 function normaliseApiFieldErrors(fields: unknown): BookingErrors {
   if (!fields || typeof fields !== 'object' || Array.isArray(fields)) return {};
   const fieldErrors: BookingErrors = {};
+  const allowedDiagnosticsKeys = new Set(Object.keys(EMPTY_DIAGNOSTICS_DETAILS));
   const allowedTuningKeys = new Set(Object.keys(EMPTY_TUNING_DETAILS));
   const aliases: Record<string, BookingErrorKey> = {
     appointmentPreference: 'preferredDate',
@@ -390,13 +406,14 @@ function normaliseApiFieldErrors(fields: unknown): BookingErrors {
     const formKey = aliases[key] || key;
     const allowedTopLevel = formKey in EMPTY_BOOKING && formKey !== 'tuningDetails';
     const tuningKey = formKey.startsWith('tuningDetails.') ? formKey.slice('tuningDetails.'.length) : '';
-    if (!allowedTopLevel && !allowedTuningKeys.has(tuningKey) && formKey !== 'tuningDetails') return;
+    const diagnosticsKey = formKey.startsWith('diagnosticsDetails.') ? formKey.slice('diagnosticsDetails.'.length) : '';
+    if (!allowedTopLevel && !allowedTuningKeys.has(tuningKey) && !allowedDiagnosticsKeys.has(diagnosticsKey) && formKey !== 'tuningDetails') return;
     const message = Array.isArray(value) ? value.filter((item) => typeof item === 'string').join(' ') : value;
     if (typeof message === 'string' && message.trim()) fieldErrors[formKey as BookingErrorKey] = message.trim();
   };
   for (const [key, value] of Object.entries(fields)) {
-    if (key === 'tuningDetails' && value && typeof value === 'object' && !Array.isArray(value)) {
-      for (const [nestedKey, nestedValue] of Object.entries(value)) addError(`tuningDetails.${nestedKey}`, nestedValue);
+    if ((key === 'tuningDetails' || key === 'diagnosticsDetails') && value && typeof value === 'object' && !Array.isArray(value)) {
+      for (const [nestedKey, nestedValue] of Object.entries(value)) addError(`${key}.${nestedKey}`, nestedValue);
     } else addError(key, value);
   }
   return fieldErrors;
@@ -422,6 +439,7 @@ export async function createBookingRequest(form: BookingFormState, idempotencyKe
     if (!vehicleId) throw new Error('Choose a vehicle saved in your private PSI account before submitting this request.');
     return createAuthenticatedBookingRequest(form, idempotencyKey, vehicleId);
   }
+  if (form.bookingType === 'diagnostics') throw new Error('Sign in to your private PSI account to request Diagnostics & Repairs.');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20_000);
   try {
@@ -480,7 +498,7 @@ async function createAuthenticatedBookingRequest(
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(idempotencyKey)) {
     throw new Error('This request could not be safely identified. Please restart the booking.');
   }
-  if (form.bookingType !== 'service' && form.bookingType !== 'dyno') throw new Error('Choose a booking type before submitting.');
+  if (form.bookingType !== 'service' && form.bookingType !== 'dyno' && form.bookingType !== 'diagnostics') throw new Error('Choose a booking type before submitting.');
 
   const supabase = getSupabaseClient();
   const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -525,6 +543,7 @@ async function createAuthenticatedBookingRequest(
       bookingPolicyVersion: BOOKING_POLICY_VERSION,
       notifyEarlierAvailability: form.notifyEarlierAvailability,
       schemaVersion: 1,
+      ...(form.bookingType === 'diagnostics' ? { diagnosticsDetails: sanitiseDiagnosticsDetails(form.diagnosticsDetails) } : {}),
       serviceReminderConsent: form.bookingType === 'service' && form.serviceReminderConsent,
       ...(form.bookingType === 'dyno' ? {
         setupConfidence: form.setupConfidence,

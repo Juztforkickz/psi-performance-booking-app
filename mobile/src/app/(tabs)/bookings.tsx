@@ -1,3 +1,4 @@
+import { DIAGNOSTICS_DESCRIPTION } from '@/lib/diagnostics';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
@@ -37,7 +38,7 @@ export default function BookingsScreen() {
   const { compact, horizontalPadding } = useResponsiveLayout();
   const [bookingChooserOpen, setBookingChooserOpen] = useState(false);
   const [vehicleChooserOpen, setVehicleChooserOpen] = useState(false);
-  const [pendingBookingType, setPendingBookingType] = useState<'service' | 'dyno' | null>(null);
+  const [pendingBookingType, setPendingBookingType] = useState<'service' | 'dyno' | 'diagnostics' | null>(null);
   const [workshopWeather, setWorkshopWeather] = useState<WorkshopWeather | null>(null);
   const [weatherError, setWeatherError] = useState(false);
   const [paymentBusyId, setPaymentBusyId] = useState<string | null>(null);
@@ -53,7 +54,7 @@ export default function BookingsScreen() {
   const past = displayBookings.filter((booking) => booking.state === 'completed');
   const calendarBookings = displayBookings.filter((booking) => ['date_approved', 'confirmed'].includes(booking.state) && booking.date);
 
-  const openBooking = (type: 'service' | 'dyno') => {
+  const openBooking = (type: 'service' | 'dyno' | 'diagnostics') => {
     setBookingChooserOpen(false);
     if (privateAccountMode) {
       const vehicles = account?.vehicles ?? [];
@@ -74,7 +75,7 @@ export default function BookingsScreen() {
     router.push({ pathname: '/booking', params: { type } });
   };
 
-  const openBookingWithVehicle = (type: 'service' | 'dyno', vehicleId: string) => {
+  const openBookingWithVehicle = (type: 'service' | 'dyno' | 'diagnostics', vehicleId: string) => {
     const vehicle = account?.vehicles.find((item) => item.id === vehicleId);
     if (!vehicle) return;
     prepareBookingVehicleRecord(accountVehiclePreview(vehicle));
@@ -367,6 +368,7 @@ export default function BookingsScreen() {
               label="Dyno Tuning"
               onPress={() => openBooking('dyno')}
             />
+            <BookingChoice detail={DIAGNOSTICS_DESCRIPTION} label="Diagnostics & Repairs" onPress={() => openBooking('diagnostics')} />
             <Text style={styles.modalNote}>PSI reviews every preferred date before confirming work or requesting a deposit.</Text>
             </View>
           </ScrollView>
@@ -536,7 +538,7 @@ function secureBookingDisplay(booking: BookingRequestRow, vehicles: CustomerVehi
     date: booking.approved_date ?? booking.preferred_date,
     id: booking.id,
     reference: `PSI-${booking.id.slice(0, 8).toUpperCase()}`,
-    service: booking.booking_type === 'dyno' ? 'Dyno Tuning' : 'Service & Report',
+    service: booking.booking_type === 'diagnostics' ? 'Diagnostics & Repairs' : booking.booking_type === 'dyno' ? 'Dyno Tuning' : 'Service & Report',
     staffNote: booking.staff_note,
     state: booking.state,
     vehicle: vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model} · ${vehicle.registration}` : 'Vehicle record unavailable',
