@@ -38,7 +38,7 @@ type IntegrationJob = {
 type BookingContext = {
   booking: {
     id: string;
-    booking_type: "service" | "dyno";
+    booking_type: "service" | "dyno" | "diagnostics";
     preferred_date: string | null;
     approved_date: string | null;
     request_notes: string | null;
@@ -147,7 +147,7 @@ const customerName = (context: BookingContext) =>
   [context.customer.first_name, context.customer.last_name].filter(Boolean).join(" ") || "PSI customer";
 
 const bookingLabel = (context: BookingContext) =>
-  context.booking.booking_type === "dyno" ? "Dyno tuning" : "Service & Workshop";
+  context.booking.booking_type === "diagnostics" ? "Diagnostics & Repairs" : context.booking.booking_type === "dyno" ? "Dyno tuning" : "Service & Workshop";
 
 const depositLabel = (context: BookingContext) =>
   context.booking.booking_type === "dyno" ? "A$300" : "A$100";
@@ -167,6 +167,26 @@ const requestContextLines = (context: Record<string, unknown>) => {
   if (Array.isArray(context.serviceSelections)) {
     const selections = context.serviceSelections.filter((value): value is string => typeof value === "string" && value.trim().length > 0);
     if (selections.length > 0) lines.push(`Requested services: ${selections.map(humanize).join(" · ")}`);
+  }
+  if (context.diagnosticsDetails && typeof context.diagnosticsDetails === "object" && !Array.isArray(context.diagnosticsDetails)) {
+    const details = context.diagnosticsDetails as Record<string, unknown>;
+    const labels: Record<string, string> = {
+      helpNeeded: "Help needed", startedWhen: "When it started", occursWhen: "When it happens",
+      drivingStatus: "Driving status", warningLights: "Warning lights or messages", warningDetails: "Warning details",
+      odometerKm: "Current kilometres", previousDiagnosis: "Previous diagnosis or fault codes", recentWork: "Recent work or modifications",
+    };
+    const choices: Record<string, string> = {
+      diagnosis: "Find the cause of a problem", known_repair: "Repair a known issue", both: "Diagnosis and repairs", unsure: "Not sure",
+      normal: "Currently drives normally", issue: "Drives, but has an issue", not_drivable: "Not drivable or arriving by tow",
+      yes: "Yes", no: "No",
+    };
+    for (const [key, label] of Object.entries(labels)) {
+      const value = details[key];
+      if (typeof value !== "string" || !value.trim()) continue;
+      if (key === "warningDetails" && details.warningLights !== "yes") continue;
+      if ((key === "startedWhen" || key === "occursWhen") && details.helpNeeded === "known_repair") continue;
+      lines.push(`${label}: ${["helpNeeded", "drivingStatus", "warningLights"].includes(key) ? choices[value] ?? humanize(value) : value}${key === "odometerKm" ? " km" : ""}`);
+    }
   }
   if (typeof context.setupConfidence === "string") lines.push(`Dyno setup: ${humanize(context.setupConfidence)}`);
   if (context.tuningDetails && typeof context.tuningDetails === "object" && !Array.isArray(context.tuningDetails)) {
@@ -501,7 +521,7 @@ const syncGoogleCalendar = async (admin: SupabaseClient, job: IntegrationJob, co
     return { providerReference: eventId } as const;
   }
 
-  const booking = context.booking.booking_type === "dyno" ? "Dyno tuning" : "Service & Report";
+  const booking = context.booking.booking_type === "diagnostics" ? "Diagnostics & Repairs" : context.booking.booking_type === "dyno" ? "Dyno tuning" : "Service & Report";
   const eventBody = {
     id: eventId,
     summary: `${customerName(context)} · ${booking} · ${context.vehicle.registration}`,

@@ -24,4 +24,4 @@ export const DEMONSTRATION_PLANS = [
   { id: 'monthly', title: 'Monthly', price: 'AUD $9.99', interval: 'per month' },
 ] as const;
 
-export const DEMONSTRATION_SERVICES = ['Service & Report', 'Dyno Tuning'] as const;
+export const DEMONSTRATION_SERVICES = ['Service & Report', 'Dyno Tuning', 'Diagnostics & Repairs'] as const;

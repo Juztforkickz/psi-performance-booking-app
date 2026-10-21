@@ -1,3 +1,4 @@
+import { DIAGNOSTICS_DESCRIPTION } from '@/lib/diagnostics';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFonts } from 'expo-font';
@@ -111,7 +112,7 @@ export default function CustomerHomeScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  const openBooking = (type: 'service' | 'dyno') => {
+  const openBooking = (type: 'service' | 'dyno' | 'diagnostics') => {
     setBookingChooserOpen(false);
     if (selectedAccountVehicle) {
       prepareBookingVehicleRecord({
@@ -674,6 +675,7 @@ export default function CustomerHomeScreen() {
               label="Dyno Tuning"
               onPress={() => openBooking('dyno')}
             />
+            <BookingChoice detail={DIAGNOSTICS_DESCRIPTION} label="Diagnostics & Repairs" onPress={() => openBooking('diagnostics')} />
             <Text style={styles.modalNotice}>PSI reviews every preferred date before confirming work or requesting a deposit.</Text>
             </View>
           </ScrollView>

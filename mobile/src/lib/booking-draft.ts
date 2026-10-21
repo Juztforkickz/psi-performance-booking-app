@@ -1,3 +1,4 @@
+import { EMPTY_DIAGNOSTICS_DETAILS, sanitiseDiagnosticsDetails } from '@/lib/diagnostics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { environmentStorageKey } from '@/lib/review-environment';
 
@@ -106,6 +107,7 @@ function sanitiseDraftForm(value: unknown, bookingType: BookingType): BookingFor
     consent: false,
     bookingTermsAccepted: false,
     tuningDetails,
+    diagnosticsDetails: bookingType === 'diagnostics' ? sanitiseDiagnosticsDetails(raw.diagnosticsDetails) : { ...EMPTY_DIAGNOSTICS_DETAILS },
   };
 }
 
