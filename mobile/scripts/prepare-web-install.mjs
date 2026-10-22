@@ -96,4 +96,12 @@ for (const htmlPath of await listHtmlFiles(distDirectory)) {
   await writeFile(htmlPath, cleanHtml.replace('</head>', `${installHead}\n</head>`), 'utf8');
 }
 
+// Wallet passes and QR codes can open the trailing slash form directly.
+// GitHub Pages serves Expo's flat route exports only without that slash.
+for (const route of ['rewards', 'rewards-scan']) {
+  const routeDirectory = join(distDirectory, route);
+  await mkdir(routeDirectory, { recursive: true });
+  await copyFile(join(distDirectory, `${route}.html`), join(routeDirectory, 'index.html'));
+}
+
 console.log(`Prepared permanent PSI install metadata for ${basePath || 'site root'}/`);
