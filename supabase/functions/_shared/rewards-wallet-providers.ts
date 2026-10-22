@@ -54,7 +54,8 @@ export async function issueGoogleCard(card: RewardsCard) {
   const existingClass = await fetch(`${base}/loyaltyClass/${config.classId}`, { headers, redirect: 'error', signal: AbortSignal.timeout(15000) });
   if (!existingClass.ok) { await existingClass.body?.cancel(); throw new Error('google_wallet_class_setup_required'); }
   const passClass = await existingClass.json();
-  if (passClass.reviewStatus !== 'APPROVED') throw new Error('google_wallet_publishing_approval_required');
+  // The live REST API also returns the legacy lower case enum spelling.
+  if (String(passClass.reviewStatus ?? '').toUpperCase() !== 'APPROVED') throw new Error('google_wallet_publishing_approval_required');
   const object = objectBody(card, config.issuer, config.classId);
   const response = await fetch(`${base}/loyaltyObject`, { method: 'POST', headers, redirect: 'error', signal: AbortSignal.timeout(15000), body: JSON.stringify(object) });
   if (response.status === 409) {

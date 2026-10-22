@@ -55,7 +55,7 @@ Deno.test('Apple package contains the correct live fields, membership QR and sig
   } finally { restore(); }
 });
 
-function googleFixture(reviewStatus='APPROVED') {
+function googleFixture(reviewStatus='approved') {
   const privateInfo=forge.pki.wrapRsaPrivateKey(forge.pki.privateKeyToAsn1(keys.privateKey));
   set('REWARDS_GOOGLE_ISSUER_ID','123456789012345');set('REWARDS_GOOGLE_PUBLISHING_ENABLED','true');
   set('REWARDS_GOOGLE_SERVICE_ACCOUNT',JSON.stringify({client_email:'fixture@fixture-project.iam.gserviceaccount.com',private_key:forge.pki.privateKeyInfoToPem(privateInfo)}));
@@ -84,7 +84,9 @@ Deno.test('Google card uses the correct points and credit and an RSA signed save
 });
 Deno.test('Google publishing review cannot be bypassed by issuing a test card to customers',async()=>{
   try {
-    const requests=googleFixture('UNDER_REVIEW');await assert.rejects(issueGoogleCard(card),/publishing_approval_required/);
-    assert.equal(requests.some(r=>r.url.endsWith('/loyaltyObject')),false);
+    for (const status of ['UNDER_REVIEW','underReview','DRAFT','',null]) {
+      const requests=googleFixture(status);await assert.rejects(issueGoogleCard(card),/publishing_approval_required/);
+      assert.equal(requests.some(r=>r.url.endsWith('/loyaltyObject')),false);
+    }
   } finally { restore(); }
 });
