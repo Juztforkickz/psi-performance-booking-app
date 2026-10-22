@@ -15,6 +15,7 @@ export default function RewardsScreen() {
   const [busy, setBusy] = useState<'apple' | 'google' | null>(null);
   const [notice, setNotice] = useState('');
   const account = rewards.account;
+  const platformWalletReady = account && (Platform.OS === 'ios' ? account.wallet.apple : Platform.OS === 'android' ? account.wallet.google : account.wallet.apple || account.wallet.google);
   const creditText = account ? formatRewardsCredit(account.creditCents) : '';
   const creditFontSize = Math.max(18, Math.min(47, (Math.min(width - horizontalPadding * 2 - 20, 420) - 50) / Math.max(1, creditText.length * 0.65)));
   const addWallet = async (provider: 'apple' | 'google') => {
@@ -57,7 +58,7 @@ export default function RewardsScreen() {
           <Text style={s.copy}>Show this card in the workshop, or save it to your phone’s Wallet.</Text>
           {(Platform.OS === 'ios' || Platform.OS === 'web') && account.wallet.apple ? <PrimaryButton label="Save Apple Wallet card" disabled={Boolean(busy)} loading={busy === 'apple'} onPress={() => void addWallet('apple')} /> : null}
           {(Platform.OS === 'android' || Platform.OS === 'web') && account.wallet.google ? <PrimaryButton label="Save Google Wallet card" disabled={Boolean(busy)} loading={busy === 'google'} onPress={() => void addWallet('google')} /> : null}
-          {!account.wallet.apple && !account.wallet.google ? <Text style={s.copy}>Wallet downloads are being connected. Your loyalty card and balance are available here.</Text> : null}
+          {!platformWalletReady ? <Text style={s.copy}>Wallet downloads are being connected. Your loyalty card and balance are available here.</Text> : null}
           {notice ? <Text accessibilityLiveRegion="polite" style={s.copy}>{notice}</Text> : null}
         </View>
         <View style={s.panel}>

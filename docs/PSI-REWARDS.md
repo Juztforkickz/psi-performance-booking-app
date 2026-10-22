@@ -56,4 +56,8 @@ Google's dedicated service account, issuer Developer access, protected server se
 
 Read only production checks confirmed both schedulers running. Two naturally received invoice events were held with `verified_rewards_customer_required`; no points were assigned to an unverified identity. No real paid invoice award or physical phone Wallet installation has yet been observed. Do not treat these checks as an end to end financial or device test.
 
+With Matt's explicit sending approval, a request was submitted through Google Wallet Console Support on 22 October. Google confirmed submission and said a specialist would respond by email, with review taking up to 36 hours. No case number was displayed. The request contains the business identifiers and exact setup error, excludes customer data and credentials, and explicitly excludes charges, billing changes and payment methods. Do not submit duplicate requests. Google's business identity and publishing approval remain outstanding.
+
+Wallet readiness notices follow the current device's platform, so Android continues to show setup pending while Apple signing is already configured. The in app balance and card remain usable independently.
+
 Matt clarified that AUD 1,000 spent must equal AUD 10 of PSI credit, which is the approved rate above. No paid Wallet provider, extra Apple membership, Google subscription or hosting plan upgrade is authorised. Existing app developer membership and hosting allowances remain relevant; stop any step requiring an additional charge. On 22 October the existing Supabase organisation showed an egress grace period ending 24 October, with current data transfer of 13.907 GB against a 5 GB free allowance. No billing change was made.
