@@ -91,7 +91,7 @@ export default function PsiEventsScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'right', 'left']} style={[styles.screen, { backgroundColor: theme.screen }]}>
+    <SafeAreaView edges={['top', 'right', 'left']} style={[styles.screen, { backgroundColor: 'transparent' }]}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]} showsVerticalScrollIndicator={false}>
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <Pressable accessibilityLabel="Back" accessibilityRole="button" onPress={() => router.back()} style={({ pressed }) => [styles.backButton, { borderColor: theme.frame }, pressed && styles.pressed]}>
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   logoMini: { width: 54, height: 20 },
   calloutTitle: { color: colors.white, fontSize: 17, fontWeight: '900', textTransform: 'uppercase' },
   calloutCopy: { color: colors.muted, fontSize: 11, lineHeight: 17 },
-  secondaryButton: { minHeight: 44, borderWidth: 2, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center', borderRadius: 4 },
+  secondaryButton: { minHeight: 44, borderWidth: 2, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center', borderRadius: 18 },
   secondaryButtonText: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase', color: colors.white },
   feedback: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase', textAlign: 'center' },
   error: { color: colors.danger, fontSize: 11, fontWeight: '800', lineHeight: 17 },

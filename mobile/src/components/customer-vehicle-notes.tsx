@@ -58,7 +58,7 @@ export function CustomerVehicleNotes({ vehicleId, readOnly = false, previewMode 
 const styles = StyleSheet.create({
   section: { gap: 14 }, title: { color: colors.white, fontSize: 21, fontWeight: '800' },
   copy: { color: colors.silver, fontSize: 15, lineHeight: 23 },
-  note: { borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, padding: 16, gap: 8 },
+  note: { borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, padding: 16, gap: 8 },
   label: { color: colors.accent, fontSize: 12, fontWeight: '800' },
   date: { color: colors.muted, fontSize: 12 },
 });

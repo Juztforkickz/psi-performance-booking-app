@@ -131,14 +131,14 @@ function monthCanContainDate(value: { month: number; year: number }, minimumDate
 }
 
 const styles = StyleSheet.create({
-  calendar: { borderColor: colors.line, borderWidth: 1, borderRadius: 6, backgroundColor: '#101010', padding: spacing.sm },
+  calendar: { borderColor: colors.line, borderWidth: 1, borderRadius: 18, backgroundColor: colors.inkSoft, padding: spacing.sm },
   header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
   monthButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   monthLabel: { color: colors.white, flex: 1, fontSize: 15, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
   weekRow: { flexDirection: 'row', marginBottom: 4 },
   weekday: { color: colors.muted, flex: 1, minWidth: 0, fontSize: 9, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
   cell: { aspectRatio: 1, flex: 1, minWidth: 0, padding: 2 },
-  day: { alignItems: 'center', borderColor: 'transparent', borderRadius: 5, borderWidth: 1, flex: 1, justifyContent: 'center' },
+  day: { alignItems: 'center', borderColor: 'transparent', borderRadius: 10, borderWidth: 1, flex: 1, justifyContent: 'center' },
   daySelected: { backgroundColor: colors.accent, borderColor: colors.accent },
   dayDisabled: { opacity: 0.28 },
   dayText: { color: colors.silver, fontSize: 13, fontWeight: '800' },

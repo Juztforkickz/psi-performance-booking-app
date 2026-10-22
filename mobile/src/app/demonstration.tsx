@@ -164,7 +164,7 @@ function SampleRecord({ kind, onClose }: { kind: NonNullable<RecordView>; onClos
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.ink },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   banner: { paddingVertical: spacing.sm, borderBottomWidth: 1, borderColor: colors.line, backgroundColor: colors.inkSoft, gap: 4 },
   bannerTitle: { color: colors.accent, fontSize: 13, lineHeight: 19, fontWeight: '900' },
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', columnGap: spacing.md },
@@ -195,7 +195,7 @@ const s = StyleSheet.create({
   vehicleImage: { width: '100%', aspectRatio: 1.55, backgroundColor: '#090B0E' },
   galleryImage: { width: '100%', aspectRatio: 1100 / 1227 },
   recordRow: { gap: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.line, paddingBottom: spacing.md },
-  document: { borderWidth: 1, borderColor: colors.line, backgroundColor: colors.inkSoft, padding: spacing.md, gap: spacing.md },
+  document: { borderRadius: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.inkSoft, padding: spacing.md, gap: spacing.md },
   price: { color: colors.white, fontSize: 30, fontWeight: '900' },
   chart: { flexDirection: 'row', gap: 8, alignItems: 'flex-end', paddingTop: spacing.md, borderBottomWidth: 1, borderColor: colors.line },
   barColumn: { flex: 1, minWidth: 0, gap: 6, alignItems: 'center' },

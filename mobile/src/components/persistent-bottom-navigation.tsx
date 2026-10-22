@@ -82,7 +82,7 @@ export function PersistentBottomNavigation() {
   const { section, bookingId, customerId } = useGlobalSearchParams<{ section?: string | string[]; bookingId?: string | string[]; customerId?: string | string[] }>();
   const router = useRouter();
   const { navigateToSection } = useStaffNavigation();
-  const { theme } = useThemePreference();
+  const { activeTheme, theme } = useThemePreference();
   const { customerUnreadCount, staffUnreadCount } = useNotifications();
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const isStaffWorkspace = pathname === '/staff' || pathname === '/staff-security' || pathname === '/staff-messages' || pathname === '/rewards-scan' || pathname === '/portal-preview';
@@ -106,9 +106,20 @@ export function PersistentBottomNavigation() {
   return (
     <SafeAreaView
       edges={['right', 'bottom', 'left']}
-      style={[styles.safeArea, { backgroundColor: theme.surfaceRaised, borderTopColor: theme.line }, isStaffWorkspace && { borderTopWidth: 1, borderTopColor: theme.border }]}
+      style={styles.safeArea}
     >
-      <View accessibilityLabel={isStaffWorkspace ? 'Staff workspace navigation' : 'Customer app navigation'} accessibilityRole="tablist" style={[styles.navigationRow, isStaffWorkspace && styles.staffNavigationRow]}>
+      <View
+        accessibilityLabel={isStaffWorkspace ? 'Staff workspace navigation' : 'Customer app navigation'}
+        accessibilityRole="tablist"
+        style={[
+          styles.navigationRow,
+          {
+            backgroundColor: activeTheme === 'bright' ? 'rgba(244, 248, 250, 0.97)' : 'rgba(15, 27, 37, 0.96)',
+            borderColor: theme.borderStrong,
+          },
+          isStaffWorkspace && styles.staffNavigationRow,
+        ]}
+      >
         {navigationItems.map((item) => {
           const selected = 'section' in item ? currentStaffTab === item.section : item.isActive(pathname);
           return (
@@ -124,7 +135,7 @@ export function PersistentBottomNavigation() {
               }}
               style={({ pressed }) => [
                 styles.navigationItem,
-                selected && { backgroundColor: theme.surface },
+                selected && { backgroundColor: activeTheme === 'bright' ? 'rgba(21, 93, 120, 0.1)' : 'rgba(101, 207, 248, 0.1)' },
                 pressed && styles.pressed,
               ]}
             >
@@ -163,34 +174,41 @@ export function PersistentBottomNavigation() {
 const styles = StyleSheet.create({
   safeArea: {
     flexShrink: 0,
-    borderTopWidth: 3,
-    ...(Platform.OS === 'web'
-      ? { boxShadow: '0 -4px 10px rgba(0, 0, 0, 0.25)' }
-      : {
-          shadowColor: '#000000',
-          shadowOpacity: 0.3,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: -4 },
-          elevation: 0,
-        }),
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
   navigationRow: {
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 740,
     minHeight: 66,
     flexDirection: 'row',
     alignItems: 'stretch',
-    paddingHorizontal: 3,
-    paddingTop: 4,
+    padding: 4,
+    borderWidth: 1,
+    borderRadius: 27,
+    ...(Platform.OS === 'web'
+      ? { boxShadow: '0 6px 24px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(214, 246, 255, 0.12)' }
+      : {
+          shadowColor: '#000000',
+          shadowOpacity: 0.32,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 5 },
+          elevation: 6,
+        }),
   },
   navigationItem: {
     position: 'relative',
     minWidth: 0,
-    minHeight: 62,
+    minHeight: 58,
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 1,
     paddingHorizontal: 0,
     paddingVertical: 4,
+    borderRadius: 21,
   },
   staffNavigationRow: { alignSelf: 'center', width: '100%', maxWidth: 880 },
   notificationBadge: { position: 'absolute', right: 8, top: 2, minWidth: 17, height: 17, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },

@@ -530,7 +530,7 @@ function PreferenceRow({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.ink },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   scroll: { width: '100%', maxWidth: 880, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   header: { gap: spacing.sm },
   headerTopline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
   sectionMeta: { color: colors.muted, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   themePanel: { ...mobileFrame, gap: spacing.sm, backgroundColor: colors.panel, paddingHorizontal: spacing.md, borderWidth: 1, borderColor: colors.line },
   themeModeControls: { flexDirection: 'row', gap: spacing.xs },
-  themeModeOption: { minHeight: 36, minWidth: 82, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 8, paddingHorizontal: 4 },
+  themeModeOption: { minHeight: 36, minWidth: 82, flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderRadius: 18, paddingHorizontal: 4 },
   themeModeCheckboxRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
   themeModeCheckbox: { width: 15, height: 15, borderRadius: 2.5, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   themeModeCheckboxSelected: {},

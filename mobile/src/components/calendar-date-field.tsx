@@ -74,7 +74,7 @@ export function CalendarDateField({
 }
 
 const styles = StyleSheet.create({
-  trigger: { alignItems: 'center', borderColor: colors.line, borderRadius: 6, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, minHeight: 50, paddingHorizontal: spacing.md },
+  trigger: { alignItems: 'center', borderColor: colors.line, borderRadius: 18, borderWidth: 1, flexDirection: 'row', gap: spacing.sm, minHeight: 50, paddingHorizontal: spacing.md },
   triggerError: { borderColor: colors.danger },
   value: { color: colors.white, flex: 1, fontSize: 14, fontWeight: '700' },
   placeholder: { color: colors.muted },

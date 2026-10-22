@@ -72,7 +72,7 @@ export default function TrustedPartnersScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'right', 'left']} style={[styles.screen, { backgroundColor: theme.screen }]}>
+    <SafeAreaView edges={['top', 'right', 'left']} style={[styles.screen, { backgroundColor: 'transparent' }]}>
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]}
         showsVerticalScrollIndicator={false}
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
   lead: { maxWidth: 660, fontSize: 14, lineHeight: 21 },
   notice: { ...mobileFrame, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, padding: spacing.md },
   noticeText: { flex: 1, minWidth: 0, fontSize: 11, lineHeight: 17 },
-  errorNotice: { borderWidth: 2, padding: spacing.md },
+  errorNotice: { borderRadius: 18, borderWidth: 2, padding: spacing.md },
   errorText: { fontSize: 11, lineHeight: 17 },
   partnerList: { gap: spacing.md },
   partnerCard: { ...mobileFrame, gap: spacing.md, padding: spacing.md },
@@ -349,14 +349,14 @@ const styles = StyleSheet.create({
   detailRow: { minHeight: 28, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   detailText: { flex: 1, minWidth: 0, fontSize: 11, lineHeight: 16 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  action: { minWidth: 116, minHeight: 46, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, borderWidth: 2, paddingHorizontal: spacing.sm },
+  action: { borderRadius: 18, minWidth: 116, minHeight: 46, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs, borderWidth: 2, paddingHorizontal: spacing.sm },
   actionText: { fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   phonePickerBackdrop: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, .72)', padding: spacing.lg },
   phonePicker: { ...mobileFrame, width: '100%', maxWidth: 420, gap: spacing.sm, borderWidth: 2, padding: spacing.lg },
   phonePickerEyebrow: { fontSize: 10, fontWeight: '900', letterSpacing: 1.1, textTransform: 'uppercase' },
   phonePickerTitle: { fontSize: 21, fontWeight: '900', lineHeight: 25, textTransform: 'uppercase' },
   phonePickerActions: { gap: spacing.sm, paddingTop: spacing.xs },
-  phonePickerButton: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderWidth: 2, paddingHorizontal: spacing.md },
+  phonePickerButton: { borderRadius: 18, minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderWidth: 2, paddingHorizontal: spacing.md },
   phonePickerNumber: { fontSize: 15, fontWeight: '900' },
   phonePickerCancel: { minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   phonePickerCancelText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },

@@ -635,7 +635,7 @@ function AccountStatus({ label, copy, last = false }: { label: string; copy: str
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  screen: { flex: 1, backgroundColor: colors.ink },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   header: {
     width: '100%',
     maxWidth: 720,
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
   deletionTitle: { color: colors.white, fontSize: 18, fontWeight: '900', textTransform: 'uppercase' },
   deletionStatus: { alignSelf: 'flex-start', color: colors.ink, fontSize: 9, fontWeight: '900', backgroundColor: colors.accent, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   deletionCopy: { color: colors.muted, fontSize: 11, lineHeight: 18 },
-  deletionConfirm: { gap: spacing.md, borderColor: colors.accentDark, borderWidth: 1, backgroundColor: colors.inkSoft, padding: spacing.md },
+  deletionConfirm: { borderRadius: 18, gap: spacing.md, borderColor: colors.accentDark, borderWidth: 1, backgroundColor: colors.inkSoft, padding: spacing.md },
   deletionWarning: { color: colors.silver, fontSize: 11, fontWeight: '700', lineHeight: 18 },
   legalLinks: { gap: spacing.sm, marginTop: spacing.lg },
   guestLink: { ...mobileFrame, minHeight: 66, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },

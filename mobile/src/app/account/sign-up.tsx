@@ -405,7 +405,7 @@ function AccountDetailsForm({ addVehicleMode, initialAccount }: { addVehicleMode
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  screen: { flex: 1, backgroundColor: colors.ink },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   loadingState: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   loadingTitle: { color: colors.white, fontSize: 20, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
   loadingCopy: { color: colors.muted, fontSize: 12, lineHeight: 19, textAlign: 'center' },

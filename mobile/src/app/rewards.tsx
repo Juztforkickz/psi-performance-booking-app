@@ -87,16 +87,16 @@ export default function RewardsScreen() {
   </SafeAreaView>;
 }
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.ink }, content: { paddingTop: spacing.lg, paddingBottom: 130, gap: 18, width: '100%', maxWidth: 700, alignSelf: 'center' },
+  screen: { flex: 1, backgroundColor: 'transparent' }, content: { paddingTop: spacing.lg, paddingBottom: 130, gap: 18, width: '100%', maxWidth: 700, alignSelf: 'center' },
   back: { color: colors.accent, fontWeight: '800', fontSize: 16, paddingVertical: 8 }, heading: { color: colors.white, fontWeight: '900', fontSize: 32 },
   walletConfirmed: { color: colors.accent, fontSize: 18, lineHeight: 26, fontWeight: '800' },
-  copy: { color: colors.muted, fontSize: 16, lineHeight: 24, flexShrink: 1 }, panel: { padding: 20, gap: 16, borderWidth: 1.5, borderColor: colors.lineLight, backgroundColor: colors.panel },
+  copy: { color: colors.muted, fontSize: 16, lineHeight: 24, flexShrink: 1 }, panel: { borderRadius: 18, padding: 20, gap: 16, borderWidth: 1.5, borderColor: colors.lineLight, backgroundColor: colors.panel },
   sectionTitle: { color: colors.white, fontWeight: '900', fontSize: 21 }, card: { alignSelf: 'center', width: '100%', maxWidth: 420, backgroundColor: '#090B0E', borderRadius: 22, borderWidth: 2, borderColor: '#9DAFBB', padding: 23, alignItems: 'center', gap: 12 },
   cardHeader: { alignSelf: 'stretch', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 16, paddingBottom: 13, borderBottomWidth: 1, borderColor: '#65CFF8' },
   logo: { width: 122, height: 49 }, cardTitle: { color: '#65CFF8', fontWeight: '900', fontSize: 17 }, cardLabel: { color: '#CAD2D8', fontWeight: '800', letterSpacing: 2, fontSize: 14, marginTop: 12 },
   amount: { color: '#65CFF8', fontWeight: '900', fontSize: 47, width: '100%', textAlign: 'center' }, points: { color: '#FFFFFF', fontSize: 25, fontWeight: '900', textAlign: 'center' },
   divider: { height: 1, backgroundColor: '#687B89', alignSelf: 'stretch', marginVertical: 8 }, member: { color: '#FFFFFF', fontSize: 17, fontWeight: '800', textAlign: 'center' },
-  qr: { width: '75%', maxWidth: 220, aspectRatio: 1, backgroundColor: '#FFFFFF', borderRadius: 8 }, cardNumber: { color: '#CAD2D8', fontSize: 12, letterSpacing: 2 },
+  qr: { width: '75%', maxWidth: 220, aspectRatio: 1, backgroundColor: '#FFFFFF', borderRadius: 18 }, cardNumber: { color: '#CAD2D8', fontSize: 12, letterSpacing: 2 },
   cardFooter: { color: '#DBE3E7', fontSize: 17, textAlign: 'center', marginTop: 7 }, rate: { color: colors.accent, fontSize: 17, fontWeight: '900', textAlign: 'center' },
   entry: { gap: 6, paddingVertical: 14, borderTopWidth: 1, borderColor: colors.line }, entryTitle: { color: colors.white, fontSize: 17, fontWeight: '800' }, entryPoints: { color: colors.accent, fontSize: 18, fontWeight: '900' },
 });

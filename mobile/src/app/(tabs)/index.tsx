@@ -278,7 +278,7 @@ export default function CustomerHomeScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'right', 'left']} style={[styles.screen, { backgroundColor: theme.screen }]}>
+    <SafeAreaView edges={['top', 'right', 'left']} style={styles.screen}>
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]}
         showsVerticalScrollIndicator={false}
@@ -346,6 +346,18 @@ export default function CustomerHomeScreen() {
               <Ionicons color={activeTheme === 'dark' ? colors.ink : theme.textInverse} name="person" size={20} />
             )}
           </Pressable>
+        </View>
+
+        {/* Only the approved 941 x 600 hero region is visible. The source artwork's
+            lower mockup tiles stay clipped; every real destination remains below. */}
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.heroFrame}>
+          <Image
+            accessible={false}
+            accessibilityIgnoresInvertColors
+            resizeMode="contain"
+            source={require('../../../assets/images/ambient/home-art.png')}
+            style={styles.heroArtwork}
+          />
         </View>
 
         <View style={styles.intro}>
@@ -812,8 +824,8 @@ function WorkshopFact({
 }
 
 const styles = StyleSheet.create({
-  portalPreviewLink: { alignItems: 'center', flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 12, padding: 16, minHeight: 72 },
-  screen: { flex: 1, backgroundColor: colors.ink },
+  portalPreviewLink: { alignItems: 'center', flexDirection: 'row', gap: 12, borderWidth: 1, borderRadius: 18, padding: 16, minHeight: 72 },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   scroll: { width: '100%', maxWidth: 1120, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   demoBanner: { ...mobileFrame, gap: spacing.xs, backgroundColor: colors.silver, padding: spacing.md },
   compactFrame: { padding: spacing.sm },
@@ -826,21 +838,23 @@ const styles = StyleSheet.create({
   homeWeatherTemp: { color: colors.silver, fontSize: 12, fontWeight: '900' },
   homeWeatherDate: { color: colors.muted, fontSize: 8, fontWeight: '800' },
   homeWeatherError: { color: colors.muted, fontSize: 9, fontWeight: '900', textAlign: 'center' },
-  logo: { width: 126, height: 48 },
-  logoCompact: { width: 96, height: 42 },
+  logo: { width: 96, height: 36 },
+  logoCompact: { width: 84, height: 34 },
   accountButton: { width: 46, height: 46, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: colors.white, borderRadius: 23, backgroundColor: colors.white },
   accountPhoto: { width: '100%', height: '100%' },
+  heroFrame: { width: '100%', maxWidth: 941, alignSelf: 'center', aspectRatio: 941 / 600, overflow: 'hidden', borderRadius: 20, backgroundColor: '#07121B' },
+  heroArtwork: { position: 'absolute', top: 0, left: 0, width: '100%', height: `${1672 / 600 * 100}%` },
   intro: { gap: spacing.xs },
   eyebrow: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: 1.35, textTransform: 'uppercase' },
   title: { color: colors.white, fontSize: 43, fontWeight: '900', letterSpacing: -1.8, lineHeight: 45, textTransform: 'uppercase' },
   titleCompact: { fontSize: 35, letterSpacing: -1.2, lineHeight: 38 },
   lead: { maxWidth: 620, color: colors.muted, fontSize: 14, lineHeight: 21 },
-  sectionHeading: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.sm },
+  sectionHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md, marginTop: spacing.sm },
   sectionTitle: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .9, textTransform: 'uppercase' },
   sectionHint: { color: colors.accent, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
-  shortcutButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1.5, paddingHorizontal: spacing.sm },
+  shortcutButton: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderWidth: 1.5, borderRadius: 14, paddingHorizontal: spacing.sm },
   shortcutButtonText: { fontSize: 9, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
-  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: spacing.sm },
+  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: spacing.md },
   tileCell: { width: '46%', flexGrow: 0, flexShrink: 1, minWidth: 0, maxWidth: 340 },
   tileCellThird: { width: '30%', minWidth: 180 },
   lowerTileImage: { transform: [{ scale: 1.55 }, { translateY: 7 }] },
@@ -902,11 +916,11 @@ const styles = StyleSheet.create({
   modalNotice: { color: colors.muted, fontSize: 10, lineHeight: 16 },
   shortcutNotice: { fontSize: 11, lineHeight: 17 },
   shortcutList: { gap: spacing.xs },
-  shortcutOption: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 2, paddingHorizontal: spacing.md },
-  checkbox: { width: 28, height: 28, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  shortcutOption: { minHeight: 54, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 2, borderRadius: 14, paddingHorizontal: spacing.md },
+  checkbox: { width: 28, height: 28, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderRadius: 7 },
   shortcutOptionText: { flex: 1, minWidth: 0, fontSize: 12, fontWeight: '900', textTransform: 'uppercase' },
   shortcutModalActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  shortcutModalButton: { minWidth: 140, minHeight: 48, flexGrow: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 2, paddingHorizontal: spacing.md },
+  shortcutModalButton: { minWidth: 140, minHeight: 48, flexGrow: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderRadius: 14, paddingHorizontal: spacing.md },
   shortcutModalButtonText: { fontSize: 10, fontWeight: '900', letterSpacing: .7, textTransform: 'uppercase' },
   disabled: { opacity: .52 },
   pressed: { opacity: .72 },

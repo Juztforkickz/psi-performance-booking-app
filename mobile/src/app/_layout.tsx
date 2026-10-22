@@ -2,11 +2,12 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, usePathname } from 'expo
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, type PropsWithChildren } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { PersistentBottomNavigation } from '@/components/persistent-bottom-navigation';
+import { AmbientBackground, AmbientScreen } from '@/components/ambient-background';
 import { GarageStartupScreen } from '@/components/garage-startup-screen';
 import { AppleReviewBanner } from '@/components/apple-review-banner';
 import { AppModeGate } from '@/components/app-mode-gate';
@@ -14,6 +15,7 @@ import { AskPsiLauncher } from '@/components/ask-psi-launcher';
 import { UiToneProvider } from '@/components/ui';
 import { colors } from '@/constants/brand';
 import { CustomerAccountProvider } from '@/lib/customer-account-context';
+import { ambientUsesBrightTheme } from '@/lib/ambient-scene';
 import { CustomerAuthProvider } from '@/lib/customer-auth-context';
 import { CustomerPreviewProvider } from '@/lib/customer-preview-context';
 import { NotificationProvider } from '@/lib/notifications';
@@ -43,8 +45,8 @@ function ThemeAwareRootShell() {
     ...baseTheme,
     colors: {
       ...baseTheme.colors,
-      background: theme.ink,
-      card: theme.ink,
+      background: 'transparent',
+      card: 'transparent',
       border: theme.border,
       primary: theme.accent,
       text: activeTheme === 'bright' ? theme.text : colors.white,
@@ -62,14 +64,16 @@ function ThemeAwareRootShell() {
             <CustomerPreviewProvider>
               <StaffNavigationProvider>
                 <UiToneProvider tone={pathname === '/staff' || pathname === '/staff-security' || pathname === '/staff-messages' || pathname === '/rewards-scan' || pathname === '/portal-preview' ? 'staff' : 'brand'}>
-                <StatusBar style={activeTheme === 'bright' ? 'dark' : 'light'} />
+                <StatusBar style={ambientUsesBrightTheme(activeTheme, pathname, Platform.OS) ? 'dark' : 'light'} />
                 <GarageStartupGate><View style={[styles.shell, { backgroundColor: theme.ink }]}>
+                  <AmbientBackground pathname={pathname} />
                   <AppleReviewBanner />
                   <View style={styles.content}>
                     <Stack
+                      screenLayout={({ children, route }) => <AmbientScreen routeName={route.name}>{children}</AmbientScreen>}
                       screenOptions={{
                         headerShown: false,
-                        contentStyle: { backgroundColor: theme.inkSoft },
+                        contentStyle: { backgroundColor: 'transparent' },
                         animation: 'slide_from_right',
                       }}
                     />

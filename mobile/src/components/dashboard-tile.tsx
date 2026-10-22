@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 
-import { colors, mobileFrame, spacing } from '@/constants/brand';
+import { colors, spacing } from '@/constants/brand';
 import { useThemePreference } from '@/lib/theme-preference';
 
 export type DashboardTileProps = {
@@ -23,6 +23,17 @@ export type DashboardTileProps = {
   label: string;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
+};
+
+/** Home collections share one luminous frame, including the live Rewards tile. */
+export const COLLECTION_TILE_FRAME: ViewStyle = {
+  width: '100%',
+  aspectRatio: 1,
+  borderWidth: 2,
+  borderColor: '#96EAFF',
+  borderRadius: 21,
+  backgroundColor: '#090F16',
+  boxShadow: '0 0 3px #DCFAFF, 0 0 11px #39CAFFD9, 0 0 23px #16AAFF80',
 };
 
 /**
@@ -40,7 +51,7 @@ export function DashboardTile({
   onPress,
   style,
 }: DashboardTileProps) {
-  const { activeTheme, theme } = useThemePreference();
+  const { activeTheme } = useThemePreference();
   return (
     <Pressable
       accessibilityHint={accessibilityHint}
@@ -51,35 +62,33 @@ export function DashboardTile({
       onPress={onPress}
       style={({ pressed }) => [
         styles.tile,
-        { backgroundColor: theme.inkSoft },
         style,
         pressed && styles.pressed,
         disabled && styles.disabled,
       ]}
     >
-      <View style={[styles.imageArea, activeTheme === 'dark' && styles.refinedImage]}>
-        <Image
-          accessible={false}
-          resizeMode={imageResizeMode}
-          source={image}
-          style={[
-            styles.image,
-            imageStyle,
-          ]}
-        />
-      </View>
-      <View style={styles.shade} />
-      {cornerBadge ? <View pointerEvents="none" style={styles.cornerBadge}><Text style={styles.cornerBadgeText}>{cornerBadge}</Text></View> : null}
-      <View style={[styles.labelBand, activeTheme === 'dark' && { backgroundColor: theme.card, borderTopColor: theme.line }]}>
-        <Text
-          adjustsFontSizeToFit
-          maxFontSizeMultiplier={1.2}
-          minimumFontScale={0.82}
-          numberOfLines={2}
-          style={styles.label}
-        >
-          {label}
-        </Text>
+      <View pointerEvents="none" style={styles.surface}>
+        <View style={[styles.imageArea, activeTheme === 'dark' && styles.refinedImage]}>
+          <Image
+            accessible={false}
+            resizeMode={imageResizeMode}
+            source={image}
+            style={[styles.image, imageStyle]}
+          />
+        </View>
+        <View style={styles.shade} />
+        {cornerBadge ? <View style={styles.cornerBadge}><Text style={styles.cornerBadgeText}>{cornerBadge}</Text></View> : null}
+        <View style={styles.labelBand}>
+          <Text
+            adjustsFontSizeToFit
+            maxFontSizeMultiplier={1.2}
+            minimumFontScale={0.82}
+            numberOfLines={2}
+            style={styles.label}
+          >
+            {label}
+          </Text>
+        </View>
       </View>
     </Pressable>
   );
@@ -87,11 +96,12 @@ export function DashboardTile({
 
 const styles = StyleSheet.create({
   tile: {
-    ...mobileFrame,
-    width: '100%',
-    aspectRatio: 1,
+    ...COLLECTION_TILE_FRAME,
+  },
+  surface: {
+    flex: 1,
     overflow: 'hidden',
-    borderRadius: 3,
+    borderRadius: 19,
     backgroundColor: '#050505',
   },
   imageArea: {
@@ -144,9 +154,9 @@ const styles = StyleSheet.create({
     pointerEvents: 'none',
     height: 50,
     justifyContent: 'center',
-    borderTopWidth: mobileFrame.borderWidth,
-    borderTopColor: mobileFrame.borderColor,
-    backgroundColor: 'rgba(5, 5, 5, 0.94)',
+    borderTopWidth: 1,
+    borderTopColor: '#88D7EE',
+    backgroundColor: 'rgba(15, 34, 47, 0.96)',
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
   },

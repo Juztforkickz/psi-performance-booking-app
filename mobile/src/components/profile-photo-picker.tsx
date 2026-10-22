@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
   notice: { color: colors.muted, fontSize: 10, lineHeight: 15 },
   error: { color: colors.danger, fontSize: 10, lineHeight: 15 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
-  action: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: colors.line, paddingHorizontal: spacing.sm },
+  action: { borderRadius: 18, minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderColor: colors.line, paddingHorizontal: spacing.sm },
   actionText: { color: colors.white, fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
   pressed: { opacity: .72 },
   disabled: { opacity: .48 },

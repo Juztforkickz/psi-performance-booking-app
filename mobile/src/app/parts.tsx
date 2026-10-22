@@ -637,7 +637,7 @@ function accountVehiclePreview(vehicle: CustomerVehicleRow) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.ink },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   flex: { flex: 1, minWidth: 0 },
   header: { width: '100%', maxWidth: 980, minHeight: 70, alignSelf: 'center', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: colors.line },
   headerCompact: { minHeight: 62 },

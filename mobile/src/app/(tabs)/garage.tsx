@@ -761,7 +761,7 @@ function formatOdometer(value: number | null | undefined) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.ink },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   accountState: { flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   accountStateTitle: { color: colors.white, fontSize: 24, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },
   accountStateCopy: { maxWidth: 420, color: colors.muted, fontSize: 13, lineHeight: 20, textAlign: 'center' },
@@ -833,7 +833,7 @@ const styles = StyleSheet.create({
   dynoTitle: { color: colors.white, fontSize: 16, fontWeight: '900', textTransform: 'uppercase' },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 16, backgroundColor: colors.silver, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
   verifiedText: { color: colors.ink, fontSize: 9, fontWeight: '900' },
-  dynoRunSelector: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.ink, padding: spacing.md },
+  dynoRunSelector: { borderRadius: 18, minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.ink, padding: spacing.md },
   dynoRunSelectorText: { color: colors.white, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   dynoRunDropdown: { overflow: 'hidden', borderWidth: 1, borderTopWidth: 0, borderColor: colors.line, backgroundColor: colors.ink },
   dynoRunChoice: { minHeight: 50, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line, paddingHorizontal: spacing.md },

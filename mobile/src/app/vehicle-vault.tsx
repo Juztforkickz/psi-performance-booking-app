@@ -171,18 +171,18 @@ function VehicleVaultContent() {
 
 const viewerStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#050505', paddingHorizontal: 16, gap: 10 },
-  back: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#65CFF8', backgroundColor: '#050505', paddingHorizontal: 14 },
+  back: { borderRadius: 18, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#65CFF8', backgroundColor: '#050505', paddingHorizontal: 14 },
   backText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900', textTransform: 'uppercase' },
   image: { flex: 1, width: '100%', alignSelf: 'center', backgroundColor: '#050505' },
 });
 
 const archiveStyles = StyleSheet.create({
-  entry: { backgroundColor: '#111111', borderColor: '#30343A', borderWidth: 1, borderRadius: 8, padding: 16, gap: 10 },
+  entry: { backgroundColor: '#111111', borderColor: '#30343A', borderWidth: 1, borderRadius: 18, padding: 16, gap: 10 },
   toggle: { minHeight: 52, borderTopWidth: 1, borderTopColor: '#30343A', paddingTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   toggleCopy: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   toggleText: { color: '#65CFF8', fontSize: 13, fontWeight: '900', textTransform: 'uppercase', letterSpacing: .35 },
   attachments: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 4 },
-  file: { width: '100%', minHeight: 58, borderWidth: 1, borderColor: '#30343A', backgroundColor: '#080808', paddingHorizontal: 13, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  file: { borderRadius: 18, width: '100%', minHeight: 58, borderWidth: 1, borderColor: '#30343A', backgroundColor: '#080808', paddingHorizontal: 13, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 11 },
   fileCopy: { flex: 1, minWidth: 0, gap: 3 },
   fileName: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   fileAction: { color: '#65CFF8', fontSize: 11, fontWeight: '700' },

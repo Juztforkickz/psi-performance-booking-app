@@ -38,7 +38,7 @@ export function PerformanceVaultCard({ vehicleId }: { vehicleId?: string }) {
   </Pressable>;
 }
 const styles = StyleSheet.create({
-  card: { backgroundColor: colors.inkSoft, borderColor: colors.accentDark, borderWidth: 1, borderRadius: 8, padding: 20, gap: 12 },
+  card: { backgroundColor: colors.inkSoft, borderColor: colors.accentDark, borderWidth: 1, borderRadius: 18, padding: 20, gap: 12 },
   pressed: { opacity: .82 },
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   heading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -47,6 +47,6 @@ const styles = StyleSheet.create({
   title: { color: colors.white, fontSize: 24, fontWeight: '800' },
   copy: { color: colors.silver, fontSize: 15, lineHeight: 23 },
   features: { color: colors.accent, fontSize: 10, fontWeight: '900', letterSpacing: .7, lineHeight: 16 },
-  actionRow: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 4, backgroundColor: colors.accent, paddingHorizontal: 14, paddingVertical: 11 },
+  actionRow: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 18, backgroundColor: colors.accent, paddingHorizontal: 14, paddingVertical: 11 },
   action: { color: colors.ink, fontSize: 14, fontWeight: '900' },
 });

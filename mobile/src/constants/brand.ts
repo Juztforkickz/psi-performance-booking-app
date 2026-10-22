@@ -18,9 +18,9 @@ function adaptiveColor(name: string, bright: string, dark: string): string {
 
 export const colors = {
   ink: adaptiveColor('ink', '#FFFFFF', '#090B0E'),
-  inkSoft: adaptiveColor('ink-soft', '#E7EDF0', '#161C22'),
-  panel: adaptiveColor('panel', '#F4F7F8', '#252B31'),
-  panelRaised: adaptiveColor('panel-raised', '#DBE3E7', '#303942'),
+  inkSoft: adaptiveColor('ink-soft', 'rgba(231,237,240,0.96)', 'rgba(12,22,32,0.94)'),
+  panel: adaptiveColor('panel', 'rgba(244,247,248,0.95)', 'rgba(17,29,40,0.92)'),
+  panelRaised: adaptiveColor('panel-raised', 'rgba(219,227,231,0.96)', 'rgba(28,44,57,0.94)'),
   line: adaptiveColor('line', 'rgba(5, 5, 5, 0.2)', '#687B89'),
   lineLight: adaptiveColor('line-light', '#050505', '#879AA8'),
   silver: adaptiveColor('silver', '#050505', '#DBE3E7'),
@@ -45,8 +45,8 @@ export const colors = {
 export const bookingColors = {
   background: adaptiveColor('booking-background', '#EAF0F2', '#090B0E'),
   raised: adaptiveColor('booking-raised', '#FFFFFF', '#090B0E'),
-  surface: adaptiveColor('booking-surface', '#FFFFFF', '#252B31'),
-  surfaceAlt: adaptiveColor('booking-surface-alt', '#E7EDF0', '#161C22'),
+  surface: adaptiveColor('booking-surface', 'rgba(255,255,255,0.95)', 'rgba(17,29,40,0.92)'),
+  surfaceAlt: adaptiveColor('booking-surface-alt', 'rgba(231,237,240,0.97)', 'rgba(12,22,32,0.97)'),
   text: adaptiveColor('booking-text', '#111111', '#FFFFFF'),
   textSecondary: adaptiveColor('booking-text-secondary', '#495055', '#CAD2D8'),
   textMuted: adaptiveColor('booking-text-muted', '#555D61', '#A9B7C1'),
@@ -66,10 +66,11 @@ export const bookingColors = {
   errorText: adaptiveColor('booking-error-text', '#7A1D14', '#FFD7D1'),
 } as const;
 
-/** One consistent frame for every rectangular mobile surface and control. */
+/** Shared rounded frame. Small symbols and radio controls keep their own radii. */
 export const mobileFrame = {
   borderWidth: 1.5,
   borderColor: colors.lineLight,
+  borderRadius: 18,
 } as const;
 
 export const contact = {

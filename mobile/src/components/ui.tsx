@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   staffFrame: {
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: 8,
+    borderRadius: 18,
   },
   eyebrowStaff: {
     fontSize: 12,
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     ...mobileFrame,
-    borderRadius: 3,
+    borderRadius: 18,
     backgroundColor: colors.accent,
   },
   buttonLight: {
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 54,
     ...mobileFrame,
-    borderRadius: 3,
+    borderRadius: 18,
     backgroundColor: colors.inkSoft,
     color: colors.white,
     fontSize: 16,
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
   },
   inputBooking: {
     borderColor: mobileFrame.borderColor,
-    backgroundColor: 'transparent',
+    backgroundColor: bookingColors.surfaceAlt,
     color: bookingColors.text,
   },
   inputErrorBooking: {
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     ...mobileFrame,
-    borderRadius: 3,
+    borderRadius: 18,
     backgroundColor: colors.panel,
     padding: spacing.md,
   },

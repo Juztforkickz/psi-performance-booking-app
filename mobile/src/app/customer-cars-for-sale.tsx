@@ -72,7 +72,7 @@ export default function CustomerCarsForSaleScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'right', 'left']} style={[styles.screen, { backgroundColor: theme.screen }]}>
+    <SafeAreaView edges={['top', 'right', 'left']} style={[styles.screen, { backgroundColor: 'transparent' }]}>
       <ScrollView contentContainerStyle={[styles.scroll, { paddingHorizontal: horizontalPadding }]} showsVerticalScrollIndicator={false}>
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <Pressable accessibilityLabel="Back" accessibilityRole="button" onPress={() => router.back()} style={({ pressed }) => [styles.backButton, { borderColor: theme.frame }, pressed && styles.pressed]}>
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   sellerCopy: { fontSize: 11, lineHeight: 18 },
   primaryButton: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingHorizontal: spacing.md },
   primaryButtonText: { color: colors.ink, fontSize: 11, fontWeight: '900', letterSpacing: .6, textAlign: 'center', textTransform: 'uppercase' },
-  secondaryButton: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderWidth: 2, paddingHorizontal: spacing.md },
+  secondaryButton: { borderRadius: 18, minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderWidth: 2, paddingHorizontal: spacing.md },
   secondaryButtonText: { fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
   feedback: { fontSize: 11, fontWeight: '800', lineHeight: 17, textAlign: 'center' },
   pressed: { opacity: .72 },

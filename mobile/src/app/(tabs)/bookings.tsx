@@ -613,7 +613,7 @@ function formatBookingDate(value: string | null) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.ink },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   scroll: { width: '100%', maxWidth: 880, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xxl },
   header: { minHeight: 68, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
   headerCopy: { flex: 1, gap: spacing.xs },
@@ -650,7 +650,7 @@ const styles = StyleSheet.create({
   calendarNote: { color: colors.mutedDark, fontSize: 10, lineHeight: 15 },
   weatherHeadingCopy: { marginTop: 3, color: colors.muted, fontSize: 9, fontWeight: '800', textTransform: 'uppercase' },
   weatherStrip: { ...mobileFrame, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, backgroundColor: colors.panel, padding: spacing.sm },
-  weatherDay: { width: '30%', minWidth: 92, flexGrow: 1, alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.inkSoft, padding: spacing.sm },
+  weatherDay: { borderRadius: 18, width: '30%', minWidth: 92, flexGrow: 1, alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.inkSoft, padding: spacing.sm },
   weatherDayToday: { borderColor: colors.accent, backgroundColor: 'rgba(101,207,248,.08)' },
   weatherDayTopline: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
   weatherDayLabel: { color: colors.silver, fontSize: 9, fontWeight: '900', textAlign: 'center', textTransform: 'uppercase' },

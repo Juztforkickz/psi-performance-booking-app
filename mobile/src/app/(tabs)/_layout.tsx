@@ -1,13 +1,17 @@
 import { Tabs } from 'expo-router';
 
+import { AmbientScreen } from '@/components/ambient-background';
+
 export default function CustomerTabsLayout() {
   return (
     <Tabs
       initialRouteName="index"
       backBehavior="history"
       tabBar={() => null}
+      screenLayout={({ children, route }) => <AmbientScreen routeName={route.name}>{children}</AmbientScreen>}
       screenOptions={{
         headerShown: false,
+        sceneStyle: { backgroundColor: 'transparent' },
       }}
     >
       <Tabs.Screen

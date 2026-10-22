@@ -61,7 +61,7 @@ export function CustomerProfileGate({ children, feature, returnTo, requireVehicl
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.ink },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   content: { flexGrow: 1, width: '100%', maxWidth: 720, alignSelf: 'center', justifyContent: 'center', paddingVertical: spacing.xl },
   card: { ...mobileFrame, width: '100%', padding: spacing.lg, gap: spacing.lg, backgroundColor: colors.panel },
   title: { color: colors.white, fontSize: 28, lineHeight: 34, fontWeight: '900', flexShrink: 1 },

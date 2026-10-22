@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
   benefits: { gap: spacing.sm },
   benefitRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   benefit: { flex: 1, minWidth: 0, fontSize: 12, fontWeight: '700', lineHeight: 18 },
-  manage: { minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderWidth: 1, paddingHorizontal: spacing.md },
+  manage: { borderRadius: 18, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderWidth: 1, paddingHorizontal: spacing.md },
   manageText: { fontSize: 11, fontWeight: '900', letterSpacing: .5, textTransform: 'uppercase' },
   restore: { minHeight: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
   restoreText: { fontSize: 11, fontWeight: '800' },

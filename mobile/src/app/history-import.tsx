@@ -168,7 +168,7 @@ function Summary({ label, value, strong = false }: { label: string; strong?: boo
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.ink },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   content: { width: '100%', maxWidth: 720, alignSelf: 'center', gap: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.xxl + spacing.lg },
   headingRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   flex: { flex: 1, minWidth: 0 },

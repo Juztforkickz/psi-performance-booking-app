@@ -123,16 +123,16 @@ function ReportCategories({ vehicleId }: { vehicleId: string }) {
   </View>;
 }
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.ink },
+  screen: { flex: 1, backgroundColor: 'transparent' },
   content: { width: '100%', maxWidth: 960, alignSelf: 'center', paddingVertical: 24, paddingBottom: 48, gap: 20 },
   title: { fontSize: 32, color: colors.white, fontWeight: '900' },
   eyebrow: { fontSize: 12, color: colors.accent, fontWeight: '800', letterSpacing: 1 },
   heading: { fontSize: 21, color: colors.white, fontWeight: '800' },
   copy: { fontSize: 15, lineHeight: 23, color: colors.silver },
   muted: { fontSize: 13, lineHeight: 20, color: colors.muted },
-  vehicle: { padding: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, gap: 8 },
+  vehicle: { borderRadius: 18, padding: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, gap: 8 },
   section: { gap: 14, paddingBottom: 22, borderBottomWidth: 1, borderColor: colors.line },
-  category: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, minHeight: 78 },
+  category: { borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, minHeight: 78 },
   categoryCopy: { flex: 1, minWidth: 0, gap: 5 },
   categoryTitle: { fontSize: 16, fontWeight: '800', color: colors.white },
 });
