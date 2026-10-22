@@ -14,17 +14,20 @@ export default function RewardsScreen() {
   const rewards = useRewardsAccount();
   const [busy, setBusy] = useState<'apple' | 'google' | null>(null);
   const [notice, setNotice] = useState('');
+  const [openedWallet, setOpenedWallet] = useState<'apple' | 'google' | null>(null);
   const account = rewards.account;
+  const appleConnected = account?.walletStatus?.appleConnected === true;
   const platformWalletReady = account && (Platform.OS === 'ios' ? account.wallet.apple : Platform.OS === 'android' ? account.wallet.google : account.wallet.apple || account.wallet.google);
   const creditText = account ? formatRewardsCredit(account.creditCents) : '';
   const creditFontSize = Math.max(18, Math.min(47, (Math.min(width - horizontalPadding * 2 - 20, 420) - 50) / Math.max(1, creditText.length * 0.65)));
   const addWallet = async (provider: 'apple' | 'google') => {
     if (busy) return;
-    setBusy(provider); setNotice('');
+    setBusy(provider); setNotice(''); setOpenedWallet(null);
     try {
       const url = await prepareRewardsWallet(provider);
       if (Platform.OS === 'web') window.location.assign(url);
       else await Linking.openURL(url);
+      setOpenedWallet(provider);
     } catch { setNotice('Your Wallet card could not be saved yet. Please try again shortly. Your points are safe in your PSI account.'); }
     finally { setBusy(null); }
   };
@@ -56,9 +59,12 @@ export default function RewardsScreen() {
         <View style={s.panel}>
           <Text style={s.sectionTitle}>Keep your card handy</Text>
           <Text style={s.copy}>Show this card in the workshop, or save it to your phone’s Wallet.</Text>
+          {(Platform.OS === 'ios' || Platform.OS === 'web') && appleConnected ? <Text accessibilityLiveRegion="polite" style={s.walletConfirmed}>✓ Connected to Apple Wallet</Text> : null}
           {(Platform.OS === 'ios' || Platform.OS === 'web') && account.wallet.apple ? <PrimaryButton label="Save Apple Wallet card" disabled={Boolean(busy)} loading={busy === 'apple'} onPress={() => void addWallet('apple')} /> : null}
           {(Platform.OS === 'android' || Platform.OS === 'web') && account.wallet.google ? <PrimaryButton label="Save Google Wallet card" disabled={Boolean(busy)} loading={busy === 'google'} onPress={() => void addWallet('google')} /> : null}
           {!platformWalletReady ? <Text style={s.copy}>Wallet downloads are being connected. Your loyalty card and balance are available here.</Text> : null}
+          {openedWallet === 'apple' && !appleConnected && !notice ? <><Text accessibilityLiveRegion="polite" style={s.copy}>Apple Wallet opened. Tap Add if prompted, then return to PSI. A connection confirmation will appear when Apple registers your card.</Text><PrimaryButton label="Check Wallet connection" variant="outline" onPress={rewards.refresh} /></> : null}
+          {openedWallet === 'google' && !notice ? <Text accessibilityLiveRegion="polite" style={s.copy}>Google Wallet opened. Complete the save in Google Wallet to keep your card.</Text> : null}
           {notice ? <Text accessibilityLiveRegion="polite" style={s.copy}>{notice}</Text> : null}
         </View>
         <View style={s.panel}>
@@ -83,6 +89,7 @@ export default function RewardsScreen() {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.ink }, content: { paddingTop: spacing.lg, paddingBottom: 130, gap: 18, width: '100%', maxWidth: 700, alignSelf: 'center' },
   back: { color: colors.accent, fontWeight: '800', fontSize: 16, paddingVertical: 8 }, heading: { color: colors.white, fontWeight: '900', fontSize: 32 },
+  walletConfirmed: { color: colors.accent, fontSize: 18, lineHeight: 26, fontWeight: '800' },
   copy: { color: colors.muted, fontSize: 16, lineHeight: 24, flexShrink: 1 }, panel: { padding: 20, gap: 16, borderWidth: 1.5, borderColor: colors.lineLight, backgroundColor: colors.panel },
   sectionTitle: { color: colors.white, fontWeight: '900', fontSize: 21 }, card: { alignSelf: 'center', width: '100%', maxWidth: 420, backgroundColor: '#090B0E', borderRadius: 22, borderWidth: 2, borderColor: '#9DAFBB', padding: 23, alignItems: 'center', gap: 12 },
   cardHeader: { alignSelf: 'stretch', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 16, paddingBottom: 13, borderBottomWidth: 1, borderColor: '#65CFF8' },

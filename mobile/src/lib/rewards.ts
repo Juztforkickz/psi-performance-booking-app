@@ -4,7 +4,7 @@ import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 export type RewardsEntry = { id: string; invoice_number: string; points_change: number; kind: 'earned' | 'adjustment' | 'redeemed' | 'credit_restored'; created_at: string };
 export type RewardsAccount = {
   name: string; points: number; creditCents: number; cardId: string; qr: string; updatedAt: string;
-  wallet: { apple: boolean; google: boolean }; ledger: RewardsEntry[];
+  wallet: { apple: boolean; google: boolean }; walletStatus?: { appleConnected: boolean | null }; ledger: RewardsEntry[];
 };
 export const formatRewardsCredit = (cents: number) => `AUD ${(Math.max(0, cents) / 100).toFixed(2)}`;
 export const formatRewardsPoints = (points: number) => Math.max(0, points).toLocaleString('en-AU');

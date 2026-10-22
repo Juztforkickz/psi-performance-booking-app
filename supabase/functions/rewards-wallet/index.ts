@@ -207,8 +207,10 @@ Deno.serve(async request => {
     if (body.action !== undefined && body.action !== 'summary') return output({ error: 'invalid_action' }, 400);
     const ledger = await admin.from('rewards_ledger').select('id,invoice_number,points_change,kind,created_at').eq('customer_id', card.customer_id).order('created_at', { ascending: false }).limit(30);
     if (ledger.error) throw new Error('rewards_history_unavailable');
+    const registration = await admin.from('rewards_wallet_devices').select('customer_id').eq('customer_id', card.customer_id).limit(1);
     const qr = await QRCode.toDataURL(scanUrl(card), { width: 512, margin: 4, errorCorrectionLevel: 'M' });
     return output({ name: card.name, points: card.points_balance, creditCents: Math.max(0, card.points_balance), cardId: card.card_id,
-      updatedAt: card.updated_at, qr, wallet: walletConfiguration(), ledger: ledger.data });
+      updatedAt: card.updated_at, qr, wallet: walletConfiguration(),
+      walletStatus: { appleConnected: registration.error ? null : Boolean(registration.data?.length) }, ledger: ledger.data });
   } catch (error) { return output({ error: code(error) }, 503); }
 });

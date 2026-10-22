@@ -10,7 +10,7 @@ const source = await readFile(new URL('../supabase/functions/rewards-wallet/inde
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 const id = n => `10000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 
-function harness({ signedIn = false, staff = false, apple = false, ambiguous = false } = {}) {
+function harness({ signedIn = false, staff = false, apple = false, ambiguous = false, registeredCustomer = null, registrationError = false } = {}) {
   let handler;
   let passes = 0;
   const calls = [];
@@ -21,6 +21,7 @@ function harness({ signedIn = false, staff = false, apple = false, ambiguous = f
     rewards_wallet_downloads: [], rewards_ledger: [], rewards_wallet_devices: [],
     staff_members: staff ? [{ user_id: id(1), role: 'owner', status: 'active' }] : [],
   };
+  if (registeredCustomer) rows.rewards_wallet_devices.push({ customer_id: registeredCustomer, device_id: 'private-device-id', push_token: 'private-push-token' });
   if (ambiguous) rows.rewards_accounts.push({ customer_id:id(2),card_id:id(11),points_balance:0,revision:1,updated_at:'2026-10-22T00:00:00Z' });
   const client = {
     auth: {
@@ -33,7 +34,7 @@ function harness({ signedIn = false, staff = false, apple = false, ambiguous = f
       let single = false;
       const ranges = [];
       const chain = {
-        select() { return chain; }, single() { single = true; return chain; }, maybeSingle() { single = true; return chain; },
+        select(columns) { call.columns = columns; return chain; }, single() { single = true; return chain; }, maybeSingle() { single = true; return chain; },
         eq(key, value) { call.filters.push([key, value]); return chain; },
         gte(key,value) { ranges.push(row=>row[key]>=value); return chain; }, lte(key,value) { ranges.push(row=>row[key]<=value); return chain; },
         gt() { return chain; }, lt() { return chain; }, order() { return chain; }, limit() { return chain; },
@@ -42,7 +43,7 @@ function harness({ signedIn = false, staff = false, apple = false, ambiguous = f
         delete() { call.operation = 'delete'; return chain; },
         then(resolve, reject) {
           const values = (rows[table] ?? []).filter(row => call.filters.every(([key, value]) => row[key] === value) && ranges.every(check=>check(row)));
-          return Promise.resolve({ data: single ? values[0] ?? null : values, error: null }).then(resolve, reject);
+          return Promise.resolve({ data: single ? values[0] ?? null : values, error: table === 'rewards_wallet_devices' && registrationError ? { message: 'fixture unavailable' } : null }).then(resolve, reject);
         },
       };
       return chain;
@@ -91,6 +92,27 @@ test('a signed-in customer cannot scan another customer card or view staff statu
   assert.equal((await h.call({ action: 'staff_lookup', cardId: id(10) })).status, 403);
   assert.equal((await h.call({ action: 'staff_status' })).status, 403);
   assert.equal(h.calls.some(call => call.table === 'rewards_accounts'), false);
+});
+
+test('Apple Wallet confirmation requires a registration for the verified customer and reveals no device credentials', async () => {
+  for (const registeredCustomer of [null, id(1), id(2)]) {
+    const h = harness({ signedIn: true, apple: true, registeredCustomer });
+    const result = await (await h.call({ action: 'summary', customerId: id(2) })).json();
+    assert.equal(result.walletStatus.appleConnected, registeredCustomer === id(1));
+    const query = h.calls.find(call => call.table === 'rewards_wallet_devices');
+    assert.equal(query.columns, 'customer_id');
+    assert.deepEqual(query.filters, [['customer_id', id(1)]]);
+    assert.equal(JSON.stringify(result).includes('private-'), false);
+  }
+});
+
+test('an unavailable registration check cannot claim Wallet success or hide the rewards balance', async () => {
+  const h = harness({ signedIn: true, apple: true, registeredCustomer: id(1), registrationError: true });
+  const response = await h.call({ action: 'summary' });
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.walletStatus.appleConnected, null);
+  assert.equal(result.points, 1000);
 });
 test('staff scanning requires verified MFA and returns only the selected card', async () => {
   const h = harness({ signedIn: true, staff: true });
