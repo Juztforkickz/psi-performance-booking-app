@@ -44,7 +44,7 @@ Private receipts and previews are under `work/rewards-screen-2026-10-23/`. Exist
 
 ## Release and operational requirements
 
-The new screen and Wallet status changes are prepared, not live. The separate financial double points plan still needs its outstanding policy decisions and approval before implementation/activation. See the local review package `work/psi-rewards-performance-plus-plan-2026-10-23/PLAN.md`. This change cannot cause 2× points to be advertised as active while that backend policy is disabled.
+The new screen and Wallet status changes are prepared, not live. On 24 October Matt approved using each payment's actual date for bonus eligibility, with points awarded only once the invoice is fully paid. Billing grace earns standard points until renewal payment is verified; existing premium access grace is unchanged. The remaining date precision and refund policies, complete financial implementation plan, activation and release still require approval. See the local review package `work/psi-rewards-performance-plus-plan-2026-10-23/PLAN.md`. Recording these decisions does not deploy or activate double points. This change cannot cause 2× points to be advertised as active while that backend policy is disabled.
 
 Apple signing remains configured and the existing account has a registered Apple device. A live new balance update with this unpublished build has not been observed on an iPhone.
 
