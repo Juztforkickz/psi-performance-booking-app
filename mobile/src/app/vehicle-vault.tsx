@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { workshopOdometerDate } from '@/lib/workshop-odometer';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
 import { CustomerProfileGate } from '@/components/customer-profile-gate';
@@ -10,7 +10,9 @@ import { PrivateVaultThumbnail } from '@/components/private-vault-thumbnail';
 import { formatIsoDate } from '@/lib/australian-date';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
-import { loadVaultAssets, loadVaultOverview, loadVaultRecords, recordMatchesReportSection, REPORT_KINDS, REPORT_LABELS, type VaultAsset, type ReportKind, type ReportSection, type VaultRecord } from '@/lib/performance-plus';
+import { loadVaultAssets, loadVaultRecords, recordMatchesReportSection, REPORT_KINDS, REPORT_LABELS, type VaultAsset, type ReportKind, type ReportSection, type VaultRecord } from '@/lib/performance-plus';
+import { usePerformanceOverview } from '@/hooks/use-performance-overview';
+import { performanceStatus } from '@/lib/performance-status';
 import { getSupabaseClient } from '@/lib/supabase';
 import { s } from './performance-plus';
 
@@ -72,25 +74,12 @@ function VehicleVaultContent() {
   const [loaded, setLoaded] = useState<{ key: string; records: VaultRecord[]; locked: boolean; expiresAt: string | null } | null>(null);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
-  const [now, setNow] = useState(() => Date.now());
+  const { overview, now } = usePerformanceOverview(vehicleId, revision);
+  const access = performanceStatus(overview, now);
   const [opened, setOpened] = useState<{ key: string; assets: VaultAsset[] } | null>(null);
   const [expandedNote, setExpandedNote] = useState<string | null>(null);
   const [loadingEntry, setLoadingEntry] = useState('');
   const [image, setImage] = useState<{ key: string; url: string } | null>(null);
-  useEffect(() => {
-    const subscription = AppState.addEventListener('change', next => { if (next === 'active') { setNow(Date.now()); setRevision(v => v + 1); } });
-    return () => subscription.remove();
-  }, []);
-  useEffect(() => {
-    if (!loaded?.expiresAt || loaded.locked || loaded.key !== key) return;
-    const remaining = Math.max(0, Date.parse(loaded.expiresAt) - Date.now());
-    const timer = setTimeout(() => {
-      if (remaining > 2147483647) { setRevision(v => v + 1); return; }
-      setLoaded(previous => previous?.key === key ? { ...previous, locked: true, records: [] } : previous);
-      setOpened(null); setImage(null);
-    }, Math.min(remaining, 2147483647));
-    return () => clearTimeout(timer);
-  }, [loaded, key]);
   useEffect(() => {
     if (!image) return;
     const timer = setTimeout(() => setImage(null), 60000);
@@ -99,12 +88,21 @@ function VehicleVaultContent() {
   useEffect(() => {
     if (demo || auth.status !== 'signed_in' || !vehicleId) return;
     let live = true;
-    (async () => { const overview = await loadVaultOverview(vehicleId); const records = overview.plan === 'performance_plus' ? await loadVaultRecords(vehicleId) : []; if (live) setLoaded({ key, records, locked: overview.plan !== 'performance_plus', expiresAt: overview.expires_at }); })().catch(() => { if (live) setError('The vehicle archive could not be opened. Please try again.'); });
+    (async () => {
+      if (!overview) return;
+      const allowed = access.records;
+      const records = allowed ? await loadVaultRecords(vehicleId) : [];
+      if (live) {
+        setLoaded({ key, records, locked: !allowed, expiresAt: overview.history_import_access || overview.plan === 'history_import' ? null : overview.expires_at });
+        if (!allowed) { setOpened(null); setImage(null); }
+      }
+    })().catch(() => { if (live) { setLoaded(null); setOpened(null); setImage(null); setError('The vehicle archive could not be opened. Please try again.'); } });
     return () => { live = false; };
-  }, [demo, vehicleId, auth.status, key, revision]);
-  const locked = !demo && loaded?.key === key && (loaded.locked || !!loaded.expiresAt && Date.parse(loaded.expiresAt) <= now);
+  }, [demo, vehicleId, auth.status, key, revision, overview, access.records]);
+  const locked = !demo && (!access.records || loaded?.key === key && (loaded.locked || !!loaded.expiresAt && Date.parse(loaded.expiresAt) <= now));
   const records = demo ? examples : !locked && auth.status === 'signed_in' && loaded?.key === key ? loaded.records : [];
   const openEntry = async (entry: VaultEntry) => {
+    if (locked) return;
     if (demo) { setError('This is a sample record. Actual PDFs and workshop photos appear here when PSI publishes them to your vehicle.'); return; }
     if (opened?.key === entry.key) { setOpened(null); return; }
     setOpened(null);
@@ -118,6 +116,7 @@ function VehicleVaultContent() {
     finally { setLoadingEntry(''); }
   };
   const openAsset = async (asset: VaultAsset) => {
+    if (locked) return;
     try {
       // Storage RLS checks both vehicle ownership and current entitlement again.
       const { data, error: accessError } = await getSupabaseClient().functions.invoke('open-vault-file', { body: asset.id.startsWith('legacy:') ? { legacyFileId: asset.id.slice(7) } : { assetId: asset.id } });

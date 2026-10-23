@@ -2,6 +2,7 @@ import { Linking, Platform } from 'react-native';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { DEMO_MODE_AVAILABLE, REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { getSupabaseClient } from '@/lib/supabase';
+import { performanceChanged } from '@/lib/performance-status';
 
 const appleKey = process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY?.trim() ?? '';
 const googleKey = process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_KEY?.trim() ?? '';
@@ -98,6 +99,7 @@ export async function loadPerformancePlusStorePrices(userId: string): Promise<Pe
 export async function verifyWithServer() {
   const { data, error } = await getSupabaseClient().functions.invoke('sync-performance-subscription', { body: {} });
   if (error || !data?.verified) throw new Error('Your purchase needs another status check. Use Restore purchases; do not purchase again.');
+  performanceChanged();
 }
 export async function purchasePerformancePlus(userId: string, period: 'monthly' | 'annual') {
   const { sdk, monthly, annual } = await performancePlusPackages(userId);

@@ -1,5 +1,6 @@
 import { workshopOdometerDate } from '@/lib/workshop-odometer';
 import { Ionicons } from '@expo/vector-icons';
+import { PerformanceStatusBadge } from '@/components/performance-plan-card';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -397,6 +398,7 @@ function GarageContent({
           </Pressable>
         </View>
 
+        {secureVehicles ? <PerformanceStatusBadge /> : null}
         <View accessibilityRole="alert" style={styles.previewNotice}>
           <Text style={styles.previewNoticeTitle}>{secureVehicles ? 'Your private garage' : 'Demo garage'}</Text>
           <Text style={styles.previewNoticeCopy}>

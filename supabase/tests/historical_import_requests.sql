@@ -78,7 +78,8 @@ begin
 
   overview := public.performance_vault_overview('8aaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
   if overview ->> 'plan' <> 'history_import'
-    or coalesce((overview ->> 'is_permanent')::boolean, false) is not true
+    or coalesce((overview ->> 'history_import_access')::boolean, false) is not true
+    or coalesce((overview ->> 'is_permanent')::boolean, false) is true
     or coalesce((overview ->> 'is_trial')::boolean, false) is true
   then
     raise exception 'historical import acceptance failed: permanent overview is incorrect';

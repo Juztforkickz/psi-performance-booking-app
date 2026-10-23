@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/ui';
@@ -8,7 +8,9 @@ import { mobileFrame, spacing } from '@/constants/brand';
 import { useCustomerAccount } from '@/lib/customer-account-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
-import { aud, loadVaultOverview, PERFORMANCE_PRICING, type VaultOverview } from '@/lib/performance-plus';
+import { aud, PERFORMANCE_PRICING } from '@/lib/performance-plus';
+import { usePerformanceOverview } from '@/hooks/use-performance-overview';
+import { performanceStatus } from '@/lib/performance-status';
 import { managePerformancePlusSubscription, subscriptionStorefrontName } from '@/lib/performance-purchases';
 import { useThemePreference } from '@/lib/theme-preference';
 
@@ -19,30 +21,31 @@ const BENEFITS = [
   'One chronological vehicle story',
 ] as const;
 
+export function PerformanceStatusBadge() {
+  const router = useRouter();
+  const { overview, now } = usePerformanceOverview();
+  const { theme } = useThemePreference();
+  const status = performanceStatus(overview, now);
+  return <Pressable accessibilityRole="button" onPress={() => router.push('/performance-plus')}
+    style={{ borderRadius: 18, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.surface, padding: 16, gap: 6 }}>
+    <Text style={{ color: theme.accent, fontWeight: '900' }}>PERFORMANCE+ · {status.label}</Text>
+    <Text style={{ color: theme.textMuted }}>{!overview ? 'Checking your subscription.' : status.active ? 'View your plan and vehicle archive.' : 'Your PSI Free account remains available. Explore Performance+.'}</Text>
+  </Pressable>;
+}
+
 export function PerformancePlanCard({ hideForPermanent = false }: { hideForPermanent?: boolean }) {
   const router = useRouter();
   const auth = useCustomerAuth();
   const { account } = useCustomerAccount();
   const { theme } = useThemePreference();
   const vehicleId = account?.vehicles.find(vehicle => vehicle.is_primary)?.id ?? account?.vehicles[0]?.id;
-  const [now] = useState(() => Date.now());
-  const key = `${auth.user?.id ?? 'preview'}:${vehicleId ?? 'none'}`;
-  const [state, setState] = useState<{ key: string; overview: VaultOverview } | null>(null);
+  const { overview, now } = usePerformanceOverview();
   const [managing, setManaging] = useState(false);
   const [managementMessage, setManagementMessage] = useState('');
 
-  useEffect(() => {
-    if (!CUSTOMER_AUTH.enabled || auth.status !== 'signed_in' || !vehicleId) return;
-    let active = true;
-    void loadVaultOverview(vehicleId).then(value => { if (active) setState({ key, overview: value }); }).catch(() => undefined);
-    return () => { active = false; };
-  }, [auth.status, vehicleId, key]);
-
-  const overview = state?.key === key ? state.overview : null;
-  const activePlus = overview?.plan === 'performance_plus' && (!overview.expires_at || Date.parse(overview.expires_at) > now);
-  const permanentPlus = activePlus && overview?.is_permanent;
-  const trialPlus = activePlus && overview?.is_trial;
-  const loadingOverview = CUSTOMER_AUTH.enabled && auth.status === 'signed_in' && Boolean(vehicleId) && state?.key !== key;
+  const status = performanceStatus(overview, now);
+  const { active: activePlus, permanent: permanentPlus, trial: trialPlus } = status;
+  const loadingOverview = CUSTOMER_AUTH.enabled && auth.status === 'signed_in' && !overview;
   const openPerformancePlus = () => router.push({ pathname: '/performance-plus', params: vehicleId ? { vehicleId } : {} });
   const storefront = subscriptionStorefrontName();
   const manageSubscription = async () => {
@@ -63,7 +66,7 @@ export function PerformancePlanCard({ hideForPermanent = false }: { hideForPerma
           <Text style={[styles.brand, { color: theme.accent }]}>PSI PERFORMANCE+</Text>
         </View>
         <View style={[styles.status, { backgroundColor: activePlus ? theme.accent : theme.surfaceRaised }]}>
-          <Text style={[styles.statusText, { color: activePlus ? theme.textInverse : theme.text }]}>{trialPlus ? '14-DAY TRIAL' : activePlus ? 'ACTIVE' : 'PSI FREE'}</Text>
+          <Text style={[styles.statusText, { color: activePlus ? theme.textInverse : theme.text }]}>{status.label}</Text>
         </View>
       </View>
 

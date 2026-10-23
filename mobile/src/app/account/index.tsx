@@ -5,6 +5,7 @@ import { Image, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProfilePhotoPicker } from '@/components/profile-photo-picker';
+import { PerformanceStatusBadge } from '@/components/performance-plan-card';
 import { AppReviewSignIn } from '@/components/apple-review-sign-in';
 import { DemoModeControl } from '@/components/demo-mode-control';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
@@ -420,6 +421,7 @@ export default function AccountScreen() {
                 <PrimaryButton label="Continue to Customer App" onPress={() => router.replace('/')} variant="outline" />
               </View>
             ) : null}
+            <PerformanceStatusBadge />
             <PrimaryButton label="Sign out" loading={busy} onPress={() => void signOut()} variant="outline" />
           </View>
         ) : !CUSTOMER_AUTH.enabled ? (

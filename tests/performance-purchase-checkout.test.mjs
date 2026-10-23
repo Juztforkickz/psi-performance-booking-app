@@ -14,7 +14,7 @@ const isolatedApple = { review: true, purchaseTest: true, appleReview: true };
 
 function checkout({
   platform = 'ios', review = false, demoAvailable = false, purchaseTest = false, appleReview = false, googleReview = false,
-  currencyCode = 'AUD', monthlyId = 'psi_performance_plus_monthly', annualId = 'psi_performance_plus_annual',
+  currencyCode = 'AUD', monthlyId = platform === 'android' ? 'psi_performance_plus:monthly' : 'psi_performance_plus_monthly', annualId = platform === 'android' ? 'psi_performance_plus:annual' : 'psi_performance_plus_annual',
   storefront = { countryCode: 'AUS' }, purchaseError = null, verificationError = null, verified = true,
 } = {}) {
   const calls = [];
@@ -55,6 +55,7 @@ function checkout({
     '@/lib/customer-auth': { CUSTOMER_AUTH: { enabled: true } },
     '@/lib/review-environment': { DEMO_MODE_AVAILABLE: demoAvailable, REVIEW_ENVIRONMENT: { enabled: review } },
     '@/lib/supabase': { getSupabaseClient: () => client },
+    '@/lib/performance-status': { performanceChanged: () => calls.push({ type: 'access-refresh' }) },
   };
   const api = {};
   vm.runInNewContext(source, {

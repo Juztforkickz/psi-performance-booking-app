@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StaffScrollSelect } from '@/components/staff-scroll-select';
@@ -14,7 +14,9 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { getAccountReportVehicles } from '@/lib/vehicle-reports-account';
-import { loadVaultOverview, reportSectionCount, REPORT_KINDS, REPORT_LABELS, type VaultOverview } from '@/lib/performance-plus';
+import { reportSectionCount, REPORT_KINDS, REPORT_LABELS } from '@/lib/performance-plus';
+import { usePerformanceOverview } from '@/hooks/use-performance-overview';
+import { performanceStatus } from '@/lib/performance-status';
 
 const REPORT_CATEGORY_ICONS = {
   service: 'construct-outline',
@@ -73,26 +75,9 @@ function VehicleReportsContent() {
 
 function ReportCategories({ vehicleId }: { vehicleId: string }) {
   const router = useRouter();
-  const [overview, setOverview] = useState<VaultOverview | null>(null);
-  const [message, setMessage] = useState('');
   const [revision, setRevision] = useState(0);
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 15000);
-    return () => clearInterval(timer);
-  }, []);
-  // Recheck whenever a purchase screen closes; no report contents are fetched here.
-  useFocusEffect(useCallback(() => {
-    let active = true;
-    // The refresh revision deliberately invalidates the last overview request.
-    void revision;
-    void loadVaultOverview(vehicleId).then(value => {
-      if (active) { setOverview(value); setMessage(''); }
-    }).catch(() => { if (active) { setOverview(null); setMessage('Report access could not be checked. Please refresh.'); } });
-    return () => { active = false; };
-  }, [vehicleId, revision]));
-  const unlocked = overview?.plan === 'history_import' || (overview?.plan === 'performance_plus' &&
-    (!overview.expires_at || Date.parse(overview.expires_at) > now));
+  const { overview, now, error: message } = usePerformanceOverview(vehicleId, revision);
+  const unlocked = performanceStatus(overview, now).records;
   return <View style={styles.section}>
     <Text style={styles.eyebrow}>{overview?.plan === 'history_import' ? 'PSI HISTORY · PERMANENT ACCESS' : unlocked ? 'PERFORMANCE+ · UNLOCKED' : 'PERFORMANCE+ · VEHICLE ARCHIVE'}</Text>
     <Text style={styles.copy}>{unlocked

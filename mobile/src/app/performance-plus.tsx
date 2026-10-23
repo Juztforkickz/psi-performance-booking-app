@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StaffScrollSelect } from '@/components/staff-scroll-select';
 import { PrimaryButton } from '@/components/ui';
@@ -12,6 +12,8 @@ import { useCustomerAccount } from '@/lib/customer-account-context';
 import { customerProfileComplete } from '@/lib/customer-access';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
+import { usePerformanceOverview } from '@/hooks/use-performance-overview';
+import { performanceStatus } from '@/lib/performance-status';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { aud, loadVaultOverview, PERFORMANCE_PRICING, reportSectionCount, REPORT_KINDS, REPORT_LABELS, type ReportSection, type VaultOverview } from '@/lib/performance-plus';
 import { loadPerformancePlusStorePrices, managePerformancePlusSubscription, purchasePerformancePlus, restorePerformancePlus, subscriptionPurchasesAvailable, subscriptionStorefrontName, verifyWithServer, type PerformancePlusStorePrice, type PerformancePlusStorePrices } from '@/lib/performance-purchases';
@@ -75,30 +77,17 @@ export default function PerformancePlusScreen() {
   const [selected, setSelected] = useState(requested ?? '');
   const vehicle = vehicles.find(v => v.id === selected) ?? vehicles[0];
   const vehicleId = vehicle?.id;
-  const [now, setNow] = useState(() => Date.now());
-  const [state, setState] = useState<{ key: string; overview: VaultOverview } | null>(null);
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<'monthly' | 'annual'>('annual');
   const [storePriceState, setStorePriceState] = useState<{ key: string; prices: PerformancePlusStorePrices | null; message: string } | null>(null);
   const [revision, setRevision] = useState(0);
-  const key = `${auth.user?.id ?? 'preview'}:${vehicle?.id}`;
-  const overview = demo ? { plan: 'free' as const, counts: { invoice: 7, media: 3, dyno: 2, service: 4, recommendation: 1, document: 2, modification: 3 }, expires_at: null, is_permanent: false, is_trial: false, trial_days: 14 } : state?.key === key ? state.overview : null;
+  const liveOverview = usePerformanceOverview(vehicleId, revision);
+  const { now } = liveOverview;
+  const overview: VaultOverview | null = demo ? { plan: 'free', counts: { invoice: 7, media: 3, dyno: 2, service: 4, recommendation: 1, document: 2, modification: 3 }, expires_at: null, is_permanent: false, is_trial: false, trial_days: 14 } : liveOverview.overview;
   const focusedCount = focusedKind && overview ? reportSectionCount(overview.counts, focusedKind) : 0;
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 15000);
-    const sub = AppState.addEventListener('change', value => { if (value === 'active') setRevision(v => v + 1); });
-    return () => { sub.remove(); clearInterval(timer); };
-  }, []);
-  useEffect(() => {
-    if (demo || !vehicleId || auth.status !== 'signed_in') return;
-    let active = true;
-    loadVaultOverview(vehicleId).then(value => { if (active) { setState({ key, overview: value }); setMessage(''); } }).catch(() => { if (active) { setState(null); setMessage('Your vault status could not be loaded. Please refresh and try again.'); } });
-    return () => { active = false; };
-  }, [demo, vehicleId, auth.status, key, revision]);
-  const activePlus = overview?.plan === 'performance_plus' && (!overview.expires_at || Date.parse(overview.expires_at) > now);
-  const permanentPlus = activePlus && overview?.is_permanent;
-  const trialPlus = activePlus && overview?.is_trial;
+  const status = performanceStatus(overview, now);
+  const { active: activePlus, permanent: permanentPlus, trial: trialPlus } = status;
   const paidPlus = activePlus && !trialPlus;
   const entitlementReady = demo || !!overview;
   const storefront = subscriptionStorefrontName();
@@ -133,7 +122,7 @@ export default function PerformancePlusScreen() {
       }
       if (!vehicleId) throw new Error('Add a vehicle to My Garage before choosing Performance+.');
       const currentOverview = await loadVaultOverview(vehicleId);
-      setState({ key, overview: currentOverview });
+      liveOverview.refresh();
       if (currentOverview.is_permanent) {
         setMessage('Performance+ is permanently included with this PSI owner account. No purchase is required.');
         return;
@@ -141,7 +130,7 @@ export default function PerformancePlusScreen() {
       if (period === 'restore') {
         await restorePerformancePlus(auth.user.id);
         const restoredOverview = await loadVaultOverview(vehicleId);
-        setState({ key, overview: restoredOverview });
+        liveOverview.refresh();
         setMessage(restoredOverview.plan === 'performance_plus'
           ? `Restore completed. ${storefront ?? 'Your app store'} confirmed your purchase and Performance+ access is active.`
           : `Restore completed, but ${storefront ?? 'your app store'} did not return an active Performance+ subscription for this PSI account.`);
@@ -212,7 +201,7 @@ export default function PerformancePlusScreen() {
         <Text style={s.focusCount}>{overview ? `${focusedCount} private PSI ${focusedCount === 1 ? 'record' : 'records'} waiting` : 'Checking private PSI records…'}</Text>
         {REPORT_UNLOCKS[focusedKind].benefits.map(benefit => <View key={benefit} style={s.benefit}><Ionicons name="checkmark-circle" color={colors.accent} size={18} /><Text style={s.benefitText}>{benefit}</Text></View>)}
         <Text style={s.copy}>One Performance+ subscription unlocks this category and every other Performance+ category across all vehicles in your PSI account.</Text>
-        {activePlus && vehicle ? <PrimaryButton label={`Open ${REPORT_LABELS[focusedKind]}`} onPress={() => router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle.id, kind: focusedKind } })} /> : null}
+        {status.records && vehicle ? <PrimaryButton label={`Open ${REPORT_LABELS[focusedKind]}`} onPress={() => router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle.id, kind: focusedKind } })} /> : null}
       </View>
       <PrimaryButton label="See everything included with Performance+" variant="outline" onPress={() => setShowAll(true)} />
     </> : null}
@@ -221,11 +210,12 @@ export default function PerformancePlusScreen() {
     <View style={s.planCard}>
       <View style={[s.row, s.planRow]}>
         <View style={s.planHeading}><Ionicons name={activePlus ? 'shield-checkmark' : 'car-sport-outline'} color={colors.accent} size={22} /><View style={s.planHeadingCopy}><Text style={s.planLabel}>CURRENT PLAN</Text><Text style={s.planName}>{trialPlus ? 'PSI Performance+ Trial' : activePlus ? 'PSI Performance+' : 'PSI Free'}</Text></View></View>
-        <View style={[s.badge, activePlus && s.activeBadge]}><Text style={[s.badgeText, activePlus && s.activeBadgeText]}>{trialPlus ? '14-DAY TRIAL' : activePlus ? 'ACTIVE' : 'FREE'}</Text></View>
+        <View style={[s.badge, activePlus && s.activeBadge]}><Text style={[s.badgeText, activePlus && s.activeBadgeText]}>{status.label}</Text></View>
       </View>
       <Text style={s.copy}>{trialPlus ? 'Your complete private PSI vehicle file is unlocked during the complimentary trial. No payment has been taken.' : activePlus ? 'Your complete private PSI vehicle file is unlocked.' : 'Your everyday PSI account remains free. Upgrade whenever you want the complete workshop record, including photos, invoices and dyno files.'}</Text>
     </View>
     {permanentPlus ? <Text style={s.muted}>Permanent complimentary PSI owner access · $0.00 AUD · no renewal or expiry.</Text> : null}
+    {!activePlus && status.records ? <Text style={s.muted}>Your separately purchased vehicle history remains available. Your account uses PSI Free.</Text> : null}
     {activePlus && overview?.expires_at ? <Text style={s.muted}>{trialPlus ? `Complimentary access through ${new Date(overview.expires_at).toLocaleDateString('en-AU')}. The trial ends automatically and does not renew.` : `Access through ${new Date(overview.expires_at).toLocaleDateString('en-AU')}. Turning off renewal retains access until expiry.`}</Text> : null}
     <Text style={s.section}>Your vehicle vault</Text>
     {vehicles.length > 1 ? <StaffScrollSelect label="Select vehicle" value={vehicle?.id ?? ''} options={vehicles.map(v => ({ value: v.id, label: `${v.year} ${v.make} ${v.model}`, sublabel: v.registration || 'Registration not recorded' }))} onChange={value => { setSelected(value); setMessage(''); }} /> : null}
@@ -235,14 +225,15 @@ export default function PerformancePlusScreen() {
       <View style={s.accessGuideRow}><View style={s.freeAccessBadge}><Text style={s.freeAccessBadgeText}>PSI FREE</Text></View><Text style={s.accessGuideCopy}>Profile, garage, vehicle photo, bookings, reminders, notifications, service dates, kilometres and your notes for PSI.</Text></View>
       <View style={s.accessGuideRow}><View style={s.plusAccessBadge}><Text style={s.plusAccessBadgeText}>PERFORMANCE+</Text></View><Text style={s.accessGuideCopy}>Workshop photos, invoice copies, dyno files, supporting documents, downloads and the complete organised archive. Complete your own verified PSI account to start one 14-day trial without payment before returning to PSI Free.</Text></View>
     </View> : null}
-    <View onLayout={event => setVaultGridWidth(event.nativeEvent.layout.width)} style={s.grid}>{REPORT_KINDS.map(kind => <Pressable accessibilityRole="button" key={kind} onPress={() => { if (demo || activePlus) router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle?.id ?? '', kind } }); else setMessage('Choose Performance+ below to unlock your private vehicle archive. Your free PSI features remain available.'); }} style={({ pressed }) => [s.vault, singleColumn && s.vaultFullWidth, pressed && s.pressed]}>
-      <View style={s.row}><View style={s.vaultIcon}><Ionicons name={VAULT_ICONS[kind]} color={colors.accent} size={24} /></View>{activePlus || demo ? <Ionicons name="arrow-forward" color={colors.accent} size={18} /> : <View style={s.lockBadge}><Ionicons name="lock-closed" color={colors.accent} size={12} /><Text style={s.lockBadgeText}>PLUS ONLY</Text></View>}</View>
-      <View style={s.vaultCopy}><Text style={s.vaultTitle}>{PERFORMANCE_LABELS[kind]}</Text><Text style={s.recordCount}>{overview ? activePlus || demo ? recordCountLabel(reportSectionCount(overview.counts, kind), 'PSI') : `${reportSectionCount(overview.counts, kind)} premium PSI ${reportSectionCount(overview.counts, kind) === 1 ? 'record' : 'records'} · locked` : 'Your private PSI records'}</Text><Text style={s.vaultDescription}>{VAULT_DESCRIPTIONS[kind]}</Text></View>
-      <View style={s.vaultAction}><Text style={s.vaultActionText}>{activePlus || demo ? 'Open vault' : 'Unlock with Performance+'}</Text><Ionicons name="chevron-forward" color={colors.accent} size={15} /></View>
+    <View onLayout={event => setVaultGridWidth(event.nativeEvent.layout.width)} style={s.grid}>{REPORT_KINDS.map(kind => <Pressable accessibilityRole="button" key={kind} onPress={() => { if (demo || status.records) router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle?.id ?? '', kind } }); else setMessage('Choose Performance+ below to unlock your private vehicle archive. Your free PSI features remain available.'); }} style={({ pressed }) => [s.vault, singleColumn && s.vaultFullWidth, pressed && s.pressed]}>
+      <View style={s.row}><View style={s.vaultIcon}><Ionicons name={VAULT_ICONS[kind]} color={colors.accent} size={24} /></View>{status.records || demo ? <Ionicons name="arrow-forward" color={colors.accent} size={18} /> : <View style={s.lockBadge}><Ionicons name="lock-closed" color={colors.accent} size={12} /><Text style={s.lockBadgeText}>PLUS ONLY</Text></View>}</View>
+      <View style={s.vaultCopy}><Text style={s.vaultTitle}>{PERFORMANCE_LABELS[kind]}</Text><Text style={s.recordCount}>{overview ? status.records || demo ? recordCountLabel(reportSectionCount(overview.counts, kind), 'PSI') : `${reportSectionCount(overview.counts, kind)} premium PSI ${reportSectionCount(overview.counts, kind) === 1 ? 'record' : 'records'} · locked` : 'Your private PSI records'}</Text><Text style={s.vaultDescription}>{VAULT_DESCRIPTIONS[kind]}</Text></View>
+      <View style={s.vaultAction}><Text style={s.vaultActionText}>{status.records || demo ? 'Open vault' : 'Unlock with Performance+'}</Text><Ionicons name="chevron-forward" color={colors.accent} size={15} /></View>
     </Pressable>)}</View>
     {vehicle ? <PrimaryButton label={demo ? 'Explore sample vehicle history' : 'Open vehicle history'} onPress={() => router.push({ pathname: '/vehicle-vault', params: { vehicleId: vehicle.id } })} variant="outline" /> : null}
     </> : null}
     {!openedFromHome ? pricingPanel : null}
+    {liveOverview.error ? <Text accessibilityRole="alert" style={s.notice}>{liveOverview.error}</Text> : null}
     {message && (activePlus || !entitlementReady) ? <Text accessibilityLiveRegion="polite" accessibilityRole="alert" style={s.notice}>{message}</Text> : null}
     {entitlementReady && !permanentPlus && Platform.OS !== 'web' ? <PrimaryButton disabled={!purchasesAvailable} loading={busy} label="Restore purchases" onPress={() => void subscribe('restore')} variant="outline" /> : null}
     {entitlementReady && activePlus && !permanentPlus && Platform.OS === 'web' ? <Text style={s.copy}>Manage or restore your subscription in the PSI phone app using the same account. Refresh here to check your verified access.</Text> : null}

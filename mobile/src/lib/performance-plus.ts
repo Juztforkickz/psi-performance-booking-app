@@ -45,7 +45,7 @@ export type VaultImportQueue = {
   job_id: string | null; record_id: string | null; reason: string; attempt_count: number;
   last_error_code: string | null; created_at: string; updated_at: string;
 };
-export type VaultOverview = { plan: 'free' | 'history_import' | 'performance_plus'; counts: Partial<Record<ReportKind, number>>; expires_at: string | null; is_permanent: boolean; is_trial: boolean; trial_days: number };
+export type VaultOverview = { plan: 'free' | 'history_import' | 'performance_plus'; counts: Partial<Record<ReportKind, number>>; expires_at: string | null; is_permanent: boolean; is_trial: boolean; trial_days: number; status?: 'active' | 'trial' | 'permanent' | 'expired' | 'free'; history_import_access?: boolean; server_time?: string };
 type Table<T> = { Row: T; Insert: Partial<T>; Update: Partial<T>; Relationships: [] };
 type VaultDatabase = { public: { Tables: {
   vault_records: Table<VaultRecord>; vault_assets: Table<VaultAsset>; workshop_jobs: Table<WorkshopJob>;
@@ -55,6 +55,7 @@ type VaultDatabase = { public: { Tables: {
   vault_import_queue: Table<VaultImportQueue>;
 }; Views: Record<never, never>; Functions: {
   performance_vault_overview: { Args: { p_vehicle_id: string }; Returns: VaultOverview };
+  performance_account_status: { Args: Record<string, never>; Returns: VaultOverview };
   grant_performance_beta: { Args: { p_customer_id: string; p_days: number }; Returns: undefined };
   xero_connection_status: { Args: Record<string, never>; Returns: { tenant_id: string; connected_at: string; updated_at: string }[] };
   xero_connection_candidates: { Args: Record<string, never>; Returns: { tenant_id: string; tenant_name: string }[] };
@@ -68,8 +69,10 @@ type VaultDatabase = { public: { Tables: {
 }; Enums: Record<never, never>; CompositeTypes: Record<never, never> } };
 // Same authenticated connection and RLS boundary as the existing app.
 export function vaultClient() { return getSupabaseClient() as unknown as SupabaseClient<VaultDatabase>; }
-export async function loadVaultOverview(vehicleId: string) {
-  const { data, error } = await vaultClient().rpc('performance_vault_overview', { p_vehicle_id: vehicleId });
+export async function loadVaultOverview(vehicleId?: string) {
+  const { data, error } = vehicleId
+    ? await vaultClient().rpc('performance_vault_overview', { p_vehicle_id: vehicleId })
+    : await vaultClient().rpc('performance_account_status', {});
   if (error) throw error;
   return data;
 }

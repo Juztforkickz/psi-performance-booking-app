@@ -118,11 +118,10 @@ export async function createPrivateVehicleAttachmentSignedUrl(attachment: Secure
   if (userError || !user) throw userError ?? new Error('CUSTOMER_SESSION_REQUIRED');
   if (!attachment.objectPath.startsWith(`${user.id}/`)) throw new Error('CUSTOMER_FILE_ACCESS_DENIED');
 
-  const { data, error } = await supabase.storage
-    .from(attachment.bucketId)
-    .createSignedUrl(attachment.objectPath, 10 * 60);
+  const { data, error } = await supabase.functions.invoke('open-vault-file', { body: { legacyFileId: attachment.id } });
   if (error) throw error;
-  return data.signedUrl;
+  if (!data?.url) throw new Error('CUSTOMER_FILE_ACCESS_DENIED');
+  return data.url as string;
 }
 
 export async function removeCustomerVehiclePhoto(file: VehicleFileRow) {

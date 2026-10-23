@@ -25,8 +25,8 @@ test('Vehicle Reports advertises locked categories without fetching their conten
     read('../mobile/src/components/staff-vehicle-history.tsx'),
   ]);
 
-  assert.match(reports, /loadVaultOverview\(vehicleId\)/u);
-  assert.match(reports, /overview\?\.plan === 'performance_plus'/u);
+  assert.match(reports, /usePerformanceOverview\(vehicleId, revision\)/u);
+  assert.match(reports, /performanceStatus\(overview, now\)\.records/u);
   assert.match(reports, /Vehicle details, dates, kilometres, reminders, bookings and your notes stay free/u);
   assert.match(reports, /lock-closed-outline/u);
   assert.match(reports, /REPORT_CATEGORY_ICONS\[kind\]/u);
@@ -44,7 +44,7 @@ test('Vehicle Reports advertises locked categories without fetching their conten
   assert.match(plus, /REPORT_KINDS\.map/u);
   assert.match(plus, /recommendation: 'PSI recommended work/u);
   assert.match(plus, /StaffScrollSelect label="Select vehicle"/u);
-  assert.match(plus, /Restore completed\. Apple confirmed your purchase and Performance\+ access is active/u);
+  assert.match(plus, /confirmed your purchase and Performance\+ access is active/u);
   assert.match(vault, /Performance\+ records locked/u);
   assert.match(vault, /Math\.max\(insets\.top \+ 10/u);
   assert.match(terms, /Xero invoices continue to be delivered by email/u);
@@ -54,6 +54,8 @@ test('Vehicle Reports advertises locked categories without fetching their conten
     if (label === 'Invoices') {
       assert.match(workflow, /View invoices & records/u);
       assert.match(workflow, /Add invoice/u);
+    } else if (label === 'Workshop Photos') {
+      assert.match(workflow, /id: 'media', title: 'Photos'/u);
     } else {
       assert.ok(workflow.includes(label), `Missing staff report label: ${label}`);
     }
