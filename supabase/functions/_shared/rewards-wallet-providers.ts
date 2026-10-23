@@ -1,8 +1,9 @@
 import { Buffer } from 'node:buffer';
 import { PKPass } from 'npm:passkit-generator@3.5.7';
 import { env } from './xero-runtime.ts';
+import type { RewardsEarning } from './rewards-earning.ts';
 
-export type RewardsCard = { customer_id: string; card_id: string; points_balance: number; revision: number; updated_at: string; name: string };
+export type RewardsCard = { customer_id: string; card_id: string; points_balance: number; revision: number; updated_at: string; name: string; earning?: RewardsEarning };
 export const REWARDS_SITE = 'https://juztforkickz.github.io/psi-performance-booking-app';
 export const creditLabel = (points: number) => `AUD ${(Math.max(0, Number(points)) / 100).toFixed(2)}`;
 export const scanUrl = (card: Pick<RewardsCard, 'card_id'>) => `${REWARDS_SITE}/rewards-scan/#${card.card_id}`;
@@ -38,14 +39,27 @@ async function googleAccess() {
   return { ...config, token: result.access_token as string };
 }
 function objectBody(card: RewardsCard, issuer: string, classId: string) {
+  const earning = walletEarning(card);
   return { id: `${issuer}.psi_rewards_${card.card_id.replace(/-/gu, '')}`, classId, state: 'ACTIVE', accountName: card.name,
     accountId: card.card_id.slice(0, 8).toUpperCase(), hexBackgroundColor: '#090B0E',
     loyaltyPoints: { label: 'Points', balance: { int: Math.max(0, Number(card.points_balance)) } },
     secondaryLoyaltyPoints: { label: 'Workshop credit', balance: { string: creditLabel(card.points_balance) } },
     barcode: { type: 'QR_CODE', value: scanUrl(card), alternateText: card.card_id.slice(0, 8).toUpperCase() },
-    textModulesData: [{ id: 'rate', header: 'PSI Rewards', body: 'Earn 1 point per AUD 1 of eligible paid invoice spending. 1,000 points = AUD 10 workshop credit.' }],
+    textModulesData: [{ id: 'membership', header: earning.label, body: earning.details },
+      { id: 'rate', header: 'Workshop credit', body: '1,000 points = AUD 10 workshop credit. Your earned points stay yours when Performance+ ends.' }],
     linksModuleData: { uris: [{ uri: `${REWARDS_SITE}/rewards/`, description: 'Open PSI Rewards', id: 'psi_rewards' }] },
   };
+}
+export function walletEarning(card: RewardsCard) {
+  const earning = card.earning;
+  if (earning?.state === 'unavailable') return { label: 'CHECK IN APP', until: null,
+    details: 'Your points and workshop credit are available. Open PSI Rewards to check your current earning rate.' };
+  const double = earning?.multiplier === 2 && earning.state === 'double' && earning.bonusEnabled
+    && earning.subscriptionStatus === 'active' && !!earning.validUntil && Date.parse(earning.validUntil) > Date.now();
+  const until = double ? earning.validUntil : null;
+  return { label: double ? '2× POINTS ACTIVE' : '1× POINTS', until,
+    details: double ? `Paid Performance+. Earn 2 points per AUD 1 of qualifying eligible spending. Paid rate until ${new Date(until!).toISOString()}.`
+      : 'PSI Free Rewards. Earn 1 point per AUD 1 of eligible paid invoice spending. Free loyalty membership, including complimentary Performance+ access.' };
 }
 export async function issueGoogleCard(card: RewardsCard) {
   const config = await googleAccess();
@@ -99,10 +113,13 @@ export async function applePass(card: RewardsCard, authToken: string) {
     webServiceURL: `${env('SUPABASE_URL')}/functions/v1/rewards-wallet/apple`, authenticationToken: authToken,
   });
   pass.type = 'storeCard';
+  const earning = walletEarning(card);
+  pass.headerFields.push({ key: 'earning', label: 'EARNING RATE', value: earning.label });
   pass.primaryFields.push({ key: 'credit', label: 'WORKSHOP CREDIT', value: creditLabel(card.points_balance), changeMessage: 'Your PSI workshop credit is now %@.' });
   pass.secondaryFields.push({ key: 'points', label: 'POINTS', value: Math.max(0, Number(card.points_balance)) });
   pass.auxiliaryFields.push({ key: 'member', label: 'MEMBER', value: card.name });
-  pass.backFields.push({ key: 'rate', label: 'PSI Rewards', value: '1 point per AUD 1 of eligible paid invoice spending. 1,000 points = AUD 10 workshop credit.' },
+  pass.backFields.push({ key: 'membership', label: earning.label, value: earning.details },
+    { key: 'rate', label: 'PSI Rewards', value: '1,000 points = AUD 10 workshop credit. Your earned points stay yours when Performance+ ends.' },
     { key: 'account', label: 'Your rewards', value: `${REWARDS_SITE}/rewards/` });
   pass.setBarcodes({ message: scanUrl(card), format: 'PKBarcodeFormatQR', messageEncoding: 'iso-8859-1' });
   return pass.getAsBuffer();

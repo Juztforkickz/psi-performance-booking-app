@@ -1,10 +1,12 @@
 import { getSupabaseClient } from '@/lib/supabase';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
+import { readRewardsEarning, type RewardsEarning } from '@/lib/rewards-earning';
 
 export type RewardsEntry = { id: string; invoice_number: string; points_change: number; kind: 'earned' | 'adjustment' | 'redeemed' | 'credit_restored'; created_at: string };
 export type RewardsAccount = {
   name: string; points: number; creditCents: number; cardId: string; qr: string; updatedAt: string;
   wallet: { apple: boolean; google: boolean }; walletStatus?: { appleConnected: boolean | null }; ledger: RewardsEntry[];
+  earning: RewardsEarning;
 };
 export const formatRewardsCredit = (cents: number) => `AUD ${(Math.max(0, cents) / 100).toFixed(2)}`;
 export const formatRewardsPoints = (points: number) => Math.max(0, points).toLocaleString('en-AU');
@@ -25,7 +27,7 @@ export async function loadRewardsAccount(): Promise<RewardsAccount> {
     || typeof data.cardId !== 'string' || !/^data:image\/png;base64,/u.test(data.qr ?? '') || !Array.isArray(data.ledger)) {
     throw new Error('Your rewards balance could not be verified. Please refresh.');
   }
-  return { ...data, ledger: data.ledger.map((entry: RewardsEntry) => ({ ...entry, points_change: Number(entry.points_change) })) };
+  return { ...data, earning: readRewardsEarning(data.earning), ledger: data.ledger.map((entry: RewardsEntry) => ({ ...entry, points_change: Number(entry.points_change) })) };
 }
 export async function prepareRewardsWallet(provider: 'apple' | 'google'): Promise<string> {
   const data = await requestRewards({ action: provider });

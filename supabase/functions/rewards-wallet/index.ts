@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.1
 import QRCode from 'npm:qrcode@1.5.4';
 import { cors, env, uuid } from '../_shared/xero-runtime.ts';
 import { applePass, issueGoogleCard, updateGoogleCard, pushApplePass, scanUrl, walletConfiguration, type RewardsCard } from '../_shared/rewards-wallet-providers.ts';
+import { rewardsEarningFor, rewardsEarningFingerprint } from '../_shared/rewards-earning.ts';
 
 const headers = { ...cors, 'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS', 'Access-Control-Expose-Headers': 'Content-Disposition, Last-Modified' };
 const output = (data: unknown, status = 200) => Response.json(data, { status, headers });
@@ -34,8 +35,19 @@ async function cardFor(admin: SupabaseClient, customerId: string): Promise<Rewar
   if (insert.error) throw new Error('rewards_account_unavailable');
   const { data: account, error } = await admin.from('rewards_accounts').select('*').eq('customer_id', customerId).single();
   if (error || !Number.isSafeInteger(Number(account?.points_balance))) throw new Error('rewards_balance_unavailable');
+  const earning = await rewardsEarningFor(admin, customerId);
+  let latest = account;
+  try {
+    const refreshed = await admin.rpc('refresh_rewards_wallet_membership', {
+      p_customer_id: customerId, p_fingerprint: await hash(rewardsEarningFingerprint(earning)),
+      p_expires_at: earning.validUntil ?? earning.subscriptionExpiresAt,
+    });
+    if (!refreshed.error && refreshed.data?.customer_id === customerId && refreshed.data.card_id === account.card_id
+      && Number.isSafeInteger(Number(refreshed.data.points_balance)) && Number.isSafeInteger(Number(refreshed.data.revision))
+      && Number(refreshed.data.revision) >= Number(account.revision)) latest = refreshed.data;
+  } catch { /* A status refresh outage must not hide an already verified balance. */ }
   const name = [profile.first_name, profile.last_name].filter(value => typeof value === 'string' && value.trim()).map(value => value.trim()).join(' ').slice(0, 100) || 'PSI member';
-  return { ...account, points_balance: Number(account.points_balance), revision: Number(account.revision), name };
+  return { ...account, ...latest, points_balance: Number(latest.points_balance), revision: Number(latest.revision), name, earning };
 }
 async function walletMember(admin: SupabaseClient, customerId: string) {
   const added = await admin.from('rewards_wallet_members').upsert({ customer_id: customerId }, { onConflict: 'customer_id', ignoreDuplicates: true });
@@ -106,24 +118,30 @@ async function syncWallets(admin: SupabaseClient) {
   if (dirty.error) throw new Error('wallet_sync_unavailable');
   const results = [];
   for (const customerId of dirty.data ?? []) {
-    const card = await cardFor(admin, customerId);
-    const member = await walletMember(admin, customerId);
     try {
+      const card = await cardFor(admin, customerId);
+      const member = await walletMember(admin, customerId);
+      const failures: string[] = [];
       if (member.google_object_id && Number(member.google_synced_revision) < card.revision) {
-        await updateGoogleCard(card, member.google_object_id);
-        const saved = await admin.from('rewards_wallet_members').update({ google_synced_revision: card.revision }).eq('customer_id', customerId);
-        if (saved.error) throw new Error('wallet_sync_unavailable');
+        try {
+          await updateGoogleCard(card, member.google_object_id);
+          const saved = await admin.from('rewards_wallet_members').update({ google_synced_revision: card.revision }).eq('customer_id', customerId);
+          if (saved.error) throw new Error('wallet_sync_unavailable');
+        } catch (error) { failures.push(code(error)); }
       }
       if (Number(member.apple_synced_revision) < card.revision) {
-        const devices = await admin.from('rewards_wallet_devices').select('device_id,push_token').eq('customer_id', customerId);
-        if (devices.error) throw new Error('wallet_sync_unavailable');
-        for (const device of devices.data ?? []) {
-          const result = await pushApplePass(device.push_token);
-          if (result === 'removed') await admin.from('rewards_wallet_devices').delete().eq('device_id', device.device_id).eq('customer_id', customerId);
-        }
-        const saved = await admin.from('rewards_wallet_members').update({ apple_synced_revision: card.revision }).eq('customer_id', customerId);
-        if (saved.error) throw new Error('wallet_sync_unavailable');
+        try {
+          const devices = await admin.from('rewards_wallet_devices').select('device_id,push_token').eq('customer_id', customerId);
+          if (devices.error) throw new Error('wallet_sync_unavailable');
+          for (const device of devices.data ?? []) {
+            const result = await pushApplePass(device.push_token);
+            if (result === 'removed') await admin.from('rewards_wallet_devices').delete().eq('device_id', device.device_id).eq('customer_id', customerId);
+          }
+          const saved = await admin.from('rewards_wallet_members').update({ apple_synced_revision: card.revision }).eq('customer_id', customerId);
+          if (saved.error) throw new Error('wallet_sync_unavailable');
+        } catch (error) { failures.push(code(error)); }
       }
+      if (failures.length) throw new Error(failures[0]);
       await admin.from('rewards_wallet_members').update({ last_error: null, updated_at: new Date().toISOString() }).eq('customer_id', customerId);
       results.push({ status: 'synced' });
     } catch (error) {
@@ -210,7 +228,7 @@ Deno.serve(async request => {
     const registration = await admin.from('rewards_wallet_devices').select('customer_id').eq('customer_id', card.customer_id).limit(1);
     const qr = await QRCode.toDataURL(scanUrl(card), { width: 512, margin: 4, errorCorrectionLevel: 'M' });
     return output({ name: card.name, points: card.points_balance, creditCents: Math.max(0, card.points_balance), cardId: card.card_id,
-      updatedAt: card.updated_at, qr, wallet: walletConfiguration(),
+      updatedAt: card.updated_at, qr, earning: card.earning, wallet: walletConfiguration(),
       walletStatus: { appleConnected: registration.error ? null : Boolean(registration.data?.length) }, ledger: ledger.data });
   } catch (error) { return output({ error: code(error) }, 503); }
 });

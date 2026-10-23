@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '@/components/ui';
+import { RewardsEarningCards } from '@/components/rewards-earning-cards';
 import { useRewardsAccount } from '@/hooks/use-rewards-account';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { formatRewardsCredit, formatRewardsPoints, prepareRewardsWallet } from '@/lib/rewards';
 import { colors, spacing } from '@/constants/brand';
+import { rewardsSubscriptionLabel, rewardsWalletProviders } from '@/lib/rewards-earning';
 
 export default function RewardsScreen() {
   const router = useRouter();
@@ -15,9 +17,13 @@ export default function RewardsScreen() {
   const [busy, setBusy] = useState<'apple' | 'google' | null>(null);
   const [notice, setNotice] = useState('');
   const [openedWallet, setOpenedWallet] = useState<'apple' | 'google' | null>(null);
+  const walletProviders = rewardsWalletProviders(Platform.OS,
+    Platform.OS === 'web' && typeof navigator !== 'undefined' ? navigator.userAgent : '',
+    Platform.OS === 'web' && typeof navigator !== 'undefined' ? navigator.maxTouchPoints : 0);
   const account = rewards.account;
   const appleConnected = account?.walletStatus?.appleConnected === true;
-  const platformWalletReady = account && (Platform.OS === 'ios' ? account.wallet.apple : Platform.OS === 'android' ? account.wallet.google : account.wallet.apple || account.wallet.google);
+  const platformWalletReady = account && walletProviders.some(provider => account.wallet[provider]);
+  const double = account?.earning.multiplier === 2;
   const creditText = account ? formatRewardsCredit(account.creditCents) : '';
   const creditFontSize = Math.max(18, Math.min(47, (Math.min(width - horizontalPadding * 2 - 20, 420) - 50) / Math.max(1, creditText.length * 0.65)));
   const addWallet = async (provider: 'apple' | 'google') => {
@@ -47,10 +53,25 @@ export default function RewardsScreen() {
           <Text style={s.cardLabel}>WORKSHOP CREDIT</Text>
           <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={[s.amount, { fontSize: creditFontSize }]}>{creditText}</Text>
           <Text style={s.points}>{formatRewardsPoints(account.points)} points</Text>
+          <RewardsEarningCards earning={account.earning} />
+          <Text accessibilityLiveRegion="polite" style={s.subscription}>{rewardsSubscriptionLabel(account.earning)}</Text>
+          {account.earning.state === 'unavailable' ? <View style={s.upgrade}>
+              <Text style={s.cardHint}>Refresh to check your earning rate. Your points are safe.</Text>
+              <PrimaryButton label="Refresh earning rate" onPress={rewards.refresh} />
+            </View> : double ? <Text accessibilityLiveRegion="polite" style={s.activeRate}>2× POINTS ACTIVE</Text>
+            : account.earning.subscriptionStatus === 'active' ? <View style={s.upgrade}>
+              <Text style={s.cardHint}>Your current earning rate is 1×. Your existing points are safe.</Text>
+              <PrimaryButton label="Refresh earning rate" onPress={rewards.refresh} />
+            </View>
+            : account.earning.subscriptionStatus !== 'permanent' ? <View style={s.upgrade}>
+              <PrimaryButton label="UNLOCK 2× POINTS" disabled={!account.earning.bonusEnabled}
+                onPress={() => router.push('/performance-plus')} />
+              {!account.earning.bonusEnabled ? <Text style={s.cardHint}>Double points is not available yet.</Text> : null}
+            </View> : null}
           <View style={s.divider} />
           <Text style={s.member}>{account.name}</Text>
           <Image accessibilityLabel="Your PSI loyalty card QR code. Show this to PSI staff." source={{ uri: account.qr }} resizeMode="contain" style={s.qr} />
-          <Text selectable style={s.cardNumber}>{account.cardId.slice(0, 8).toUpperCase()}</Text>
+          <Text selectable style={s.cardNumber}>MEMBER {account.cardId.slice(0, 8).toUpperCase()}</Text>
           <Text style={s.cardFooter}>Your car. Your rewards.</Text>
         </View>
         <Text style={s.rate}>1,000 points = AUD 10 workshop credit</Text>
@@ -59,19 +80,18 @@ export default function RewardsScreen() {
         <View style={s.panel}>
           <Text style={s.sectionTitle}>Keep your card handy</Text>
           <Text style={s.copy}>Show this card in the workshop, or save it to your phone’s Wallet.</Text>
-          {(Platform.OS === 'ios' || Platform.OS === 'web') && appleConnected ? <Text accessibilityLiveRegion="polite" style={s.walletConfirmed}>✓ Connected to Apple Wallet</Text> : null}
-          {(Platform.OS === 'ios' || Platform.OS === 'web') && account.wallet.apple ? <PrimaryButton label="Save Apple Wallet card" disabled={Boolean(busy)} loading={busy === 'apple'} onPress={() => void addWallet('apple')} /> : null}
-          {(Platform.OS === 'android' || Platform.OS === 'web') && account.wallet.google ? <PrimaryButton label="Save Google Wallet card" disabled={Boolean(busy)} loading={busy === 'google'} onPress={() => void addWallet('google')} /> : null}
-          {!platformWalletReady ? <Text style={s.copy}>Wallet downloads are being connected. Your loyalty card and balance are available here.</Text> : null}
+          {walletProviders.includes('apple') && appleConnected ? <Text accessibilityLiveRegion="polite" style={s.walletConfirmed}>✓ Connected to Apple Wallet</Text> : null}
+          {walletProviders.includes('apple') && account.wallet.apple ? <PrimaryButton label="Add to Apple Wallet" disabled={Boolean(busy)} loading={busy === 'apple'} onPress={() => void addWallet('apple')} /> : null}
+          {walletProviders.includes('google') && account.wallet.google ? <PrimaryButton label="Add to Google Wallet" disabled={Boolean(busy)} loading={busy === 'google'} onPress={() => void addWallet('google')} /> : null}
+          {!platformWalletReady ? <Text style={s.copy}>{walletProviders.length === 1 ? `${walletProviders[0] === 'google' ? 'Google' : 'Apple'} Wallet is not available yet.` : 'Wallet downloads are not available yet.'} Your card and balance are available here.</Text> : null}
           {openedWallet === 'apple' && !appleConnected && !notice ? <><Text accessibilityLiveRegion="polite" style={s.copy}>Apple Wallet opened. Tap Add if prompted, then return to PSI. A connection confirmation will appear when Apple registers your card.</Text><PrimaryButton label="Check Wallet connection" variant="outline" onPress={rewards.refresh} /></> : null}
           {openedWallet === 'google' && !notice ? <Text accessibilityLiveRegion="polite" style={s.copy}>Google Wallet opened. Complete the save in Google Wallet to keep your card.</Text> : null}
           {notice ? <Text accessibilityLiveRegion="polite" style={s.copy}>{notice}</Text> : null}
         </View>
         <View style={s.panel}>
           <Text style={s.sectionTitle}>How your points work</Text>
-          <Text style={s.copy}>Earn 1 point for each whole AUD 1 of eligible spending on a fully paid invoice. Points appear after Xero confirms the payment, usually within a few minutes.</Text>
-          <Text style={s.copy}>Your deposit and balance count toward one invoice reward. Online payments, bank transfers and cash recorded against your invoice follow the same rules.</Text>
-          <Text style={s.copy}>Use your workshop credit toward future PSI invoices. Amounts covered by rewards do not earn new points. Refunds and invoice corrections can adjust your points.</Text>
+          <Text style={s.copy}>Earn {double ? '2 points' : '1 point'} per whole AUD 1 of {double ? 'qualifying ' : ''}eligible spending. Points are awarded once your invoice is fully paid.</Text>
+          <Text style={s.copy}>Use your credit toward future PSI invoices. Your earned points stay yours when Performance+ ends. Rewards credit does not earn more points. Refunds can adjust your balance.</Text>
           <PrimaryButton label="Refresh my balance" variant="outline" onPress={rewards.refresh} />
         </View>
         <View style={s.panel}>
@@ -96,6 +116,9 @@ const s = StyleSheet.create({
   logo: { width: 122, height: 49 }, cardTitle: { color: '#65CFF8', fontWeight: '900', fontSize: 17 }, cardLabel: { color: '#CAD2D8', fontWeight: '800', letterSpacing: 2, fontSize: 14, marginTop: 12 },
   amount: { color: '#65CFF8', fontWeight: '900', fontSize: 47, width: '100%', textAlign: 'center' }, points: { color: '#FFFFFF', fontSize: 25, fontWeight: '900', textAlign: 'center' },
   divider: { height: 1, backgroundColor: '#687B89', alignSelf: 'stretch', marginVertical: 8 }, member: { color: '#FFFFFF', fontSize: 17, fontWeight: '800', textAlign: 'center' },
+  subscription: { color: '#CAD2D8', fontSize: 11, lineHeight: 18, fontWeight: '800', textAlign: 'center' },
+  activeRate: { color: '#65CFF8', fontSize: 17, fontWeight: '900', textAlign: 'center' },
+  upgrade: { alignSelf: 'stretch', gap: 9 }, cardHint: { color: '#CAD2D8', fontSize: 12, lineHeight: 18, textAlign: 'center' },
   qr: { width: '75%', maxWidth: 220, aspectRatio: 1, backgroundColor: '#FFFFFF', borderRadius: 18 }, cardNumber: { color: '#CAD2D8', fontSize: 12, letterSpacing: 2 },
   cardFooter: { color: '#DBE3E7', fontSize: 17, textAlign: 'center', marginTop: 7 }, rate: { color: colors.accent, fontSize: 17, fontWeight: '900', textAlign: 'center' },
   entry: { gap: 6, paddingVertical: 14, borderTopWidth: 1, borderColor: colors.line }, entryTitle: { color: colors.white, fontSize: 17, fontWeight: '800' }, entryPoints: { color: colors.accent, fontSize: 18, fontWeight: '900' },
