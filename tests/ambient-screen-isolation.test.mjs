@@ -36,6 +36,9 @@ function components(platform, activeTheme) {
     '../../assets/images/ambient/garage.png': 'garage.png',
     '../../assets/images/ambient/reports.png': 'reports.png',
     '../../assets/images/ambient/forms.png': 'forms.png',
+    '../../assets/images/ambient/bright-garage.jpg': 'bright-garage.jpg',
+    '../../assets/images/ambient/bright-reports.jpg': 'bright-reports.jpg',
+    '../../assets/images/ambient/bright-forms.jpg': 'bright-forms.jpg',
   });
 }
 const flatten = styles => Object.assign({}, ...[styles].flat(Infinity).filter(Boolean));
@@ -96,12 +99,25 @@ test('both navigators give every retained screen an opaque ambient backing witho
 test('retained Home, booking and report scenes keep distinct route artwork', () => {
   const { AmbientScreen, AmbientBackground } = components('web', 'bright');
   for (const [routeName, expectedPath, image] of [
-    ['index', '/', 'garage.png'], ['bookings', '/bookings', 'forms.png'],
-    ['account/sign-up', '/account/sign-up', 'forms.png'], ['vehicle-reports', '/vehicle-reports', 'reports.png'],
+    ['index', '/', 'bright-garage.jpg'], ['bookings', '/bookings', 'bright-forms.jpg'],
+    ['account/sign-up', '/account/sign-up', 'bright-forms.jpg'], ['vehicle-reports', '/vehicle-reports', 'bright-reports.jpg'],
   ]) {
     const scene = AmbientScreen({ routeName, children: jsx('ExistingScreen', {}) });
     const background = scene.props.children[0];
     assert.equal(background.props.pathname, expectedPath);
     assert.equal(AmbientBackground(background.props).props.children[0].props.source, image);
+  }
+});
+
+// A bright-only release must not replace artwork or tint on any dark scene.
+test('dark backgrounds preserve the approved artwork and exact opacity on every platform', () => {
+  for (const platform of ['web', 'ios', 'android']) {
+    const { AmbientBackground } = components(platform, 'dark');
+    for (const [path, expected] of [['/', 'garage.png'], ['/garage', 'garage.png'], ['/alerts', 'garage.png'], ['/booking', 'forms.png'], ['/account/sign-up', 'forms.png'], ['/vehicle-reports', 'reports.png']]) {
+      const background = AmbientBackground({ pathname: path });
+      assert.equal(flatten(background.props.style).backgroundColor, '#030B12');
+      assert.equal(background.props.children[0].props.source, expected);
+      assert.equal(flatten(background.props.children[1].props.style).backgroundColor, 'rgba(3, 11, 18, 0.46)');
+    }
   }
 });

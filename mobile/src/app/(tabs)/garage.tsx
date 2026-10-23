@@ -419,12 +419,12 @@ function GarageContent({
             onPress={() => setVehicleSelectorOpen((current) => !current)}
             style={({ pressed }) => [styles.selectedVehicleChoice, pressed && styles.pressed]}
           >
-            <Ionicons color={colors.ink} name="car-sport" size={21} />
+            <Ionicons color={colors.selectionText} name="car-sport" size={21} />
             <View style={styles.vehicleChoiceCopy}>
               <Text numberOfLines={1} style={[styles.vehicleChoiceTitle, styles.vehicleChoiceTextSelected]}>{selectedVehicle.make} {selectedVehicle.model}</Text>
               <Text numberOfLines={1} style={[styles.vehicleChoiceMeta, styles.vehicleChoiceMetaSelected]}>{selectedVehicle.year} · {selectedVehicle.registration}</Text>
             </View>
-            <Ionicons color={colors.ink} name={vehicleSelectorOpen ? 'chevron-up' : 'chevron-down'} size={19} />
+            <Ionicons color={colors.selectionText} name={vehicleSelectorOpen ? 'chevron-up' : 'chevron-down'} size={19} />
           </Pressable>
           <Pressable
             accessibilityLabel="Add vehicle"
@@ -449,12 +449,12 @@ function GarageContent({
                   onPress={() => selectGarageVehicle(vehicle.id)}
                   style={({ pressed }) => [styles.vehicleDropdownChoice, selected && styles.vehicleDropdownChoiceSelected, pressed && styles.pressed]}
                 >
-                  <Ionicons color={selected ? colors.ink : colors.accent} name="car-sport" size={20} />
+                  <Ionicons color={selected ? colors.selectionText : colors.accent} name="car-sport" size={20} />
                   <View style={styles.vehicleChoiceCopy}>
                     <Text style={[styles.vehicleChoiceTitle, selected && styles.vehicleChoiceTextSelected]}>{vehicle.make} {vehicle.model}</Text>
                     <Text style={[styles.vehicleChoiceMeta, selected && styles.vehicleChoiceMetaSelected]}>{vehicle.year} · {vehicle.registration}</Text>
                   </View>
-                  {selected ? <Ionicons color={colors.ink} name="checkmark-circle" size={20} /> : null}
+                  {selected ? <Ionicons color={colors.selectionText} name="checkmark-circle" size={20} /> : null}
                 </Pressable>
               );
             })}
@@ -780,17 +780,17 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.white, fontSize: 15, fontWeight: '900', letterSpacing: .8, textTransform: 'uppercase' },
   sectionMeta: { color: colors.accent, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   vehicleSelectorRow: { width: '100%', flexDirection: 'row', alignItems: 'stretch', gap: spacing.sm },
-  selectedVehicleChoice: { ...mobileFrame, minWidth: 0, minHeight: 70, flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.silver, padding: spacing.md },
+  selectedVehicleChoice: { ...mobileFrame, minWidth: 0, minHeight: 70, flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.selectionSurface, padding: spacing.md },
   vehicleChoiceCopy: { flex: 1, minWidth: 0, gap: 2 },
   vehicleChoiceTitle: { color: colors.white, fontSize: 12, fontWeight: '900' },
-  vehicleChoiceTextSelected: { color: colors.ink },
+  vehicleChoiceTextSelected: { color: colors.selectionText },
   vehicleChoiceMeta: { color: colors.muted, fontSize: 10, textTransform: 'uppercase' },
-  vehicleChoiceMetaSelected: { color: colors.onSilverMuted },
+  vehicleChoiceMetaSelected: { color: colors.selectionMuted },
   addVehicle: { ...mobileFrame, width: 132, minHeight: 70, flexShrink: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, backgroundColor: colors.ink, paddingHorizontal: spacing.sm },
   addVehicleText: { flexShrink: 1, color: colors.white, fontSize: 10, fontWeight: '900', textTransform: 'uppercase' },
   vehicleDropdown: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
   vehicleDropdownChoice: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.line, padding: spacing.md },
-  vehicleDropdownChoiceSelected: { backgroundColor: colors.silver },
+  vehicleDropdownChoiceSelected: { backgroundColor: colors.selectionSurface },
   vehicleCard: { ...mobileFrame, overflow: 'hidden', backgroundColor: colors.panel },
   vehicleCardWide: { flexDirection: 'row' },
     vehicleImageFrame: { width: '100%', aspectRatio: 16 / 9, overflow: 'hidden', backgroundColor: '#090909' },

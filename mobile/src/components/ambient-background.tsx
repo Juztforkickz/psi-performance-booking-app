@@ -10,6 +10,14 @@ const BACKGROUNDS = {
   forms: require('../../assets/images/ambient/forms.png'),
 } as const;
 
+// Dedicated daylight photography keeps bright mode natural, rather than
+// washing the dark artwork out with an almost opaque white overlay.
+const BRIGHT_BACKGROUNDS = {
+  garage: require('../../assets/images/ambient/bright-garage.jpg'),
+  reports: require('../../assets/images/ambient/bright-reports.jpg'),
+  forms: require('../../assets/images/ambient/bright-forms.jpg'),
+} as const;
+
 /**
  * A fixed, decorative workshop layer sits behind screen content or the footer.
  * Forms scroll above it without moving or downloading the artwork. The car
@@ -31,7 +39,7 @@ export function AmbientBackground({ pathname }: { pathname: string }) {
         accessible={false}
         fadeDuration={0}
         resizeMode="cover"
-        source={BACKGROUNDS[ambientSceneForPath(pathname)]}
+        source={(bright ? BRIGHT_BACKGROUNDS : BACKGROUNDS)[ambientSceneForPath(pathname)]}
         style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
       />
       <View style={[StyleSheet.absoluteFill, bright ? styles.brightTint : styles.darkTint]} />
@@ -63,5 +71,5 @@ const styles = StyleSheet.create({
   darkBase: { backgroundColor: '#030B12' },
   brightBase: { backgroundColor: '#F4F8FA' },
   darkTint: { backgroundColor: 'rgba(3, 11, 18, 0.46)' },
-  brightTint: { backgroundColor: 'rgba(244, 248, 250, 0.93)' },
+  brightTint: { backgroundColor: 'rgba(248, 251, 253, 0.48)' },
 });
