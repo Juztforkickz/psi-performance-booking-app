@@ -51,6 +51,6 @@ test("customer payment copy distinguishes wallets from bank transfer", async () 
   assert.match(bookings, /Bank transfer/u);
   assert.match(bookings, /stays unconfirmed until PSI matches the cleared transfer/u);
   assert.match(integrationWorker, /Date approved · deposit ready/u);
-  assert.match(integrationWorker, /Open Bookings in the PSI app now to choose card, Apple Pay, Google Pay or bank transfer/u);
+  assert.match(integrationWorker, /to choose card, Apple Pay, Google Pay or bank transfer/u);
   assert.match(depositPromptMigration, /Open Bookings now to choose card, Apple Pay, Google Pay or bank transfer for your deposit/u);
 });

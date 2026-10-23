@@ -1,6 +1,7 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { processAccountSignupNotifications } from "./account-signup-notifications.ts";
+import { bookingEmailAction } from "./booking-email-action.ts";
 
 type JobKind =
   | "notify_psi_request_received"
@@ -283,12 +284,12 @@ const buildEmail = (job: IntegrationJob, context: BookingContext) => {
     case "notify_customer_date_proposed":
       subject = `PSI proposed ${approvedDate}`;
       heading = "Workshop date proposed";
-      message = `PSI has proposed ${approvedDate}. Review the date in your account. This is not a confirmed booking and no payment has been taken.`;
+      message = `PSI has suggested ${approvedDate}. Contact PSI to agree on this date. PSI will then approve it and send your deposit request. No deposit is requested yet and this booking is not confirmed.`;
       break;
     case "notify_customer_date_approved":
       subject = `Your PSI date is approved for ${approvedDate}`;
       heading = "Date approved · deposit ready";
-      message = `Your requested date has been approved for ${approvedDate}. Open Bookings in the PSI app now to choose card, Apple Pay, Google Pay or bank transfer for the ${depositLabel(context)} deposit. The booking is confirmed only after payment is verified.`;
+      message = `Your workshop date has been approved for ${approvedDate}. Use the button below, or open Bookings in the PSI app, to choose card, Apple Pay, Google Pay or bank transfer for the ${depositLabel(context)} deposit. Sign in with the email used for this booking. The booking is confirmed only after payment is verified.`;
       break;
     case "notify_customer_cancelled":
       subject = "PSI booking request update";
@@ -314,7 +315,8 @@ const buildEmail = (job: IntegrationJob, context: BookingContext) => {
       throw new Error("unsupported_email_job");
   }
 
-  const text = `Hi ${greeting},\n\n${message}\n\n${common}\n\nPSI Performance\n21 Exchange Drive, Pakenham VIC 3810\n0433431781`;
+  const action = bookingEmailAction(job.job_kind);
+  const text = `Hi ${greeting},\n\n${message}${action ? `\n\n${action.label}: ${action.url}` : ""}\n\n${common}\n\nPSI Performance\n21 Exchange Drive, Pakenham VIC 3810\n0433431781`;
   const html = `
     <div style="background:#0a0a0a;color:#f5f5f5;font-family:Arial,sans-serif;padding:28px">
       <div style="max-width:620px;margin:auto;border:1px solid #40382a;background:#151515;padding:26px">
@@ -322,6 +324,7 @@ const buildEmail = (job: IntegrationJob, context: BookingContext) => {
         <h1 style="font-size:24px;margin:12px 0 18px">${escapeHtml(heading)}</h1>
         <p>Hi ${escapeHtml(greeting)},</p>
         <p style="line-height:1.6">${escapeHtml(message)}</p>
+        ${action ? `<p style="margin:22px 0"><a href="${escapeHtml(action.url)}" style="background:#65CFF8;border-radius:12px;color:#050505;display:inline-block;font-weight:700;padding:14px 20px;text-decoration:none">${escapeHtml(action.label)}</a></p><p style="font-size:12px;line-height:1.6">If the button does not open, go to Bookings in your PSI app.</p>` : ""}
         <div style="border-top:1px solid #333;margin-top:22px;padding-top:18px;line-height:1.7">
           ${commonLines.map((line, index) => `${index === 0 ? "<strong>" : ""}${escapeHtml(line)}${index === 0 ? "</strong>" : ""}<br>`).join("\n")}
         </div>
@@ -522,6 +525,7 @@ const syncGoogleCalendar = async (admin: SupabaseClient, job: IntegrationJob, co
   }
 
   const booking = context.booking.booking_type === "diagnostics" ? "Diagnostics & Repairs" : context.booking.booking_type === "dyno" ? "Dyno tuning" : "Service & Report";
+  const visitDetails = requestContextLines(context.booking.request_context);
   const eventBody = {
     id: eventId,
     summary: `${customerName(context)} · ${booking} · ${context.vehicle.registration}`,
@@ -529,7 +533,13 @@ const syncGoogleCalendar = async (admin: SupabaseClient, job: IntegrationJob, co
       `Customer: ${customerName(context)}`,
       `Vehicle: ${vehicleLabel(context)}`,
       `Mobile: ${context.customer.mobile ?? "Not supplied"}`,
-    ].join("\n"),
+      ...(context.booking.request_notes?.trim()
+        ? ["", "Customer booking notes (as supplied):", context.booking.request_notes]
+        : []),
+      ...(visitDetails.length ? ["", "Booking details:", ...visitDetails] : []),
+    // Calendar descriptions accept HTML. Show customer input as literal text,
+    // preserving their wording and line breaks, never as active markup.
+    ].map((line) => escapeHtml(line).replace(/\r\n?|\n/g, "<br>\n")).join("<br>\n"),
     start: { date: approvedDate },
     end: { date: nextCalendarDate(approvedDate!) },
     attendees: [],

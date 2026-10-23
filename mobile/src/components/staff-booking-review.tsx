@@ -79,7 +79,7 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
         text: action === 'approve_date'
           ? 'Date approved. The customer’s email and app payment prompt are queued. The booking remains unconfirmed until payment is verified.'
           : action === 'propose_date'
-            ? 'Alternative date proposed. The customer still needs to accept it.'
+            ? 'Date suggestion saved. The customer notification is queued. No deposit has been requested. Once the date is agreed, choose Approve date and request deposit.'
             : 'Booking request cancelled.',
       });
     } catch (error) {
@@ -113,7 +113,7 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
     <View style={styles.workspace}>
       {discardDialog}
       <View style={styles.heading}>
-        <Text style={styles.title}>{feedback?.kind === 'success' ? 'Booking updated' : bankOpen ? 'Verify bank transfer' : action === 'approve_date' ? 'Approve date' : action === 'propose_date' ? 'Propose another date' : action === 'cancel' ? 'Cancel request' : 'Booking actions'}</Text>
+        <Text style={styles.title}>{feedback?.kind === 'success' ? 'Booking updated' : bankOpen ? 'Verify bank transfer' : action === 'approve_date' ? 'Approve date and request deposit' : action === 'propose_date' ? 'Suggest date only' : action === 'cancel' ? 'Cancel request' : 'Booking actions'}</Text>
         {(action || bankOpen) && feedback?.kind !== 'success' ? (
           <Pressable accessibilityLabel="Close booking review" accessibilityRole="button" disabled={busy} onPress={close} style={styles.close}>
             <Ionicons color={colors.white} name="close" size={20} />
@@ -130,8 +130,11 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
       ) : !action ? (
         <View style={styles.actions}>
           {!bankOpen ? <>
-            {booking.state !== 'date_approved' ? <PrimaryButton disabled={busy} label={booking.state === 'date_proposed' ? 'Approve proposed date' : 'Approve requested date'} onPress={() => chooseAction('approve_date')} /> : !REVIEW_ENVIRONMENT.enabled ? <PrimaryButton disabled={busy} label="Verify bank transfer" onPress={() => { setBankOpen(true); setFeedback(null); }} /> : null}
-            <PrimaryButton disabled={busy} label="Propose another date" onPress={() => chooseAction('propose_date')} variant="outline" />
+            {booking.state !== 'date_approved' ? <>
+              <Text style={styles.bankCopy}>{booking.state === 'date_proposed' ? 'This date is a suggestion only. Approve it below to request the deposit.' : 'Ready to go ahead? Approve the agreed workshop date to request the deposit.'}</Text>
+              <PrimaryButton disabled={busy} label="Approve date and request deposit" onPress={() => chooseAction('approve_date')} />
+            </> : !REVIEW_ENVIRONMENT.enabled ? <PrimaryButton disabled={busy} label="Verify bank transfer" onPress={() => { setBankOpen(true); setFeedback(null); }} /> : null}
+            <PrimaryButton disabled={busy} label="Suggest date only, no deposit" onPress={() => chooseAction('propose_date')} variant="outline" />
             <Pressable accessibilityRole="button" disabled={busy} onPress={() => chooseAction('cancel')} style={styles.secondaryAction}><Text style={styles.cancelText}>Cancel request</Text></Pressable>
           </> : null}
           {booking.state === 'date_approved' && !REVIEW_ENVIRONMENT.enabled && bankOpen ? (
@@ -175,9 +178,9 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
           <Pressable disabled={busy} accessibilityRole="checkbox" accessibilityState={{ checked: confirmed, disabled: busy }} onPress={() => setConfirmed((value) => !value)} style={styles.confirmRow}>
             <View style={[styles.checkbox, confirmed && styles.checkboxChecked]}>{confirmed ? <Ionicons color={colors.ink} name="checkmark" size={16} /> : null}</View>
             <Text style={styles.confirmText}>{action === 'approve_date'
-              ? 'I checked workshop capacity and this date. Payment is still required to confirm the booking.'
+              ? 'I checked workshop capacity and agreed this date with the customer. Send the deposit request. Payment is still required to confirm the booking.'
               : action === 'propose_date'
-                ? 'I checked this alternative date. The customer still needs to accept it.'
+                ? 'Send this date as a suggestion only. No deposit will be requested until PSI approves the agreed date.'
                 : 'I checked the request and cancellation reason.'}</Text>
           </Pressable>
           {feedback ? <Text accessibilityRole="alert" style={styles.error}>{feedback.text}</Text> : null}
@@ -189,8 +192,8 @@ export function StaffBookingReview({ booking, onRefresh, onDirtyChange, onBusyCh
 }
 
 function actionLabel(action: ReviewAction) {
-  if (action === 'approve_date') return 'Approve date';
-  if (action === 'propose_date') return 'Propose date';
+  if (action === 'approve_date') return 'Approve date and request deposit';
+  if (action === 'propose_date') return 'Send date suggestion only';
   return 'Confirm cancellation';
 }
 

@@ -499,6 +499,7 @@ function BookingCard({ booking, onPayment, paymentAttempt, paymentBusy }: { book
         <Text style={styles.bodyCopy}>{booking.vehicle}</Text>
         <Text style={styles.bookingDate}>{booking.date ? formatBookingDate(booking.date) : 'Preferred date awaits PSI review'}</Text>
         {booking.staffNote ? <Text style={styles.bookingStaffNote}>PSI note · {booking.staffNote}</Text> : null}
+        {booking.state === 'date_proposed' ? <Text style={styles.paymentPrompt}>PSI has suggested this date. Contact the workshop to agree on it. PSI will then approve the date and request your deposit.</Text> : null}
         {booking.state === 'date_approved' && onPayment ? (
           <View style={styles.paymentActions}>
             <Text style={styles.paymentPrompt}>{paymentAttempt?.payment_method === 'bank_transfer'
