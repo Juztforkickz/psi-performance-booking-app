@@ -1,5 +1,7 @@
 # PSI Rewards, 1× and 2× implementation review
 
+Release update: Matt subsequently approved rollout with “Make the change please”. See [Rewards release, 24 October](REWARDS-RELEASE-2026-10-24.md). The review below records the state and evidence before that release approval.
+
 24 October 2026. Matt approved the complete financial plan and requested implementation and testing before rollout. The implementation is prepared locally. Nothing has been pushed, deployed, activated or published. Earlier checkpoints: screen `a2033e4`, payment date and grace decisions `17c96cf`.
 
 ## Customer rules

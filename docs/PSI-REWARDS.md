@@ -1,6 +1,6 @@
 # PSI Rewards
 
-Local pending change, 24 October 2026: Matt approved implementation of the financial plan before rollout. The 1× / 2× system is implemented and locally verified, with the policy disabled and every change unpublished. See [Double points implementation review](REWARDS-DOUBLE-POINTS-2026-10-24.md) for rules, results and release requirements. The live standard rules below are unchanged. The earlier [screen and Wallet report](REWARDS-SCREEN-2026-10-23.md) records the first unpublished design checkpoint.
+Approved release, 24 October 2026: Matt approved rollout of the reviewed 1× / 2× system. The backend and existing iPhone and Android update channels have been released, with audited bonus activation at 4:45 pm Melbourne. The web app uses the existing main branch Pages workflow. See [Rewards release](REWARDS-RELEASE-2026-10-24.md) for deployment details, preserved balances and remaining device observations. The standard earning and redemption economics below remain unchanged. The earlier implementation and screen reports record the reviewed checkpoints.
 
 Approved by Matt on 22 October 2026. The home page rewards square and customer card use the approved silver and ice blue artwork with live account balances.
 
