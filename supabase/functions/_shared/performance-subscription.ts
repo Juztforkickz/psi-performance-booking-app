@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.112.3';
 import { interpretPerformanceEntitlement } from './performance-entitlement.ts';
+import { reconcileRewardsPaidSnapshot } from './rewards-paid-periods.ts';
 
 export const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Cache-Control': 'no-store' };
 export const json = (body: unknown, status = 200) => Response.json(body, { status, headers: cors });
@@ -27,5 +28,6 @@ export async function syncSubscription(customerId: string) {
   if (customerError || customer?.account_state !== 'active') throw new Error('customer_account_unavailable');
   const { error } = await admin.rpc('record_verified_performance_subscription', { p_customer_id: customerId, p_environment: verified.environment, p_status: verified.status, p_expires_at: verified.expires_at, p_auto_renews: verified.auto_renews, p_verified_at: startedAt });
   if (error) throw new Error('subscription_sync_failed');
+  await reconcileRewardsPaidSnapshot(admin, body.subscriber, customerId, products);
   return { verified: true, status: verified.status };
 }

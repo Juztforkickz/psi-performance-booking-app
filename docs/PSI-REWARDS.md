@@ -1,6 +1,6 @@
 # PSI Rewards
 
-Local pending change, 23 October 2026: the revised 1× / 2× comparison and verified Wallet earning status are prepared but unpublished. See [Rewards screen and Wallet status](REWARDS-SCREEN-2026-10-23.md) for verification and release boundaries. The financial double points policy remains disabled pending separate approval; the live standard rules below are unchanged.
+Local pending change, 24 October 2026: Matt approved implementation of the financial plan before rollout. The 1× / 2× system is implemented and locally verified, with the policy disabled and every change unpublished. See [Double points implementation review](REWARDS-DOUBLE-POINTS-2026-10-24.md) for rules, results and release requirements. The live standard rules below are unchanged. The earlier [screen and Wallet report](REWARDS-SCREEN-2026-10-23.md) records the first unpublished design checkpoint.
 
 Approved by Matt on 22 October 2026. The home page rewards square and customer card use the approved silver and ice blue artwork with live account balances.
 

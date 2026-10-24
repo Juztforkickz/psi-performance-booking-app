@@ -2,11 +2,15 @@ import { getSupabaseClient } from '@/lib/supabase';
 import { REVIEW_ENVIRONMENT } from '@/lib/review-environment';
 import { readRewardsEarning, type RewardsEarning } from '@/lib/rewards-earning';
 
-export type RewardsEntry = { id: string; invoice_number: string; points_change: number; kind: 'earned' | 'adjustment' | 'redeemed' | 'credit_restored'; created_at: string };
+export type RewardsEntry = { id: string; invoice_number: string; points_change: number; kind: 'earned' | 'adjustment' | 'redeemed' | 'credit_restored' | 'bonus_earned' | 'bonus_adjustment'; created_at: string };
+export type RewardsHistoryCursor = { at: string; id: string };
+export type RewardsInvoiceEarning = { invoiceId: string; invoiceNumber: string; paidOn: string | null; standardPoints: number;
+  bonusPoints: number; totalPoints: number; bonusPending: boolean };
 export type RewardsAccount = {
   name: string; points: number; creditCents: number; cardId: string; qr: string; updatedAt: string;
   wallet: { apple: boolean; google: boolean }; walletStatus?: { appleConnected: boolean | null }; ledger: RewardsEntry[];
   earning: RewardsEarning;
+  historyCursor?: RewardsHistoryCursor | null; invoiceEarnings?: RewardsInvoiceEarning[];
 };
 export const formatRewardsCredit = (cents: number) => `AUD ${(Math.max(0, cents) / 100).toFixed(2)}`;
 export const formatRewardsPoints = (points: number) => Math.max(0, points).toLocaleString('en-AU');
@@ -37,6 +41,11 @@ export async function prepareRewardsWallet(provider: 'apple' | 'google'): Promis
     : url.origin === 'https://pay.google.com' && url.pathname.startsWith('/gp/v/save/');
   if (!valid || url.protocol !== 'https:') throw new Error('The Wallet card could not be prepared. Please try again.');
   return url.href;
+}
+export async function loadRewardsHistory(cursor: RewardsHistoryCursor): Promise<{ entries: RewardsEntry[]; cursor: RewardsHistoryCursor | null }> {
+  const data = await requestRewards({ action: 'history', cursor });
+  if (!Array.isArray(data?.entries) || data.entries.some((entry: RewardsEntry) => !Number.isSafeInteger(Number(entry.points_change)))) throw new Error('Your rewards history could not be verified. Please refresh.');
+  return { entries: data.entries.map((entry: RewardsEntry) => ({ ...entry, points_change: Number(entry.points_change) })), cursor: data.hasMore ? data.cursor : null };
 }
 export function rewardsCardId(value: string) {
   const input = value.trim();

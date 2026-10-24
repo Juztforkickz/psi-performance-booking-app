@@ -6,7 +6,7 @@ import { PrimaryButton } from '@/components/ui';
 import { RewardsEarningCards } from '@/components/rewards-earning-cards';
 import { useRewardsAccount } from '@/hooks/use-rewards-account';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
-import { formatRewardsCredit, formatRewardsPoints, prepareRewardsWallet } from '@/lib/rewards';
+import { formatRewardsCredit, formatRewardsPoints, prepareRewardsWallet, loadRewardsHistory, type RewardsEntry, type RewardsHistoryCursor, type RewardsAccount } from '@/lib/rewards';
 import { colors, spacing } from '@/constants/brand';
 import { rewardsSubscriptionLabel, rewardsWalletProviders } from '@/lib/rewards-earning';
 
@@ -95,16 +95,42 @@ export default function RewardsScreen() {
           <PrimaryButton label="Refresh my balance" variant="outline" onPress={rewards.refresh} />
         </View>
         <View style={s.panel}>
-          <Text style={s.sectionTitle}>Points history</Text>
-          {!account.ledger.length ? <Text style={s.copy}>Your rewards history will appear here after your next eligible invoice is fully paid.</Text> : account.ledger.map(entry => <View key={entry.id} style={s.entry}>
-            <Text style={s.entryTitle}>{entry.kind === 'earned' ? 'Points earned' : entry.kind === 'redeemed' ? 'Credit used' : entry.kind === 'credit_restored' ? 'Credit restored' : 'Points adjusted'}</Text>
-            <Text style={s.copy}>{entry.invoice_number} · {new Date(entry.created_at).toLocaleDateString('en-AU', { timeZone: 'Australia/Melbourne' })}</Text>
-            <Text style={s.entryPoints}>{entry.points_change > 0 ? '+' : ''}{entry.points_change.toLocaleString('en-AU')} points</Text>
+          <Text style={s.sectionTitle}>Invoice points</Text>
+          {!account.invoiceEarnings?.length ? <Text style={s.copy}>Your invoice breakdown will appear here after eligible spending.</Text> : account.invoiceEarnings.map(entry => <View key={entry.invoiceId} style={s.entry}>
+            <Text style={s.entryTitle}>{entry.invoiceNumber}</Text>
+            <Text style={s.copy}>Standard {entry.standardPoints.toLocaleString('en-AU')} · Bonus {entry.bonusPoints.toLocaleString('en-AU')}</Text>
+            <Text style={s.entryPoints}>{entry.totalPoints.toLocaleString('en-AU')} total points</Text>
+            {entry.bonusPending ? <Text style={s.copy}>Bonus verification pending. Standard points are available.</Text> : null}
           </View>)}
         </View>
+        <RewardsPointsHistory key={account.cardId + ':' + account.updatedAt} account={account} />
       </>}
     </ScrollView>
   </SafeAreaView>;
+}
+
+export function RewardsPointsHistory({ account }: { account: RewardsAccount }) {
+  const [olderHistory, setOlderHistory] = useState<RewardsEntry[]>([]);
+  const [historyCursor, setHistoryCursor] = useState<RewardsHistoryCursor | null>(account.historyCursor ?? null);
+  const [historyBusy, setHistoryBusy] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const moreHistory = async () => {
+    if (!historyCursor || historyBusy) return;
+    setHistoryBusy(true); setHistoryError('');
+    try { const page = await loadRewardsHistory(historyCursor); setOlderHistory(items => [...items, ...page.entries]); setHistoryCursor(page.cursor); }
+    catch { setHistoryError('Your older points could not be loaded. Please try again.'); }
+    finally { setHistoryBusy(false); }
+  };
+  return <View style={s.panel}>
+          <Text style={s.sectionTitle}>Points history</Text>
+          {!account.ledger.length ? <Text style={s.copy}>Your rewards history will appear here after your next eligible invoice is fully paid.</Text> : [...new Map([...account.ledger,...olderHistory].map(entry => [entry.id,entry])).values()].map(entry => <View key={entry.id} style={s.entry}>
+            <Text style={s.entryTitle}>{entry.kind === 'earned' ? 'Standard points earned' : entry.kind === 'bonus_earned' ? 'Bonus points earned' : entry.kind === 'bonus_adjustment' ? 'Bonus points adjusted' : entry.kind === 'redeemed' ? 'Credit used' : entry.kind === 'credit_restored' ? 'Credit restored' : 'Points adjusted'}</Text>
+            <Text style={s.copy}>{entry.invoice_number} · {new Date(entry.created_at).toLocaleDateString('en-AU', { timeZone: 'Australia/Melbourne' })}</Text>
+            <Text style={s.entryPoints}>{entry.points_change > 0 ? '+' : ''}{entry.points_change.toLocaleString('en-AU')} points</Text>
+          </View>)}
+          {historyError ? <Text accessibilityRole="alert" style={s.copy}>{historyError}</Text> : null}
+          {historyCursor ? <PrimaryButton label="Show older points" variant="outline" disabled={historyBusy} loading={historyBusy} onPress={() => void moreHistory()} /> : null}
+        </View>;
 }
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: 'transparent' }, content: { paddingTop: spacing.lg, paddingBottom: 130, gap: 18, width: '100%', maxWidth: 700, alignSelf: 'center' },

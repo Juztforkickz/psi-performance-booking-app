@@ -6,8 +6,16 @@ import { env, uuid } from './xero-runtime.ts';
 // Reuse the existing encrypted Xero connection and refresh lease. Read-only invoice access.
 export async function rewardsXeroAccess(admin: SupabaseClient, tenant: string) {
   if (tenant !== env('XERO_TENANT_ID')) throw new Error('rewards_organisation_requires_review');
-  const { data: claim, error } = await admin.rpc('claim_xero_refresh', { p_tenant_id: tenant });
-  if (error || !claim || !uuid(claim.lock_token)) throw new Error('xero_refresh_busy');
+  let claim;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const result = await admin.rpc('claim_xero_refresh', { p_tenant_id: tenant });
+    if (!result.error) { claim = result.data; break; }
+    if (result.error.message !== 'xero_refresh_busy') throw new Error('xero_refresh_claim_failed');
+    if (attempt === 4) throw new Error('xero_refresh_busy');
+    await new Promise(resolve => setTimeout(resolve, 500 * 2 ** attempt));
+  }
+  if (!claim || !uuid(claim.lock_token) || !Number.isSafeInteger(Number(claim.revision))
+    || typeof claim.sealed_tokens !== 'string') throw new Error('xero_refresh_claim_invalid');
   let committed = false;
   try {
     const current = parseXeroTokenSet(await openXeroTokens(claim.sealed_tokens, tenant, env('XERO_TOKEN_ENCRYPTION_KEY')));

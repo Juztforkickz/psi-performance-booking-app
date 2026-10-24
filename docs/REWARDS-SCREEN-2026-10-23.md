@@ -1,5 +1,7 @@
 # PSI Rewards screen and Wallet status
 
+24 October update: Matt approved implementation of the financial plan, with results required before rollout. The financial system and extended invoice history are now implemented locally and verified. See [Double points implementation review](REWARDS-DOUBLE-POINTS-2026-10-24.md). The earlier report below records the first screen checkpoint; its pending financial plan approval statements are superseded by this update. Release approval remains required.
+
 Implemented locally on 23 October 2026. No web push, native OTA, App Store release, Google Play release, Edge Function deployment or production SQL migration has been published for this change.
 
 ## Customer screen

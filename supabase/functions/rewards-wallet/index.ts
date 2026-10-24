@@ -192,7 +192,9 @@ Deno.serve(async request => {
           admin.from('rewards_invoice_queue').select('invoice_id', { count: 'exact', head: true }).not('last_error', 'is', null),
         ]);
         if (config.error || pending.error || held.error) throw new Error('rewards_status_unavailable');
-        return output({ enabled: config.data.enabled, startsOn: config.data.starts_on, processing: pending.count ?? 0, held: held.count ?? 0, wallet: walletConfiguration() });
+        const financial = await admin.rpc('rewards_bonus_financial_report');
+        return output({ enabled: config.data.enabled, startsOn: config.data.starts_on, processing: pending.count ?? 0, held: held.count ?? 0,
+          wallet: walletConfiguration(), financial: financial.error ? null : financial.data });
       }
       const shortCode = typeof body.cardId === 'string' && /^[0-9a-f]{8}$/iu.test(body.cardId) ? body.cardId.toLowerCase() : null;
       if (!uuid(body.cardId) && !shortCode) return output({ error: 'invalid_rewards_card' }, 400);
@@ -205,6 +207,14 @@ Deno.serve(async request => {
       if (data.length !== 1) return output({ error: 'scan_full_rewards_card_required' }, 409);
       const card = await cardFor(admin, data[0].customer_id);
       return output({ name: card.name, points: card.points_balance, creditCents: Math.max(0, card.points_balance), cardId: card.card_id });
+    }
+    if (body.action === 'history') {
+      const cursor = body.cursor && typeof body.cursor === 'object' ? body.cursor as Record<string, unknown> : null;
+      if (cursor && (!uuid(cursor.id) || typeof cursor.at !== 'string' || !Number.isFinite(Date.parse(cursor.at)))) return output({ error: 'invalid_history_cursor' }, 400);
+      const page = await admin.rpc('rewards_history_page', { p_customer_id: identity.data.user.id,
+        p_before_at: cursor?.at ?? null, p_before_id: cursor?.id ?? null, p_limit: 30 });
+      if (page.error) throw new Error('rewards_history_unavailable');
+      return output(page.data);
     }
     const card = await cardFor(admin, identity.data.user.id);
     if (body.action === 'apple') {
@@ -225,10 +235,15 @@ Deno.serve(async request => {
     if (body.action !== undefined && body.action !== 'summary') return output({ error: 'invalid_action' }, 400);
     const ledger = await admin.from('rewards_ledger').select('id,invoice_number,points_change,kind,created_at').eq('customer_id', card.customer_id).order('created_at', { ascending: false }).limit(30);
     if (ledger.error) throw new Error('rewards_history_unavailable');
+    const history = await admin.rpc('rewards_history_page', { p_customer_id: card.customer_id, p_limit: 30 });
+    const earnings = await admin.rpc('rewards_invoice_earnings', { p_customer_id: card.customer_id });
     const registration = await admin.from('rewards_wallet_devices').select('customer_id').eq('customer_id', card.customer_id).limit(1);
     const qr = await QRCode.toDataURL(scanUrl(card), { width: 512, margin: 4, errorCorrectionLevel: 'M' });
     return output({ name: card.name, points: card.points_balance, creditCents: Math.max(0, card.points_balance), cardId: card.card_id,
       updatedAt: card.updated_at, qr, earning: card.earning, wallet: walletConfiguration(),
-      walletStatus: { appleConnected: registration.error ? null : Boolean(registration.data?.length) }, ledger: ledger.data });
+      walletStatus: { appleConnected: registration.error ? null : Boolean(registration.data?.length) },
+      ledger: Array.isArray(history.data?.entries) ? history.data.entries : ledger.data,
+      historyCursor: history.data?.hasMore ? history.data.cursor : null,
+      invoiceEarnings: Array.isArray(earnings.data) ? earnings.data : [] });
   } catch (error) { return output({ error: code(error) }, 503); }
 });

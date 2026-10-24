@@ -13,6 +13,9 @@ import { customerProfileComplete } from '@/lib/customer-access';
 import { CUSTOMER_AUTH } from '@/lib/customer-auth';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import { usePerformanceOverview } from '@/hooks/use-performance-overview';
+import { useRewardsAccount } from '@/hooks/use-rewards-account';
+import { RewardsEarningCards } from '@/components/rewards-earning-cards';
+import { rewardsSubscriptionLabel } from '@/lib/rewards-earning';
 import { performanceStatus } from '@/lib/performance-status';
 import { useCustomerPreview } from '@/lib/customer-preview-context';
 import { aud, loadVaultOverview, PERFORMANCE_PRICING, reportSectionCount, REPORT_KINDS, REPORT_LABELS, type ReportSection, type VaultOverview } from '@/lib/performance-plus';
@@ -67,6 +70,7 @@ export default function PerformancePlusScreen() {
   const auth = useCustomerAuth();
   const { account } = useCustomerAccount();
   const preview = useCustomerPreview();
+  const rewards = useRewardsAccount();
   const { vehicleId: requested, kind: requestedKind, entry } = useLocalSearchParams<{ vehicleId?: string; kind?: string; entry?: string }>();
   const requestedSection = requestedKind === 'modification' ? 'document' : requestedKind;
   const focusedKind = REPORT_KINDS.includes(requestedSection as ReportSection) ? requestedSection as ReportSection : null;
@@ -186,6 +190,18 @@ export default function PerformancePlusScreen() {
   </View> : null;
   return <SafeAreaView edges={['top', 'left', 'right']} style={s.screen}><ScrollView contentContainerStyle={[s.content, { paddingHorizontal: horizontalPadding }]}>
     <Pressable accessibilityRole="button" onPress={() => router.back()}><Text style={s.link}>‹ Back</Text></Pressable>
+    <View style={s.planCard}>
+      <Text style={s.eyebrow}>PSI REWARDS</Text>
+      {rewards.account ? <>
+        <RewardsEarningCards earning={rewards.account.earning} />
+        <Text style={s.copy}>{rewardsSubscriptionLabel(rewards.account.earning)}</Text>
+        <Text style={s.copy}>{rewards.account.earning.multiplier === 2 ? '2× PSI Rewards Active. Eligible payments during verified paid access earn bonus points once the invoice is fully paid.'
+          : rewards.account.earning.bonusEnabled ? 'Earn 2× PSI Rewards points with paid Performance+. Complimentary trials and permanent complimentary access earn standard points.'
+          : 'Your PSI Free Rewards remain available. Double points is not available yet.'}</Text>
+      </> : <Text style={s.copy}>PSI Rewards membership is free. Open Rewards to check your verified earning rate and balance.</Text>}
+      <Text style={s.muted}>1,000 points = AUD 10 workshop credit. Your earned points stay yours after Performance+ ends.</Text>
+      <PrimaryButton label="Open PSI Rewards" variant="outline" onPress={() => router.push('/rewards')} />
+    </View>
     {openedFromHome ? pricingPanel : null}
     {focusedKind && !showAll ? <>
       <View style={s.heading}>

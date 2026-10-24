@@ -17,7 +17,7 @@ function fixture(body=subscriber(),httpStatus=200){
   const env={REVENUECAT_SECRET_KEY:'server-fixture-secret',PERFORMANCE_APPLE_PRODUCT_IDS:`${product},fixture.annual`,SUPABASE_URL:'https://example.invalid',SUPABASE_SERVICE_ROLE_KEY:'fixture'};
   const api={};vm.runInNewContext(source,{exports:api,Deno:{env:{get:name=>env[name]}},Date,Response,AbortSignal,
     fetch:async(url,options)=>{requests.push({url,options});return Response.json({subscriber:body},{status:httpStatus});},
-    require:name=>name.includes('supabase-js')?{createClient:()=>admin}:{interpretPerformanceEntitlement}});
+    require:name=>name.includes('supabase-js')?{createClient:()=>admin}:name.includes('rewards-paid-periods')?{reconcileRewardsPaidSnapshot:async()=>{}}:{interpretPerformanceEntitlement}});
   return{run:()=>api.syncSubscription(id),writes,requests};
 }
 test('server sync verifies provider truth before recording a renewal or cancellation',async()=>{

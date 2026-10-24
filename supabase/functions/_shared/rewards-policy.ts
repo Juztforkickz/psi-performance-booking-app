@@ -4,6 +4,7 @@ export type RewardsInvoice = {
   InvoiceNumber?: string; Contact?: { ContactID?: string };
   Total?: number; AmountDue?: number; AmountPaid?: number; AmountCredited?: number;
   FullyPaidOnDate?: unknown; UpdatedDateUTC?: unknown; UpdatedDateUTCString?: unknown;
+  Payments?: { PaymentID?: string; Amount?: number }[];
   CreditNotes?: { AppliedAmount?: number }[];
   Prepayments?: { AppliedAmount?: number }[];
   Overpayments?: { AppliedAmount?: number }[];

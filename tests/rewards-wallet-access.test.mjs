@@ -106,6 +106,15 @@ test('customer ID supplied by the caller is ignored in favour of the verified id
   assert.equal(h.calls.find(call => call.qr)?.qr.includes('Sample'), false);
 });
 
+test('history pagination is bound to the verified owner and rejects malformed cursors',async()=>{
+  const h=harness({signedIn:true});
+  const cursor={at:'2026-10-23T00:00:00Z',id:id(10)};
+  assert.equal((await h.call({action:'history',customerId:id(2),cursor})).status,200);
+  const query=h.calls.find(call=>call.rpc==='rewards_history_page');assert.equal(query.args.p_customer_id,id(1));assert.equal(query.args.p_before_id,id(10));
+  assert.equal((await h.call({action:'history',cursor:{id:'bad',at:'bad'}})).status,400);
+  const anonymous=harness();assert.equal((await anonymous.call({action:'history',cursor})).status,401);
+});
+
 test('summary ignores customer multiplier claims and uses own verified backend earning evidence', async () => {
   const proof = { customer_id: id(1), multiplier: 2, bonus_enabled: true, paid_period_verified: true,
     subscription_status: 'active', environment: 'production', store: 'app_store', product_id: 'psi_performance_plus_monthly',
