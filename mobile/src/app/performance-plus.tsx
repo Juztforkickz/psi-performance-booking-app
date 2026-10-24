@@ -195,7 +195,8 @@ export default function PerformancePlusScreen() {
       {rewards.account ? <>
         <RewardsEarningCards earning={rewards.account.earning} />
         <Text style={s.copy}>{rewardsSubscriptionLabel(rewards.account.earning)}</Text>
-        <Text style={s.copy}>{rewards.account.earning.multiplier === 2 ? '2× PSI Rewards Active. Eligible payments during verified paid access earn bonus points once the invoice is fully paid.'
+        <Text style={s.copy}>{rewards.account.earning.complimentaryDouble ? 'Permanent complimentary 2× Rewards is included with your account. No subscription payment is required.'
+          : rewards.account.earning.multiplier === 2 ? '2× PSI Rewards Active. Eligible payments during verified paid access earn bonus points once the invoice is fully paid.'
           : rewards.account.earning.bonusEnabled ? 'Earn 2× PSI Rewards points with paid Performance+. Complimentary trials and permanent complimentary access earn standard points.'
           : 'Your PSI Free Rewards remain available. Double points is not available yet.'}</Text>
       </> : <Text style={s.copy}>PSI Rewards membership is free. Open Rewards to check your verified earning rate and balance.</Text>}

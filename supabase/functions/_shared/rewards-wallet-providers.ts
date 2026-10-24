@@ -54,11 +54,14 @@ export function walletEarning(card: RewardsCard) {
   const earning = card.earning;
   if (earning?.state === 'unavailable') return { label: 'CHECK IN APP', until: null,
     details: 'Your points and workshop credit are available. Open PSI Rewards to check your current earning rate.' };
+  const complimentary = earning?.complimentaryDouble === true && earning.subscriptionStatus === 'permanent';
   const double = earning?.multiplier === 2 && earning.state === 'double' && earning.bonusEnabled
-    && earning.subscriptionStatus === 'active' && !!earning.validUntil && Date.parse(earning.validUntil) > Date.now();
+    && (complimentary && (!earning.validUntil || Date.parse(earning.validUntil) > Date.now())
+      || earning.subscriptionStatus === 'active' && !!earning.validUntil && Date.parse(earning.validUntil) > Date.now());
   const until = double ? earning.validUntil : null;
   return { label: double ? '2× POINTS ACTIVE' : '1× POINTS', until,
-    details: double ? `Paid Performance+. Earn 2 points per AUD 1 of qualifying eligible spending. Paid rate until ${new Date(until!).toISOString()}.`
+    details: double && complimentary ? 'Permanent complimentary 2× Rewards. Earn 2 points per AUD 1 of qualifying eligible spending. No subscription payment is required.'
+      : double ? `Paid Performance+. Earn 2 points per AUD 1 of qualifying eligible spending. Paid rate until ${new Date(until!).toISOString()}.`
       : 'PSI Free Rewards. Earn 1 point per AUD 1 of eligible paid invoice spending. Free loyalty membership, including complimentary Performance+ access.' };
 }
 export async function issueGoogleCard(card: RewardsCard) {

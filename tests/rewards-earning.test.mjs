@@ -21,6 +21,19 @@ const proof = { customer_id: customer, multiplier: 2, bonus_enabled: true, paid_
   valid_until: new Date(now + 60_000).toISOString(), subscription_expires_at: new Date(now + 60_000).toISOString() };
 const interpret = data => backend.rewardsEarningFor({ rpc: async () => ({ data }) }, customer);
 
+test('an explicit server verified permanent double grant needs no paid receipt and retains refresh expiry safeguards',async()=>{
+  const earning=await interpret({...proof,subscription_status:'permanent',paid_period_verified:false,
+    complimentary_double_verified:true,valid_until:null,subscription_expires_at:null});
+  assert.equal(earning.multiplier,2);assert.equal(earning.complimentaryDouble,true);
+  const display=readRewardsEarning(earning);assert.equal(display.multiplier,2);
+  assert.equal(rewardsEarningAt(display,now+60_000).multiplier,2);
+  assert.equal(rewardsEarningAt(display,now+6*60_000).state,'unavailable');
+  assert.equal(rewardsSubscriptionLabel(display),'PERMANENT ACCESS · 2× POINTS');
+  for(const override of [{complimentary_double_verified:false},{subscription_status:'free'},{bonus_enabled:false},{valid_until:new Date(now-1).toISOString()}]){
+    assert.equal((await interpret({...proof,subscription_status:'permanent',paid_period_verified:false,complimentary_double_verified:true,valid_until:null,...override})).multiplier,1);
+  }
+});
+
 test('free, complimentary trial, permanent and expired memberships retain standard earning', async () => {
   for (const status of ['free','trial','permanent','expired']) {
     const earning = await interpret({ ...proof, subscription_status: status });

@@ -7,6 +7,7 @@ export type RewardsEarning = {
   subscriptionExpiresAt: string | null;
   verifiedAt: string | null;
   serverTime: string | null;
+  complimentaryDouble?: boolean;
 };
 
 export function readRewardsEarning(input: unknown): RewardsEarning {
@@ -17,13 +18,16 @@ export function readRewardsEarning(input: unknown): RewardsEarning {
   const serverTime = date(value.serverTime);
   const validUntil = date(value.validUntil);
   const verifiedAt = date(value.verifiedAt);
+  const complimentaryDouble = value.complimentaryDouble === true && subscriptionStatus === 'permanent';
   const double = value.multiplier === 2 && value.state === 'double' && value.bonusEnabled === true
-    && subscriptionStatus === 'active' && !!serverTime && !!validUntil && !!verifiedAt
-    && Date.parse(validUntil) > Date.parse(serverTime) && Date.parse(verifiedAt) <= Date.parse(serverTime);
+    && !!serverTime && !!verifiedAt && Date.parse(verifiedAt) <= Date.parse(serverTime)
+    && (complimentaryDouble && (!validUntil || Date.parse(validUntil) > Date.parse(serverTime))
+      || subscriptionStatus === 'active' && !!validUntil && Date.parse(validUntil) > Date.parse(serverTime));
   return {
     multiplier: double ? 2 : 1, state: double ? 'double' : value.state === 'standard' ? 'standard' : 'unavailable',
     subscriptionStatus, bonusEnabled: value.bonusEnabled === true, validUntil: double ? validUntil : null,
     subscriptionExpiresAt: date(value.subscriptionExpiresAt), verifiedAt, serverTime,
+    complimentaryDouble: double && complimentaryDouble,
   };
 }
 
@@ -31,7 +35,7 @@ export function readRewardsEarning(input: unknown): RewardsEarning {
 export function rewardsEarningAt(value: RewardsEarning, now: number): RewardsEarning {
   const expired = value.subscriptionStatus !== 'permanent' && !!value.subscriptionExpiresAt
     && Date.parse(value.subscriptionExpiresAt) <= now;
-  const doubleEnded = value.multiplier === 2 && (!value.validUntil || Date.parse(value.validUntil) <= now);
+  const doubleEnded = value.multiplier === 2 && (!value.validUntil ? !value.complimentaryDouble : Date.parse(value.validUntil) <= now);
   const stale = value.multiplier === 2 && (!value.serverTime || now >= Date.parse(value.serverTime) + 5 * 60_000);
   return { ...value,
     multiplier: expired || doubleEnded || stale ? 1 : value.multiplier,
@@ -43,7 +47,7 @@ export function rewardsEarningAt(value: RewardsEarning, now: number): RewardsEar
 export function rewardsSubscriptionLabel(earning: RewardsEarning) {
   switch (earning.subscriptionStatus) {
     case 'trial': return 'TRIAL ACTIVE · 1× POINTS';
-    case 'permanent': return 'PERMANENT ACCESS · 1× POINTS';
+    case 'permanent': return `PERMANENT ACCESS · ${earning.multiplier === 2 ? 2 : 1}× POINTS`;
     case 'expired': return 'PERFORMANCE+ EXPIRED';
     case 'active': return 'PERFORMANCE+ ACTIVE';
     case 'free': return 'PSI FREE REWARDS';

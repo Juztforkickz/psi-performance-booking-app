@@ -1,19 +1,23 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { RewardsEarning } from '@/lib/rewards-earning';
 
-export function RewardsEarningCards({ earning }: { earning: RewardsEarning }) {
+export function RewardsEarningCards({ earning, onUpgrade }: { earning: RewardsEarning; onUpgrade?: () => void }) {
   const double = earning.multiplier === 2;
   const known = earning.state !== 'unavailable';
   return <View style={s.row}>
     {[{ title: 'PSI FREE', rate: '1× POINTS', detail: 'Free for everyone.', active: known && !double, otherLabel: 'STANDARD RATE' },
-      { title: 'PERFORMANCE+', rate: '2× POINTS', detail: 'Paid members only.', active: known && double, otherLabel: 'PAID BENEFIT' }].map(tier =>
-      <View key={tier.title} style={[s.tier, tier.active && s.active]}
+      { title: 'PERFORMANCE+', rate: '2× POINTS', detail: earning.complimentaryDouble ? 'Complimentary 2× access.' : 'Paid members only.', active: known && double, otherLabel: 'PAID BENEFIT' }].map(tier => {
+      const open = tier.title === 'PERFORMANCE+' ? onUpgrade : undefined;
+      const Card = open ? Pressable : View;
+      return <Card key={tier.title} style={[s.tier, tier.active && s.active]}
+        {...(open ? { onPress: open, accessibilityRole: 'button' as const, accessibilityHint: 'Open Performance+ to view your membership and subscription options.' } : {})}
         accessibilityLabel={`${tier.title}. ${tier.rate}. ${tier.detail}${tier.active ? ' Your current earning rate.' : ''}`}>
-        <Text style={s.title}>{tier.title}</Text>
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={s.title}>{tier.title}</Text>
         <Text style={[s.rate, tier.active && s.activeRate]}>{tier.rate}</Text>
         <Text style={s.detail}>{tier.detail}</Text>
         <Text style={[s.tag, tier.active && s.activeTag]}>{tier.active ? 'CURRENT RATE' : tier.otherLabel}</Text>
-      </View>)}
+      </Card>;
+    })}
   </View>;
 }
 

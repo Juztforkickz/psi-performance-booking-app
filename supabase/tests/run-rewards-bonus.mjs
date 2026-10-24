@@ -256,3 +256,57 @@ test('activation refuses implicit backdating and schema replay rejects unexpecte
   await db.exec('revoke update on private.rewards_bonus_policy from authenticated');
   await db.exec(migration);
 });
+test('separately approved complimentary double access is prospective, secure and idempotent',async t=>{
+  const grantMigration=await readFile(new URL('../migrations/20261024055926_rewards_complimentary_double_access.sql',import.meta.url),'utf8');
+  await db.exec(grantMigration);
+  const c=await customer(true),other=await customer(true);
+  await db.query('insert into rewards_accounts(customer_id,points_balance) values($1,1234)',[c.customer]);
+  await db.query('insert into private.rewards_complimentary_grants(customer_id,starts_at,approval_reference) values($1,$2,$3)',[c.customer,past(4),'Fictional separately approved lifetime rewards']);
+  await t.test('the grant preserves balance and permanent premium access without fabricating paid evidence',async()=>{
+    assert.equal(await balance(c),1234);
+    const status=(await db.query('select rewards_earning_status($1) s',[c.customer])).rows[0].s;
+    assert.equal(status.multiplier,2);assert.equal(status.complimentary_double_verified,true);
+    assert.equal(status.subscription_status,'permanent');assert.equal(status.valid_until,null);assert.equal(status.paid_period_verified,false);
+    assert.equal(Number((await db.query('select count(*) n from private.performance_paid_periods where customer_id=$1',[c.customer])).rows[0].n),0);
+    assert.equal((await db.query('select rewards_earning_status($1) s',[other.customer])).rows[0].s.multiplier,1);
+  });
+  await t.test('only spending after the grant earns its one additional point per dollar',async()=>{
+    assert.equal((await apply(c,801,100000,[fact(801,100000,receiptDate(6))])).bonus_points,0);
+    assert.equal((await apply(c,802,100000,[fact(802)])).bonus_points,1000);
+    assert.equal(await balance(c),4234);
+    const audit=(await db.query('select complimentary_grant_ids,paid_period_ids from private.rewards_bonus_calculations where invoice_id=$1',[id(10802)])).rows[0];
+    assert.equal(audit.complimentary_grant_ids.length,1);assert.equal(audit.paid_period_ids.length,0);
+    await apply(c,802,100000,[fact(802)]);assert.equal(await balance(c),4234);
+  });
+  await t.test('refund adjustments reverse the correct bonus once',async()=>{
+    await apply(c,802,50000,[fact(802)],2);assert.equal(await balance(c),3234);
+    await apply(c,802,50000,[fact(802)],2);assert.equal(await balance(c),3234);
+  });
+  await t.test('paid customers retain double earning and overlapping evidence cannot create triple points',async()=>{
+    const paid=await customer();await period(paid);
+    assert.equal((await apply(paid,805,100000,[fact(805)])).bonus_points,1000);
+    await period(c);const granted=await apply(c,806,100000,[fact(806)]);
+    assert.equal(granted.standard_points,1000);assert.equal(granted.bonus_points,1000);assert.equal(granted.total_points,2000);
+  });
+  await t.test('future and ended grants cannot show current double access or earn after their interval',async()=>{
+    const future=await customer(true),ended=await customer(true);
+    await db.query('insert into private.rewards_complimentary_grants(customer_id,starts_at,approval_reference) values($1,$2,$3)',[future.customer,past(-1),'Fictional future grant approval']);
+    await db.query('insert into private.rewards_complimentary_grants(customer_id,starts_at,ends_at,approval_reference) values($1,$2,$3,$4)',[ended.customer,past(8),past(5),'Fictional ended grant approval']);
+    for(const x of [future,ended]){
+      assert.equal((await db.query('select rewards_earning_status($1) s',[x.customer])).rows[0].s.multiplier,1);
+      assert.equal((await apply(x,810+x.n,100000,[fact(810+x.n)])).bonus_points,0);
+    }
+  });
+  await t.test('customers and the service role cannot create their own grants',async()=>{
+    const grants=(await db.query("select has_table_privilege('anon','private.rewards_complimentary_grants','INSERT') a,has_table_privilege('authenticated','private.rewards_complimentary_grants','INSERT') c,has_table_privilege('service_role','private.rewards_complimentary_grants','INSERT') s")).rows[0];
+    assert.deepEqual(grants,{a:false,c:false,s:false});
+    await db.exec('set role service_role');
+    assert.equal((await db.query('select rewards_earning_status($1) s',[c.customer])).rows[0].s.multiplier,2);
+    await db.exec('reset role');
+  });
+  await t.test('migration replay preserves grants and all previous credits',async()=>{
+    const before=await balance(c);await db.exec(grantMigration);assert.equal(await balance(c),before);
+    assert.equal(Number((await db.query('select count(*) n from private.rewards_complimentary_grants where customer_id=$1',[c.customer])).rows[0].n),1);
+    await assert.rejects(db.exec(migration),/rewards_bonus_schema_mismatch/);await db.exec('rollback');
+  });
+});

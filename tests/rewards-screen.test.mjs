@@ -8,10 +8,10 @@ const require=createRequire(new URL('../mobile/package.json',import.meta.url)),t
 const compile=async file=>ts.transpileModule(await readFile(new URL(file,import.meta.url),'utf8'),{compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 const screenSource=await compile('../mobile/src/app/rewards.tsx'),cardsSource=await compile('../mobile/src/components/rewards-earning-cards.tsx');
 const now=new Date().toISOString(),later=new Date(Date.now()+86400_000).toISOString();
-function render(status,{platform='ios',enabled=true,multiplier=status==='active'?2:1,state=multiplier===2?'double':'standard',history=false}={}){
+function render(status,{platform='ios',enabled=true,multiplier=status==='active'?2:1,state=multiplier===2?'double':'standard',history=false,complimentaryDouble=false}={}){
   const routes=[],refreshes=[],nodes=[];
   const earning=readRewardsEarning({multiplier,state,subscriptionStatus:status,bonusEnabled:enabled,
-    validUntil:later,subscriptionExpiresAt:later,verifiedAt:now,serverTime:now});
+    validUntil:complimentaryDouble?null:later,subscriptionExpiresAt:complimentaryDouble?null:later,verifiedAt:now,serverTime:now,complimentaryDouble});
   const account={name:'Fictional Member',points:2468,creditCents:2468,cardId:'10000000-0000-4000-8000-000000000010',
     qr:'data:image/png;base64,fixture',wallet:{apple:true,google:true},walletStatus:{appleConnected:false},ledger:[],earning,
     ...(history?{invoiceEarnings:[{invoiceId:'fictional-invoice',invoiceNumber:'INV-FICTIONAL',standardPoints:1000,bonusPoints:1000,totalPoints:2000,bonusPending:false}],
@@ -34,7 +34,7 @@ function render(status,{platform='ios',enabled=true,multiplier=status==='active'
     if(typeof node.type==='function')return visit(node.type(node.props));nodes.push(node);visit(node.props?.children);}
   const tree=api.default();visit(tree);
   const text=nodes.filter(node=>node.type==='Text').map(node=>{const children=node.props.children;return Array.isArray(children)?children.join(''):children;}).join(' ');
-  return{account,routes,refreshes,text,buttons:nodes.filter(node=>node.type==='Button'),cards:nodes.filter(node=>node.props?.accessibilityLabel?.includes('Your current earning rate'))};
+  return{account,routes,refreshes,text,buttons:nodes.filter(node=>node.type==='Button'),cards:nodes.filter(node=>node.props?.accessibilityLabel?.includes('Your current earning rate')),tierButtons:nodes.filter(node=>node.type==='Pressable'&&node.props?.accessibilityRole==='button'&&node.props?.accessibilityLabel?.startsWith('PERFORMANCE+'))};
 }
 test('actual Rewards screen displays dynamic balance, QR and 1x/2x comparison for every membership',()=>{
   for(const status of['free','trial','active','expired','permanent']){
@@ -56,6 +56,22 @@ test('paid invoice breakdown shows standard, bonus and total while keeping full 
   const screen=render('active',{history:true});
   assert.ok(screen.text.includes('Standard 1,000 · Bonus 1,000'));assert.ok(screen.text.includes('2,000 total points'));
   assert.ok(screen.text.includes('Bonus points earned'));assert.ok(screen.buttons.some(button=>button.props.label==='Show older points'));
+});
+test('tapping the double tier opens Performance+ without changing a free current rate',()=>{
+  const screen=render('free');
+  assert.equal(screen.tierButtons.length,1);
+  screen.tierButtons[0].props.onPress();
+  assert.deepEqual(screen.routes,['/performance-plus']);
+  assert.equal(screen.account.earning.multiplier,1);
+  assert.ok(screen.cards[0].props.accessibilityLabel.startsWith('PSI FREE'));
+});
+test('an approved permanent double grant highlights 2x without a paid subscription prompt',()=>{
+  const screen=render('permanent',{multiplier:2,complimentaryDouble:true});
+  assert.ok(screen.text.includes('PERMANENT ACCESS · 2× POINTS'));
+  assert.ok(screen.text.includes('2× POINTS ACTIVE'));
+  assert.ok(screen.text.includes('Complimentary 2× access.'));
+  assert.ok(screen.cards[0].props.accessibilityLabel.startsWith('PERFORMANCE+'));
+  assert.equal(screen.buttons.some(button=>button.props.label==='UNLOCK 2× POINTS'),false);
 });
 test('native Wallet buttons match the device and keep existing readiness rules',()=>{
   const apple=render('free',{platform:'ios'}),google=render('free',{platform:'android'});

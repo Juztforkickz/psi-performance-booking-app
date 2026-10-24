@@ -6,6 +6,7 @@ export type RewardsEarning = {
   subscriptionStatus: 'free' | 'trial' | 'active' | 'expired' | 'permanent' | 'unavailable';
   bonusEnabled: boolean; validUntil: string | null; subscriptionExpiresAt: string | null;
   verifiedAt: string | null; serverTime: string;
+  complimentaryDouble?: boolean;
 };
 export const standardRewardsEarning = (): RewardsEarning => ({ multiplier: 1, state: 'unavailable',
   subscriptionStatus: 'unavailable', bonusEnabled: false, validUntil: null, subscriptionExpiresAt: null,
@@ -26,15 +27,17 @@ export async function rewardsEarningFor(admin: SupabaseClient, customerId: strin
       : data.store === 'play_store' ? env('PERFORMANCE_GOOGLE_PRODUCT_IDS') : '';
     const validUntil = date(data.valid_until);
     const verifiedAt = date(data.verified_at);
-    const double = data.multiplier === 2 && data.bonus_enabled === true && data.paid_period_verified === true
-      && data.environment === 'production' && status === 'active'
-      && productConfig.split(',').map(value => value.trim()).filter(Boolean).includes(data.product_id)
-      && !!validUntil && Date.parse(validUntil) > Date.parse(serverTime)
-      && !!verifiedAt && Date.parse(verifiedAt) <= Date.parse(serverTime);
+    const complimentaryDouble = data.complimentary_double_verified === true && status === 'permanent';
+    const double = data.multiplier === 2 && data.bonus_enabled === true && data.environment === 'production'
+      && !!verifiedAt && Date.parse(verifiedAt) <= Date.parse(serverTime)
+      && (complimentaryDouble && (!validUntil || Date.parse(validUntil) > Date.parse(serverTime))
+        || data.paid_period_verified === true && status === 'active'
+          && productConfig.split(',').map(value => value.trim()).filter(Boolean).includes(data.product_id)
+          && !!validUntil && Date.parse(validUntil) > Date.parse(serverTime));
     return { multiplier: double ? 2 : 1, state: status === 'unavailable' ? 'unavailable' : double ? 'double' : 'standard',
       subscriptionStatus: status, bonusEnabled: data.bonus_enabled === true,
       validUntil: double ? validUntil : null, subscriptionExpiresAt: date(data.subscription_expires_at),
-      verifiedAt, serverTime };
+      verifiedAt, serverTime, complimentaryDouble: double && complimentaryDouble };
   } catch { return standardRewardsEarning(); }
 }
 

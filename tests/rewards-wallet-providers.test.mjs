@@ -78,6 +78,18 @@ test('Google save retries update the same object and keep actual credit and QR',
   assert.equal(updated.secondaryLoyaltyPoints.balance.string,'AUD 24.68');
   await assert.rejects(()=>h.api.updateGoogleCard(card,'another-membership'),/wallet_identity_requires_review/);
 });
+test('approved permanent double access has truthful Wallet labels and keeps the same card',async()=>{
+  const h=harness();const permanent={...earning,subscriptionStatus:'permanent',complimentaryDouble:true,validUntil:null,subscriptionExpiresAt:null};
+  await h.api.applePass({...card,earning:permanent},'fixture-auth-token');
+  assert.equal(h.pass.headerFields[0].value,'2× POINTS ACTIVE');
+  assert.equal(h.pass.serialNumber,card.card_id);assert.equal(h.pass.primaryFields[0].value,'AUD 12.34');
+  assert.ok(JSON.stringify(h.pass).includes('Permanent complimentary'));
+  await h.api.issueGoogleCard({...card,earning:permanent});
+  const object=JSON.parse(h.requests.find(r=>r.url.endsWith('/loyaltyObject')).body);
+  assert.equal(object.textModulesData[0].header,'2× POINTS ACTIVE');
+  assert.ok(object.textModulesData[0].body.includes('No subscription payment'));
+  assert.equal(h.api.walletEarning({...card,earning:{...permanent,complimentaryDouble:false}}).label,'1× POINTS');
+});
 test('Google publishing and class review remain mandatory, even with signing configured',async()=>{
   const disabled=harness({published:false});
   await assert.rejects(()=>disabled.api.issueGoogleCard(card),/google_wallet_setup_required/);

@@ -1,5 +1,7 @@
 # PSI Rewards
 
+Owner exception, 24 October 2026: Matt separately authorised permanent complimentary 2× Rewards for his verified account. Other complimentary memberships remain at 1×. The 2× comparison card now opens Performance+ while the highlight continues to reflect verified access. See [Tier selection and owner grant](REWARDS-OWNER-DOUBLE-2026-10-24.md).
+
 Approved release, 24 October 2026: Matt approved rollout of the reviewed 1× / 2× system. The backend and existing iPhone and Android update channels have been released, with audited bonus activation at 4:45 pm Melbourne. The web app uses the existing main branch Pages workflow. See [Rewards release](REWARDS-RELEASE-2026-10-24.md) for deployment details, preserved balances and remaining device observations. The standard earning and redemption economics below remain unchanged. The earlier implementation and screen reports record the reviewed checkpoints.
 
 Approved by Matt on 22 October 2026. The home page rewards square and customer card use the approved silver and ice blue artwork with live account balances.

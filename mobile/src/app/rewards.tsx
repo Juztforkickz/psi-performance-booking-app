@@ -53,7 +53,7 @@ export default function RewardsScreen() {
           <Text style={s.cardLabel}>WORKSHOP CREDIT</Text>
           <Text adjustsFontSizeToFit minimumFontScale={0.6} numberOfLines={1} style={[s.amount, { fontSize: creditFontSize }]}>{creditText}</Text>
           <Text style={s.points}>{formatRewardsPoints(account.points)} points</Text>
-          <RewardsEarningCards earning={account.earning} />
+          <RewardsEarningCards earning={account.earning} onUpgrade={() => router.push('/performance-plus')} />
           <Text accessibilityLiveRegion="polite" style={s.subscription}>{rewardsSubscriptionLabel(account.earning)}</Text>
           {account.earning.state === 'unavailable' ? <View style={s.upgrade}>
               <Text style={s.cardHint}>Refresh to check your earning rate. Your points are safe.</Text>
