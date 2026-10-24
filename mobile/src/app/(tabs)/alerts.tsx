@@ -65,7 +65,7 @@ export default function AlertsScreen() {
   const [readIds, setReadIds] = useState<Set<string>>(
     () => new Set(CUSTOMER_PREVIEW.alerts.filter((alert) => alert.read).map((alert) => alert.id)),
   );
-  const [preferences, setPreferences] = useState<Record<AlertPreference, boolean>>({ booking: true, carSale: true, carSaleEmail: false, event: true, message: true, reminder: true, vehicle: true });
+  const [preferences, setPreferences] = useState<Record<AlertPreference, boolean>>({ booking: true, carSale: true, carSaleEmail: true, event: true, message: true, reminder: true, vehicle: true });
   const [notificationFeedback, setNotificationFeedback] = useState('');
   const [notificationSaving, setNotificationSaving] = useState(false);
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -145,7 +145,7 @@ export default function AlertsScreen() {
           <Text style={styles.previewNoticeCopy}>
             {privateMode
               ? REVIEW_ENVIRONMENT.enabled ? ASK_PSI_DEVICE_QA.allowsUser(auth.user?.id) ? 'Private message testing. Enable this phone below to test Ask PSI banners and sounds.' : 'Sandbox booking and event updates appear here. External push delivery is disabled; no live devices are registered.' : signedIn
-                ? 'Booking updates appear here. Enable device alerts below for banners, sound and badges.'
+                ? 'Alerts are on by default. Allow phone notifications for banners, sound and badges. You can turn alerts off below.'
                 : 'Sign in to see your notifications and preferences.'
               : 'Example alerts only. This demo does not register or notify your device.'}
           </Text>
@@ -355,7 +355,7 @@ export default function AlertsScreen() {
                 ? 'Banners, sounds and badges are enabled on this phone.'
                 : notifications.pushStatus === 'settings_required'
                   ? 'Your phone is allowing badges but banners or sounds need attention in notification settings.'
-                  : 'Enable alerts for banners, sound and badges. Updates still appear in the app.'}</Text>
+                  : 'Allow phone notifications for banners, sound and badges. Updates still appear in the app.'}</Text>
             </View>
             {notificationFeedback ? <Text accessibilityRole="alert" style={styles.notificationFeedback}>{notificationFeedback}</Text> : null}
             <Pressable accessibilityRole="button" accessibilityState={{ busy: notificationSaving, disabled: notificationSaving }} disabled={notificationSaving} onPress={() => {
@@ -612,3 +612,4 @@ function notificationErrorMessage(error: unknown) {
   if (detail.includes('PERMISSION_DENIED')) return 'Notification permission was not granted. You can enable PSI notifications later in your phone settings.';
   return 'This device could not be registered yet. Your in-app notification centre and email updates still work.';
 }
+
