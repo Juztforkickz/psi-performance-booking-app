@@ -6,16 +6,16 @@ export function GarageStartupScreen() {
   const { width, height } = useWindowDimensions();
   const portrait = height >= width;
   const artwork = portrait
-    ? require('../../assets/images/psi-startup-tori-yellow.png')
-    : require('../../assets/images/psi-app-arrived-hero.webp');
+    ? require('../../assets/images/psi-startup-tori-yellow-calipers.png')
+    : require('../../assets/images/psi-startup-tori-calipers-landscape.png');
   return <View style={styles.screen} accessibilityLabel="Opening PSI">
     <Image
       source={artwork}
       style={styles.artwork}
       resizeMode="cover"
       accessibilityLabel={portrait
-        ? 'PSI Performance+ artwork with Tori, the yellow wheel Manthey GT3 RS and GTSR'
-        : 'PSI Performance+ artwork with the Manthey GT3 RS and GTSR'}
+        ? 'PSI Performance+ artwork with Tori, the GT3 RS with black wheels and yellow brake calipers, and GTSR'
+        : 'PSI Performance+ artwork with Tori, the GT3 RS with yellow brake calipers, and GTSR'}
       onLoadEnd={() => { void SplashScreen.hideAsync().catch(() => undefined); }}
     />
   </View>;

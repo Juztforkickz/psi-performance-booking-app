@@ -1,8 +1,8 @@
-# Full screen loading artwork, 24 October 2026
+# Rejected loading artwork, superseded 25 October 2026
 
-Matt requested the existing garage loading-screen background with Tori above the cars, yellow Porsche wheels and an image that reaches the display edges.
+Matt clarified that he meant yellow brake calipers behind black wheels. The yellow wheel rim interpretation was incorrect and is rejected. Do not restore or reuse that image, its exports or its published updates.
 
-The new bundled public portrait artwork is `mobile/assets/images/psi-startup-tori-yellow.png`. It was edited with the built-in image generation tool using the existing loading wallpaper and approved Tori Home artwork. The original assets remain unchanged. The edit preserves the Performance+ wording, phone logo, garage, black Holden and grey Porsche, adds the existing Tori identity above the vehicles and changes the Porsche wheel rims to yellow. It is illustrative app artwork, not mechanical evidence.
+The replacement and current release evidence are documented in `STARTUP-YELLOW-CALIPERS-2026-10-25.md`. The corrected portrait uses the earlier approved black wheel Porsche with yellow calipers as its reference, retaining the full height loading composition and Tori. Landscape reuses the approved matching workshop artwork.
 
 `GarageStartupScreen` now draws with cover scaling and no safe-area padding. The background extends behind the status bar and home indicator, with no artificial startup delay. Landscape retains the existing landscape Performance+ artwork and also uses cover scaling. The installed native logo shown before JavaScript starts is unchanged, since that requires a new store binary.
 
