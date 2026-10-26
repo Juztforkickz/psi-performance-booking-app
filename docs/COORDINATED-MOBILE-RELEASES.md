@@ -1,6 +1,14 @@
 # Coordinated PSI phone releases
 
-The GitHub workflow `coordinated-mobile-release.yml` replaces the separate Apple EAS workflow. It prepares Apple and Android from the same main branch commit, retains one owner approval for both, and publishes to the existing customer channels. Web continues through the existing Pages workflow from main.
+## Current standing release rule
+
+On 26 October Matt requested that every approved customer app change include updating both Apple and Android through OTA, without separate push or platform commands. This rule is saved in `AGENTS.md`. After relevant validation and a checkpoint push, the assistant must publish the same approved source to both existing compatible phone channels and verify both feeds as part of completing the task. Explicit previews and release holds remain unpublished. Native changes still require the appropriate store release process.
+
+The existing authenticated direct EAS publishing route can fulfil this rule. No new GitHub credential is needed for assistant managed publication. Use one publication route per checkpoint and retain its receipts. Do not subsequently approve a duplicate release of that checkpoint through a second route. The separate GitHub publishing credential remains unapproved and has not been created. The prepared GitHub pipeline is therefore not yet an operating background publisher.
+
+## Optional shared GitHub publisher
+
+The prepared GitHub workflow `coordinated-mobile-release.yml` replaces the separate Apple EAS workflow definition. Once explicitly activated, it prepares Apple and Android from the same main branch commit, retains one owner approval for both, and publishes to the existing customer channels. Web continues through the existing Pages workflow from main.
 
 The previous Apple workflow could not start because the account's free EAS workflow minutes were exhausted. Its verified provider error says the allowance resets on 1 November 2026 at 00:00 UTC. GitHub Actions is the official alternate EAS Update publisher and does not consume those EAS workflow minutes. This change does not subscribe to a plan, add billing or create store builds.
 
@@ -37,4 +45,4 @@ The existing heartbeat now checks both the submitted Google Play 1.0.3 (9) and i
 
 ## Current activation status
 
-Prepared locally on 26 October 2026. Validation, protected environment activation, publishing credential approval and the first verified coordinated workflow run must be recorded in the continuation receipt before claiming this release setup is fully operating.
+Cloud preparation passed for checkpoint `1c25d3e` on 26 October 2026. The protected environment is configured. Publishing credential approval and the first verified coordinated publication remain outstanding. Later main branch changes make that earlier prepared checkpoint stale for the publisher's source check. If activation is requested later, validate the current intended source and preserve all existing approval and credential requirements. This optional activation hold does not prevent following the standing rule using the existing direct OTA route.

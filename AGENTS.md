@@ -45,6 +45,19 @@
 - Treat an automatic GitHub Pages refresh after a push as approved; do not deploy to Netlify unless explicitly requested.
 - For substantial work, report changed files, validation, checkpoint commit, and deployment status.
 
+## Standing rule, release approved app changes to both phone platforms
+
+Matt confirmed on 26 October 2026: "can't we just make it auto when i make a change as a rule we update both ? via ota".
+
+- A clear instruction to implement, apply or fix a customer app change includes completing its compatible live OTA release to both Apple and Android. Matt does not need to issue separate commands to commit, push, update Apple, update Android or continue the already authorised rollout.
+- Honour explicit preview only, review only, plan only, do not publish and other release holds. Do not publish unfinished work or treat a discussion as an implementation instruction.
+- Complete relevant validation, create and push a checkpoint, publish the same approved source checkpoint to both existing live channels and verify both customer update feeds. Use Apple's `app-store-release` channel and Android's existing public `android-play-internal` channel with their verified installed runtimes. Preserve live backend configuration, customer information, features, owner protections and existing release safeguards.
+- This is a standing task completion rule. The existing authenticated direct EAS OTA route is sufficient. A new GitHub publishing credential is not required to follow the rule. Choose one publishing route per checkpoint, retain its receipts and avoid a duplicate publication through another workflow.
+- Keep platform approval controls and personal authentication requirements intact. Existing task authority covers routine supported release steps, but does not authorise bypassing a gate, creating new persistent credentials, adding fees, publishing unrelated work or broader financial or data operations.
+- Check native compatibility before publishing. A change requiring a store build must be reported and handled through the appropriate store release authority. Do not force it through OTA or silently change installed runtime identities.
+- Mark the rollout complete only after both platform publications and delivered files are verified. Record partial failures, investigate and safely retry within the authorised scope. Server verification does not establish that every customer's phone installed the update.
+- Documentation, policy and other changes that do not affect the customer app do not require a new phone OTA release. The normal checkpoint and push rule still applies.
+
 ## Workshop vehicle workspace contract
 
 - Keep one canonical desktop vehicle workspace per verified project, customer and vehicle ID. Registration, year, make and model are consistency checks, never substitutes for ownership IDs.
