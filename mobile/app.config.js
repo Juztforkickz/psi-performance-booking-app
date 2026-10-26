@@ -48,7 +48,9 @@ module.exports = ({ config }) => {
     const expectedProfile = appStoreRelease ? APP_STORE_RELEASE_CHANNEL : androidInternal ? ANDROID_INTERNAL_CHANNEL : androidPlayInternal ? ANDROID_PLAY_INTERNAL_CHANNEL : BETA_CHANNEL;
     if (process.env.EAS_BUILD_PROFILE && process.env.EAS_BUILD_PROFILE !== expectedProfile) throw new Error('DEMO_REQUIRES_MATCHING_BUILD_PROFILE');
     if (appStoreRelease && !(process.env.EXPO_PUBLIC_REVENUECAT_APPLE_KEY ?? '').startsWith('appl_')) throw new Error('APP_STORE_RELEASE_REQUIRES_APPLE_PURCHASE_KEY');
-    return { ...config, runtimeVersion: demoRuntimeForChannel(channel), extra: { ...config.extra, psiDemoModeAvailable: true } };
+    return { ...config,
+      ...(androidPlayInternal ? { version: '1.0.3', updates: { ...config.updates, enabled: true, checkAutomatically: 'ON_LOAD', fallbackToCacheTimeout: 0 } } : {}),
+      runtimeVersion: demoRuntimeForChannel(channel), extra: { ...config.extra, psiDemoModeAvailable: true } };
   }
   if (googleReviewFlag === 'true') {
     const googleReview = resolveGoogleReviewEnvironment({

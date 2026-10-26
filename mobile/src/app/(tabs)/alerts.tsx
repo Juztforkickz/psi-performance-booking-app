@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, mobileFrame, spacing } from '@/constants/brand';
 import { PerformancePlanCard } from '@/components/performance-plan-card';
+import { AndroidAppUpdateStatus } from '@/components/android-app-updates';
 import { PhoneAppLinks } from '@/components/phone-app-links';
 import { PerformanceUpdates } from '@/components/performance-updates';
 import { CustomerProfileGate } from '@/components/customer-profile-gate';
@@ -152,6 +153,7 @@ export default function AlertsScreen() {
         </View>
 
         <PerformancePlanCard hideForPermanent />
+        <AndroidAppUpdateStatus />
 
         <View style={[styles.themePanel, { borderColor: theme.border, backgroundColor: theme.surface }]}>
           <Text style={[styles.themeModeTitle, { color: theme.text }]}>Theme preference</Text>

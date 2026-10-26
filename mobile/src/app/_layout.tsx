@@ -11,6 +11,7 @@ import { AmbientBackground, AmbientScreen } from '@/components/ambient-backgroun
 import { GarageStartupScreen } from '@/components/garage-startup-screen';
 import { AppleReviewBanner } from '@/components/apple-review-banner';
 import { AppModeGate } from '@/components/app-mode-gate';
+import { AndroidAppUpdates } from '@/components/android-app-updates';
 import { AskPsiLauncher } from '@/components/ask-psi-launcher';
 import { UiToneProvider } from '@/components/ui';
 import { colors } from '@/constants/brand';
@@ -103,7 +104,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemePreferenceProvider>
-          <AppModeGate><ThemeAwareRootShell /></AppModeGate>
+          <AndroidAppUpdates><AppModeGate><ThemeAwareRootShell /></AppModeGate></AndroidAppUpdates>
         </ThemePreferenceProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
