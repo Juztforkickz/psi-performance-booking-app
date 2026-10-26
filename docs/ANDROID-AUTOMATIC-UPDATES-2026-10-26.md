@@ -33,3 +33,15 @@ At 12:32 pm Melbourne, Publishing overview confirms **Changes in review**, with 
 Private receipts and screenshot are in `work/android-update-repair-2026-10-26/`, including `release-verification.json`, `bundle-verification.json`, `identity-verification.json`, `android-export-verification.json` and `google-review-submitted.png`. A real customer's installation, latest interface and next automatic update remain separate physical device observations; no Android phone or emulator was available in this session. Do not claim successful installation on every phone from server download checks alone.
 
 No Supabase or financial changes, Apple update publication, new fees or paid plan upgrades are part of this repair. Google Wallet publishing remains held separately.
+
+## Google approval confirmed
+
+At 3:09 pm Melbourne on 26 October, Google Play confirms production version 1.0.3, build 9, published at 100 percent rollout. Publishing overview has no unpublished changes. The public Australian listing independently shows Updated on 26 October 2026, the new automatic update release notes and the matching PSI PERFORMANCE icon. The Android approval item is complete. Do not resubmit or recreate the approved release.
+
+Confirmation on an actual customer's Android phone remains outstanding. A successful store publication does not prove installation or the next OTA launch on that phone. The customer's next check is to install the available Play Store update and confirm the current app interface and update status.
+
+Google Wallet remains separate: the readiness endpoint still returns Google false, and Outlook has no new response on case 05714410 after the existing 24 October screenshot reply. Daily monitoring remains at 9 am Melbourne. No Google Wallet publishing approval is inferred from the Android app approval.
+
+Google also flags future native maintenance, including a DEX optimisation threshold warning with a February 2027 deadline and deprecated edge to edge API parameters. These are recorded for a future approved store maintenance release. They did not prevent the current production publication.
+
+Private receipt: `work/android-update-repair-2026-10-26/google-approval-2026-10-26.json`. Public listing proof: `google-public-approved.png` in the same folder. No customer data or app configuration was changed during this verification.
