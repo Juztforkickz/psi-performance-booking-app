@@ -1,0 +1,116 @@
+name: PSI coordinated Apple and Android updates
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - mobile/src/**
+      - mobile/assets/**
+      - mobile/public/**
+      - mobile/plugins/**
+      - mobile/android/**
+      - mobile/ios/**
+      - mobile/*.json
+      - mobile/*.js
+      - mobile/*.cjs
+      - mobile/*.yaml
+      - mobile/scripts/**
+      - tests/**
+      - .github/workflows/coordinated-mobile-release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+# Never cancel a job halfway through publishing one phone platform.
+concurrency:
+  group: psi-coordinated-mobile-production
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: mobile/pnpm-lock.yaml
+      - name: Install frozen mobile dependencies
+        working-directory: mobile
+        run: pnpm install --frozen-lockfile
+      - name: Validate app and environment isolation
+        working-directory: mobile
+        run: |
+          pnpm typecheck
+          pnpm lint
+          node --test scripts/test-review-environment.cjs scripts/test-demo-mode.cjs
+          node --test ../tests/coordinated-mobile-release.test.mjs ../tests/android-update-controller.test.mjs ../tests/android-update-lifecycle.test.mjs
+      - name: Prepare and hash both phone exports
+        working-directory: mobile
+        run: node scripts/coordinated-mobile-release.mjs prepare '${{ runner.temp }}/psi-mobile-release'
+      - name: Save prepared release from this exact commit
+        uses: actions/upload-artifact@v4
+        with:
+          name: psi-mobile-prepared-${{ github.sha }}
+          path: ${{ runner.temp }}/psi-mobile-release
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Required owner reviewer and main-only deployment policy are configured here.
+    # The Expo credential is an environment secret, never a repository secret.
+    environment: psi-mobile-production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: mobile/pnpm-lock.yaml
+      - name: Install frozen mobile dependencies
+        working-directory: mobile
+        run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: psi-mobile-prepared-${{ github.sha }}
+          path: ${{ runner.temp }}/psi-mobile-release
+      - name: Set up the pinned Expo publisher
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: 24.8.0
+          packager: pnpm
+      - name: Publish and verify both existing customer channels
+        working-directory: mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          test -n "$EXPO_TOKEN" || { echo 'The protected Expo publishing credential is not configured.'; exit 1; }
+          node scripts/coordinated-mobile-release.mjs publish '${{ runner.temp }}/psi-mobile-release'
+      - name: Save release verification, including any partial failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: psi-mobile-receipt-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/psi-mobile-release/release-receipt.json
+          if-no-files-found: warn
+          retention-days: 90

@@ -1,0 +1,205 @@
+{
+  "schema": 1,
+  "approvedSource": "1287ef8522e548cca71fe723707c55b6c239a393",
+  "androidBuild": "b7dbf266-b6ee-4e16-aebc-5bc3f0336e99",
+  "note": "Reviewed existing public native inputs. Changes require compatible store builds and explicit baseline approval.",
+  "contract": {
+    "dependencies": {
+      "@expo/vector-icons": "^15.1.1",
+      "@react-native-async-storage/async-storage": "2.2.0",
+      "@react-native-community/datetimepicker": "9.1.0",
+      "@supabase/supabase-js": "^2.112.3",
+      "expo": "~57.0.19",
+      "expo-constants": "~57.0.17",
+      "expo-crypto": "~57.0.2",
+      "expo-device": "~57.0.1",
+      "expo-document-picker": "~57.0.1",
+      "expo-file-system": "57.0.6",
+      "expo-font": "~57.0.3",
+      "expo-image-manipulator": "~57.0.16",
+      "expo-image-picker": "~57.0.15",
+      "expo-linking": "~57.0.9",
+      "expo-notifications": "~57.0.16",
+      "expo-router": "~57.0.18",
+      "expo-secure-store": "~57.0.3",
+      "expo-splash-screen": "~57.0.8",
+      "expo-status-bar": "~57.0.1",
+      "expo-system-ui": "~57.0.3",
+      "expo-updates": "~57.0.21",
+      "jpeg-js": "0.4.4",
+      "react": "19.2.3",
+      "react-dom": "19.2.3",
+      "react-native": "0.86.3",
+      "react-native-gesture-handler": "~2.32.0",
+      "react-native-purchases": "10.9.0",
+      "react-native-reanimated": "4.5.1",
+      "react-native-safe-area-context": "~5.7.0",
+      "react-native-screens": "~4.26.0",
+      "react-native-web": "~0.21.0",
+      "react-native-worklets": "0.10.1"
+    },
+    "platforms": {
+      "ios": {
+        "name": "PSI",
+        "slug": "matt-psi",
+        "version": "1.0.2",
+        "runtimeVersion": "1.0.0-app-store-release-1",
+        "updates": {
+          "url": "https://u.expo.dev/e62e9cdf-867c-4eb7-b8c5-a2610f969286"
+        },
+        "orientation": "default",
+        "icon": "./assets/images/psi-app-icon-1024.png",
+        "scheme": "psiperformance",
+        "userInterfaceStyle": "dark",
+        "ios": {
+          "supportsTablet": false,
+          "bundleIdentifier": "com.psiperformance.booking",
+          "buildNumber": "1",
+          "icon": "./assets/images/psi-app-icon-1024.png",
+          "infoPlist": {
+            "ITSAppUsesNonExemptEncryption": false,
+            "NSCameraUsageDescription": "Allow PSI to use your camera to photograph your vehicle and supporting documents.",
+            "NSPhotoLibraryUsageDescription": "Allow PSI to select vehicle photos and supporting documents from your photo library."
+          }
+        },
+        "android": {
+          "package": "com.psiperformance.booking",
+          "softwareKeyboardLayoutMode": "resize",
+          "blockedPermissions": [
+            "android.permission.READ_EXTERNAL_STORAGE",
+            "android.permission.WRITE_EXTERNAL_STORAGE"
+          ],
+          "adaptiveIcon": {
+            "backgroundColor": "#050505",
+            "foregroundImage": "./assets/images/psi-adaptive-foreground.png"
+          },
+          "predictiveBackGestureEnabled": true
+        },
+        "plugins": [
+          "expo-router",
+          [
+            "expo-image-picker",
+            {
+              "photosPermission": "Allow PSI to select vehicle photos and supporting documents from your photo library.",
+              "cameraPermission": "Allow PSI to use your camera to photograph your vehicle and supporting documents.",
+              "microphonePermission": false
+            }
+          ],
+          [
+            "expo-splash-screen",
+            {
+              "backgroundColor": "#050505",
+              "image": "./assets/images/psi-splash-logo.png",
+              "imageWidth": 300,
+              "resizeMode": "contain"
+            }
+          ],
+          [
+            "expo-notifications",
+            {
+              "color": "#65CFF8",
+              "defaultChannel": "psi-bookings",
+              "enableBackgroundRemoteNotifications": false,
+              "sounds": [
+                "./assets/sounds/psi_cash_receipt.wav"
+              ]
+            }
+          ],
+          "expo-secure-store",
+          "expo-font"
+        ],
+        "experiments": {
+          "typedRoutes": true,
+          "reactCompiler": true
+        },
+        "owner": "psi-performance"
+      },
+      "android": {
+        "name": "PSI",
+        "slug": "matt-psi",
+        "version": "1.0.3",
+        "runtimeVersion": "1.0.0-android-play-internal-1",
+        "updates": {
+          "url": "https://u.expo.dev/e62e9cdf-867c-4eb7-b8c5-a2610f969286",
+          "enabled": true,
+          "checkAutomatically": "ON_LOAD",
+          "fallbackToCacheTimeout": 0
+        },
+        "orientation": "default",
+        "icon": "./assets/images/psi-app-icon-1024.png",
+        "scheme": "psiperformance",
+        "userInterfaceStyle": "dark",
+        "ios": {
+          "supportsTablet": false,
+          "bundleIdentifier": "com.psiperformance.booking",
+          "buildNumber": "1",
+          "icon": "./assets/images/psi-app-icon-1024.png",
+          "infoPlist": {
+            "ITSAppUsesNonExemptEncryption": false,
+            "NSCameraUsageDescription": "Allow PSI to use your camera to photograph your vehicle and supporting documents.",
+            "NSPhotoLibraryUsageDescription": "Allow PSI to select vehicle photos and supporting documents from your photo library."
+          }
+        },
+        "android": {
+          "package": "com.psiperformance.booking",
+          "softwareKeyboardLayoutMode": "resize",
+          "blockedPermissions": [
+            "android.permission.READ_EXTERNAL_STORAGE",
+            "android.permission.WRITE_EXTERNAL_STORAGE"
+          ],
+          "adaptiveIcon": {
+            "backgroundColor": "#050505",
+            "foregroundImage": "./assets/images/psi-adaptive-foreground.png"
+          },
+          "predictiveBackGestureEnabled": true
+        },
+        "plugins": [
+          "expo-router",
+          [
+            "expo-image-picker",
+            {
+              "photosPermission": "Allow PSI to select vehicle photos and supporting documents from your photo library.",
+              "cameraPermission": "Allow PSI to use your camera to photograph your vehicle and supporting documents.",
+              "microphonePermission": false
+            }
+          ],
+          [
+            "expo-splash-screen",
+            {
+              "backgroundColor": "#050505",
+              "image": "./assets/images/psi-splash-logo.png",
+              "imageWidth": 300,
+              "resizeMode": "contain"
+            }
+          ],
+          [
+            "expo-notifications",
+            {
+              "color": "#65CFF8",
+              "defaultChannel": "psi-bookings",
+              "enableBackgroundRemoteNotifications": false,
+              "sounds": [
+                "./assets/sounds/psi_cash_receipt.wav"
+              ]
+            }
+          ],
+          "expo-secure-store",
+          "expo-font"
+        ],
+        "experiments": {
+          "typedRoutes": true,
+          "reactCompiler": true
+        },
+        "owner": "psi-performance"
+      }
+    },
+    "files": {
+      "assets/images/psi-adaptive-foreground.png": "2a66c816739f24b47729e793fc088d98a3aa062cb59d2b3342c6cf777740e920",
+      "assets/images/psi-app-icon-1024.png": "2a66c816739f24b47729e793fc088d98a3aa062cb59d2b3342c6cf777740e920",
+      "assets/images/psi-splash-logo.png": "2b467a1f241ab67cfedcd4a5ec4ba889b122629435a74ecb7146ac0effcc5726",
+      "assets/sounds/psi_cash_receipt.wav": "3edf9a4bac60fad9a5d59265a19cb7a8c0932deb2ce44716d5a2b5c5f4a9979c",
+      "plugins/with-boost-preview-entitlements.cjs": "b0c0a7c6593d3f8837b696cb0d4ab757199f9b83556ffe47587fabc384009c99",
+      "pnpm-lock.yaml": "b506e4ec50715c3233de99b08fc1994b2900a7346b9fd32b88e90aadbe7b06ec"
+    }
+  }
+}
