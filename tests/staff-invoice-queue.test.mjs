@@ -18,11 +18,11 @@ test('dashboard separates booking stages from invoice workflow counts', () => {
   assert.match(portal, /vaultClient\(\)\.from\('vault_import_queue'\)\.select\('\*'\)/u);
 });
 
-test('invoice workspace has distinct action, waiting and imported tabs', () => {
+test('invoice workspace has distinct queues in a compact dropdown', () => {
   assert.match(publisher, /type ImportTab = 'review' \| 'waiting' \| 'imported'/u);
-  assert.match(publisher, />Needs action/u);
-  assert.match(publisher, />Waiting for account/u);
-  assert.match(publisher, />Imported/u);
+  assert.match(publisher, /label: `Needs action/u);
+  assert.match(publisher, /label: `Awaiting account/u);
+  assert.match(publisher, /label: `Imported/u);
   assert.match(publisher, /item\.status !== 'waiting_for_customer' && item\.status !== 'imported'/u);
 });
 

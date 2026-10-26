@@ -17,7 +17,8 @@ test('Home shortcuts expose every tile and persist only a device-local identifie
   assert.match(home, /router\.push\('\/trusted-partners'\)/u);
   assert.match(home, /router\.push\('\/customer-cars-for-sale'/u);
   assert.match(preferences, /AsyncStorage\.setItem\(STORAGE_KEY, JSON\.stringify/u);
-  assert.match(preferences, /current\.length === 1/u);
+  assert.doesNotMatch(preferences, /current\.length === 1/u);
+  assert.match(home, /homeTileGroups\.workshop\.map/u);
   assert.doesNotMatch(preferences, /fetch|EXPO_PUBLIC_API_BASE_URL|booking draft|vehicleId/iu);
 });
 

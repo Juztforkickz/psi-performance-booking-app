@@ -171,10 +171,15 @@ export const STAFF_PORTAL_PREVIEW_SNAPSHOT: StaffPortalSnapshot = {
   }],
   bookings,
   bookingHolding: [],
-  vaultImports: [],
+  vaultImports: ['needs_review', 'waiting_for_customer', 'imported'].map((status, index) => ({
+    id: `preview-invoice-${index}`, source: 'xero', source_key: `preview-invoice-source-${index}`, status,
+    identifiers: { contactName: 'Morgan Example', invoiceNumber: `DEMO-${100 + index}`, invoiceDate: '2026-10-27', reference: 'DEMO42 SERVICE', currency: 'AUD', totalCents: 45000, invoiceStatus: 'PAID' },
+    reason: status === 'needs_review' ? 'verified_customer_link_required' : '', attempt_count: 0,
+    job_id: null, record_id: null, last_error_code: null, created_at: sampleTime, updated_at: sampleTime,
+  })),
   vehicleFiles: [],
-  workshopContacts: [],
-  workshopVehicles: [],
+  workshopContacts: [{ id: 'preview-workshop-contact', display_name: 'Morgan Example', email: 'morgan@example.invalid', mobile: null, status: 'active', created_by: sampleOwner, created_at: sampleTime, updated_at: sampleTime, claimed_at: null, claimed_by: null, claimed_customer_id: null }],
+  workshopVehicles: [{ id: 'preview-workshop-vehicle', workshop_contact_id: 'preview-workshop-contact', year: 2021, make: 'Holden', model: 'Commodore', registration: 'DEMO42', status: 'active', created_by: sampleOwner, created_at: sampleTime, updated_at: sampleTime, claimed_vehicle_id: null, vin_last_four: null }],
   deletionCustomers: [...customers, deletionCustomer],
   accountDeletionRequests: [{
     user_id: deletionCustomer.user_id,

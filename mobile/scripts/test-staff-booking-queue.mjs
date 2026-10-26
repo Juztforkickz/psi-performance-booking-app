@@ -14,7 +14,7 @@ const booking = (id, state, updatedAt = daysAgo(1)) => ({
   approved_date: '2026-09-25',
 });
 
-test('each booking belongs to exactly one portal queue', () => {
+test('each visible booking belongs to one portal queue and cancelled requests stay excluded', () => {
   const rows = [
     booking('new', 'pending_staff_review'),
     booking('proposed', 'date_proposed'),
@@ -27,8 +27,9 @@ test('each booking belongs to exactly one portal queue', () => {
   assert.deepEqual(queues.needs.map(row => row.id), ['new']);
   assert.deepEqual(queues.actioned.map(row => row.id).sort(), ['deposit', 'proposed']);
   assert.deepEqual(queues.booked.map(row => row.id), ['confirmed']);
-  assert.deepEqual(queues.archive.map(row => row.id).sort(), ['cancelled', 'completed']);
-  assert.equal(Object.values(queues).flat().length, rows.length);
+  assert.deepEqual(queues.archive.map(row => row.id), ['completed']);
+  assert.equal(Object.values(queues).flat().length, rows.length - 1);
+  assert.equal(bookingQueueView(rows.find(row => row.id === 'cancelled'), undefined, now), null);
 });
 
 test('30-day removal changes only portal visibility, and existing held tests stay in archive', () => {

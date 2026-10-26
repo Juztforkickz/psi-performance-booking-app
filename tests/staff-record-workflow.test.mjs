@@ -44,6 +44,7 @@ function mountComponent(filename, exportName, props, moduleOverrides = {}) {
       useEffect: callback => effects.push(callback),
     },
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
+    'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
     'react-native': {
       View: 'View', Text: 'Text', Pressable: 'Pressable', Modal: 'Modal',
       ScrollView: 'ScrollView', Image: 'Image', Platform: { OS: 'ios' },
@@ -395,6 +396,7 @@ test('invoice matching inspects Xero first and uses its fresh number and date fo
     } } }) },
   });
   component.render();
+  component.select('Choose action', 'match');
   component.select('Customer', 'customer-a');
   component.select('Vehicle', 'vehicle-a');
   component.press('I checked the Xero contact');
@@ -423,6 +425,7 @@ test('failed fresh inspection preserves the selection and cannot create a job or
     '@/lib/supabase': { getSupabaseClient: () => ({ functions: { invoke: async () => ({ data: { error: 'xero_invoice_details_required' } }) } }) },
   });
   component.render();
+  component.select('Choose action', 'match');
   component.select('Customer', 'customer-a');
   component.select('Vehicle', 'vehicle-a');
   component.press('I checked the Xero contact');
@@ -449,7 +452,8 @@ test('review invoice can move one registration matched workshop customer to awai
     '@/lib/performance-plus': { aud: () => 'AUD 0.00', vaultClient: () => ({ rpc: async (name, args) => { calls.push([name, args]); return { error: null }; } }) },
   });
   component.render();
-  assert(component.find('Text', node => node.children.join('') === 'Workshop customer found: MAREK ZAWADZKI · BSQ453'));
+  component.select('Choose action', 'waiting');
+  assert(component.find('Text', node => node.children.join('').startsWith('Workshop customer found: MAREK ZAWADZKI · BSQ453')));
   component.press('Move to awaiting account');
   await new Promise(resolve => setTimeout(resolve, 0));
   assert.equal(calls[0][0], 'queue_xero_import_for_customer_account');
@@ -472,7 +476,10 @@ test('review invoice offers a checked waiting account workflow without an automa
   });
   component.render();
   assert.equal(component.find('Button', node => node.props.label === 'Move to awaiting account'), undefined);
-  assert(component.find('Button', node => node.props.label === 'Move to waiting for account'));
+  assert(component.find('Select', node => node.props.label === 'Choose action').props.options.some(option => option.value === 'waiting'));
+  component.select('Choose action', 'waiting');
+  assert(component.find('Select', node => node.props.label === 'Waiting customer'));
+  assert.equal(component.find('Select', node => node.props.label === 'Customer'), undefined);
 });
 
 test('owner can manually send an existing workshop customer invoice to waiting', async () => {
@@ -491,7 +498,7 @@ test('owner can manually send an existing workshop customer invoice to waiting',
     '@/lib/performance-plus': { aud: () => 'AUD 0.00', vaultClient: () => ({ rpc: async (name, args) => { calls.push([name, args]); return { error: null }; } }) },
   });
   component.render();
-  component.press('Move to waiting for account');
+  component.select('Choose action', 'waiting');
   component.select('Waiting customer', 'contact-mazz');
   component.select('Waiting vehicle', 'workshop-ranger');
   component.press('I checked the Xero contact and registration');
@@ -513,8 +520,7 @@ test('owner can create a workshop customer while moving an invoice to waiting', 
     '@/lib/performance-plus': { aud: () => 'AUD 0.00', vaultClient: () => ({ rpc: async (name, args) => { calls.push([name, args]); return { error: null }; } }) },
   });
   component.render();
-  component.press('Move to waiting for account');
-  component.press('Customer is not listed');
+  component.select('Choose action', 'new_customer');
   component.input('Email', 'new@example.test');
   component.input('Registration', 'NEW123');
   component.input('Year', '2020');
@@ -547,14 +553,16 @@ test('waiting account files are separate and show customer details instead of in
   await new Promise(resolve => setTimeout(resolve, 20));
   component.render();
   assert.equal(component.find('Text', node => node.props.children === 'Vince Tavete'), undefined);
-  component.press('Waiting for account');
+  component.select('Invoice queue', 'waiting');
+  component.select('Awaiting customer or invoice', 'queue-private-id');
   assert(component.find('Text', node => node.props.children === 'Vince Tavete'));
   assert(component.find('Text', node => node.props.children === 'Xero invoice INV-1640'));
   assert(component.find('Text', node => JSON.stringify(node.props.children).includes('TYC767')));
   assert.equal(component.find('Text', node => JSON.stringify(node.props.children).includes('tenant-secret')), undefined);
   assert.equal(component.find('Text', node => node.props.children === 'Unpublished drafts'), undefined);
   assert.equal(component.find('Button', node => node.props.label === 'Match and import invoice'), undefined);
-  component.press('Needs action');
+  component.press('Close');
+  component.select('Invoice queue', 'review');
   assert.equal(component.find('Text', node => node.props.children === 'Vince Tavete'), undefined);
   assert(component.find('Text', node => node.props.children === 'Unpublished drafts'));
 });
@@ -577,7 +585,8 @@ test('waiting account action only prefills an invite from one matching workshop 
   component.render();
   await new Promise(resolve => setTimeout(resolve, 20));
   component.render();
-  component.press('Waiting for account');
+  component.select('Invoice queue', 'waiting');
+  component.select('Awaiting customer or invoice', 'queue-private-id');
   assert(component.find('Text', node => node.children.join('') === 'Verified workshop contact: vince@example.test'));
   component.press('Approve and invite customer');
   assert.deepEqual(invited, ['vince@example.test']);
@@ -601,7 +610,8 @@ test('waiting account action uses the owner verified workshop link when Xero use
   component.render();
   await new Promise(resolve => setTimeout(resolve, 20));
   component.render();
-  component.press('Waiting for account');
+  component.select('Invoice queue', 'waiting');
+  component.select('Awaiting customer or invoice', 'queue-private-id');
   assert(component.find('Text', node => node.props.children === 'Mazztek Performance'));
   component.press('Approve and invite customer');
   assert.deepEqual(invited, ['mazz@example.test']);
@@ -624,7 +634,8 @@ test('waiting account action stays hidden when the registration does not match t
   component.render();
   await new Promise(resolve => setTimeout(resolve, 20));
   component.render();
-  component.press('Waiting for account');
+  component.select('Invoice queue', 'waiting');
+  component.select('Awaiting customer or invoice', 'queue-private-id');
   assert.equal(component.find('Button', node => node.props.label === 'Approve and invite customer'), undefined);
   assert(component.find('Text', node => node.children.join('').includes('No single workshop email matches')));
 });
@@ -639,8 +650,8 @@ test('preview complimentary access explains customer-controlled trial without a 
 });
 
 for (const [state, action, label] of [
-  ['pending_staff_review', 'Approve requested date', 'Preview only · Approve date'],
-  ['pending_staff_review', 'Propose another date', 'Preview only · Propose date'],
+  ['pending_staff_review', 'Approve date and request deposit', 'Preview only · Approve date and request deposit'],
+  ['pending_staff_review', 'Suggest date only, no deposit', 'Preview only · Send date suggestion only'],
   ['pending_staff_review', 'Cancel request', 'Preview only · Confirm cancellation'],
   ['date_approved', 'Verify bank transfer', 'Preview only · Confirm bank transfer'],
 ]) {
@@ -665,3 +676,61 @@ for (const [state, action, label] of [
     assert.equal(operations, 0);
   });
 }
+
+
+test('invoice actions display one form at a time and preserve the selected identity when switching', () => {
+  const component = mountComponent('staff-vault-publisher.tsx', 'XeroImportReviewCard', {
+    disabled: false, owner: true, snapshot,
+    item: { id: 'queue-one', status: 'needs_review', reason: 'verified_customer_link_required', identifiers: { invoiceDate: '2026-10-27' } },
+    onDone: async () => undefined,
+  });
+  component.render();
+  assert.equal(component.count('Select'), 1);
+  component.select('Choose action', 'match'); component.select('Customer', 'customer-a'); component.select('Vehicle', 'vehicle-a');
+  component.press('I checked the Xero contact');
+  component.select('Choose action', 'new_customer');
+  assert.equal(component.find('Select', n => n.props.label === 'Customer'), undefined);
+  assert(component.find('Field', n => n.props.label === 'Email'));
+  component.select('Choose action', 'waiting');
+  assert.equal(component.find('Field', n => n.props.label === 'Email'), undefined);
+  assert(component.find('Select', n => n.props.label === 'Waiting customer'));
+  component.select('Choose action', 'match');
+  assert.equal(component.find('Select', n => n.props.label === 'Vehicle').props.value, 'vehicle-a');
+  assert.equal(component.find('Button', n => n.props.label === 'Match and import invoice').props.disabled, true, 'Changing action resets confirmation');
+});
+
+for (const [previewMode, owner, disabled] of [[true,true,false],[false,false,false],[false,true,true]]) {
+  test(`invoice mutation guards protect preview=${previewMode}, owner=${owner}, busy=${disabled}`, () => {
+    let calls = 0;
+    const forbidden = () => { calls++; throw Error('Unexpected mutation'); };
+    const component = mountComponent('staff-vault-publisher.tsx', 'XeroImportReviewCard', {
+      previewMode, owner, disabled, snapshot,
+      item: { id: 'queue-preview', status: 'needs_review', reason: 'verified_customer_link_required', identifiers: { invoiceDate: '2026-10-27' } }, onDone: forbidden,
+    }, { '@/lib/performance-plus': { vaultClient: forbidden }, '@/lib/supabase': { getSupabaseClient: forbidden } });
+    component.render();
+    if (!owner) { assert.equal(component.count('Select'), 0); return; }
+    for (const action of ['waiting', 'new_customer', 'match', 'xero_only']) {
+      component.select('Choose action', action);
+      const submit = component.find('Button');
+      assert.equal(submit.props.disabled, true);
+      submit.props.onPress();
+    }
+    assert.equal(calls, 0);
+  });
+}
+
+test('moving an invoice to awaiting leaves Needs action selected and does not send an invitation', async () => {
+  const item = { id: 'queue-move', source: 'xero', status: 'needs_review', reason: 'verified_customer_link_required', identifiers: { invoiceDate: '2026-10-27', invoiceNumber: 'DEMO-1', reference: 'DEMO42' } };
+  let sent = 0, moved = 0;
+  const data = { ...snapshot, workshopContacts: [{ id:'contact-demo', display_name:'Morgan Example', status:'active' }], workshopVehicles: [{ id:'vehicle-demo', workshop_contact_id:'contact-demo', registration:'DEMO42', status:'active' }] };
+  const client = { from(table) { const q = { select:()=>q, in:()=>q, is:()=>q, not:()=>q, order:()=>q, limit:async()=>({data:table==='vault_import_queue'?[item]:[],error:null}) }; return q; },
+    async rpc(name) { assert.equal(name,'queue_xero_import_for_customer_account'); item.status='waiting_for_customer'; moved++; return {}; } };
+  const component = mountComponent('staff-vault-publisher.tsx','StaffVaultReview',{snapshot:data,owner:true,onApproveAndInvite:()=>sent++},{'@/lib/performance-plus':{vaultClient:()=>client,aud:()=>''}});
+  component.render(); await new Promise(done=>setTimeout(done,15)); component.render();
+  component.select('Customer or invoice','queue-move'); component.select('Choose action','waiting'); component.press('Move to awaiting account');
+  await new Promise(done=>setTimeout(done,15)); component.render();
+  assert.equal(moved,1); assert.equal(sent,0);
+  assert.equal(component.find('Select',n=>n.props.label==='Invoice queue').props.value,'review');
+  assert(component.find('Text',n=>n.children.join('').includes('No invitation was sent')));
+  assert.equal(component.find('Button',n=>n.props.label==='Move to awaiting account'),undefined);
+});

@@ -33,6 +33,7 @@ import {
   HOME_TILE_IDS,
   type HomeTileId,
   useHomeShortcutPreferences,
+  visibleHomeTileGroups,
 } from '@/lib/home-shortcut-preferences';
 import { customerProfileComplete } from '@/lib/customer-access';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
@@ -103,7 +104,8 @@ export default function CustomerHomeScreen() {
   const profilePhotoUri = useCustomerProfilePhotoUri();
   const ownerProfileShortcut = auth.status === 'signed_in' && auth.user?.email?.toLowerCase() === 'matt@psiperformance.com.au';
   const pressProfile = useProfileDoubleTap(() => router.push('/account'), () => router.push('/staff'), ownerProfileShortcut);
-  const { resetShortcuts, shortcutIds, toggleShortcut } = useHomeShortcutPreferences();
+  const { ready: shortcutsReady, resetShortcuts, retrySave, saveError: shortcutSaveError, shortcutIds, toggleShortcut } = useHomeShortcutPreferences();
+  const homeTileGroups = visibleHomeTileGroups(shortcutIds);
   const threeColumns = tablet && width >= 780 && !largeText;
   const privateAccountMode = SUPABASE_CONNECTION.authEnabled;
   const currentHour = currentTime.getHours();
@@ -371,9 +373,10 @@ export default function CustomerHomeScreen() {
         <View style={styles.sectionHeading}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Your shortcuts</Text>
           <Pressable
-            accessibilityHint="Choose which tiles appear in your Home shortcuts"
+            accessibilityHint="Choose which tiles appear on Home"
             accessibilityLabel="Customise Home shortcuts"
             accessibilityRole="button"
+            disabled={!shortcutsReady}
             onPress={() => customerProfileComplete(garageAccount?.profile) ? setShortcutChooserOpen(true) : router.push({ pathname: '/account', params: { returnTo: '/' } })}
             style={({ pressed }) => [
               styles.shortcutButton,
@@ -391,64 +394,22 @@ export default function CustomerHomeScreen() {
           <Ionicons name="chevron-forward" size={18} color={theme.accent} />
         </Pressable> : null}
         <View style={styles.tileGrid}>
-          {shortcutIds.map((id) => (
+          {homeTileGroups.shortcuts.map((id) => (
             <TileCell key={id} threeColumns={threeColumns}>
               {renderHomeTile(id)}
             </TileCell>
           ))}
         </View>
 
-        <View style={styles.sectionHeading}>
+        {shortcutIds.length === 0 ? <Text style={[styles.shortcutNotice, { color: theme.textMuted }]}>No Home tiles selected. Tap Customise to add them.</Text> : null}
+        {shortcutSaveError ? <View accessibilityRole="alert"><Text style={{ color: theme.textMuted }}>Your selection is shown, but could not be saved on this device.</Text><PrimaryButton label="Retry saving Home tiles" onPress={retrySave} variant="outline" /></View> : null}
+
+        {homeTileGroups.workshop.length ? <><View style={styles.sectionHeading}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Workshop</Text>
         </View>
         <View style={styles.tileGrid}>
-          <TileCell threeColumns={threeColumns}>
-            <DashboardTile
-              accessibilityHint="Starts the existing approval-first dyno tuning request"
-              image={DASHBOARD_TILES.dyno}
-              imageStyle={styles.lowerTileImage}
-              label="Dyno Tuning"
-              onPress={() => openBooking('dyno')}
-            />
-          </TileCell>
-          <TileCell threeColumns={threeColumns}>
-            <DashboardTile
-              accessibilityHint="Opens vehicle history, dyno results, repairs and invoices"
-              image={DASHBOARD_TILES.reports}
-              imageStyle={styles.lowerRequestedTileImage}
-              label="Vehicle Reports"
-              onPress={() => router.push('/vehicle-reports')}
-            />
-          </TileCell>
-          <TileCell threeColumns={threeColumns}>
-            <DashboardTile
-              accessibilityHint="Open the build brief template and official PSI parts links"
-              image={DASHBOARD_TILES.planBuild}
-              imageStyle={styles.lowerPlanBuildTileImage}
-              label="Plan & Build"
-              onPress={() => router.push('/parts')}
-            />
-          </TileCell>
-          <TileCell threeColumns={threeColumns}>
-            <DashboardTile
-              accessibilityHint="Opens PSI's directory of independent automotive specialists"
-              image={DASHBOARD_TILES.trustedPartners}
-              label="Trusted Partners"
-              onPress={() => router.push('/trusted-partners')}
-            />
-          </TileCell>
-          <TileCell threeColumns={threeColumns}>
-            <DashboardTile
-              accessibilityHint="Opens PSI-cared-for vehicles currently listed by their owners"
-              cornerBadge="$"
-              image={DASHBOARD_TILES.customerCarsForSale}
-              imageStyle={styles.customerCarsTileImage}
-              label="Customer Cars for Sale"
-              onPress={() => router.push('/customer-cars-for-sale' as Href)}
-            />
-          </TileCell>
-          <TileCell threeColumns={threeColumns}><RewardsTile /></TileCell>
-        </View>
+          {homeTileGroups.workshop.map(id => <TileCell key={id} threeColumns={threeColumns}>{renderHomeTile(id)}</TileCell>)}
+        </View></> : null}
 
         <View style={styles.sectionHeading}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>The PSI standard</Text>
@@ -602,25 +563,21 @@ export default function CustomerHomeScreen() {
                   <Ionicons color={theme.text} name="close" size={24} />
                 </Pressable>
               </View>
-              <Text style={[styles.shortcutNotice, { color: theme.textMuted }]}>Select any tiles you want at the top of Home. This device-only preference contains no customer or vehicle information.</Text>
+              <Text style={[styles.shortcutNotice, { color: theme.textMuted }]}>Choose the tiles shown on Home. Unchecked tiles are hidden. Changes apply immediately on this device.</Text>
               <View accessibilityRole="list" style={styles.shortcutList}>
                 {HOME_TILE_IDS.map((id) => {
                   const checked = shortcutIds.includes(id);
-                  const onlySelection = checked && shortcutIds.length === 1;
                   return (
                     <Pressable
-                      accessibilityHint={onlySelection ? 'At least one shortcut must remain selected' : undefined}
                       accessibilityLabel={HOME_TILE_LABELS[id]}
                       accessibilityRole="checkbox"
-                      accessibilityState={{ checked, disabled: onlySelection }}
-                      disabled={onlySelection}
+                      accessibilityState={{ checked }}
                       key={id}
                       onPress={() => toggleShortcut(id)}
                       style={({ pressed }) => [
                         styles.shortcutOption,
                         { borderColor: checked ? theme.accent : theme.frame, backgroundColor: theme.surfaceRaised },
                         pressed && styles.pressed,
-                        onlySelection && styles.disabled,
                       ]}
                     >
                       <View style={[styles.checkbox, { borderColor: theme.frame, backgroundColor: checked ? theme.accent : 'transparent' }]}>
@@ -631,6 +588,7 @@ export default function CustomerHomeScreen() {
                   );
                 })}
               </View>
+              {shortcutSaveError ? <View accessibilityRole="alert"><Text style={[styles.shortcutNotice, { color: theme.textMuted }]}>Your selection could not be saved. Try again before closing.</Text><PrimaryButton label="Retry saving Home tiles" onPress={retrySave} variant="outline" /></View> : null}
               <View style={styles.shortcutModalActions}>
                 <Pressable
                   accessibilityRole="button"

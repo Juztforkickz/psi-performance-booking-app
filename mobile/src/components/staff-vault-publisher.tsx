@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { CalendarDateField } from '@/components/calendar-date-field';
@@ -16,6 +17,7 @@ import { xeroImportFailureMessage } from '@/lib/xero-import-feedback';
 import { xeroWorkshopJobReference } from '@/lib/xero-workshop-reference';
 import { aud, PUBLISHABLE_VAULT_KINDS, VAULT_LABELS, vaultClient, type VaultKind } from '@/lib/performance-plus';
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
+import { useStaffDiscardConfirmation } from '@/hooks/use-staff-discard-confirmation';
 
 type ChangeCallbacks = { onDirtyChange?: (dirty: boolean) => void; onBusyChange?: (busy: boolean) => void };
 
@@ -192,7 +194,7 @@ function importTab(value: string): ImportTab {
   return value === 'waiting' || value === 'imported' ? value : 'review';
 }
 
-export function StaffVaultReview({ snapshot, owner, focusImportId = '', initialTab = '', previewMode = false, onApproveAndInvite, onRefresh }: {
+export function StaffVaultReview({ snapshot, owner, focusImportId = '', initialTab = '', previewMode = false, onApproveAndInvite, onRefresh, onDirtyChange, onBusyChange }: {
   snapshot: StaffPortalSnapshot;
   owner: boolean;
   focusImportId?: string;
@@ -200,16 +202,39 @@ export function StaffVaultReview({ snapshot, owner, focusImportId = '', initialT
   previewMode?: boolean;
   onApproveAndInvite?: (email: string, workshopContactId?: string) => void;
   onRefresh?: () => void;
-}) {
-  const [imports, setImports] = useState<VaultImportReview[]>([]);
+} & ChangeCallbacks) {
+  const [imports, setImports] = useState<VaultImportReview[]>(() => previewMode ? snapshot?.vaultImports ?? [] : []);
   const [drafts, setDrafts] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [busy, setBusy] = useState(!previewMode);
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(previewMode);
   const [activeTab, setActiveTab] = useState<ImportTab>(() => importTab(initialTab));
+  const [selectedId, setSelectedId] = useState('');
+  const [openedFocusId, setOpenedFocusId] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [working, setWorking] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [draftId, setDraftId] = useState('');
+  const { confirmDiscard, discardDialog } = useStaffDiscardConfirmation();
   const waitingImports = imports.filter(item => item.status === 'waiting_for_customer');
   const importedItems = imports.filter(item => item.status === 'imported');
   const reviewImports = imports.filter(item => item.status !== 'waiting_for_customer' && item.status !== 'imported');
+  const visibleImports = activeTab === 'waiting' ? waitingImports : activeTab === 'imported' ? importedItems : reviewImports;
+  const selected = imports.find(item => item.id === selectedId);
+  const closeInvoice = () => {
+    if (working || busy) return;
+    const close = () => { setSelectedId(''); setEditing(false); };
+    if (editing) confirmDiscard(close); else close();
+  };
+  useEffect(() => { onDirtyChange?.(editing); }, [editing, onDirtyChange]);
+  useEffect(() => { onBusyChange?.(busy || working); }, [busy, working, onBusyChange]);
+  useEffect(() => () => { onDirtyChange?.(false); onBusyChange?.(false); }, [onDirtyChange, onBusyChange]);
+  useEffect(() => {
+    if (loaded && focusImportId && focusImportId !== openedFocusId && imports.some(item => item.id === focusImportId)) {
+      const task = setTimeout(() => { setSelectedId(focusImportId); setOpenedFocusId(focusImportId); }, 0);
+      return () => clearTimeout(task);
+    }
+  }, [focusImportId, imports, loaded, openedFocusId]);
   const review = useCallback(async () => {
     if (previewMode) return;
     setBusy(true); setError('');
@@ -244,47 +269,51 @@ export function StaffVaultReview({ snapshot, owner, focusImportId = '', initialT
   };
   useEffect(() => { if (previewMode) return; const task = setTimeout(() => void review(), 0); return () => clearTimeout(task); }, [review, previewMode]);
   return <View style={styles.stack}>
-    <Text style={styles.muted}>{previewMode ? 'Preview only · This example shows an empty imports and drafts queue.' : 'Private imports and drafts. Reviewing this list does not publish records.'}</Text>
+    <Text style={styles.muted}>{previewMode ? 'Preview only · Fictional invoices. Saving and invitations are disabled.' : 'Private imports and drafts. Reviewing this list does not publish records.'}</Text>
     {owner ? <PrimaryButton disabled={previewMode || busy} loading={busy} label="Check Xero invoice queue" onPress={() => void processXero()} /> : null}
     <PrimaryButton disabled={previewMode || busy} loading={busy} label={loaded ? 'Refresh' : 'Load records'} variant="outline" onPress={() => void review()} />
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
+    {notice ? <View style={styles.card}><Text accessibilityRole="alert" style={styles.message}>{notice}</Text><PrimaryButton label="View awaiting accounts" variant="outline" onPress={() => setActiveTab('waiting')} /></View> : null}
     {loaded && !error ? <>
-      <View accessibilityRole="tablist" style={styles.reviewTabs}>
-        <Pressable accessibilityRole="tab" accessibilityState={{ selected: activeTab === 'review' }} onPress={() => setActiveTab('review')} style={[styles.reviewTab, activeTab === 'review' && styles.selected]}>
-          <Text style={[styles.copy, activeTab === 'review' && styles.selectedText]}>Needs action{reviewImports.length ? ` (${reviewImports.length})` : ''}</Text>
-        </Pressable>
-        <Pressable accessibilityRole="tab" accessibilityState={{ selected: activeTab === 'waiting' }} onPress={() => setActiveTab('waiting')} style={[styles.reviewTab, activeTab === 'waiting' && styles.selected]}>
-          <Text style={[styles.copy, activeTab === 'waiting' && styles.selectedText]}>Waiting for account{waitingImports.length ? ` (${waitingImports.length})` : ''}</Text>
-        </Pressable>
-        <Pressable accessibilityRole="tab" accessibilityState={{ selected: activeTab === 'imported' }} onPress={() => setActiveTab('imported')} style={[styles.reviewTab, activeTab === 'imported' && styles.selected]}>
-          <Text style={[styles.copy, activeTab === 'imported' && styles.selectedText]}>Imported{importedItems.length ? ` (${importedItems.length})` : ''}</Text>
-        </Pressable>
-      </View>
+      <StaffScrollSelect label="Invoice queue" disabled={busy || working} value={activeTab} onChange={value => setActiveTab(importTab(value))} options={[
+        { value: 'review', label: `Needs action (${reviewImports.length})` },
+        { value: 'waiting', label: `Awaiting account (${waitingImports.length})` },
+        { value: 'imported', label: `Imported (${importedItems.length})` },
+      ]} />
+      <Text style={styles.muted}>{activeTab === 'waiting'
+        ? 'Saved privately until the customer account and vehicle are securely matched. Inviting a customer is a separate action.'
+        : activeTab === 'imported' ? 'Already added to the matched customer vehicle history.'
+          : 'Choose an invoice, check its details, then choose one action.'}</Text>
+      <StaffScrollSelect label={activeTab === 'waiting' ? 'Awaiting customer or invoice' : 'Customer or invoice'} disabled={busy || working || !visibleImports.length} value="" placeholder={visibleImports.length ? `Choose from ${visibleImports.length} invoice${visibleImports.length === 1 ? '' : 's'}` : 'No invoices in this queue'} searchable onChange={id => { setSelectedId(id); setEditing(false); }} options={visibleImports.map(item => ({ value: item.id, ...invoiceOption(item) }))} />
+      {imports.length >= 100 ? <Text style={styles.muted}>Showing the latest 100 imports. Workshop alerts can open an older invoice directly.</Text> : null}
       {activeTab === 'review' ? <>
-      {reviewImports.length ? <View accessibilityRole="alert" style={styles.reviewAlert}>
-        <Ionicons color={colors.danger} name="alert-circle" size={24} />
-        <View style={styles.reviewAlertCopy}><Text style={styles.reviewAlertTitle}>Action needed · {reviewImports.length} invoice exception{reviewImports.length === 1 ? '' : 's'}</Text><Text style={styles.muted}>These could not be matched automatically. Check the customer and vehicle before publishing, move them to waiting for an account, or keep the invoice in Xero only.</Text></View>
-      </View> : null}
-      <Text style={styles.title}>Imports needing review</Text>
-      {!reviewImports.length ? <Text style={styles.muted}>No imports need review.</Text> : reviewImports.map(item => item.source === 'xero'
-        ? <XeroImportReviewCard disabled={busy} focused={item.id === focusImportId} item={item} key={item.id} onDone={review} onMovedToWaiting={async () => { await review(); onRefresh?.(); setActiveTab('waiting'); }} owner={owner} snapshot={snapshot} />
-        : <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.source} · {item.source_key}</Text><Text style={styles.muted}>{item.reason}</Text></View>)}
-      {imports.length === 50 ? <Text style={styles.muted}>Showing the latest 50 imports.</Text> : null}
       <Text style={styles.title}>Unpublished drafts</Text>
-      {!drafts.length ? <Text style={styles.muted}>No unfinished vault drafts.</Text> : <><Text style={styles.muted}>Check the original upload before retrying to avoid duplicates.</Text>{drafts.map(item => <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.title}</Text><Text selectable style={styles.muted}>Draft reference: {item.id}</Text></View>)}</>}
+      {!drafts.length ? <Text style={styles.muted}>No unfinished vault drafts.</Text> : <><Text style={styles.muted}>Check the original upload before retrying to avoid duplicates.</Text><StaffScrollSelect label="Unpublished draft" value={draftId} searchable options={drafts.map(item => ({ value: item.id, label: item.title, sublabel: `Draft reference: ${item.id}` }))} onChange={setDraftId} />{drafts.filter(item => item.id === draftId).map(item => <View key={item.id} style={styles.card}><Text style={styles.copy}>{item.title}</Text><Text selectable style={styles.muted}>Draft reference: {item.id}</Text></View>)}</>}
       {drafts.length === 50 ? <Text style={styles.muted}>Showing the latest 50 drafts.</Text> : null}
-      </> : activeTab === 'waiting' ? <>
-        <Text style={styles.title}>Waiting for a customer account</Text>
-        <Text style={styles.muted}>These files are saved privately for customers whose PSI account and vehicle have not been matched yet. Once they create an account and the details are securely matched, syncing continues automatically.</Text>
-        <Text style={styles.message}>These files stay private and do not send owner alerts. Invite a verified workshop customer here, or leave the file waiting. Do not upload it again.</Text>
-        {!waitingImports.length ? <Text style={styles.muted}>No files are waiting for a customer account.</Text> : waitingImports.map(item => <WaitingAccountCard item={item} key={item.id} onApproveAndInvite={onApproveAndInvite} owner={owner} previewMode={previewMode} snapshot={snapshot} />)}
-      </> : <>
-        <Text style={styles.title}>Imported invoices</Text>
-        <Text style={styles.muted}>These invoices were matched and added to customer vehicle history. They do not need further action.</Text>
-        {!importedItems.length ? <Text style={styles.muted}>No imported invoices are available.</Text> : importedItems.map(item => <CompletedImportCard item={item} key={item.id} />)}
-      </>}
+      </> : null}
     </> : null}
+    <Modal animationType="slide" visible={Boolean(selected)} onRequestClose={closeInvoice}>
+      <SafeAreaView style={styles.sheetSafe}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetSafe}>
+          <View style={styles.sheetHeading}><Text accessibilityRole="header" style={styles.title}>Invoice review</Text><PrimaryButton label="Close" disabled={working || busy} onPress={closeInvoice} variant="outline" /></View>
+          {selected?.status === 'waiting_for_customer' ? <ScrollView contentContainerStyle={styles.sheetContent}><WaitingAccountCard item={selected} onApproveAndInvite={(email, contactId) => { setSelectedId(''); onApproveAndInvite?.(email, contactId); }} owner={owner} previewMode={previewMode} snapshot={snapshot} /></ScrollView>
+            : selected?.status === 'imported' ? <ScrollView contentContainerStyle={styles.sheetContent}><CompletedImportCard item={selected} /></ScrollView>
+              : selected?.source === 'xero' ? <XeroImportReviewCard key={selected.id} inSheet disabled={busy} previewMode={previewMode} focused={selected.id === focusImportId} item={selected} onBusyChange={setWorking} onDirtyChange={setEditing} onDone={review} onMovedToWaiting={async () => { setSelectedId(''); setEditing(false); setNotice('Invoice saved privately in Awaiting account. No invitation was sent.'); await review(); onRefresh?.(); }} owner={owner} snapshot={snapshot} />
+                : selected ? <ScrollView contentContainerStyle={styles.sheetContent}><Text style={styles.copy}>{selected.source}</Text><Text style={styles.muted}>{selected.reason}</Text></ScrollView> : null}
+        </KeyboardAvoidingView>
+        {discardDialog}
+      </SafeAreaView>
+    </Modal>
   </View>;
+}
+
+function invoiceOption(item: VaultImportReview) {
+  const details = item.identifiers;
+  const name = typeof details.xeroContactName === 'string' ? details.xeroContactName : typeof details.contactName === 'string' ? details.contactName : 'Customer details pending';
+  return {
+    label: `${name} · ${typeof details.invoiceNumber === 'string' ? details.invoiceNumber : 'Invoice inspection pending'}`,
+    sublabel: [details.reference, details.descriptionRegistration, typeof details.totalCents === 'number' && details.currency === 'AUD' ? aud(details.totalCents) : '', item.status.replaceAll('_', ' ')].filter(Boolean).join(' · '),
+  };
 }
 
 function CompletedImportCard({ item }: { item: VaultImportReview }) {
@@ -387,18 +416,19 @@ function WaitingAccountCard({ item, onApproveAndInvite, owner, previewMode, snap
   </View>;
 }
 
-function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaiting, owner, snapshot }: { disabled: boolean; focused: boolean; item: VaultImportReview; onDone: () => Promise<void>; onMovedToWaiting?: () => Promise<void>; owner: boolean; snapshot: StaffPortalSnapshot }) {
+type ImportAction = '' | 'match' | 'waiting' | 'new_customer' | 'xero_only' | 'retry';
+
+function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaiting, owner, snapshot, inSheet = false, previewMode = false, onDirtyChange, onBusyChange }: { disabled: boolean; focused: boolean; item: VaultImportReview; onDone: () => Promise<void>; onMovedToWaiting?: () => Promise<void>; owner: boolean; snapshot: StaffPortalSnapshot; inSheet?: boolean; previewMode?: boolean } & ChangeCallbacks) {
   const [customerId, setCustomerId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [importType, setImportType] = useState<'workshop_job' | 'parts_only'>('workshop_job');
   const [confirmed, setConfirmed] = useState(false);
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState('');
-  const [waitingOpen, setWaitingOpen] = useState(false);
+  const [action, setAction] = useState<ImportAction>('');
   const [waitingContactId, setWaitingContactId] = useState('');
   const [waitingVehicleId, setWaitingVehicleId] = useState('');
   const [waitingConfirmed, setWaitingConfirmed] = useState(false);
-  const [newWaitingOpen, setNewWaitingOpen] = useState(false);
   const identifiers = item.identifiers;
   const reference = typeof identifiers.reference === 'string' ? identifiers.reference : '';
   const invoiceNumber = typeof identifiers.invoiceNumber === 'string' && identifiers.invoiceNumber.trim()
@@ -422,10 +452,17 @@ function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaitin
   const activeWorkshopContacts = snapshot.workshopContacts.filter(contact => contact.status === 'active');
   const waitingVehicles = snapshot.workshopVehicles.filter(vehicle => vehicle.status === 'active' && vehicle.workshop_contact_id === waitingContactId);
   const queueEligible = ['needs_review', 'failed'].includes(item.status) && item.reason !== 'invoice_status_requires_review';
-  const canMatch = owner && item.status === 'needs_review' && Boolean(invoiceDate && customerId && vehicleId && confirmed);
+  const canMatch = owner && !previewMode && item.status === 'needs_review' && Boolean(invoiceDate && customerId && vehicleId && confirmed);
+  const dirty = Boolean(customerId || vehicleId || waitingContactId || waitingVehicleId || confirmed || waitingConfirmed || newWaitingConfirmed
+    || importType !== 'workshop_job' || newWaitingEmail || newWaitingMobile || newWaitingYear || newWaitingMake || newWaitingModel
+    || newWaitingName !== (contactName === 'Xero contact not loaded' ? '' : contactName)
+    || newWaitingRegistration !== (typeof identifiers.descriptionRegistration === 'string' ? identifiers.descriptionRegistration : ''));
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+  useEffect(() => { onBusyChange?.(working); }, [working, onBusyChange]);
+  useEffect(() => () => { onDirtyChange?.(false); onBusyChange?.(false); }, [onDirtyChange, onBusyChange]);
 
   const moveToWaiting = async () => {
-    if (!owner || !waitingMatch || disabled || working || !['needs_review', 'failed'].includes(item.status)) return;
+    if (previewMode || !owner || !waitingMatch || disabled || working || !['needs_review', 'failed'].includes(item.status)) return;
     setWorking(true); setMessage('');
     try {
       const result = await vaultClient().rpc('queue_xero_import_for_customer_account', {
@@ -442,7 +479,7 @@ function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaitin
   };
 
   const moveSelectedToWaiting = async () => {
-    if (!owner || !queueEligible || !waitingConfirmed || !waitingContactId || !waitingVehicleId || disabled || working) return;
+    if (previewMode || !owner || !queueEligible || !waitingConfirmed || !waitingContactId || !waitingVehicleId || disabled || working) return;
     setWorking(true); setMessage('');
     try {
       const result = await vaultClient().rpc('queue_xero_import_for_customer_account_confirmed', {
@@ -462,7 +499,7 @@ function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaitin
     const year = Number(newWaitingYear);
     const validEmail = !newWaitingEmail.trim() || /^\S+@\S+\.\S+$/.test(newWaitingEmail.trim());
     const validContact = Boolean(newWaitingEmail.trim() || newWaitingMobile.replace(/\D/g, '').length >= 6);
-    if (!owner || !queueEligible || !newWaitingConfirmed || !newWaitingName.trim() || !validEmail || !validContact || !newWaitingRegistration.trim() || !Number.isInteger(year) || year < 1900 || year > 2200 || !newWaitingMake.trim() || !newWaitingModel.trim() || disabled || working) {
+    if (previewMode || !owner || !queueEligible || !newWaitingConfirmed || !newWaitingName.trim() || !validEmail || !validContact || !newWaitingRegistration.trim() || !Number.isInteger(year) || year < 1900 || year > 2200 || !newWaitingMake.trim() || !newWaitingModel.trim() || disabled || working) {
       setMessage('Add the customer name, a valid email or mobile, registration, year, make and model, then confirm the match.');
       return;
     }
@@ -487,7 +524,7 @@ function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaitin
   };
 
   const keepInXeroOnly = async () => {
-    if (!owner || disabled || working || !['needs_review', 'failed'].includes(item.status)) return;
+    if (previewMode || !owner || disabled || working || !['needs_review', 'failed'].includes(item.status)) return;
     setWorking(true); setMessage('');
     try {
       const result = await vaultClient().rpc('ignore_xero_import', { p_queue_id: item.id });
@@ -500,7 +537,7 @@ function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaitin
   };
 
   const retryInspection = async () => {
-    if (!owner || disabled || working || !(item.status === 'failed' || item.reason === 'invoice_date_requires_review')) return;
+    if (previewMode || !owner || disabled || working || !(item.status === 'failed' || item.reason === 'invoice_date_requires_review')) return;
     setWorking(true); setMessage('');
     try {
       const processed = await getSupabaseClient().functions.invoke('process-xero-imports', { body: { queueId: item.id, limit: 1 } });
@@ -517,7 +554,7 @@ function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaitin
   };
 
   const matchAndImport = async () => {
-    if (!canMatch || disabled || working) return;
+    if (previewMode || !canMatch || disabled || working) return;
     setWorking(true); setMessage('');
     let matchSaved = false;
     try {
@@ -555,60 +592,56 @@ function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaitin
     finally { setWorking(false); }
   };
 
-  return <View style={[styles.card, focused && styles.focusedImportCard]}>
+  const actionOptions = owner ? [
+    ...(item.status === 'needs_review' ? [{ value: 'match', label: 'Match to an app customer' }] : []),
+    ...(queueEligible ? [{ value: 'waiting', label: 'Awaiting account', sublabel: 'Existing workshop customer' }, { value: 'new_customer', label: 'New workshop customer', sublabel: 'Save privately in Awaiting account' }] : []),
+    ...(item.status === 'failed' || item.reason === 'invoice_date_requires_review' ? [{ value: 'retry', label: 'Retry Xero inspection' }] : []),
+    ...(['needs_review', 'failed'].includes(item.status) ? [{ value: 'xero_only', label: 'Keep in Xero only' }] : []),
+  ] : [];
+  const actionButton = action === 'waiting'
+    ? <PrimaryButton disabled={previewMode || disabled || working || (!waitingMatch && (!waitingConfirmed || !waitingVehicleId))} loading={working} label={waitingMatch ? 'Move to awaiting account' : 'Move selected invoice to waiting'} onPress={() => void (waitingMatch ? moveToWaiting() : moveSelectedToWaiting())} />
+    : action === 'new_customer' ? <PrimaryButton disabled={previewMode || !newWaitingConfirmed || disabled || working} loading={working} label="Save customer and move invoice to waiting" onPress={() => void createWaitingCustomer()} />
+      : action === 'match' ? <PrimaryButton disabled={previewMode || !canMatch || disabled || working} loading={working} label={importType === 'parts_only' ? 'Import as parts only' : 'Match and import invoice'} onPress={() => void matchAndImport()} />
+        : action === 'retry' ? <PrimaryButton disabled={previewMode || disabled || working} loading={working} label="Retry Xero inspection" onPress={() => void retryInspection()} />
+          : action === 'xero_only' ? <PrimaryButton disabled={previewMode || disabled || working} loading={working} label="Keep in Xero only" onPress={() => void keepInXeroOnly()} variant="outline" /> : null;
+  const content = <View style={[styles.card, focused && styles.focusedImportCard]}>
     {focused ? <Text style={styles.importStatus}>Opened from workshop alert</Text> : null}
     <View style={styles.importHeading}><Text style={styles.copy}>Xero invoice · {invoiceNumber}</Text><Text style={styles.importStatus}>{item.status.replaceAll('_', ' ')}</Text></View>
-    <Text style={styles.muted}>{contactName}{invoiceDate ? ` · ${invoiceDate}` : ''}{totalCents !== null ? ` · ${aud(totalCents)}` : ''}</Text>
-    {invoiceStatus ? <Text style={styles.importStatus}>Xero · {invoiceStatus}{amountDueCents !== null ? ` · ${aud(amountDueCents)} due` : ''}</Text> : null}
+    <Text style={styles.muted}>{contactName}{invoiceDate ? ` · ${invoiceDate}` : ''}{totalCents !== null && identifiers.currency === 'AUD' ? ` · ${aud(totalCents)}` : ''}</Text>
+    {invoiceStatus ? <Text style={styles.importStatus}>Xero · {invoiceStatus}{amountDueCents !== null && identifiers.currency === 'AUD' ? ` · ${aud(amountDueCents)} due` : ''}</Text> : null}
     {reference ? <Text selectable style={styles.copy}>Xero reference · {reference}</Text> : null}
     {typeof identifiers.descriptionRegistration === 'string' ? <Text style={styles.copy}>Invoice registration · {identifiers.descriptionRegistration}</Text> : null}
     <Text style={styles.muted}>{reviewReason(item.reason)}{item.last_error_code ? ` · ${item.last_error_code.replaceAll('_', ' ')}` : ''}</Text>
     {item.status === 'pending' || item.status === 'matched' || item.status === 'processing' ? <Text style={styles.message}>Secure inspection is queued.</Text> : null}
-    {item.status === 'failed' && owner ? <>
-      <Text style={styles.message}>This invoice is still safe in Xero. Retry its inspection, or keep it in Xero only if it does not belong in a customer account.</Text>
-      <PrimaryButton disabled={disabled || working} loading={working} label="Retry Xero inspection" onPress={() => void retryInspection()} />
-      <PrimaryButton disabled={disabled || working} label="Keep in Xero only" variant="outline" onPress={() => void keepInXeroOnly()} />
+    {actionOptions.length ? <StaffScrollSelect label="Choose action" disabled={disabled || working} value={action} options={actionOptions} onChange={value => { setAction(value as ImportAction); setConfirmed(false); setWaitingConfirmed(false); setNewWaitingConfirmed(false); setMessage(''); }} /> : null}
+    {action === 'waiting' ? waitingMatch ? <Text style={styles.message}>Workshop customer found: {waitingMatch.contact.display_name} · {waitingMatch.vehicle.registration}. Save this invoice privately until their matching app account is completed.</Text> : <>
+      <Text style={styles.title}>Existing workshop customer</Text>
+      <Text style={styles.muted}>Choose the customer and vehicle that belong to this invoice. The invoice stays private until their matching app account is completed.</Text>
+      <StaffScrollSelect label="Waiting customer" disabled={disabled || working} value={waitingContactId} options={activeWorkshopContacts.map(contact => ({ value: contact.id, label: contact.display_name, sublabel: contact.email || contact.mobile || 'Workshop customer' }))} searchable onChange={value => { setWaitingContactId(value); setWaitingVehicleId(''); setWaitingConfirmed(false); setMessage(''); }} />
+      <StaffScrollSelect label="Waiting vehicle" disabled={disabled || working || !waitingContactId} value={waitingVehicleId} options={waitingVehicles.map(vehicle => ({ value: vehicle.id, label: `${vehicle.year} ${vehicle.make} ${vehicle.model}`, sublabel: vehicle.registration }))} searchable onChange={value => { setWaitingVehicleId(value); setWaitingConfirmed(false); setMessage(''); }} />
+      <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: waitingConfirmed }} disabled={disabled || working || !waitingVehicleId} onPress={() => setWaitingConfirmed(value => !value)} style={styles.confirm}>
+        <Ionicons color={colors.accent} name={waitingConfirmed ? 'checkbox' : 'square-outline'} size={25} />
+        <Text style={styles.confirmText}>I checked the Xero contact and registration. This invoice belongs to the selected workshop customer and vehicle.</Text>
+      </Pressable>
     </> : null}
-    {item.status === 'needs_review' && item.reason === 'invoice_date_requires_review' && owner
-      ? <PrimaryButton disabled={disabled || working} loading={working} label="Retry Xero inspection" onPress={() => void retryInspection()} />
-      : null}
-    {item.status === 'needs_review' && owner ? <>
-      {queueEligible && waitingMatch ? <>
-        <Text style={styles.message}>Workshop customer found: {waitingMatch.contact.display_name} · {waitingMatch.vehicle.registration}</Text>
-        <PrimaryButton disabled={disabled || working} loading={working} label="Move to awaiting account" onPress={() => void moveToWaiting()} variant="outline" />
-      </> : queueEligible ? <>
-        <PrimaryButton disabled={disabled || working} label={waitingOpen ? 'Close waiting account options' : 'Move to waiting for account'} onPress={() => { setWaitingOpen(value => !value); setMessage(''); }} variant="outline" />
-        {waitingOpen ? <View style={styles.waitingPanel}>
-          <Text style={styles.title}>Existing workshop customer</Text>
-          <Text style={styles.muted}>Choose the customer and vehicle that belong to this invoice. The invoice remains private until their matching app account is completed.</Text>
-          <StaffScrollSelect label="Waiting customer" value={waitingContactId} options={activeWorkshopContacts.map(contact => ({ value: contact.id, label: contact.display_name, sublabel: contact.email || contact.mobile || 'Workshop customer' }))} searchable onChange={value => { setWaitingContactId(value); setWaitingVehicleId(''); setWaitingConfirmed(false); setMessage(''); }} />
-          <StaffScrollSelect label="Waiting vehicle" value={waitingVehicleId} options={waitingVehicles.map(vehicle => ({ value: vehicle.id, label: `${vehicle.year} ${vehicle.make} ${vehicle.model}`, sublabel: vehicle.registration }))} searchable onChange={value => { setWaitingVehicleId(value); setWaitingConfirmed(false); setMessage(''); }} />
-          <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: waitingConfirmed }} disabled={disabled || working || !waitingVehicleId} onPress={() => setWaitingConfirmed(value => !value)} style={styles.confirm}>
-            <Ionicons color={colors.accent} name={waitingConfirmed ? 'checkbox' : 'square-outline'} size={25} />
-            <Text style={styles.confirmText}>I checked the Xero contact and registration. This invoice belongs to the selected workshop customer and vehicle.</Text>
-          </Pressable>
-          <PrimaryButton disabled={!waitingConfirmed || !waitingVehicleId || disabled || working} loading={working} label="Move selected invoice to waiting" onPress={() => void moveSelectedToWaiting()} />
-          <PrimaryButton disabled={disabled || working} label={newWaitingOpen ? 'Close new customer form' : 'Customer is not listed'} onPress={() => { setNewWaitingOpen(value => !value); setMessage(''); }} variant="outline" />
-          {newWaitingOpen ? <View style={styles.waitingPanel}>
-            <Text style={styles.title}>New waiting customer</Text>
-            <Text style={styles.muted}>Use the exact contact details and registration the customer will use in their PSI account so the invoice can match automatically.</Text>
-            <Field label="Customer name"><FormInput editable={!working} maxLength={160} onChangeText={setNewWaitingName} value={newWaitingName} /></Field>
-            <Field hint="Email or mobile is required" label="Email"><FormInput autoCapitalize="none" editable={!working} keyboardType="email-address" maxLength={160} onChangeText={setNewWaitingEmail} value={newWaitingEmail} /></Field>
-            <Field hint="Email or mobile is required" label="Mobile"><FormInput editable={!working} keyboardType="phone-pad" maxLength={40} onChangeText={setNewWaitingMobile} value={newWaitingMobile} /></Field>
-            <Field label="Registration"><FormInput autoCapitalize="characters" editable={!working} maxLength={20} onChangeText={setNewWaitingRegistration} value={newWaitingRegistration} /></Field>
-            <Field label="Year"><FormInput editable={!working} keyboardType="number-pad" maxLength={4} onChangeText={value => setNewWaitingYear(value.replace(/\D/g, ''))} value={newWaitingYear} /></Field>
-            <Field label="Make"><FormInput editable={!working} maxLength={80} onChangeText={setNewWaitingMake} value={newWaitingMake} /></Field>
-            <Field label="Model"><FormInput editable={!working} maxLength={100} onChangeText={setNewWaitingModel} value={newWaitingModel} /></Field>
-            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: newWaitingConfirmed }} disabled={disabled || working} onPress={() => setNewWaitingConfirmed(value => !value)} style={styles.confirm}>
-              <Ionicons color={colors.accent} name={newWaitingConfirmed ? 'checkbox' : 'square-outline'} size={25} />
-              <Text style={styles.confirmText}>I checked these details against the customer and invoice. Save this as a workshop customer waiting for an app account.</Text>
-            </Pressable>
-            <PrimaryButton disabled={!newWaitingConfirmed || disabled || working} loading={working} label="Save customer and move invoice to waiting" onPress={() => void createWaitingCustomer()} />
-          </View> : null}
-        </View> : null}
-      </> : <Text style={styles.muted}>This Xero invoice must be issued or paid before it can wait for a customer account.</Text>}
-      <StaffScrollSelect label="Customer" value={customerId} options={customerOptions(snapshot)} searchable onChange={value => { setCustomerId(value); setVehicleId(''); setConfirmed(false); setMessage(''); }} />
-      <StaffScrollSelect label="Vehicle" value={vehicleId} options={vehicles.map(vehicle => ({ value: vehicle.id, label: `${vehicle.year} ${vehicle.make} ${vehicle.model}`, sublabel: vehicle.registration }))} searchable onChange={value => { setVehicleId(value); setConfirmed(false); setMessage(''); }} />
+    {action === 'new_customer' ? <>
+      <Text style={styles.title}>New waiting customer</Text>
+      <Text style={styles.muted}>Use the exact details the customer will use in their PSI account. Saving here does not send an invitation.</Text>
+      <Field label="Customer name"><FormInput editable={!disabled && !working} maxLength={160} onChangeText={setNewWaitingName} value={newWaitingName} /></Field>
+      <Field hint="Email or mobile is required" label="Email"><FormInput autoCapitalize="none" editable={!disabled && !working} keyboardType="email-address" maxLength={160} onChangeText={setNewWaitingEmail} value={newWaitingEmail} /></Field>
+      <Field hint="Email or mobile is required" label="Mobile"><FormInput editable={!disabled && !working} keyboardType="phone-pad" maxLength={40} onChangeText={setNewWaitingMobile} value={newWaitingMobile} /></Field>
+      <Field label="Registration"><FormInput autoCapitalize="characters" editable={!disabled && !working} maxLength={20} onChangeText={setNewWaitingRegistration} value={newWaitingRegistration} /></Field>
+      <Field label="Year"><FormInput editable={!disabled && !working} keyboardType="number-pad" maxLength={4} onChangeText={value => setNewWaitingYear(value.replace(/\D/g, ''))} value={newWaitingYear} /></Field>
+      <Field label="Make"><FormInput editable={!disabled && !working} maxLength={80} onChangeText={setNewWaitingMake} value={newWaitingMake} /></Field>
+      <Field label="Model"><FormInput editable={!disabled && !working} maxLength={100} onChangeText={setNewWaitingModel} value={newWaitingModel} /></Field>
+      <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: newWaitingConfirmed }} disabled={disabled || working} onPress={() => setNewWaitingConfirmed(value => !value)} style={styles.confirm}>
+        <Ionicons color={colors.accent} name={newWaitingConfirmed ? 'checkbox' : 'square-outline'} size={25} />
+        <Text style={styles.confirmText}>I checked these details against the customer and invoice. Save this as a workshop customer waiting for an app account.</Text>
+      </Pressable>
+    </> : null}
+    {action === 'match' ? <>
+      <StaffScrollSelect label="Customer" disabled={disabled || working} value={customerId} options={customerOptions(snapshot)} searchable onChange={value => { setCustomerId(value); setVehicleId(''); setConfirmed(false); setMessage(''); }} />
+      <StaffScrollSelect label="Vehicle" disabled={disabled || working || !customerId} value={vehicleId} options={vehicles.map(vehicle => ({ value: vehicle.id, label: `${vehicle.year} ${vehicle.make} ${vehicle.model}`, sublabel: vehicle.registration }))} searchable onChange={value => { setVehicleId(value); setConfirmed(false); setMessage(''); }} />
       <View accessibilityRole="radiogroup" style={styles.choices}>
         <Choice disabled={disabled || working} label="Workshop job" selected={importType === 'workshop_job'} onPress={() => { setImportType('workshop_job'); setConfirmed(false); setMessage(''); }} />
         <Choice disabled={disabled || working} label="Parts only" selected={importType === 'parts_only'} onPress={() => { setImportType('parts_only'); setConfirmed(false); setMessage(''); }} />
@@ -620,11 +653,16 @@ function XeroImportReviewCard({ disabled, focused, item, onDone, onMovedToWaitin
           ? 'I checked the Xero contact, customer and registration. This is a parts-only sale with no PSI workshop job. Import this invoice to that vehicle.'
           : 'I checked the Xero contact, customer and vehicle. The invoice registration or PSI job reference identifies this vehicle. Import this invoice to that vehicle.'}</Text>
       </Pressable>
-      <PrimaryButton disabled={!canMatch || disabled || working} loading={working} label={importType === 'parts_only' ? 'Import as parts only' : 'Match and import invoice'} onPress={() => void matchAndImport()} />
-      <PrimaryButton disabled={disabled || working} label="Keep in Xero only" variant="outline" onPress={() => void keepInXeroOnly()} />
     </> : null}
+    {action === 'xero_only' ? <Text style={styles.message}>This removes the invoice from the app import queue. The original remains in Xero. No customer vault record is created.</Text> : null}
+    {action === 'retry' ? <Text style={styles.message}>Inspect this existing invoice again. Its customer history is preserved.</Text> : null}
     {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
+    {!inSheet ? actionButton : null}
   </View>;
+  return inSheet ? <View style={styles.sheetSafe}>
+    <ScrollView automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.sheetContent}>{content}</ScrollView>
+    {actionButton ? <View style={styles.sheetFooter}>{actionButton}</View> : null}
+  </View> : content;
 }
 
 export function StaffPerformanceAccess({ onDirtyChange, onBusyChange, previewMode = false }: {
@@ -669,6 +707,10 @@ function UploadAction({ label, hint, icon, primary = false, disabled, onPress }:
 }
 const styles = StyleSheet.create({
   stack: { gap: spacing.md },
+  sheetSafe: { flex: 1, backgroundColor: colors.ink },
+  sheetHeading: { borderBottomWidth: 1, borderColor: colors.line, padding: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  sheetContent: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
+  sheetFooter: { padding: spacing.md, borderTopWidth: 1, borderColor: colors.line, backgroundColor: colors.panel },
   reviewTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   reviewTab: { flexGrow: 1, flexBasis: 140, minHeight: 48, borderWidth: 1, borderColor: colors.line, borderRadius: 8, padding: spacing.sm, justifyContent: 'center' },
   card: { borderWidth: 1, borderColor: colors.line, borderRadius: 12, backgroundColor: colors.panel, padding: spacing.md, gap: spacing.md },

@@ -369,6 +369,7 @@ export function StaffWorkspace({
   const [actionNotice, setActionNotice] = useState('');
   const [notificationSaving, setNotificationSaving] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const scrollPositions = useRef(new Map<string, number>());
   const focusedNote = useRef<number | null>(null);
   const noteFrame = useRef<number | null>(null);
   const revealNote = useCallback(() => {
@@ -399,6 +400,8 @@ export function StaffWorkspace({
   const [eventBusy, setEventBusy] = useState(false);
   const [carSaleDirty, setCarSaleDirty] = useState(false);
   const [carSaleBusy, setCarSaleBusy] = useState(false);
+  const [importDirty, setImportDirty] = useState(false);
+  const [importBusy, setImportBusy] = useState(false);
   const [deletionDrafts, setDeletionDrafts] = useState<Record<string, boolean>>({});
   const [deletionActions, setDeletionActions] = useState<Record<string, boolean>>({});
   const [activeDeletionId, setActiveDeletionId] = useState('');
@@ -502,14 +505,14 @@ export function StaffWorkspace({
     return matchesSearch(`${customerName(customer)} ${customer?.email ?? ''} ${vehicle?.registration ?? ''} ${vehicle?.make ?? ''} ${vehicle?.model ?? ''}`, bookingSearch);
   });
   const visibleBookings = filteredBookings.slice(bookingPage * 8, bookingPage * 8 + 8);
-  const actionBusy = notificationSaving || recordBusy || bookingBusy || completionBusy || eventBusy || carSaleBusy || invitationBusy || integrationBusy || Object.values(deletionActions).some(Boolean);
-  const dirty = recordDirty || bookingDirty || completionDirty || eventDirty || carSaleDirty || Boolean(invitationEmail.trim()) || Object.values(deletionDrafts).some(Boolean);
+  const actionBusy = notificationSaving || recordBusy || bookingBusy || completionBusy || eventBusy || carSaleBusy || importBusy || invitationBusy || integrationBusy || Object.values(deletionActions).some(Boolean);
+  const dirty = recordDirty || bookingDirty || completionDirty || eventDirty || carSaleDirty || importDirty || Boolean(invitationEmail.trim()) || Object.values(deletionDrafts).some(Boolean);
   const confirmLeaving = useCallback((action: () => void) => {
     if (actionBusy) {
       setActionNotice('Please wait for the current action to finish.');
       return;
     }
-    const leave = () => { setRecordDirty(false); setBookingDirty(false); setCompletionDirty(false); setEventDirty(false); setCarSaleDirty(false); setInvitationEmail(''); setSelectedInvitationContactId(''); setDeletionDrafts({}); setActionNotice(''); action(); };
+    const leave = () => { setRecordDirty(false); setBookingDirty(false); setCompletionDirty(false); setEventDirty(false); setCarSaleDirty(false); setImportDirty(false); setInvitationEmail(''); setSelectedInvitationContactId(''); setDeletionDrafts({}); setActionNotice(''); action(); };
     if (!dirty) { leave(); return; }
     confirmDiscard(leave);
   }, [actionBusy, confirmDiscard, dirty]);
@@ -567,7 +570,8 @@ export function StaffWorkspace({
     else navigate('dashboard');
   }, [bookingFilter, connectionTool, hasSelectedBooking, navigate, params.customerId, section]);
   useFocusEffect(useCallback(() => registerNavigationHandler(navigate), [navigate, registerNavigationHandler]));
-  useEffect(() => { scrollRef.current?.scrollTo({ y: 0, animated: false }); }, [section, params.bookingId, params.customerId, params.importId, params.tool, bookingPage, customerPage, auditPage, deletionPage, alertPage]);
+  const scrollKey = [section, paramValue(params.bookingId), paramValue(params.customerId), paramValue(params.importId), paramValue(params.tool), bookingFilter, bookingPage, customerPage, auditPage, deletionPage, alertPage].join(':');
+  useEffect(() => { scrollRef.current?.scrollTo({ y: scrollPositions.current.get(scrollKey) ?? 0, animated: false }); }, [scrollKey]);
   useFocusEffect(useCallback(() => {
     if (Platform.OS !== 'android') return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -659,7 +663,7 @@ export function StaffWorkspace({
         </View>
       </View>
       <KeyboardAvoidingView enabled={Platform.OS === 'android'} behavior="height" style={styles.flex}>
-      <ScrollView ref={scrollRef} automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'} keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} contentContainerStyle={[styles.workspaceContent, { paddingHorizontal: horizontalPadding, paddingBottom: spacing.xl * 4 }]} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} onScroll={event => scrollPositions.current.set(scrollKey, event.nativeEvent.contentOffset.y)} scrollEventThrottle={100} automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'} keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'} contentContainerStyle={[styles.workspaceContent, { paddingHorizontal: horizontalPadding, paddingBottom: spacing.xl * 4 }]} keyboardShouldPersistTaps="handled">
         <View style={styles.pageHeading}>
           {section !== 'dashboard' ? <Pressable accessibilityRole="button" accessibilityLabel="Back in workshop portal" onPress={goBack} style={styles.pageBack}><Ionicons name="chevron-back" color={colors.accent} size={22} /></Pressable> : null}
           <Text accessibilityRole="header" style={styles.pageTitle}>{selectedBooking ? 'Booking details' : selectedLookupCustomer ? 'Customer details' : connectionTool ? { xero: 'Xero invoices', calendar: 'Email & Calendar', payments: 'Payments', uploads: 'PC uploads' }[connectionTool] : STAFF_SECTIONS[section].title}</Text>
@@ -860,7 +864,7 @@ export function StaffWorkspace({
           <StaffRecordWorkflow previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} vehicleId={paramValue(params.vehicleId)} onBackHandlerChange={registerRecordBack} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} />
           {!recordHasSteps ? <WorkspaceLink title="Imports & drafts" icon="file-tray-outline" onPress={() => navigate('imports')} /> : null}
         </> : null}
-        {section === 'imports' ? <StaffVaultReview focusImportId={paramValue(params.importId)} initialTab={paramValue(params.importView)} onApproveAndInvite={openVerifiedCustomerInvitation} onRefresh={onRefresh} owner={role === 'owner'} previewMode={previewMode} snapshot={snapshot} /> : null}
+        {section === 'imports' ? <StaffVaultReview focusImportId={paramValue(params.importId)} initialTab={paramValue(params.importView)} onApproveAndInvite={openVerifiedCustomerInvitation} onRefresh={onRefresh} onDirtyChange={setImportDirty} onBusyChange={setImportBusy} owner={role === 'owner'} previewMode={previewMode} snapshot={snapshot} /> : null}
         {section === 'workshop_customers' ? <StaffWorkshopCustomers contacts={snapshot.workshopContacts} customerVehicles={snapshot.vehicles} customers={snapshot.customers} onInvite={openVerifiedCustomerInvitation} onRefresh={onRefresh} owner={role === 'owner'} workshopVehicles={snapshot.workshopVehicles} /> : null}
         {section === 'history_imports' ? <StaffHistoryImports customers={snapshot.customers} focusId={paramValue(params.historyImportId)} onRefresh={onRefresh} requests={snapshot.historyImports} vehicles={[...snapshot.vehicles, ...snapshot.archivedVehicles]} /> : null}
         {section === 'access' ? role === 'owner' ? <StaffPerformanceAccess previewMode={previewMode} snapshot={snapshot} customerId={paramValue(params.customerId)} onDirtyChange={setRecordDirty} onBusyChange={setRecordBusy} /> : <EmptyState>Owner access is required.</EmptyState> : null}

@@ -16,6 +16,7 @@ export function StaffScrollSelect({
   options,
   placeholder = 'Choose an option',
   searchable = false,
+  disabled = false,
   value,
 }: {
   label: string;
@@ -23,6 +24,7 @@ export function StaffScrollSelect({
   options: readonly StaffSelectOption[];
   placeholder?: string;
   searchable?: boolean;
+  disabled?: boolean;
   value: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -45,9 +47,10 @@ export function StaffScrollSelect({
       <Pressable
         accessibilityLabel={`${label}. ${selected?.label ?? placeholder}`}
         accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
+        accessibilityState={{ expanded: open, disabled }}
+        disabled={disabled}
         onPress={() => setOpen(true)}
-        style={({ pressed }) => [styles.trigger, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.trigger, pressed && styles.pressed, disabled && styles.disabled]}
       >
         <View style={styles.triggerCopy}>
           <Text style={[styles.triggerTitle, !selected && styles.placeholder]}>{selected?.label ?? placeholder}</Text>
@@ -102,7 +105,7 @@ export function StaffScrollSelect({
                   </Pressable>
                 );
               })}
-              {visibleOptions.length === 0 ? <Text style={styles.empty}>No matching customers or vehicles.</Text> : null}
+              {visibleOptions.length === 0 ? <Text style={styles.empty}>No matching options.</Text> : null}
             </ScrollView>
           </View>
         </View>
@@ -135,4 +138,5 @@ const styles = StyleSheet.create({
   optionMetaSelected: { color: colors.onSilverMuted },
   empty: { color: colors.muted, fontSize: 12, lineHeight: 18, padding: spacing.lg, textAlign: 'center' },
   pressed: { opacity: .72 },
+  disabled: { opacity: .55 },
 });
