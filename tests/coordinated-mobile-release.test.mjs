@@ -136,6 +136,12 @@ test('native changes block OTA while JavaScript content changes remain compatibl
   const files = new Set(['app.config.js', 'app.json', 'package.json', 'eas.json', 'release-native-baselines.json', ...Object.keys(baseline.contract.files)]);
   for (const entry of await fs.readdir(root)) if (entry.endsWith('.cjs')) files.add(entry);
   for (const file of files) { await fs.mkdir(path.dirname(path.join(fixture, file)), { recursive: true }); await fs.copyFile(path.join(root, file), path.join(fixture, file)); }
+  // Test the deployed contract even while a new native store candidate is prepared.
+  const baselineApp = JSON.parse(await fs.readFile(path.join(fixture, 'app.json'), 'utf8'));
+  baselineApp.expo.plugins = baseline.contract.platforms.ios.plugins;
+  baselineApp.expo.version = baseline.contract.platforms.ios.version;
+  const deployedAppJson = JSON.stringify(baselineApp);
+  await fs.writeFile(path.join(fixture, 'app.json'), deployedAppJson);
   verifyNativeContract(fixture);
   await fs.mkdir(path.join(fixture, 'src'));
   await fs.writeFile(path.join(fixture, 'src/example.tsx'), 'const content = "New information";');
@@ -147,7 +153,7 @@ test('native changes block OTA while JavaScript content changes remain compatibl
   const app = JSON.parse(await fs.readFile(path.join(fixture, 'app.json'), 'utf8')); app.expo.android.permissions = ['android.permission.RECORD_AUDIO'];
   await fs.writeFile(path.join(fixture, 'app.json'), JSON.stringify(app));
   assert.throws(() => verifyNativeContract(fixture), /store build/);
-  await fs.copyFile(path.join(root, 'app.json'), path.join(fixture, 'app.json'));
+  await fs.writeFile(path.join(fixture, 'app.json'), deployedAppJson);
   await fs.appendFile(path.join(fixture, 'assets/images/psi-app-icon-1024.png'), 'changed');
   assert.throws(() => verifyNativeContract(fixture), /store build/);
 });

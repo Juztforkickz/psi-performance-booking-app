@@ -2,7 +2,7 @@
   "expo": {
     "name": "PSI",
     "slug": "matt-psi",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -55,9 +55,16 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#050505",
-          "image": "./assets/images/psi-splash-logo.png",
-          "imageWidth": 300,
-          "resizeMode": "contain"
+          "ios": {
+            "image": "./assets/images/psi-startup-tori-yellow-calipers.png",
+            "resizeMode": "cover",
+            "enableFullScreenImage_legacy": true
+          },
+          "android": {
+            "drawable": {
+              "icon": "./assets/android-launch-empty.xml"
+            }
+          }
         }
       ],
       [
