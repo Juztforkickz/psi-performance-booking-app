@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/ui';
 import { StaffRecordPublisher, type StaffRecordType } from '@/components/staff-record-publisher';
 import { StaffVaultPublisher } from '@/components/staff-vault-publisher';
 import { StaffScrollSelect } from '@/components/staff-scroll-select';
 import { StaffVehicleHistory } from '@/components/staff-vehicle-history';
+import { StaffModal } from '@/components/staff-modal';
 import { colors, spacing } from '@/constants/brand';
 import type { VaultKind } from '@/lib/performance-plus';
 import type { StaffPortalSnapshot } from '@/lib/staff-portal';
@@ -130,14 +131,14 @@ export function StaffRecordWorkflow({ snapshot, customerId: shortcutCustomerId, 
     {destination?.legacy ? <StaffRecordPublisher key={`legacy:${destination.legacy}:${customerId}:${vehicleId}`} compact fixedIdentity fixedType={destination.legacy} initialCustomerId={customerId} initialVehicleId={vehicleId} onBusyChange={busyChanged} onDirtyChange={dirtyChanged} previewMode={previewMode} snapshot={snapshot} /> : null}
     {destination?.vault ? <StaffVaultPublisher key={`vault:${destination.vault}:${customerId}:${vehicleId}`} compact fixedIdentity fixedKind={destination.vault} initialCustomerId={customerId} initialVehicleId={vehicleId} onBusyChange={busyChanged} onDirtyChange={dirtyChanged} previewMode={previewMode} snapshot={snapshot} /> : null}
     </>}
-    <Modal animationType="fade" transparent visible={pendingAction !== null} onRequestClose={() => setPendingAction(null)}>
+    <StaffModal animationType="fade" transparent visible={pendingAction !== null} onRequestClose={() => setPendingAction(null)}>
       <View style={styles.backdrop}><ScrollView contentContainerStyle={styles.modalScroll}><View accessibilityViewIsModal style={styles.modalCard}>
         <Text style={styles.title}>Discard this draft?</Text>
         <Text style={styles.muted}>Entered details and selected files will be cleared.</Text>
         <PrimaryButton label="Keep editing" onPress={() => setPendingAction(null)} />
         <PrimaryButton label="Discard changes" variant="outline" onPress={() => { if (pendingAction) applyStep(pendingAction); }} />
       </View></ScrollView></View>
-    </Modal>
+    </StaffModal>
   </View>;
 }
 

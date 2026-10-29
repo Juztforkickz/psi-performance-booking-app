@@ -2,11 +2,11 @@ import { workshopOdometerDate } from '@/lib/workshop-odometer';
 import { WorkshopOdometerSummary } from '@/components/workshop-odometer-summary';
 import { useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator, Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PrivateVaultThumbnail } from '@/components/private-vault-thumbnail';
 import { PrimaryButton } from '@/components/ui';
 import { CustomerVehicleNotes } from '@/components/customer-vehicle-notes';
+import { StaffModal } from '@/components/staff-modal';
 import { colors, spacing } from '@/constants/brand';
 import { loadVaultAssets, loadVaultRecords, recordMatchesReportSection, reportSectionCount, REPORT_KINDS, REPORT_LABELS, type ReportKind, type ReportSection, type VaultAsset, type VaultRecord } from '@/lib/performance-plus';
 import { getSupabaseClient } from '@/lib/supabase';
@@ -153,12 +153,12 @@ export function StaffVehicleHistory({ vehicleId, previewMode = false }: { vehicl
       </>}
     </>}
     {error ? <Text accessibilityRole="alert" style={copy}>{error}</Text> : null}
-    <Modal visible={!!image} onRequestClose={() => setImage(null)}>
-      <SafeAreaView style={{ flex: 1, padding: 20, backgroundColor: colors.ink }}>
+    <StaffModal visible={!!image} onRequestClose={() => setImage(null)}>
+      <View style={{ flex: 1, padding: 20, backgroundColor: colors.ink }}>
         <PrimaryButton label="Back to vehicle history" onPress={() => setImage(null)} />
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>{image ? <Image source={{ uri: image }} resizeMode="contain" style={{ flex: 1, minHeight: 400 }} /> : null}</ScrollView>
-      </SafeAreaView>
-    </Modal>
+      </View>
+    </StaffModal>
   </View>;
 }
 

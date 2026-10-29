@@ -1,7 +1,7 @@
 import { type ReactNode, useCallback, useRef, useState } from 'react';
-import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Keyboard, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { StaffModal } from '@/components/staff-modal';
 import { colors, spacing } from '@/constants/brand';
 
 type DiscardConfirmationOptions = {
@@ -39,8 +39,8 @@ export function useStaffDiscardConfirmation({
   }, []);
 
   const discardDialog = (
-    <Modal animationType="fade" onRequestClose={keepEditing} transparent visible={visible}>
-      <SafeAreaView style={styles.backdrop}>
+    <StaffModal animationType="fade" onRequestClose={keepEditing} transparent visible={visible}>
+      <View style={styles.backdrop}>
         <View accessibilityLabel={title} accessibilityViewIsModal role="alertdialog" style={styles.card}>
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" style={styles.scroll}>
             <Text accessibilityRole="header" style={styles.title}>{title}</Text>
@@ -53,8 +53,8 @@ export function useStaffDiscardConfirmation({
             </Pressable>
           </ScrollView>
         </View>
-      </SafeAreaView>
-    </Modal>
+      </View>
+    </StaffModal>
   );
 
   return { confirmDiscard, discardDialog };

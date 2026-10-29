@@ -44,10 +44,10 @@ function mountComponent(filename, exportName, props, moduleOverrides = {}) {
       useEffect: callback => effects.push(callback),
     },
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
-    'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
+    'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView', SafeAreaProvider: 'SafeAreaProvider' },
     'react-native': {
       View: 'View', Text: 'Text', Pressable: 'Pressable', Modal: 'Modal',
-      ScrollView: 'ScrollView', Image: 'Image', Platform: { OS: 'ios' },
+      ScrollView: 'ScrollView', Image: 'Image', TextInput: 'TextInput', KeyboardAvoidingView: 'KeyboardAvoidingView', Platform: { OS: 'ios' },
       StyleSheet: { create: styles => styles },
     },
     '@expo/vector-icons': { Ionicons: 'Icon' },
@@ -75,6 +75,14 @@ function mountComponent(filename, exportName, props, moduleOverrides = {}) {
     '@/hooks/use-staff-discard-confirmation': { useStaffDiscardConfirmation: () => ({ confirmDiscard: action => action(), discardDialog: null }) },
     ...moduleOverrides,
   };
+  const modalModule = { exports: {} };
+  vm.runInNewContext(ts.transpileModule(readFileSync(new URL('staff-modal.tsx', componentRoot), 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
+  }).outputText, {
+    exports: modalModule.exports,
+    require(id) { assert(id in modules, `Unexpected modal dependency: ${id}`); return modules[id]; },
+  });
+  modules['@/components/staff-modal'] = modalModule.exports;
   const result = { exports: {} };
   const componentSource = readFileSync(new URL(filename, componentRoot), 'utf8')
     + (exportName === 'XeroImportReviewCard' ? '\nexport { XeroImportReviewCard };' : '');
@@ -733,4 +741,48 @@ test('moving an invoice to awaiting leaves Needs action selected and does not se
   assert.equal(component.find('Select',n=>n.props.label==='Invoice queue').props.value,'review');
   assert(component.find('Text',n=>n.children.join('').includes('No invitation was sent')));
   assert.equal(component.find('Button',n=>n.props.label==='Move to awaiting account'),undefined);
+});
+
+test('imported invoice review opens inside its own safe window and both close paths return to its queue', async () => {
+  const item = { id: 'invoice-preview-safe', source: 'xero', status: 'imported', identifiers: {
+    contactName: 'Morgan Example', invoiceNumber: 'DEMO-100', invoiceDate: '2026-10-29', totalCents: 12000,
+  } };
+  const client = { from(table) { const q = { select: () => q, in: () => q, is: () => q,
+    not: () => q, order: () => q, limit: async () => ({ data: table === 'vault_import_queue' ? [item] : [], error: null }) }; return q; } };
+  const component = mountComponent('staff-vault-publisher.tsx', 'StaffVaultReview', { snapshot, owner: false }, {
+    '@/lib/performance-plus': { vaultClient: () => client, aud: () => 'AUD 120.00' },
+  });
+  component.render(); await new Promise(done => setTimeout(done, 20)); component.render();
+  component.select('Invoice queue', 'imported');
+  for (const closeWithBack of [false, true]) {
+    component.select('Customer or invoice', item.id);
+    assert.equal(component.count('SafeAreaProvider'), 1);
+    assert.deepEqual(Array.from(component.find('SafeAreaView').props.edges), ['top', 'right', 'bottom', 'left']);
+    assert.equal(component.find('Button', n => n.props.label === 'Close').props.disabled, false);
+    if (closeWithBack) { component.find('Modal').props.onRequestClose(); component.render(); }
+    else component.press('Close');
+    assert.equal(component.count('Modal'), 0);
+    assert.equal(component.find('Select', n => n.props.label === 'Invoice queue').props.value, 'imported');
+  }
+});
+
+test('portal dropdown closes with its button, selects once, and clears search when reopened', () => {
+  const changes = [];
+  const component = mountComponent('staff-scroll-select.tsx', 'StaffScrollSelect', {
+    label: 'Invoice queue', value: 'review', searchable: true,
+    options: [{ label: 'Needs action', value: 'review' }, { label: 'Awaiting account', value: 'waiting' }],
+    onChange: value => changes.push(value),
+  });
+  const open = () => { component.find('Pressable', n => n.props.accessibilityLabel?.startsWith('Invoice queue.')).props.onPress(); component.render(); };
+  component.render(); open();
+  assert.equal(component.count('SafeAreaProvider'), 1);
+  assert.equal(component.find('KeyboardAvoidingView').props.behavior, 'padding');
+  component.find('TextInput').props.onChangeText('Awaiting'); component.render();
+  assert.equal(component.count('Pressable') - 2, 1);
+  component.find('Pressable', n => n.props.accessibilityLabel === 'Close Invoice queue').props.onPress(); component.render();
+  assert.equal(component.count('Modal'), 0);
+  open(); assert.equal(component.find('TextInput').props.value, '');
+  component.press('Awaiting account');
+  assert.deepEqual(changes, ['waiting']);
+  assert.equal(component.count('Modal'), 0);
 });

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { StaffModal } from '@/components/staff-modal';
 import { colors, spacing } from '@/constants/brand';
 
 export type StaffSelectOption = {
@@ -59,8 +60,8 @@ export function StaffScrollSelect({
         <Ionicons color={colors.accent} name="chevron-down" size={20} />
       </Pressable>
 
-      <Modal animationType="fade" onRequestClose={close} transparent visible={open}>
-        <View style={styles.backdrop}>
+      <StaffModal animationType="fade" onRequestClose={close} transparent visible={open}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.backdrop}>
           <View accessibilityViewIsModal style={styles.modalCard}>
             <View style={styles.modalHeading}>
               <Text style={styles.modalTitle}>{label}</Text>
@@ -108,8 +109,8 @@ export function StaffScrollSelect({
               {visibleOptions.length === 0 ? <Text style={styles.empty}>No matching options.</Text> : null}
             </ScrollView>
           </View>
-        </View>
-      </Modal>
+        </KeyboardAvoidingView>
+      </StaffModal>
     </View>
   );
 }
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
   closeButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   searchRow: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderWidth: 1, borderRadius: 8, borderColor: colors.line, backgroundColor: colors.ink, paddingHorizontal: spacing.md },
   searchInput: { flex: 1, color: colors.white, fontSize: 14, paddingVertical: spacing.sm },
-  optionList: { flexGrow: 0, marginTop: spacing.sm },
+  optionList: { flexGrow: 0, flexShrink: 1, marginTop: spacing.sm },
   option: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.line, paddingHorizontal: 12, paddingVertical: 12 },
   optionSelected: { backgroundColor: colors.silver },
   optionTitle: { color: colors.white, fontSize: 15, fontWeight: '600', lineHeight: 21 },

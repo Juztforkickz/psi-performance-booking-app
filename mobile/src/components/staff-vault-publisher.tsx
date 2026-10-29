@@ -2,12 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { CalendarDateField } from '@/components/calendar-date-field';
 import { StaffScrollSelect } from '@/components/staff-scroll-select';
+import { StaffModal } from '@/components/staff-modal';
 import { colors, spacing } from '@/constants/brand';
 import { australianDateToIso, todayAustralianDate } from '@/lib/australian-date';
 import type { StaffPortalSnapshot } from '@/lib/staff-portal';
@@ -292,18 +292,18 @@ export function StaffVaultReview({ snapshot, owner, focusImportId = '', initialT
       {drafts.length === 50 ? <Text style={styles.muted}>Showing the latest 50 drafts.</Text> : null}
       </> : null}
     </> : null}
-    <Modal animationType="slide" visible={Boolean(selected)} onRequestClose={closeInvoice}>
-      <SafeAreaView style={styles.sheetSafe}>
+    <StaffModal animationType="slide" visible={Boolean(selected)} onRequestClose={closeInvoice}>
+      <View style={styles.sheetSafe}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.sheetSafe}>
-          <View style={styles.sheetHeading}><Text accessibilityRole="header" style={styles.title}>Invoice review</Text><PrimaryButton label="Close" disabled={working || busy} onPress={closeInvoice} variant="outline" /></View>
+          <View style={styles.sheetHeading}><Text accessibilityRole="header" maxFontSizeMultiplier={2} style={[styles.title, styles.sheetTitle]}>Invoice review</Text><PrimaryButton label="Close" disabled={working || busy} onPress={closeInvoice} style={styles.sheetClose} variant="outline" /></View>
           {selected?.status === 'waiting_for_customer' ? <ScrollView contentContainerStyle={styles.sheetContent}><WaitingAccountCard item={selected} onApproveAndInvite={(email, contactId) => { setSelectedId(''); onApproveAndInvite?.(email, contactId); }} owner={owner} previewMode={previewMode} snapshot={snapshot} /></ScrollView>
             : selected?.status === 'imported' ? <ScrollView contentContainerStyle={styles.sheetContent}><CompletedImportCard item={selected} /></ScrollView>
               : selected?.source === 'xero' ? <XeroImportReviewCard key={selected.id} inSheet disabled={busy} previewMode={previewMode} focused={selected.id === focusImportId} item={selected} onBusyChange={setWorking} onDirtyChange={setEditing} onDone={review} onMovedToWaiting={async () => { setSelectedId(''); setEditing(false); setNotice('Invoice saved privately in Awaiting account. No invitation was sent.'); await review(); onRefresh?.(); }} owner={owner} snapshot={snapshot} />
                 : selected ? <ScrollView contentContainerStyle={styles.sheetContent}><Text style={styles.copy}>{selected.source}</Text><Text style={styles.muted}>{selected.reason}</Text></ScrollView> : null}
         </KeyboardAvoidingView>
         {discardDialog}
-      </SafeAreaView>
-    </Modal>
+      </View>
+    </StaffModal>
   </View>;
 }
 
@@ -709,6 +709,8 @@ const styles = StyleSheet.create({
   stack: { gap: spacing.md },
   sheetSafe: { flex: 1, backgroundColor: colors.ink },
   sheetHeading: { borderBottomWidth: 1, borderColor: colors.line, padding: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  sheetTitle: { flex: 1, minWidth: 0 },
+  sheetClose: { flexShrink: 0, minHeight: 48 },
   sheetContent: { padding: spacing.md, gap: spacing.md, paddingBottom: spacing.xl },
   sheetFooter: { padding: spacing.md, borderTopWidth: 1, borderColor: colors.line, backgroundColor: colors.panel },
   reviewTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

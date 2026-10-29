@@ -2,7 +2,7 @@ import { diagnosticsSummary } from '@/lib/diagnostics';
 import { Ionicons } from '@expo/vector-icons';
 import { type Href, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, Image, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, BackHandler, Image, Keyboard, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
@@ -17,6 +17,7 @@ import { StaffServiceCompletion } from '@/components/staff-service-completion';
 import { StaffWorkshopJob } from '@/components/staff-workshop-job';
 import { StaffWorkshopCustomers } from '@/components/staff-workshop-customers';
 import { StaffHistoryImports } from '@/components/staff-history-imports';
+import { StaffModal } from '@/components/staff-modal';
 import { colors, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerProfilePhotoUri } from '@/hooks/use-customer-profile-photo-uri';
@@ -1377,7 +1378,7 @@ function HistoryDropdown({ label, onChange, options, value }: { label: string; o
         </View>
         <Ionicons color={colors.accent} name="chevron-down" size={20} />
       </Pressable>
-      <Modal animationType="fade" onRequestClose={() => setOpen(false)} transparent visible={open}>
+      <StaffModal animationType="fade" onRequestClose={() => setOpen(false)} transparent visible={open}>
         <View style={styles.modalBackdrop}>
           <View accessibilityViewIsModal style={styles.modalCard}>
             <View style={styles.modalHeading}>
@@ -1399,7 +1400,7 @@ function HistoryDropdown({ label, onChange, options, value }: { label: string; o
             </ScrollView>
           </View>
         </View>
-      </Modal>
+      </StaffModal>
     </>
   );
 }
@@ -1619,7 +1620,7 @@ const styles = StyleSheet.create({
   modalCard: { ...portalFrame, backgroundColor: colors.panel, maxHeight: '72%', maxWidth: 520, padding: spacing.md, width: '100%' },
   modalHeading: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between', marginBottom: spacing.sm },
   modalTitle: { color: colors.white, flex: 1, fontSize: 18, fontWeight: '900' },
-  modalClose: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
+  modalClose: { alignItems: 'center', height: 48, justifyContent: 'center', width: 48, flexShrink: 0 },
   modalOptions: { flexGrow: 0 },
   modalOption: { alignItems: 'center', borderTopColor: colors.line, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 52, paddingHorizontal: spacing.sm },
   modalOptionSelected: { backgroundColor: colors.accent },
