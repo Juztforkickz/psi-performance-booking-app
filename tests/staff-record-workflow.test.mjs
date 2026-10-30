@@ -39,6 +39,7 @@ function mountComponent(filename, exportName, props, moduleOverrides = {}) {
         if (!(index in slots)) slots[index] = typeof initial === 'function' ? initial() : initial;
         return [slots[index], value => { slots[index] = typeof value === 'function' ? value(slots[index]) : value; }];
       },
+      useRef(initial) { const index = cursor++; if (!(index in slots)) slots[index] = { current: initial }; return slots[index]; },
       useMemo: factory => factory(),
       useCallback: callback => callback,
       useEffect: callback => effects.push(callback),
@@ -46,7 +47,7 @@ function mountComponent(filename, exportName, props, moduleOverrides = {}) {
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
     'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView', SafeAreaProvider: 'SafeAreaProvider' },
     'react-native': {
-      View: 'View', Text: 'Text', Pressable: 'Pressable', Modal: 'Modal',
+      View: 'View', Text: 'Text', Pressable: 'Pressable', Modal: 'Modal', ActivityIndicator: 'ActivityIndicator',
       ScrollView: 'ScrollView', Image: 'Image', TextInput: 'TextInput', KeyboardAvoidingView: 'KeyboardAvoidingView', Platform: { OS: 'ios' },
       StyleSheet: { create: styles => styles },
     },
@@ -785,4 +786,58 @@ test('portal dropdown closes with its button, selects once, and clears search wh
   component.press('Awaiting account');
   assert.deepEqual(changes, ['waiting']);
   assert.equal(component.count('Modal'), 0);
+});
+
+const saleRow = { id: 'listing-demo', title: 'Fictional Sedan', registration: 'DEMO01', asking_price_cents: 1200000, kilometres: 100, transmission: 'Automatic', summary: 'Fictional test listing', highlights: ['Owner approved'], status: 'published' };
+const settle = () => new Promise(resolve => setTimeout(resolve, 20));
+test('existing listing opens media editor and an upload locks close and listing actions', async () => {
+ const component=mountComponent('staff-car-sales-manager.tsx','StaffCarSalesManager',{}, {
+ '@/components/car-listing-media-panel':{CarListingMediaPanel:'MediaPanel'},
+ '@/lib/customer-cars-for-sale':{loadStaffCustomerCarListings:async()=>[saleRow],formatAud:()=>'',formatKilometres:()=>''},
+ });component.render();await settle();component.render();
+ component.find('Pressable',n=>n.props.accessibilityLabel==='Open Fictional Sedan').props.onPress();component.render();
+ const panel=component.find('MediaPanel');assert.equal(panel.props.listingId,saleRow.id);assert.equal(panel.props.staff,true);
+ panel.props.onBusyChange(true);component.render();
+ assert.equal(component.find('Pressable',n=>n.props.accessibilityLabel==='Close listing form').props.disabled,true);
+ assert.equal(component.find('Button',n=>n.props.label==='Mark sold').props.disabled,true);
+});
+test('saving a new private draft keeps its media editor open without publishing or notification',async()=>{
+ let published;const draft={...saleRow,status:'draft'};
+ const component=mountComponent('staff-car-sales-manager.tsx','StaffCarSalesManager',{}, {
+ '@/components/car-listing-media-panel':{CarListingMediaPanel:'MediaPanel'},
+ '@/lib/customer-cars-for-sale':{loadStaffCustomerCarListings:async()=>[draft],createCustomerCarListing:async(data,publish)=>{published=publish;return draft;},formatAud:()=>'',formatKilometres:()=>''},
+ });component.render();await settle();component.render();component.press('Create car listing');component.press('Save private draft');await settle();component.render();
+ assert.equal(published,false);assert.equal(component.find('MediaPanel').props.listingId,draft.id);
+ assert(component.find('Button',n=>n.props.label==='Publish and notify customers'));
+});
+function mediaPanel(staff=true,preview=false) {
+ const calls=[];const photo={id:'photo-a',listing_id:'listing-demo',kind:'photo',state:'ready',is_cover:true,filename:'car.jpg',size_bytes:100};
+ const media=[photo,{...photo,id:'video-a',kind:'video',filename:'car.mp4',is_cover:false},{...photo,id:'file-a',kind:'file',filename:'sale.pdf',is_cover:false}];
+ const component=mountComponent('car-listing-media-panel.tsx','CarListingMediaPanel',{listingId:'listing-demo',staff,preview},{
+ 'react-native':{View:'View',Text:'Text',Pressable:'Pressable',ScrollView:'ScrollView',Image:'Image',Modal:'Modal',ActivityIndicator:'ActivityIndicator',StyleSheet:{create:s=>s},Linking:{openURL:async url=>calls.push(['open',url])}},
+ 'expo-image-picker':{VideoExportPreset:{Passthrough:0},launchImageLibraryAsync:async opts=>{calls.push(['picker',opts.mediaTypes[0]]);return{canceled:false,assets:[{uri:'image',fileName:'car.jpg'}]};}},
+ 'expo-document-picker':{getDocumentAsync:async()=>{calls.push(['picker','files']);return{canceled:false,assets:[{uri:'pdf',name:'sale.pdf',lastModified:0}]};}},
+ '@/lib/car-listing-media':{loadCarListingMedia:async()=>{calls.push(['load']);return media;},carListingMediaUrl:async item=>'https://example.test/'+item.id,
+ uploadCarListingMedia:async(id,files)=>{calls.push(['upload',id,files.length]);return{uploaded:files.length,skipped:0,failed:[],errors:[]};},carMediaError:()=>'',
+ removeCarListingMedia:async(id,media)=>calls.push(['remove',id,media]),setCarListingCover:async()=>{}},
+ });return{component,calls};
+}
+test('media panel requires sharing confirmation for all three pickers and exposes a safe photo close',async()=>{
+ for(const label of ['Add photos','Add videos','Add files']){
+ const {component,calls}=mediaPanel();component.render();await settle();component.render();
+ assert.equal(component.find('Button',n=>n.props.label===label).props.disabled,true);
+ component.find('Pressable',n=>n.props.accessibilityRole==='checkbox').props.onPress();component.render();component.press(label);await settle();component.render();
+ assert.equal(calls.filter(c=>c[0]==='upload').length,1);assert.equal(calls.find(c=>c[0]==='upload')[1],'listing-demo');
+ }
+ const {component}=mediaPanel();component.render();await settle();component.render();
+ component.find('Pressable',n=>n.props.accessibilityLabel==='View photo 1 of 1').props.onPress();await settle();component.render();
+ assert.equal(component.count('SafeAreaProvider'),1);assert(component.find('Button',n=>n.props.label==='Close photo'));component.press('Close photo');assert.equal(component.count('Modal'),0);
+});
+test('customers can open a listing video and file but cannot see upload controls, preview fetches nothing',async()=>{
+ const {component,calls}=mediaPanel(false);component.render();await settle();component.render();
+ assert.equal(component.find('Button',n=>n.props.label==='Add photos'),undefined);
+ component.find('Pressable',n=>n.props.accessibilityLabel==='Play video car.mp4').props.onPress();await settle();
+ component.find('Pressable',n=>n.props.accessibilityLabel==='Open file sale.pdf').props.onPress();await settle();
+ assert.equal(calls.filter(c=>c[0]==='open').length,2);
+ const preview=mediaPanel(false,true);preview.component.render();await settle();assert.equal(preview.calls.length,0);
 });

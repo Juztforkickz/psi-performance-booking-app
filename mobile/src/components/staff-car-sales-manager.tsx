@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { CarListingMediaPanel } from '@/components/car-listing-media-panel';
 import { Field, FormInput, PrimaryButton } from '@/components/ui';
 import { colors, spacing } from '@/constants/brand';
 import { useStaffDiscardConfirmation } from '@/hooks/use-staff-discard-confirmation';
@@ -39,10 +40,11 @@ export function StaffCarSalesManager({ onBusyChange, onDirtyChange }: {
   const [editingId, setEditingId] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [mediaBusy, setMediaBusy] = useState(false);
   const [busyAction, setBusyAction] = useState('');
   const [feedback, setFeedback] = useState<{ error: boolean; text: string } | null>(null);
   const dirty = formOpen && JSON.stringify(form) !== JSON.stringify(savedForm);
-  const busy = Boolean(busyAction);
+  const busy = Boolean(busyAction) || mediaBusy;
   const editing = useMemo(() => listings.find((listing) => listing.id === editingId), [editingId, listings]);
 
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
@@ -107,9 +109,9 @@ export function StaffCarSalesManager({ onBusyChange, onDirtyChange }: {
     setBusyAction(publish ? 'create-publish' : 'create-draft');
     setFeedback(null);
     try {
-      await createCustomerCarListing(formDraft(form), publish);
-      resetForm();
-      setFeedback({ error: false, text: publish ? 'Listing published. App alerts are queued and opted in emails are being delivered.' : 'Private draft saved. No customer was notified.' });
+      const created = await createCustomerCarListing(formDraft(form), publish);
+      if (publish) resetForm(); else openEdit(created);
+      setFeedback({ error: false, text: publish ? 'Listing published. App alerts are queued and opted in emails are being delivered.' : 'Private draft saved. Add photos, videos and files below before publishing. No customer was notified.' });
       await refresh();
     } catch (error) {
       setFeedback({ error: true, text: listingErrorMessage(error) });
@@ -186,6 +188,7 @@ export function StaffCarSalesManager({ onBusyChange, onDirtyChange }: {
       </View>
       <Field label="Listing summary"><FormInput editable={!busy} maxLength={1000} multiline onChangeText={(summary) => setForm((current) => ({ ...current, summary }))} placeholder="Condition, ownership and PSI history" style={styles.textArea} textAlignVertical="top" value={form.summary} /></Field>
       <Field label="Highlights" hint="One item per line, up to six"><FormInput editable={!busy} maxLength={720} multiline onChangeText={(highlights) => setForm((current) => ({ ...current, highlights }))} placeholder={'PSI workshop history available\nIndependent inspection welcomed'} style={styles.textArea} textAlignVertical="top" value={form.highlights} /></Field>
+      {editingId ? <CarListingMediaPanel key={editingId} disabled={Boolean(busyAction) || Boolean(editing && ['sold', 'withdrawn'].includes(editing.status))} listingId={editingId} onBusyChange={setMediaBusy} preview={REVIEW_ENVIRONMENT.enabled} staff /> : <Text style={styles.copy}>Save a private draft to add photos, videos and files before publishing.</Text>}
       {editingId ? <View style={styles.actions}>
         <PrimaryButton disabled={busy || !dirty} label="Save changes" loading={busyAction === 'save'} onPress={() => void saveChanges()} />
         {editing?.status === 'draft' ? <PrimaryButton disabled={busy || dirty} label="Publish and notify customers" loading={busyAction === `published:${editingId}`} onPress={() => void changeStatus(editing, 'published')} variant="outline" /> : null}

@@ -330,6 +330,16 @@ export type Database = {
         Update: Record<never, never>;
         Relationships: [];
       };
+      customer_car_listing_media: {
+        Row: {
+          id: string; listing_id: string; object_path: string; filename: string; mime_type: string;
+          kind: 'photo' | 'video' | 'file'; size_bytes: number; sha256: string;
+          state: 'pending' | 'ready' | 'removed'; is_cover: boolean; created_by: string; created_at: string; updated_at: string;
+        };
+        Insert: Record<never, never>;
+        Update: Record<never, never>;
+        Relationships: [];
+      };
       customer_car_listings: {
         Row: {
           asking_price_cents: number;
@@ -1089,6 +1099,10 @@ export type Database = {
       };
     };
     Functions: {
+      manage_car_listing_media: {
+        Args: { p_action: string; p_listing_id: string; p_media_id?: string; p_metadata?: Record<string, unknown> };
+        Returns: Record<string, unknown>;
+      };
       review_historical_import_request: {
         Args: {
           p_imported_item_count?: number;

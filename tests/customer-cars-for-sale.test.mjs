@@ -20,5 +20,7 @@ test('Customer Cars for Sale stays opt-in and separates preview data from live l
   assert.match(screen, /Preview data only · this vehicle is not for sale/u);
   assert.match(listings, /CUSTOMER_CARS_FOR_SALE: readonly CustomerCarListing\[\] = \[\]/u);
   assert.match(listings, /PREVIEW_CUSTOMER_CARS_FOR_SALE/u);
-  assert.doesNotMatch(listings, /customer_id|email|phone|storage|supabase/iu);
+  const publicDto = listings.match(/export type CustomerCarListing = \{([\s\S]*?)\};/u)?.[1];
+  assert.ok(publicDto, 'Public listing DTO exists');
+  assert.doesNotMatch(publicDto, /customer_id|email|phone|storage|created_by/iu);
 });

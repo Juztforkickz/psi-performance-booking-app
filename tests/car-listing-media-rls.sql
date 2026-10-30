@@ -1,0 +1,92 @@
+-- Sandbox only. The deliberate final exception rolls back every fixture and queued alert.
+do $$
+declare
+ s uuid; c uuid; sid uuid; l uuid:=gen_random_uuid(); l2 uuid:=gen_random_uuid(); m jsonb; n jsonb; p text; checks int:=0; qty int;
+begin
+ if to_regclass('private.apple_review_installation') is null then raise exception 'Sandbox only'; end if;
+ select user_id into s from public.staff_members where status='active' limit 1;
+ select id into c from auth.users where id<>s limit 1;
+ select id into sid from auth.sessions where user_id=s order by created_at desc limit 1;
+ if sid is null then raise exception 'Missing existing sandbox staff session'; end if;
+ if s is null or c is null then raise exception 'Missing sandbox identities'; end if;
+ perform set_config('request.jwt.claims',jsonb_build_object('iss','https://jwikoldibbpxyhbdrsow.supabase.co/auth/v1','session_id',sid,'sub',s,'aal','aal2','role','authenticated')::text,true);
+ insert into public.customer_car_listings(id,title,registration,asking_price_cents,kilometres,transmission,summary,highlights,created_by)
+ values(l,'Fictional QA Sedan','QA001',10000,100,'Automatic','Sandbox attachment test',array['Fictional test'],s),
+ (l2,'Fictional QA Coupe','QA002',10000,100,'Manual','Sandbox attachment separation',array['Fictional test'],s);
+ execute 'set local role authenticated';
+ m:=public.manage_car_listing_media('reserve',l,null,jsonb_build_object('filename','photo.jpg','mime_type','image/jpeg','size_bytes',123,'sha256',repeat('a',64)));
+ if m->>'state'<>'pending' then raise exception 'Reservation failed'; end if; checks:=checks+1;
+ n:=public.manage_car_listing_media('reserve',l,null,jsonb_build_object('filename','photo.jpg','mime_type','image/jpeg','size_bytes',123,'sha256',repeat('a',64)));
+ if m->>'id'<>n->>'id' then raise exception 'Duplicate reservation'; end if; checks:=checks+1;
+ begin perform public.manage_car_listing_media('finish',l,(m->>'id')::uuid); raise exception 'Incomplete upload accepted';
+ exception when others then if sqlerrm not like '%CAR_MEDIA_UPLOAD_INCOMPLETE%' then raise; end if; end; checks:=checks+1;
+ p:=m->>'object_path';
+ insert into storage.objects(bucket_id,name,metadata) values('car-listing-media',p,jsonb_build_object('size',122,'mimetype','image/jpeg'));
+ begin perform public.manage_car_listing_media('finish',l,(m->>'id')::uuid); raise exception 'Wrong size accepted';
+ exception when others then if sqlerrm not like '%CAR_MEDIA_UPLOAD_INCOMPLETE%' then raise; end if; end; checks:=checks+1;
+ execute 'reset role';
+ update storage.objects set metadata=jsonb_build_object('size',123,'mimetype','image/jpeg') where bucket_id='car-listing-media' and name=p;
+ execute 'set local role authenticated';
+ m:=public.manage_car_listing_media('finish',l,(m->>'id')::uuid);
+ if m->>'state'<>'ready' or not (m->>'is_cover')::boolean then raise exception 'First cover failed'; end if; checks:=checks+1;
+ n:=public.manage_car_listing_media('finish',l,(m->>'id')::uuid);
+ if m<>n then raise exception 'Finish not idempotent'; end if; checks:=checks+1;
+ begin perform public.manage_car_listing_media('remove',l2,(m->>'id')::uuid); raise exception 'Wrong listing accepted';
+ exception when others then if sqlerrm not like '%CAR_MEDIA_NOT_FOUND%' then raise; end if; end; checks:=checks+1;
+ begin update public.customer_car_listing_media set state='ready' where id=(m->>'id')::uuid; raise exception 'Direct write accepted';
+ exception when insufficient_privilege then null; end; checks:=checks+1;
+ begin insert into storage.objects(bucket_id,name,metadata) values('car-listing-media',l::text||'/unreserved.jpg','{}'); raise exception 'Unreserved object accepted';
+ exception when insufficient_privilege then null; end; checks:=checks+1;
+ update storage.objects set metadata='{}' where bucket_id='car-listing-media' and name=p;
+ get diagnostics qty=row_count; if qty<>0 then raise exception 'Overwrite accepted'; end if; checks:=checks+1;
+ begin delete from storage.objects where bucket_id='car-listing-media' and name=p; get diagnostics qty=row_count;
+ if qty<>0 then raise exception 'Delete accepted'; end if;
+ exception when others then if sqlerrm not like '%Use the Storage API%' then raise; end if; end; checks:=checks+1;
+ perform set_config('request.jwt.claims',jsonb_build_object('iss','https://jwikoldibbpxyhbdrsow.supabase.co/auth/v1','session_id',sid,'sub',s,'aal','aal1','role','authenticated')::text,true);
+ begin perform public.manage_car_listing_media('remove',l,(m->>'id')::uuid); raise exception 'AAL1 accepted';
+ exception when insufficient_privilege then null; end; checks:=checks+1;
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',c,'aal','aal2','role','authenticated','user_metadata',jsonb_build_object('role','owner'))::text,true);
+ if exists(select 1 from public.customer_car_listing_media where listing_id=l) or exists(select 1 from storage.objects where name=p) then raise exception 'Draft exposed'; end if; checks:=checks+1;
+ begin perform public.manage_car_listing_media('reserve',l,null,jsonb_build_object('filename','fake.jpg','mime_type','image/jpeg','size_bytes',123,'sha256',repeat('b',64))); raise exception 'Customer reserve accepted';
+ exception when insufficient_privilege then null; end; checks:=checks+1;
+ execute 'reset role';
+ update public.customer_car_listings set status='published',published_at=now() where id=l;
+ execute 'set local role authenticated';
+ if not exists(select 1 from public.customer_car_listing_media where listing_id=l) or not exists(select 1 from storage.objects where name=p) then raise exception 'Published not readable'; end if; checks:=checks+1;
+ perform set_config('request.jwt.claims',jsonb_build_object('iss','https://jwikoldibbpxyhbdrsow.supabase.co/auth/v1','session_id',sid,'sub',s,'aal','aal2','role','authenticated')::text,true);
+ n:=public.manage_car_listing_media('reserve',l,null,jsonb_build_object('filename','second.jpg','mime_type','image/jpeg','size_bytes',123,'sha256',repeat('b',64)));
+ insert into storage.objects(bucket_id,name,metadata) values('car-listing-media',n->>'object_path',jsonb_build_object('size',123,'mimetype','image/jpeg'));
+ n:=public.manage_car_listing_media('finish',l,(n->>'id')::uuid);
+ n:=public.manage_car_listing_media('cover',l,(n->>'id')::uuid);
+ if (select count(*) from public.customer_car_listing_media where listing_id=l and is_cover)<>1 then raise exception 'Multiple covers'; end if; checks:=checks+1;
+ perform public.manage_car_listing_media('remove',l,(n->>'id')::uuid);
+ if not exists(select 1 from public.customer_car_listing_media where id=(m->>'id')::uuid and is_cover) then raise exception 'Fallback cover failed'; end if; checks:=checks+1;
+ if not exists(select 1 from storage.objects where name=n->>'object_path') then raise exception 'Original lost'; end if; checks:=checks+1;
+ -- A pending PDF must stay invisible even on a published listing.
+ n:=public.manage_car_listing_media('reserve',l,null,jsonb_build_object('filename','sale.pdf','mime_type','application/pdf','size_bytes',12,'sha256',repeat('c',64)));
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',c,'aal','aal1','role','authenticated')::text,true);
+ if exists(select 1 from public.customer_car_listing_media where id=(n->>'id')::uuid) then raise exception 'Pending visible'; end if; checks:=checks+1;
+ execute 'reset role';
+ update public.customer_car_listings set status='under_offer' where id=l;
+ execute 'set local role authenticated';
+ if not exists(select 1 from public.customer_car_listing_media where id=(m->>'id')::uuid) then raise exception 'Under offer unreadable'; end if; checks:=checks+1;
+ execute 'reset role';
+ update public.customer_car_listings set status='withdrawn' where id=l;
+ execute 'set local role authenticated';
+ if exists(select 1 from public.customer_car_listing_media where listing_id=l) or exists(select 1 from storage.objects where name=p) then raise exception 'Withdrawn exposed'; end if; checks:=checks+1;
+ execute 'reset role';
+ update public.customer_car_listings set status='sold' where id=l;
+ execute 'set local role authenticated';
+ if exists(select 1 from public.customer_car_listing_media where listing_id=l) then raise exception 'Sold exposed'; end if; checks:=checks+1;
+ perform set_config('request.jwt.claims',jsonb_build_object('iss','https://jwikoldibbpxyhbdrsow.supabase.co/auth/v1','session_id',sid,'sub',s,'aal','aal2','role','authenticated')::text,true);
+ begin perform public.manage_car_listing_media('reserve',l,null,'{}'); raise exception 'Closed listing changed';
+ exception when others then if sqlerrm not like '%CAR_MEDIA_LISTING_UNAVAILABLE%' then raise; end if; end; checks:=checks+1;
+ for i in 1..24 loop
+ n:=public.manage_car_listing_media('reserve',l2,null,jsonb_build_object('filename','file.txt','mime_type','text/plain','size_bytes',1,'sha256',lpad(to_hex(i),64,'0')));
+ end loop;
+ begin perform public.manage_car_listing_media('reserve',l2,null,jsonb_build_object('filename','file.txt','mime_type','text/plain','size_bytes',1,'sha256',repeat('d',64))); raise exception 'Limit bypassed';
+ exception when others then if sqlerrm not like '%CAR_MEDIA_LIMIT_REACHED%' then raise; end if; end; checks:=checks+1;
+ execute 'reset role';
+ if not exists(select 1 from public.audit_events where table_name='customer_car_listing_media' and record_id=(m->>'id')::uuid) then raise exception 'Missing audit'; end if; checks:=checks+1;
+ raise exception 'CAR_MEDIA_TEST_ROLLBACK: % assertions passed, all fixtures rolled back',checks;
+end $$;

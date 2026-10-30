@@ -1,12 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, contact, mobileFrame, spacing } from '@/constants/brand';
 import { useResponsiveLayout } from '@/hooks/use-responsive-layout';
 import { useCustomerAccount } from '@/lib/customer-account-context';
+import { CarListingMediaPanel } from '@/components/car-listing-media-panel';
 import { CustomerProfileGate } from '@/components/customer-profile-gate';
 import {
   PREVIEW_CUSTOMER_CARS_FOR_SALE,
@@ -161,7 +162,7 @@ function ListingCard({ listing, onEnquire, wide }: { listing: CustomerCarListing
   const { theme } = useThemePreference();
   return (
     <View style={[styles.card, wide && styles.cardWide, { backgroundColor: theme.surface, borderColor: theme.frame }]}>
-      <View style={styles.artFrame}><Image accessibilityLabel={`${listing.title} listing artwork`} resizeMode="cover" source={LISTING_ART} style={styles.art} /></View>
+      <CarListingMediaPanel fallbackSource={LISTING_ART} listingId={listing.id} preview={listing.id.startsWith('preview-')} />
       <View style={styles.cardBody}>
         <View style={styles.statusRow}>
           <Text style={[styles.status, { color: theme.accent }]}>{listing.status === 'available' ? 'Available' : 'Under offer'}</Text>
