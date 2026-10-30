@@ -8,7 +8,7 @@ const require=createRequire(import.meta.url), ts=require('../mobile/node_modules
 function load(name,modules) {
  const mod={exports:{}};
  vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../mobile/src/lib/'+name,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,
- {exports:mod.exports,module:mod,require(id){assert(id in modules,'Unexpected dependency '+id);return modules[id];},URL,AbortSignal,ArrayBuffer,Uint8Array,setTimeout,clearTimeout});return mod.exports;
+ {exports:mod.exports,module:mod,require(id){assert(id in modules,'Unexpected dependency '+id);return modules[id];},URL,AbortController,ArrayBuffer,Uint8Array,setTimeout,clearTimeout});return mod.exports;
 }
 function uploader(fetcher,saved=null) {
  let stored=saved; const calls=[];

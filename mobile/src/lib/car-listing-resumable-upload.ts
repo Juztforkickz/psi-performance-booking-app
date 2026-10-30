@@ -30,7 +30,12 @@ export async function uploadCarListingBytes(input: {
   let location: string | null = null;
   try { const saved = await dependencies.storage.getItem(key); if (saved) location = validUrl(saved); } catch { /* Local resume storage is optional. */ }
   const request = async (url: string, method: string, headers: Record<string, string> = {}, body?: ArrayBuffer) => {
-    return dependencies.fetch(url, { method, headers: { authorization: `Bearer ${await input.token()}`, 'Tus-Resumable': '1.0.0', ...headers }, body, signal: AbortSignal.timeout(120000) });
+    // The installed React Native AbortSignal does not implement timeout().
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 120000);
+    try {
+      return await dependencies.fetch(url, { method, headers: { authorization: `Bearer ${await input.token()}`, 'Tus-Resumable': '1.0.0', ...headers }, body, signal: controller.signal });
+    } finally { clearTimeout(timer); }
   };
   const readOffset = async () => {
     if (!location) return 0;
