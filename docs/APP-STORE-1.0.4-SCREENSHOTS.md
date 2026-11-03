@@ -25,3 +25,21 @@ Submission and public availability are separate states. Record the exact build a
 All 54 selected startup, artwork, Home preference, listing media, review isolation and update safety checks passed. Mobile TypeScript and lint of the current app source and configuration passed. A complete mobile directory lint also traversed old archived script copies and reported 19 existing Node global errors in those copies and the old release utility. Those unrelated files are unchanged.
 
 The native comparison passed after allowing only the intended iPhone marketing version difference. The existing compatibility guard correctly rejects promoting the unreviewed version to live OTA; its baseline remains intact.
+
+## Accepted Apple submission
+
+Apple accepted version **1.0.4 (23)** for review on **3 November 2026 at 8:45 pm Melbourne time**. The verified state is **Waiting for Review**, with exactly one submitted app version. It is not yet publicly live. Automatic release after approval, immediate availability to existing eligible users and the existing rating are retained.
+
+* Native source checkpoint: `4072ecaf9368175543c1ea1c96b50d7743fd46e9`.
+* EAS build: `82b04af6-4ef5-42ac-ba4e-c822beb4f0bb`, finished and verified.
+* EAS upload: `abb90701-3c7f-445c-a9f6-4dd7e6442522`, finished once, with automatic TestFlight group setup disabled.
+* Apple build: `ff0fc0c8-41d1-4e76-9e12-c2b4bc6c81af`, validated by Apple.
+* App Review submission: `42d64b30-ffa8-4534-8ba8-7ee11a363ab8`.
+
+The signed package passed archive integrity, identity, native launch, unchanged provisioning profile, entitlement, device capability, permission and updater checks. No new physical device test is claimed for build 23. The native loading design remains the one the owner previously verified on build 22.
+
+The four current screenshots are saved in the required modern iPhone placement. The copied older large Face ID screenshots were removed from this draft only; that placement now inherits the same current set through Apple's normal scaling. Asset Library originals and the released 1.0.3 page remain intact.
+
+No customer data, backend configuration, database, Rewards rules, memberships, subscriptions, staff grants, Wallet enablement or commercial settings changed. The build used the verified existing Free plan allowance. No additional fees or billing changes were incurred. Main and both existing customer OTA feeds remain unchanged.
+
+Do not rebuild, reupload, recreate the version, cancel the submission or promote its native baseline merely because Apple review is pending. Approval and public Australian App Store availability still require fresh evidence. Keep the separate existing Google Wallet monitoring restrictions intact.
