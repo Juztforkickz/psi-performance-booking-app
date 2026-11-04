@@ -1,5 +1,7 @@
 # Rewards processing repair
 
+The followup [signup handover correction](REWARDS-SIGNUP-HANDOVER-2026-11-04.md) is now applied in production. Existing invoices held for an incomplete account resume normal processing when the trusted ownership workflow verifies the customer link. No launch boundary, earning rate, balance or existing membership was changed.
+
 Recent invoice rewards stopped before calculation because the trusted worker reads the financial policy with `FOR SHARE`, which requires UPDATE privilege on at least one column. The worker correctly has read access to financial policy and cannot edit its rules, so the lock fails with SQLSTATE 42501. The scheduler returning HTTP 200 only indicates that the request ran; held invoices have not earned points.
 
 Live recovery also revealed a missing backend read grant for the previously verified Xero customer links. The complete permission test now starts from production's actual permissions, reproduces both failures, applies both corrections and exercises the trusted worker role through successful calculation.
