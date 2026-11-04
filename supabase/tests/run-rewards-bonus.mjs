@@ -352,3 +352,58 @@ test('actual worker role can lock policy and earn without permission to edit fin
   await db.exec('reset role');
   assert.deepEqual((await db.query('select to_jsonb(p) p from private.rewards_bonus_policy p')).rows,before);
 });
+
+test('verified signup wakes only its existing ownership holds and preserves the financial boundaries',async t=>{
+  await db.exec(`create table public.vault_import_queue(id uuid primary key default gen_random_uuid(),source text,identifiers jsonb);
+    create table public.audit_events(id uuid primary key default gen_random_uuid(),table_name text,record_id uuid,customer_id uuid,
+      action text,actor_user_id uuid,actor_kind text,occurred_at timestamptz default now());`);
+  const wake=await readFile(new URL('../migrations/20261104050959_rewards_verified_link_queue_wakeup.sql',import.meta.url),'utf8');
+  const c=id(60001),contact=id(60002),other=id(60003),otherTenant=id(60004),lease=id(60005);
+  await db.query("insert into customer_profiles values($1,'active')",[c]);
+  for(let n=1;n<=6;n++){
+    const invoice=id(61000+n),org=n===6?otherTenant:tenant;
+    await db.query(`insert into rewards_invoice_queue(tenant_id,invoice_id,revision,processed_revision,attempts,last_error,available_at,lease_token,lease_until)
+      values($1,$2,3,$3,30,$4,now()+interval '1 hour',$5,$6)`,
+      [org,invoice,n===3?3:0,n===4?'rewards_sync_retry_required':'verified_rewards_customer_required',n===2?lease:null,n===2?past(-1):null]);
+    await db.query("insert into vault_import_queue(source,identifiers) values('xero',$1)",
+      [JSON.stringify({tenantId:org,contactId:n===5?other:contact,invoiceId:invoice})]);
+  }
+  const before=(await db.query('select * from rewards_invoice_queue where invoice_id>=$1 and invoice_id<=$2 order by invoice_id',[id(61001),id(61006)])).rows;
+  const policy=(await db.query('select to_jsonb(p) p from private.rewards_bonus_policy p')).rows;
+  const balanceBefore=(await db.query('select sum(points_balance)::text n from rewards_accounts')).rows[0].n;
+  await db.exec(wake);await db.exec(wake);
+  await t.test('migration replay alone never requeues or awards anything',async()=>{
+    assert.deepEqual((await db.query('select * from rewards_invoice_queue where invoice_id>=$1 and invoice_id<=$2 order by invoice_id',[id(61001),id(61006)])).rows,before);
+    assert.equal(Number((await db.query('select count(*) n from audit_events')).rows[0].n),0);
+  });
+  await db.query('insert into private.xero_customer_links values($1,$2,$3,$4,now())',[tenant,contact,c,id(990)]);
+  const changed=(await db.query('select * from rewards_invoice_queue where invoice_id>=$1 and invoice_id<=$2 order by invoice_id',[id(61001),id(61006)])).rows;
+  await t.test('only matching pending holds wake, even after the retry limit',async()=>{
+    for(const n of [0,1]){assert.equal(changed[n].revision,4);assert.equal(changed[n].attempts,0);assert.equal(changed[n].last_error,null);}
+    for(const n of [2,3,4,5])assert.deepEqual(changed[n],before[n]);
+    assert.equal(changed[1].lease_token,lease);assert.deepEqual(changed[1].lease_until,before[1].lease_until);
+    assert.equal(Number((await db.query('select count(*) n from audit_events where customer_id=$1',[c])).rows[0].n),2);
+  });
+  await t.test('identical verification replay and unrelated changes cannot duplicate a wake',async()=>{
+    await db.query('update private.xero_customer_links set verified_at=verified_at where contact_id=$1',[contact]);
+    await db.query("update private.xero_customer_links set verified_at=verified_at+interval '1 second' where contact_id=$1",[contact]);
+    assert.deepEqual((await db.query('select * from rewards_invoice_queue where invoice_id>=$1 and invoice_id<=$2 order by invoice_id',[id(61001),id(61006)])).rows,changed);
+    assert.equal(Number((await db.query('select count(*) n from audit_events')).rows[0].n),2);
+  });
+  await t.test('unverified links do nothing until the existing ownership workflow verifies them',async()=>{
+    await db.query('insert into private.xero_customer_links values($1,$2,$3,null,null)',[tenant,other,c]);
+    assert.equal((await db.query('select attempts from rewards_invoice_queue where invoice_id=$1',[id(61005)])).rows[0].attempts,30);
+    await db.query('update private.xero_customer_links set verified_by=$1,verified_at=now() where contact_id=$2',[id(990),other]);
+    assert.equal((await db.query('select attempts from rewards_invoice_queue where invoice_id=$1',[id(61005)])).rows[0].attempts,0);
+  });
+  await t.test('customer permissions, launch date, activation, balance and owner grant stay unchanged',async()=>{
+    for(const role of ['anon','authenticated','service_role']){
+      assert.equal((await db.query("select has_function_privilege($1,'private.queue_rewards_after_verified_xero_link()','EXECUTE') allowed",[role])).rows[0].allowed,false);
+      assert.equal((await db.query("select has_any_column_privilege($1,'private.xero_customer_links','UPDATE') allowed",[role])).rows[0].allowed,false);
+    }
+    assert.equal((await db.query("select prosecdef from pg_proc where oid='private.queue_rewards_after_verified_xero_link()'::regprocedure")).rows[0].prosecdef,false);
+    assert.deepEqual((await db.query('select to_jsonb(p) p from private.rewards_bonus_policy p')).rows,policy);
+    assert.equal((await db.query('select sum(points_balance)::text n from rewards_accounts')).rows[0].n,balanceBefore);
+    assert.equal((await db.query('select contract_sha256=private.rewards_bonus_schema_contract() valid from private.rewards_bonus_schema_version where version=2')).rows[0].valid,true);
+  });
+});
