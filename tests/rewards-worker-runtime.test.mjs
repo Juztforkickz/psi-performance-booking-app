@@ -19,7 +19,7 @@ function fixture({enabled=true,active=true,migration=true,auth=true,pending=null
     from(table){const q={select(){return q;},eq(){return q;},single:async()=>({data:{enabled,starts_on:'2026-10-01',tenant_id:id(9)}}),
       update(value){updates.push(value);return q;},then(resolve){resolve({data:[{invoice_id:id(1)}],error:null});}};return q;}};
   const env={SUPABASE_SERVICE_ROLE_KEY:'fixture-service',SUPABASE_URL:'https://example.invalid'};
-  vm.runInNewContext(source,{exports:{},Deno:{serve:h=>{handler=h;}},Request,Response,Date,
+  vm.runInNewContext(source,{exports:{},Deno:{serve:h=>{handler=h;}},Request,Response,Date,Error,
     require:name=>name.includes('supabase-js')?{createClient:()=>client}:name.endsWith('xero-runtime.ts')?{cors:{},env:n=>env[n]??'',json:(b,s=200)=>Response.json(b,{status:s}),uuid:v=>typeof v==='string'&&/^[a-f0-9-]{36}$/u.test(v)}:
     name.endsWith('rewards-xero.ts')?{rewardsXeroAccess:async()=>{calls.push({access:true});return'fixture';}}:
     name.endsWith('xero-invoice-fetch.ts')?{xeroInvoiceReader:()=>({invoice:async()=>invoice})}:
@@ -47,6 +47,15 @@ test('missing payment facts and date boundary review retain standard commit and 
     const f=fixture(options),result=await(await f.run()).json();assert.equal(result.results[0].status,'held');
     assert.equal(f.updates.at(-1).last_error,options.pending);assert.equal(f.updates.at(-1).processed_revision,undefined);
   }
+});
+
+test('provider error remains visible when missing receipt totals would mask it',async()=>{
+  const f=fixture({paymentFailure:true,pending:'rewards_payment_totals_review'});
+  const result=await(await f.run()).json();
+  assert.equal(result.results[0].error,'rewards_payment_fetch_retry');
+  assert.equal(f.updates.at(-1).last_error,'rewards_payment_fetch_retry');
+  assert.equal(f.updates.at(-1).processed_revision,undefined);
+  assert.equal(f.calls.find(c=>c.name==='apply_rewards_invoice_v2').args.p_evidence_error,'rewards_payment_fetch_retry');
 });
 test('unverified customer is held without guessing an identity or awarding points',async()=>{
   const f=fixture({contact:false}),result=await(await f.run()).json();assert.equal(result.results[0].error,'verified_rewards_customer_required');

@@ -37,7 +37,9 @@ export async function rewardsPaymentFacts(invoice: RewardsInvoice, read: (kind: 
       if (!uuid(id)) throw new Error('rewards_payment_facts_review');
       const original = await read(collection, id);
       if (original[idKey] !== id || original.Type !== (kind === 'prepayment' ? 'RECEIVE-PREPAYMENT' : 'RECEIVE-OVERPAYMENT')
-        || original.Status !== 'AUTHORISED' || row(original.Contact).ContactID !== invoice.Contact.ContactID
+        // Xero marks a fully allocated advance PAID. Its verified allocation is
+        // still a real receipt; voided advances must remain excluded.
+        || !['AUTHORISED', 'PAID'].includes(String(original.Status)) || row(original.Contact).ContactID !== invoice.Contact.ContactID
         || original.CurrencyCode !== 'AUD') throw new Error('rewards_payment_identity_review');
       const all = rows(original.Allocations).filter(item => !item.IsDeleted);
       const amount = all.filter(item => row(item.Invoice).InvoiceID === invoice.InvoiceID).reduce((sum,item) => sum + rewardCents(item.Amount),0);

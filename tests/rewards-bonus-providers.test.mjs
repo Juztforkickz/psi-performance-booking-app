@@ -62,6 +62,31 @@ test('deposits retain original receipt date, current allocation date cannot gran
   assert.equal(advance.accounting_date,'2026-09-01');assert.equal(advance.amount_cents,10000);assert.equal(advance.date_precision,'date');
   assert.equal(facts.reduce((sum,f)=>sum+f.amount_cents,0),100000);
 });
+
+test('fully allocated paid prepayments and overpayments retain verified receipt evidence',async()=>{
+  for(const kind of ['prepayment','overpayment'])for(const Status of ['AUTHORISED','PAID']){
+    const v=invoice(),collection=kind==='prepayment'?'Prepayments':'Overpayments',key=kind==='prepayment'?'PrepaymentID':'OverpaymentID';
+    delete v.Prepayments;v[collection]=[{[key]:id(21),AppliedAmount:100}];
+    const facts=await rewardsPaymentFacts(v,async(type,id)=>{
+      const r=await read(type,id);if(type!=='Payments'){
+        delete r.PrepaymentID;Object.assign(r,{[key]:id,Status,Type:kind==='prepayment'?'RECEIVE-PREPAYMENT':'RECEIVE-OVERPAYMENT'});
+      }return r;
+    });
+    const advance=facts.find(f=>f.source_kind===kind);
+    assert.equal(advance.accounting_date,'2026-09-01');assert.equal(advance.amount_cents,10000);
+    assert.equal(facts.reduce((sum,f)=>sum+f.amount_cents,0),100000);
+  }
+});
+
+test('paid advances still reject voids, wrong owners, wrong types and invalid allocations',async()=>{
+  for(const patch of [{Status:'VOIDED'},{Status:'DELETED'},{Status:'PAID',Contact:{ContactID:id(99)}},
+    {Status:'PAID',Type:'SPEND-PREPAYMENT'},{Status:'PAID',CurrencyCode:'USD'},
+    {Status:'PAID',Allocations:[{Invoice:{InvoiceID:id(99)},Amount:100}]},{Status:'PAID',Total:90}]){
+    await assert.rejects(rewardsPaymentFacts(invoice(),async(type,key)=>{
+      const r=await read(type,key);return type==='Payments'?r:{...r,...patch};
+    }));
+  }
+});
 test('wrong invoice, wrong contact, reused receipt and overallocated deposits are rejected',async()=>{
   for(const change of [v=>{v.Payments.push(v.Payments[0]);},v=>{v.InvoiceID=id(99);},v=>{v.Contact.ContactID=id(99);},v=>{v.Prepayments[0].AppliedAmount=200;}]){
     const v=invoice();change(v);await assert.rejects(rewardsPaymentFacts(v,read));}

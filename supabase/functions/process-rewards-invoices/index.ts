@@ -59,7 +59,9 @@ Deno.serve(async request => {
         if (applyError) throw new Error(safeError(new Error(applyError.message)));
         // Standard points are already committed safely. Keep only the unresolved
         // bonus evidence on the bounded retry path, without replaying base credit.
-        if (typeof applied?.pending === 'string') throw new Error(applied.pending);
+        // Keep the original provider failure visible when the coordinator also
+        // reports the resulting missing receipt total. Standard credit is safe.
+        if (typeof applied?.pending === 'string') throw new Error(evidenceError ?? applied.pending);
       }
       const saved = await admin.from('rewards_invoice_queue').update({ processed_revision: row.revision, lease_token: null, lease_until: null, last_error: null })
         .eq('tenant_id', row.tenant_id).eq('invoice_id', row.invoice_id).eq('lease_token', row.lease_token).select('invoice_id');
