@@ -21,7 +21,7 @@ create table performance_subscriptions(id uuid primary key default gen_random_uu
  environment text default 'production',status text,expires_at timestamptz,is_permanent boolean default false,verified_at timestamptz default now());
 create table vault.decrypted_secrets(name text,decrypted_secret text);
 create function net.http_post(url text,headers jsonb,body jsonb,timeout_milliseconds integer) returns bigint language sql as $$select 1::bigint$$;
-grant select on public.customer_profiles,public.performance_subscriptions,private.xero_customer_links to service_role;`);
+grant select on public.customer_profiles,public.performance_subscriptions to service_role;`);
 await db.exec(await readFile(new URL('../migrations/20261021232804_psi_rewards_ledger.sql',import.meta.url),'utf8'));
 await db.query('update rewards_config set enabled=true,starts_on=$1,tenant_id=$2',[receiptDate(30),tenant]);
 await db.exec(await readFile(new URL('../migrations/20261023120145_rewards_earning_status_wallet_refresh.sql',import.meta.url),'utf8'));
@@ -319,6 +319,17 @@ test('actual worker role can lock policy and earn without permission to edit fin
   const repair=await readFile(new URL('../migrations/20261104032435_rewards_policy_row_lock_permission.sql',import.meta.url),'utf8');
   const before=(await db.query('select to_jsonb(p) p from private.rewards_bonus_policy p')).rows;
   await db.exec(repair);await db.exec(repair);
+  await db.exec('set role service_role');
+  await assert.rejects(apply(c,901,100000,[fact(901)]),/permission denied for table xero_customer_links/);
+  await db.exec('reset role');
+  const linkRepair=await readFile(new URL('../migrations/20261104034155_rewards_verified_customer_link_read.sql',import.meta.url),'utf8');
+  await db.exec(linkRepair);await db.exec(linkRepair);
+  assert.equal((await db.query("select relrowsecurity from pg_class where oid='private.xero_customer_links'::regclass")).rows[0].relrowsecurity,true);
+  for(const role of ['service_role','authenticated','anon']){
+    assert.equal((await db.query("select has_any_column_privilege($1,'private.xero_customer_links','UPDATE') allowed",[role])).rows[0].allowed,false);
+    assert.equal((await db.query("select has_table_privilege($1,'private.xero_customer_links','INSERT,DELETE') allowed",[role])).rows[0].allowed,false);
+  }
+  for(const role of ['authenticated','anon']) assert.equal((await db.query("select has_any_column_privilege($1,'private.xero_customer_links','SELECT') allowed",[role])).rows[0].allowed,false);
   assert.deepEqual((await db.query('select to_jsonb(p) p from private.rewards_bonus_policy p')).rows,before);
   const protectedColumns=(await db.query(`select attname from pg_attribute where attrelid='private.rewards_bonus_policy'::regclass
     and attnum>0 and not attisdropped and attname<>'singleton'`)).rows;
