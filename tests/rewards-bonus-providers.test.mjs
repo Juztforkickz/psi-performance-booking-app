@@ -102,3 +102,12 @@ test('payment adapter is GET only, rejects injected paths and omits provider bod
   const failed=rewardsPaymentReader('fixture-token',id(99),async()=>new Response('secret-provider-data',{status:401}));
   await assert.rejects(failed('Payments',id(20)),error=>!error.message.includes('secret-provider-data'));
 });
+
+test('payment provider errors distinguish permission, missing evidence and retry without leaking response data',async()=>{
+  for(const [status,code] of [[400,'rewards_payment_request_review'],[401,'xero_reauthorisation_required'],
+    [403,'xero_payment_permission_required'],[404,'rewards_payment_unavailable_review'],
+    [429,'xero_rate_limited_retry_later'],[500,'rewards_payment_fetch_retry'],[503,'rewards_payment_fetch_retry']]){
+    const read=rewardsPaymentReader('fixture-token',id(99),async()=>new Response('private provider detail',{status}));
+    await assert.rejects(read('Payments',id(20)),error=>error.message===code);
+  }
+});

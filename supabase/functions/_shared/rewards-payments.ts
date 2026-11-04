@@ -60,7 +60,16 @@ export function rewardsPaymentReader(token: string, tenant: string, request: typ
       headers: { Authorization: `Bearer ${token}`, 'xero-tenant-id': tenant, Accept: 'application/json' },
       redirect: 'error', signal: AbortSignal.timeout(15000),
     });
-    if (!response.ok) { await response.body?.cancel(); throw new Error('rewards_payment_fetch_retry'); }
+    if (!response.ok) {
+      await response.body?.cancel();
+      // Retain only a safe operational code, never provider bodies or tokens.
+      if (response.status === 401) throw new Error('xero_reauthorisation_required');
+      if (response.status === 403) throw new Error('xero_payment_permission_required');
+      if (response.status === 404) throw new Error('rewards_payment_unavailable_review');
+      if (response.status === 429) throw new Error('xero_rate_limited_retry_later');
+      if (response.status >= 400 && response.status < 500) throw new Error('rewards_payment_request_review');
+      throw new Error('rewards_payment_fetch_retry');
+    }
     const text = await response.text();
     if (text.length > 2 * 1024 * 1024) throw new Error('rewards_payment_facts_review');
     const values = rows(JSON.parse(text)[kind]);

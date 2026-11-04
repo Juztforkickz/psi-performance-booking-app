@@ -8,6 +8,8 @@ Recovery of invoices containing advance payments exposed another adapter defect:
 
 The worker now retains the original provider error on its retry record when missing receipt totals would otherwise mask it. Standard points remain committed independently of unresolved bonus proof. Existing award calculations, financial rates and activation are unchanged.
 
+Payment HTTP failures now distinguish reauthorisation, permission, missing source, rate limiting, invalid request and temporary server failure with safe codes. Provider bodies and credentials remain excluded from the response. This makes remaining evidence holds actionable without relaxing financial validation.
+
 ## Reviewed correction
 
 The migration `20261104032435_rewards_policy_row_lock_permission.sql` grants the existing backend `service_role` UPDATE permission on the `singleton` key only. The primary key is nonnull and constrained to true, so it cannot change to another value. This satisfies PostgreSQL row locking without allowing changes to earning rates, activation, approval, expiry rules or financial policy. Table level UPDATE, INSERT and DELETE remain denied. Customer roles gain no privileges. RLS and all security invoker functions remain unchanged.
@@ -20,7 +22,7 @@ The second migration, `20261104034155_rewards_verified_customer_link_read.sql`, 
 
 80 targeted tests passed, including an actual service role invoice calculation before and after the correction. The tests reproduce the old permission failure, then verify standard and double earning, duplicate invoice replay, refunds, policy write denial, immutable key protection, migration replay, existing balances and owner grants. A separate real PostgreSQL sandbox transaction passed seven row lock and policy protection assertions and rolled back every fixture.
 
-The final Rewards, Performance+ and Xero regression suite passed all 250 tests, with zero failures or skipped checks. This includes queue recovery tests for audit, duplicate recovery, changed revisions, active leases and ownership holds, plus paid prepayment and overpayment evidence and original provider error preservation.
+The final Rewards, Performance+ and Xero regression suite passed all 251 tests, with zero failures or skipped checks. This includes queue recovery tests for audit, duplicate recovery, changed revisions, active leases and ownership holds, plus paid prepayment and overpayment evidence, original provider error preservation and safe HTTP failure classification.
 
 ## Production approval and recovery
 
@@ -30,6 +32,6 @@ Nineteen existing unfinished jobs held by the permission fault or transient Xero
 
 Read back actual ledger entries, balances and remaining holds before reporting recovery complete. No phone release or customer action is required for this backend correction. Private invoice evidence and recovery receipts are kept outside Git.
 
-The corrected existing invoice worker was deployed as version 6 with JWT verification retained, and all eleven delivered files were read back and matched. It runs on the existing five minute schedule. No manual dispatcher or synthetic transaction was used to validate it.
+The corrected existing invoice worker was deployed as version 7 with JWT verification retained, and all eleven delivered files were read back and matched. It runs on the existing five minute schedule. No manual dispatcher or synthetic transaction was used to validate it.
 
 A manual dispatcher attempt was rejected by automatic approval review because it could process the broader live queue. It was not executed or retried through another route. Recovery continues through the normal existing five minute scheduler, which has already produced a genuine paid invoice award. No synthetic financial test or test points were created.
