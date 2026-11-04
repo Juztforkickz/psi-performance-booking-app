@@ -810,20 +810,20 @@ test('saving a new private draft keeps its media editor open without publishing 
  assert.equal(published,false);assert.equal(component.find('MediaPanel').props.listingId,draft.id);
  assert(component.find('Button',n=>n.props.label==='Publish and notify customers'));
 });
-function mediaPanel(staff=true,preview=false) {
+function mediaPanel(staff=true,preview=false,options={}) {
  const calls=[];const photo={id:'photo-a',listing_id:'listing-demo',kind:'photo',state:'ready',is_cover:true,filename:'car.jpg',size_bytes:100};
- const media=[photo,{...photo,id:'video-a',kind:'video',filename:'car.mp4',is_cover:false},{...photo,id:'file-a',kind:'file',filename:'sale.pdf',is_cover:false}];
+ const media=options.empty?[]:[photo,...(options.twoPhotos?[{...photo,id:'photo-b',filename:'second.jpg',is_cover:false}]:[]),{...photo,id:'video-a',kind:'video',filename:'car.mp4',is_cover:false},{...photo,id:'file-a',kind:'file',filename:'sale.pdf',is_cover:false}];
  const component=mountComponent('car-listing-media-panel.tsx','CarListingMediaPanel',{listingId:'listing-demo',staff,preview},{
  'react-native':{View:'View',Text:'Text',Pressable:'Pressable',ScrollView:'ScrollView',Image:'Image',Modal:'Modal',ActivityIndicator:'ActivityIndicator',StyleSheet:{create:s=>s},Linking:{openURL:async url=>calls.push(['open',url])}},
- 'expo-image-picker':{VideoExportPreset:{Passthrough:0},launchImageLibraryAsync:async opts=>{calls.push(['picker',opts.mediaTypes[0]]);return{canceled:false,assets:[{uri:'image',fileName:'car.jpg'}]};}},
+ 'expo-image-picker':{VideoExportPreset:{Passthrough:0},launchImageLibraryAsync:async opts=>{calls.push(['picker',opts.mediaTypes[0],opts]);return{canceled:options.cancel??false,assets:[{uri:'image',fileName:'car.jpg'}]};}},
  'expo-document-picker':{getDocumentAsync:async()=>{calls.push(['picker','files']);return{canceled:false,assets:[{uri:'pdf',name:'sale.pdf',lastModified:0}]};}},
  '@/lib/car-listing-media':{loadCarListingMedia:async()=>{calls.push(['load']);return media;},carListingMediaUrl:async item=>'https://example.test/'+item.id,
- uploadCarListingMedia:async(id,files)=>{calls.push(['upload',id,files.length]);return{uploaded:files.length,skipped:0,failed:[],errors:[]};},carMediaError:()=>'',
- removeCarListingMedia:async(id,media)=>calls.push(['remove',id,media]),setCarListingCover:async()=>{}},
+ uploadCarListingMedia:async(id,files)=>{calls.push(['upload',id,files.length]);return options.uploadResult?.(files,calls.filter(c=>c[0]==='upload').length)??{uploaded:files.length,skipped:0,completed:[{...photo,id:'uploaded-photo'}],failed:[],errors:[]};},carMediaError:()=>'',
+ removeCarListingMedia:async(id,media)=>calls.push(['remove',id,media]),setCarListingCover:async(id,media)=>{calls.push(['cover',id,media]);if(options.failCover)throw Error('Network');}},
  });return{component,calls};
 }
-test('media panel requires sharing confirmation for all three pickers and exposes a safe photo close',async()=>{
- for(const label of ['Add photos','Add videos','Add files']){
+test('media panel requires sharing confirmation for all pickers and exposes a safe photo close',async()=>{
+ for(const label of ['Add photos','Add videos','Add files','Change cover photo']){
  const {component,calls}=mediaPanel();component.render();await settle();component.render();
  assert.equal(component.find('Button',n=>n.props.label===label).props.disabled,true);
  component.find('Pressable',n=>n.props.accessibilityRole==='checkbox').props.onPress();component.render();component.press(label);await settle();component.render();
@@ -832,6 +832,40 @@ test('media panel requires sharing confirmation for all three pickers and expose
  const {component}=mediaPanel();component.render();await settle();component.render();
  component.find('Pressable',n=>n.props.accessibilityLabel==='View photo 1 of 1').props.onPress();await settle();component.render();
  assert.equal(component.count('SafeAreaProvider'),1);assert(component.find('Button',n=>n.props.label==='Close photo'));component.press('Close photo');assert.equal(component.count('Modal'),0);
+});
+
+test('empty listing exposes a single photo cover picker and saves the uploaded cover immediately',async()=>{
+ const {component,calls}=mediaPanel(true,false,{empty:true});component.render();await settle();component.render();
+ assert.equal(component.find('Button',n=>n.props.label==='Add cover photo').props.disabled,true);
+ component.find('Pressable',n=>n.props.accessibilityRole==='checkbox').props.onPress();component.render();component.press('Add cover photo');await settle();component.render();
+ const options=calls.find(c=>c[0]==='picker')[2];assert.equal(options.mediaTypes[0],'images');assert.equal(options.allowsMultipleSelection,false);assert.equal(options.selectionLimit,1);
+ assert.deepEqual(calls.filter(c=>c[0]==='cover'),[['cover','listing-demo','uploaded-photo']]);
+ assert(component.find('Text',n=>n.children.join('').includes('Cover photo saved.')));
+});
+
+test('an existing photo can become the cover without another upload or picker',async()=>{
+ const {component,calls}=mediaPanel(true,false,{twoPhotos:true});component.render();await settle();component.render();
+ component.find('Pressable',n=>n.props.accessibilityLabel==='Next listing photo').props.onPress();component.render();
+ component.press('Use this as cover photo');await settle();component.render();
+ assert.deepEqual(calls.filter(c=>c[0]==='cover'),[['cover','listing-demo','photo-b']]);assert.equal(calls.some(c=>c[0]==='upload'||c[0]==='picker'),false);
+});
+
+test('cancelled cover selection changes nothing and a failed cover update retains the saved upload',async()=>{
+ for(const options of [{cancel:true},{failCover:true}]){
+ const {component,calls}=mediaPanel(true,false,options);component.render();await settle();component.render();
+ component.find('Pressable',n=>n.props.accessibilityRole==='checkbox').props.onPress();component.render();component.press('Change cover photo');await settle();component.render();
+ assert.equal(calls.filter(c=>c[0]==='upload').length,options.cancel?0:1);
+ if(options.cancel)assert.equal(calls.some(c=>c[0]==='cover'),false);
+ else assert(component.find('Text',n=>n.children.join('').includes('Photo saved. The cover could not be changed.')));
+ }
+});
+
+test('retrying a failed cover upload preserves its cover intent and does not require saving listing text',async()=>{
+ const {component,calls}=mediaPanel(true,false,{uploadResult:(files,attempt)=>attempt===1?{uploaded:0,skipped:0,completed:[],failed:files,errors:['Preparing the file: retry']}:{uploaded:0,skipped:1,completed:[{id:'existing-photo'}],failed:[],errors:[]}});
+ component.render();await settle();component.render();component.find('Pressable',n=>n.props.accessibilityRole==='checkbox').props.onPress();component.render();
+ component.press('Change cover photo');await settle();component.render();component.press('Retry 1 unfinished uploads');await settle();component.render();
+ assert.equal(calls.filter(c=>c[0]==='picker').length,1);assert.equal(calls.filter(c=>c[0]==='upload').length,2);
+ assert.deepEqual(calls.filter(c=>c[0]==='cover'),[['cover','listing-demo','existing-photo']]);
 });
 test('customers can open a listing video and file but cannot see upload controls, preview fetches nothing',async()=>{
  const {component,calls}=mediaPanel(false);component.render();await settle();component.render();

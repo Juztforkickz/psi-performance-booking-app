@@ -24,6 +24,7 @@ export function CarListingMediaPanel({ listingId, staff = false, disabled = fals
   const [message, setMessage] = useState('');
   const [loadFailed, setLoadFailed] = useState(false);
   const [failed, setFailed] = useState<DocumentPicker.DocumentPickerAsset[]>([]);
+  const [failedCover, setFailedCover] = useState(false);
   const lifecycle = useRef({ active: true, sequence: 0 });
   const photos = media.filter(item => item.kind === 'photo' && item.state === 'ready');
   const current = photos.find(item => item.id === selectedId) ?? photos[0];
@@ -62,14 +63,25 @@ export function CarListingMediaPanel({ listingId, staff = false, disabled = fals
       else await Linking.openURL(url);
     } catch { setMessage('This attachment is unavailable. Refresh the listing and try again.'); }
   };
-  const upload = async (files: DocumentPicker.DocumentPickerAsset[]) => {
+  const upload = async (files: DocumentPicker.DocumentPickerAsset[], asCover = false) => {
     const result = await uploadCarListingMedia(listingId, files, setMessage);
     setFailed(result.failed);
-    setMessage(`${result.uploaded} uploaded. ${result.skipped} already saved.${result.failed.length ? ` ${result.failed.length} need retry. ${result.errors[0]}` : ' Saved to this listing.'}`);
+    setFailedCover(asCover && result.failed.length > 0);
+    let coverMessage = '';
+    if (asCover && result.completed[0]) {
+      try {
+        await setCarListingCover(listingId, result.completed[0].id);
+        setSelectedId(result.completed[0].id);
+        coverMessage = ' Cover photo saved.';
+      } catch {
+        coverMessage = ' Photo saved. The cover could not be changed. Select this photo and use the cover button to retry.';
+      }
+    }
+    setMessage(`${result.uploaded} uploaded. ${result.skipped} already saved.${result.failed.length ? ` ${result.failed.length} need retry. ${result.errors[0]}` : ' Saved to this listing.'}${coverMessage}`);
     if (!result.failed.length) setApproved(false);
     await refresh();
   };
-  const pick = async (kind: 'photos' | 'videos' | 'files') => {
+  const pick = async (kind: 'photos' | 'videos' | 'files' | 'cover') => {
     if (locked || !approved) return;
     setWorking(true); setMessage('');
     try {
@@ -78,13 +90,14 @@ export function CarListingMediaPanel({ listingId, staff = false, disabled = fals
           type: ['application/pdf','text/plain','text/csv','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.ms-excel','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] });
         if (!result.canceled && result.assets.length) await upload(result.assets);
       } else {
-        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: kind === 'photos' ? ['images'] : ['videos'],
-          allowsMultipleSelection: true, selectionLimit: kind === 'photos' ? 24 : 4, allowsEditing: false, quality: 1,
+        const isPhoto = kind !== 'videos';
+        const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: isPhoto ? ['images'] : ['videos'],
+          allowsMultipleSelection: kind !== 'cover', selectionLimit: kind === 'cover' ? 1 : isPhoto ? 24 : 4, allowsEditing: false, quality: 1,
           exif: false, videoExportPreset: ImagePicker.VideoExportPreset.Passthrough });
         if (!result.canceled && result.assets.length) await upload(result.assets.map((asset, index) => ({ uri: asset.uri,
-          name: asset.fileName ?? `${kind === 'photos' ? 'Photo' : 'Video'} ${index + 1}.${kind === 'photos' ? 'jpg' : asset.mimeType === 'video/quicktime' ? 'mov' : 'mp4'}`,
+          name: asset.fileName ?? `${isPhoto ? 'Photo' : 'Video'} ${index + 1}.${isPhoto ? 'jpg' : asset.mimeType === 'video/quicktime' ? 'mov' : 'mp4'}`,
           mimeType: asset.mimeType ?? undefined, size: asset.fileSize, lastModified: 0,
-        })));
+        })), kind === 'cover');
       }
     } catch (error) { setMessage(carMediaError(error)); }
     finally { setWorking(false); }
@@ -92,14 +105,17 @@ export function CarListingMediaPanel({ listingId, staff = false, disabled = fals
   const retry = async () => {
     if (locked || !approved || !failed.length) return;
     setWorking(true);
-    try { await upload(failed); } catch (error) { setMessage(carMediaError(error)); }
+    try { await upload(failed, failedCover); } catch (error) { setMessage(carMediaError(error)); }
     finally { setWorking(false); }
   };
   const change = async (action: 'cover' | 'remove', item: CarListingMedia) => {
     if (locked) return;
     setWorking(true); setMessage('');
     try {
-      if (action === 'cover') await setCarListingCover(listingId, item.id);
+      if (action === 'cover') {
+        await setCarListingCover(listingId, item.id);
+        setMessage('Cover photo saved.');
+      }
       else await removeCarListingMedia(listingId, item.id);
       await refresh();
     } catch (error) { setMessage(carMediaError(error)); }
@@ -108,6 +124,7 @@ export function CarListingMediaPanel({ listingId, staff = false, disabled = fals
   const photoIndex = current ? photos.findIndex(item => item.id === current.id) : 0;
   return <View style={styles.panel}>
     {staff ? <Text accessibilityRole="header" style={styles.heading}>Photos, videos and files</Text> : null}
+    {message ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.copy}>{message}</Text> : null}
     {current ? <Pressable accessibilityLabel={`View photo ${photoIndex + 1} of ${photos.length}`} accessibilityRole="button" onPress={() => void open(current)}>
       {photoUrl ? <Image accessibilityLabel={`${current.filename}, listing photo`} source={{ uri: photoUrl }} resizeMode="cover" style={styles.hero} onError={() => setMessage('Photo unavailable. Refresh attachments and try again.')} /> : <View style={styles.hero}><ActivityIndicator color={colors.accent} /></View>}
     </Pressable> : fallbackSource ? <Image accessibilityLabel="PSI car listing artwork" source={fallbackSource} resizeMode="cover" style={styles.hero} /> : null}
@@ -129,10 +146,12 @@ export function CarListingMediaPanel({ listingId, staff = false, disabled = fals
         <Ionicons color={colors.accent} name={approved ? 'checkbox' : 'square-outline'} size={26} /><Text style={styles.fileCopy}>I have permission to share these attachments with the listing.</Text>
       </Pressable>
       <View style={styles.actions}>
+        <PrimaryButton disabled={locked || !approved} label={photos.some(item => item.is_cover) ? 'Change cover photo' : 'Add cover photo'} variant="outline" onPress={() => void pick('cover')} />
         <PrimaryButton disabled={locked || !approved} label="Add photos" onPress={() => void pick('photos')} />
         <PrimaryButton disabled={locked || !approved} label="Add videos" variant="outline" onPress={() => void pick('videos')} />
         <PrimaryButton disabled={locked || !approved} label="Add files" variant="outline" onPress={() => void pick('files')} />
       </View>
+      <Text style={styles.copy}>The cover appears first on the sale listing. Your first photo becomes the cover automatically. Browse existing photos to choose a different cover, or upload one with the cover button.</Text>
       <Text style={styles.copy}>Up to 24 attachments. Photos are resized. Videos up to 50 MB each, documents up to 20 MB. Videos open in your phone player or browser.</Text>
       {failed.length ? <PrimaryButton disabled={locked || !approved} label={`Retry ${failed.length} unfinished uploads`} onPress={() => void retry()} /> : null}
       {!loading && !media.length ? <Text style={styles.copy}>No attachments yet.</Text> : media.map(item => <View key={item.id} style={styles.file}>
@@ -140,7 +159,6 @@ export function CarListingMediaPanel({ listingId, staff = false, disabled = fals
         <Pressable accessibilityLabel={`Remove ${item.filename} from listing`} accessibilityRole="button" disabled={locked} onPress={() => void change('remove', item)} style={styles.iconButton}><Ionicons color={colors.danger} name="close-circle-outline" size={25} /></Pressable>
       </View>)}
     </> : null}
-    {message ? <Text accessibilityRole="alert" style={styles.copy}>{message}</Text> : null}
     {!preview && (staff || loadFailed || message) ? <PrimaryButton disabled={working} label="Refresh attachments" variant="outline" onPress={() => void refresh()} /> : null}
     <StaffModal visible={Boolean(viewer)} onRequestClose={() => setViewer(null)} animationType="slide">
       <View style={styles.viewer}><View style={styles.viewerHeader}><Text style={styles.viewerTitle}>{viewer?.name}</Text><PrimaryButton label="Close photo" onPress={() => setViewer(null)} variant="outline" /></View>

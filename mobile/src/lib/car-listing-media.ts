@@ -54,7 +54,9 @@ async function prepare(file: DocumentPickerAsset) {
             : ['application/msword','application/vnd.ms-excel'].includes(mime) ? head[0] === 208 && head[1] === 207 && head[2] === 17 && head[3] === 224
               : !new Uint8Array(bytes).includes(0);
   if (!valid) throw new Error('CAR_MEDIA_CONTENT_INVALID');
-  const sha256 = Array.from(new Uint8Array(await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, bytes))).map(v => v.toString(16).padStart(2, '0')).join('');
+  // Expo's native Swift and Kotlin digest functions require a TypedArray.
+  // Web Crypto also accepts ArrayBuffer, which can conceal this phone failure.
+  const sha256 = Array.from(new Uint8Array(await Crypto.digest(Crypto.CryptoDigestAlgorithm.SHA256, new Uint8Array(bytes)))).map(v => v.toString(16).padStart(2, '0')).join('');
   return { bytes, mime, sha256, filename: file.name.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 200) || 'Listing attachment' };
 }
 
@@ -93,24 +95,28 @@ export async function uploadCarListingMedia(listingId: string, files: DocumentPi
     if (!data.session || data.session.user.id !== userId) throw new Error('CAR_MEDIA_SESSION_CHANGED');
     return data.session.access_token;
   };
-  const result = { uploaded: 0, skipped: 0, failed: [] as DocumentPickerAsset[], errors: [] as string[] };
+  const result = { uploaded: 0, skipped: 0, completed: [] as CarListingMedia[], failed: [] as DocumentPickerAsset[], errors: [] as string[] };
   for (const [index, file] of files.entries()) {
+    let stage = 'Preparing the file';
     try {
       progress(`Preparing ${index + 1} of ${files.length}`);
       const prepared = await prepare(file);
+      stage = 'Saving the attachment details';
       const reserved = await manage('reserve', listingId, undefined, {
         mime_type: prepared.mime, size_bytes: prepared.bytes.byteLength, sha256: prepared.sha256, filename: prepared.filename,
       });
-      if (reserved.state === 'ready') { result.skipped++; continue; }
+      if (reserved.state === 'ready') { result.skipped++; result.completed.push(reserved); continue; }
       // Recover a completed upload whose acknowledgement/finalization was interrupted.
-      try { await manage('finish', listingId, reserved.id); result.uploaded++; continue; }
+      try { const finished = await manage('finish', listingId, reserved.id); result.uploaded++; result.completed.push(finished); continue; }
       catch (error) { if (!String((error as { message?: string }).message).includes('CAR_MEDIA_UPLOAD_INCOMPLETE')) throw error; }
+      stage = 'Uploading the file';
       await uploadCarListingBytes({ projectRef: SUPABASE_CONNECTION.projectRef, userId, mediaId: reserved.id,
         objectPath: reserved.object_path, mime: prepared.mime, bytes: prepared.bytes, token,
         progress: percent => progress(`Uploading ${index + 1} of ${files.length}, ${percent}%`),
       });
-      await manage('finish', listingId, reserved.id); result.uploaded++;
-    } catch (error) { result.failed.push(file); result.errors.push(carMediaError(error)); }
+      stage = 'Completing the attachment';
+      const finished = await manage('finish', listingId, reserved.id); result.uploaded++; result.completed.push(finished);
+    } catch (error) { result.failed.push(file); result.errors.push(`${stage}: ${carMediaError(error)}`); }
   }
   return result;
 }

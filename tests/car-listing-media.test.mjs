@@ -5,10 +5,23 @@ import { createHash } from 'node:crypto';
 import vm from 'node:vm';
 import test from 'node:test';
 const require=createRequire(import.meta.url), ts=require('../mobile/node_modules/typescript');
-function load(name,modules) {
+function loadSource(source,modules) {
  const mod={exports:{}};
- vm.runInNewContext(ts.transpileModule(readFileSync(new URL('../mobile/src/lib/'+name,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,
+ vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,
  {exports:mod.exports,module:mod,require(id){assert(id in modules,'Unexpected dependency '+id);return modules[id];},URL,AbortController,ArrayBuffer,Uint8Array,setTimeout,clearTimeout});return mod.exports;
+}
+function load(name,modules) { return loadSource(readFileSync(new URL('../mobile/src/lib/'+name,import.meta.url),'utf8'),modules); }
+// Run Expo's real JS adapter against the typed-array contract implemented by
+// both its Swift and Kotlin modules. Web Crypto also accepts a raw ArrayBuffer,
+// so a web-only mock previously concealed this phone failure.
+function phoneCrypto() {
+ return loadSource(readFileSync(new URL('../mobile/node_modules/expo-crypto/src/Crypto.ts',import.meta.url),'utf8'),{
+  'expo-modules-core':{UnavailabilityError:Error},'./Crypto.types':{CryptoDigestAlgorithm:{SHA1:'SHA-1',SHA256:'SHA-256',SHA384:'SHA-384',SHA512:'SHA-512',MD2:'MD2',MD4:'MD4',MD5:'MD5'}},'./aes':{},
+  './ExpoCrypto':{__esModule:true,default:{digest(algorithm,output,input){
+   assert(ArrayBuffer.isView(input),'Native ExpoCrypto requires a TypedArray');
+   output.set(createHash('sha256').update(input).digest());
+  }}},
+ });
 }
 function uploader(fetcher,saved=null) {
  let stored=saved; const calls=[];
@@ -48,7 +61,7 @@ test('TUS rejects invalid offsets and ends bounded retries',async()=>{
  n++;return response(500);
  });await assert.rejects(broken.run(),/INTERRUPTED/);assert.equal(n,4);
 });
-function mediaHarness({preview=false,staff=true,session='staff',finishExists=false,failUpload=false}={}) {
+function mediaHarness({preview=false,staff=true,session='staff',finishExists=false,failUpload=false,nativeCrypto=false}={}) {
  const calls=[],uploaded=[],objects=new Map();let counter=0;
  const client={auth:{getSession:async()=>({data:{session:{user:{id:session},access_token:'test-token'}}})},rpc:async(name,args)=>{
  calls.push({name,...args});let row;
@@ -58,7 +71,7 @@ function mediaHarness({preview=false,staff=true,session='staff',finishExists=fal
  return{data:{...row}};
  }};
  const lib=load('car-listing-media.ts',{
- 'expo-crypto':{CryptoDigestAlgorithm:{SHA256:'SHA256'},digest:async(_,bytes)=>Uint8Array.from(createHash('sha256').update(new Uint8Array(bytes)).digest()).buffer},
+ 'expo-crypto':nativeCrypto?phoneCrypto():{CryptoDigestAlgorithm:{SHA256:'SHA256'},digest:async(_,bytes)=>Uint8Array.from(createHash('sha256').update(new Uint8Array(bytes)).digest()).buffer},
  'expo-image-manipulator':{SaveFormat:{JPEG:'jpeg'},manipulateAsync:async()=>({uri:'resized.jpg'})},
  'react-native':{Image:{getSize:(uri,cb)=>cb(4000,3000)}},
  '@/lib/car-listing-resumable-upload':{uploadCarListingBytes:async input=>{await input.token();if(failUpload)throw Error('Network');uploaded.push(input.mediaId);}},
@@ -69,9 +82,21 @@ function mediaHarness({preview=false,staff=true,session='staff',finishExists=fal
  });return{lib,calls,uploaded,objects};
 }
 const photo={uri:'photo',name:'car.heic',mimeType:'image/heic',size:1024,lastModified:0};
+test('Expo native digest adapter accepts a byte view and rejects raw ArrayBuffer',async()=>{
+ const crypto=phoneCrypto();
+ await assert.rejects(crypto.digest(crypto.CryptoDigestAlgorithm.SHA256,new ArrayBuffer(2)),/TypedArray/);
+ const bytes=new Uint8Array([1,2]);
+ assert.equal(Buffer.from(await crypto.digest(crypto.CryptoDigestAlgorithm.SHA256,bytes)).toString('hex'),createHash('sha256').update(bytes).digest('hex'));
+});
+test('phone photo upload reaches reservation with Expo native typed-array hashing',async()=>{
+ const h=mediaHarness({nativeCrypto:true});const result=await h.lib.uploadCarListingMedia('listing',[photo],()=>{});
+ assert.equal(result.failed.length,0,JSON.stringify(result.errors));assert.equal(result.uploaded,1);
+ assert.equal(h.calls.find(c=>c.p_action==='reserve').p_metadata.sha256,createHash('sha256').update(Uint8Array.from([255,216,255,224,7])).digest('hex'));
+});
 test('Photo upload resizes, validates actual bytes and deduplicates the same content',async()=>{
  const h=mediaHarness();const result=await h.lib.uploadCarListingMedia('listing',[photo,photo],()=>{});
  assert.equal(result.uploaded,1);assert.equal(result.skipped,1);assert.equal(h.objects.size,1);assert.equal(h.uploaded.length,1);
+ assert.equal(result.completed.length,2);assert.equal(result.completed[0].id,result.completed[1].id);
  const reservation=h.calls.find(c=>c.p_action==='reserve');assert.equal(reservation.p_metadata.mime_type,'image/jpeg');assert.equal(reservation.p_metadata.size_bytes,5);assert.match(reservation.p_metadata.sha256,/^[a-f0-9]{64}$/);
  assert.equal(h.calls.some(c=>/notify|publish|status/.test(c.name)),false);
 });
@@ -95,7 +120,7 @@ test('Failed upload keeps the reserved attachment available for a later retry',a
 });
 
 test('MP4, MOV, WebM and text files upload using their verified type and actual length',async()=>{
- const h=mediaHarness();const r=await h.lib.uploadCarListingMedia('listing',[{uri:'mp4',name:'walkaround.mp4'},{uri:'mov',name:'walkaround.mov',mimeType:'video/quicktime'},{uri:'webm',name:'engine.webm'},{uri:'txt',name:'details.txt'}],()=>{});
- assert.equal(r.uploaded+r.skipped,4);
- const reserved=h.calls.filter(c=>c.p_action==='reserve');assert.deepEqual(reserved.map(c=>c.p_metadata.mime_type),['video/mp4','video/quicktime','video/webm','text/plain']);
+ const h=mediaHarness({nativeCrypto:true});const r=await h.lib.uploadCarListingMedia('listing',[{uri:'mp4',name:'walkaround.mp4'},{uri:'mov',name:'walkaround.mov',mimeType:'video/quicktime'},{uri:'webm',name:'engine.webm'},{uri:'txt',name:'details.txt'},{uri:'pdf',name:'sale.pdf'}],()=>{});
+ assert.equal(r.uploaded+r.skipped,5);assert.equal(r.failed.length,0);
+ const reserved=h.calls.filter(c=>c.p_action==='reserve');assert.deepEqual(reserved.map(c=>c.p_metadata.mime_type),['video/mp4','video/quicktime','video/webm','text/plain','application/pdf']);
 });
