@@ -310,3 +310,34 @@ test('separately approved complimentary double access is prospective, secure and
     await assert.rejects(db.exec(migration),/rewards_bonus_schema_mismatch/);await db.exec('rollback');
   });
 });
+
+test('actual worker role can lock policy and earn without permission to edit financial policy',async()=>{
+  const c=await customer();
+  await db.exec('set role service_role');
+  await assert.rejects(apply(c,901,100000,[fact(901)]),/permission denied for table rewards_bonus_policy/);
+  await db.exec('reset role');
+  const repair=await readFile(new URL('../migrations/20261104032435_rewards_policy_row_lock_permission.sql',import.meta.url),'utf8');
+  const before=(await db.query('select to_jsonb(p) p from private.rewards_bonus_policy p')).rows;
+  await db.exec(repair);await db.exec(repair);
+  assert.deepEqual((await db.query('select to_jsonb(p) p from private.rewards_bonus_policy p')).rows,before);
+  const protectedColumns=(await db.query(`select attname from pg_attribute where attrelid='private.rewards_bonus_policy'::regclass
+    and attnum>0 and not attisdropped and attname<>'singleton'`)).rows;
+  for(const {attname} of protectedColumns){
+    assert.equal((await db.query("select has_column_privilege('service_role','private.rewards_bonus_policy',$1,'UPDATE') allowed",[attname])).rows[0].allowed,false);
+  }
+  await db.exec('set role service_role');
+  const first=await apply(c,901,100000,[fact(901)]);assert.equal(first.standard_points,1000);assert.equal(first.bonus_points,0);
+  await apply(c,901,100000,[fact(901)]);assert.equal(await balance(c),1000);
+  await assert.rejects(db.exec('update private.rewards_bonus_policy set enabled=false'),/permission denied/);
+  await assert.rejects(db.exec('update private.rewards_bonus_policy set activated_at=null'),/permission denied/);
+  await assert.rejects(db.exec('update private.rewards_bonus_policy set singleton=false'),/check constraint/);
+  await db.exec('reset role');
+  const paid=await customer();await period(paid);
+  await db.exec('set role service_role');
+  assert.equal((await apply(paid,902,100000,[fact(902)])).total_points,2000);
+  await apply(paid,902,100000,[fact(902)]);assert.equal(await balance(paid),2000);
+  await apply(paid,902,50000,[fact(902)],2);assert.equal(await balance(paid),1000);
+  await apply(paid,902,50000,[fact(902)],2);assert.equal(await balance(paid),1000);
+  await db.exec('reset role');
+  assert.deepEqual((await db.query('select to_jsonb(p) p from private.rewards_bonus_policy p')).rows,before);
+});
