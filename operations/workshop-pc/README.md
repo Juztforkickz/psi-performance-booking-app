@@ -22,6 +22,14 @@ The watcher supervises the uploader continuously. A temporary connection or serv
 
 If Supabase temporarily rate-limits a new email, the uploader accepts a recent unused email code instead. Otherwise, wait at least 60 seconds before requesting another. Projects using Supabase's built-in email sender can share a much lower project-wide email allowance; production should use PSI's configured SMTP provider.
 
+## Registration before a booking
+
+The watcher also prepares a customer folder once an active app registration has a completed first name, last name, email and mobile number. An invitation placeholder or incomplete registration does not create a folder. A customer without a vehicle gets their customer folder first. Each active vehicle added to the account gets its existing canonical vehicle folder and six category folders, even without a booking.
+
+This preparation uses the existing protected staff session and verified customer, vehicle and project IDs. It creates no booking, workshop job, invoice, invitation or payment. Matching names and registrations never merge different customers. Existing files and receipts remain intact.
+
+Until a real workshop job exists, these vehicle folders wait locally. Files placed there are preserved and are neither uploaded nor reported as failed uploads. A later confirmed booking, verified manual job or downloaded job manifest reuses the same folder and activates the existing visit attribution and upload checks. Parts sales alone still create no workshop job. The usual 30 second watcher scan picks up completed registrations once the updated desktop uploader is installed and signed in.
+
 ## Each workshop job
 
 1. Confirm the app booking. The protected backend automatically creates its workshop job and exact Xero reference.

@@ -337,6 +337,7 @@ def _customer_marker(manifest):
     return {
         'schema': 1,
         'owner_type': 'app' if key == 'customer_id' else 'workshop',
+        'project_ref': manifest.get('project_ref'),
         key: value,
         'customer_name': manifest.get('customer_name'),
     }
@@ -344,7 +345,7 @@ def _customer_marker(manifest):
 
 def _read_customer_marker(folder):
     marker_path = folder / CUSTOMER_FOLDER_MARKER
-    if folder.is_symlink() or not folder.is_dir() or not marker_path.is_file():
+    if folder.is_symlink() or marker_path.is_symlink() or not folder.is_dir() or not marker_path.is_file():
         return None
     try:
         return json.loads(marker_path.read_text(encoding='utf-8-sig'))
@@ -369,7 +370,10 @@ def _customer_folder_for(root, manifest, existing_folder=None, existing_manifest
     expected_marker = _customer_marker(manifest)
     matches = []
     for candidate in root.iterdir():
-        if _marker_matches(_read_customer_marker(candidate), identity):
+        marker = _read_customer_marker(candidate)
+        if _marker_matches(marker, identity):
+            if marker.get('project_ref') not in (None, manifest.get('project_ref')):
+                raise ValueError('Customer folder belongs to a different PSI environment')
             matches.append(candidate)
     if len(matches) > 1:
         raise ValueError('More than one local customer folder has the same PSI identity')
@@ -1093,6 +1097,7 @@ def _flatten_vehicle_workspace(root, workspace, incoming, connection, allow_repa
     migrate_category_folders(workspace)
     consolidate_photo_folders(workspace)
     marker['pending_merge'] = False
+    marker.pop('awaiting_job', None)
     atomic_json(workspace / VEHICLE_WORKSPACE_MARKER, marker)
     hide_windows_folder(workspace / VEHICLE_WORKSPACE_MARKER)
 
@@ -1157,6 +1162,60 @@ def manifest_from_job(connection, job, vehicle=None, customer_name=None):
     raise ValueError('The workshop job has no valid owner mode')
 
 
+def sync_registered_profile_folders(root, connection, customers, vehicles):
+    """Prepare completed app profiles without inventing a job or upload authority."""
+    project_ref = urllib.parse.urlparse(connection.url).hostname.split('.')[0]
+    prepared, errors = [], []
+    vehicles_by_customer = {}
+    for vehicle in vehicles:
+        if not vehicle.get('archived_at'):
+            vehicles_by_customer.setdefault(vehicle.get('customer_id'), []).append(vehicle)
+    for customer in customers:
+        check_pause(connection)
+        # Invitations create placeholder profiles too. Wait for the customer's
+        # own completed name/contact details instead of creating invite folders.
+        if customer.get('account_state', 'active') != 'active' or not all(
+            str(customer.get(field) or '').strip()
+            for field in ('first_name', 'last_name', 'email', 'mobile')
+        ):
+            continue
+        try:
+            customer_id = str(uuid.UUID(customer['user_id']))
+            identity = {
+                'schema': 1, 'project_ref': project_ref, 'customer_id': customer_id,
+                'customer_name': ' '.join((customer['first_name'].strip(), customer['last_name'].strip())),
+            }
+            customer_folder = _customer_folder_for(root, identity)
+            prepared.append(customer_folder)
+            for vehicle in vehicles_by_customer.get(customer_id, []):
+                check_pause(connection)
+                vehicle_id = str(uuid.UUID(vehicle['id']))
+                if not str(vehicle.get('registration') or '').strip():
+                    raise ValueError('Registered vehicle has no registration; PSI review required')
+                profile = {
+                    **identity, 'vehicle_id': vehicle_id, 'registration': vehicle['registration'],
+                    'vehicle_year': vehicle.get('year'), 'vehicle_make': vehicle.get('make'),
+                    'vehicle_model': vehicle.get('model'),
+                }
+                workspace = _vehicle_workspace_for(root, customer_folder, profile)
+                # Legacy visits still go through the existing recovery path.
+                # Never label an established job workspace as an empty profile.
+                if not (workspace / 'psi-job.json').exists() and not (workspace / 'Jobs').exists():
+                    marker = _read_vehicle_workspace(workspace)
+                    if not marker.get('awaiting_job'):
+                        marker['awaiting_job'] = True
+                        atomic_json(workspace / VEHICLE_WORKSPACE_MARKER, marker)
+                    for category in CATEGORIES:
+                        directory = workspace / category
+                        if directory.is_symlink():
+                            raise ValueError('Upload categories must not use symlinks')
+                        directory.mkdir(exist_ok=True)
+                prepared.append(workspace)
+        except (ValueError, KeyError, OSError) as error:
+            errors.append(f'Registered customer {customer.get("user_id", "unknown")}: {error}')
+    return prepared, errors
+
+
 def sync_job_folders(root, connection, days_back=30):
     """Create local folders for recent/future confirmed and manual workshop jobs."""
     earliest = (date.today() - timedelta(days=days_back)).isoformat()
@@ -1171,7 +1230,7 @@ def sync_job_folders(root, connection, days_back=30):
     )
     workshop_vehicles_by_id = {vehicle['id']: vehicle for vehicle in workshop_vehicles}
     customers = connection.call(
-        '/rest/v1/customer_profiles?select=user_id,first_name,last_name,email&account_state=eq.active&limit=2000'
+        '/rest/v1/customer_profiles?select=user_id,first_name,last_name,email,mobile,account_state&account_state=eq.active&limit=2000'
     )
     customer_names = {
         customer['user_id']: ' '.join(filter(None, (customer.get('first_name'), customer.get('last_name')))).strip() or customer.get('email')
@@ -1199,6 +1258,12 @@ def sync_job_folders(root, connection, days_back=30):
             created.append(folder)
         except Exception as error:
             errors.append(f'{job.get("reference", "Unknown job")}: {error}')
+    # Process verified account claims and existing jobs first, so registration
+    # reuses their canonical folders rather than creating another hierarchy.
+    connection.registered_profile_folders, profile_errors = sync_registered_profile_folders(
+        root, connection, customers, vehicles
+    )
+    errors.extend(profile_errors)
     update_duplicate_review(root, live_jobs, errors)
     return created, errors
 
@@ -1262,9 +1327,19 @@ def local_folder_scan(root):
                     jobs.append(child)
                 if (child / VEHICLE_WORKSPACE_MARKER).is_file():
                     try:
-                        _read_vehicle_workspace(child)
+                        marker = _read_vehicle_workspace(child)
                         visits = child / 'Jobs'
                         if has_primary and not visits.exists():
+                            continue
+                        if marker.get('awaiting_job') and not has_primary and not visits.exists():
+                            owner = _read_customer_marker(top)
+                            expected_identity = [owner.get('project_ref'), 'customer_id', owner.get('customer_id')]
+                            if (owner.get('owner_type') != 'app'
+                                    or marker.get('identity', [])[:3] != expected_identity
+                                    or len(marker.get('identity', [])) != 4):
+                                raise ValueError('Registered vehicle profile ownership does not match')
+                            # Local files remain untouched until a real verified
+                            # workshop job can supply their visit attribution.
                             continue
                         if visits.is_symlink() or not visits.is_dir():
                             raise ValueError('Invalid vehicle Jobs directory')
