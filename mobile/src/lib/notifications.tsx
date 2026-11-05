@@ -18,6 +18,7 @@ import { AppState, Platform } from 'react-native';
 import { useCustomerAuth } from '@/lib/customer-auth-context';
 import type { NotificationEventRow, NotificationPreferenceRow } from '@/lib/database.types';
 import { createNotificationRequestScope, createNotificationResponseTracker } from '@/lib/notification-lifecycle';
+import { shouldAutomaticallyRegisterPush, shouldRequestInitialPushPermission } from '@/lib/notification-defaults';
 import { isWorkshopNotification, pushNotificationHref } from '@/lib/notification-navigation';
 import { ASK_PSI_DEVICE_QA, isAskPsiPush, notificationWorkerName } from '@/lib/ask-psi-device-qa';
 import { getSupabaseClient, SUPABASE_CONNECTION } from '@/lib/supabase';
@@ -130,6 +131,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   const [snapshot, setSnapshot] = useState<{ scope: ReturnType<typeof createNotificationRequestScope> | null; events: NotificationEventRow[]; preferences: NotificationPreferenceRow | null }>({ scope: null, events: [], preferences: null });
   const [pushSnapshot, setPushSnapshot] = useState<{ scope: ReturnType<typeof createNotificationRequestScope> | null; status: PushStatus }>({ scope: null, status: 'not_enabled' });
   const scope = useMemo(() => ({ userId, data: createNotificationRequestScope(), push: createNotificationRequestScope() }), [userId]);
+  const pushChoiceStorageKey = `${PUSH_ENABLED_STORAGE_KEY}.${userId ?? 'signed-out'}`;
   const manualPushOperations = useRef(0);
   const automaticPushSync = useRef<Promise<void> | null>(null);
   const responseTracker = useMemo(() => createNotificationResponseTracker(), []);
@@ -183,12 +185,13 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       syncing = true;
       const isCurrent = scope.push.begin();
       try {
-        const [enabled, storedToken] = await Promise.all([
+        const [accountChoice, enabled, storedToken] = await Promise.all([
+          SecureStore.getItemAsync(pushChoiceStorageKey),
           SecureStore.getItemAsync(PUSH_ENABLED_STORAGE_KEY),
           SecureStore.getItemAsync(PUSH_TOKEN_STORAGE_KEY),
         ]);
         if (!active || !isCurrent()) return;
-        if (enabled !== 'true' && !storedToken) {
+        if (!shouldAutomaticallyRegisterPush(accountChoice, !REVIEW_ENVIRONMENT.enabled, enabled, storedToken)) {
           setPushStatus('not_enabled');
           return;
         }
@@ -197,7 +200,11 @@ export function NotificationProvider({ children }: PropsWithChildren) {
           return;
         }
         await ensureAndroidNotificationChannels();
-        const permission = await Notifications.getPermissionsAsync();
+        const existingPermission = await Notifications.getPermissionsAsync();
+        if (!active || !isCurrent()) return;
+        const permission = !REVIEW_ENVIRONMENT.enabled && shouldRequestInitialPushPermission(existingPermission.status, existingPermission.canAskAgain)
+          ? await Notifications.requestPermissionsAsync({ ios: { allowAlert: true, allowBadge: true, allowSound: true } })
+          : existingPermission;
         if (!active || !isCurrent()) return;
         const permissionState = pushPermissionStatus(permission);
         if (permission.status !== 'granted') {
@@ -229,7 +236,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       }
     };
     const startSync = () => {
-      if (syncing || manualPushOperations.current > 0 || !active) return;
+      if (syncing || manualPushOperations.current > 0 || !active || AppState.currentState !== 'active') return;
       const task = syncRegistration();
       automaticPushSync.current = task;
       void task.finally(() => { if (automaticPushSync.current === task) automaticPushSync.current = null; });
@@ -239,7 +246,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       if (state === 'active') startSync();
     });
     return () => { active = false; subscription.remove(); };
-  }, [auth.sessionRevision, reviewPushBlocked, scope, setPushStatus, userId]);
+  }, [auth.sessionRevision, pushChoiceStorageKey, reviewPushBlocked, scope, setPushStatus, userId]);
 
   useEffect(() => {
     if (reviewPushBlocked || Platform.OS === 'web' || !userId) return;
@@ -312,6 +319,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       if (error) throw error;
       registeredToken = token;
       await Promise.all([
+        SecureStore.setItemAsync(pushChoiceStorageKey, 'true'),
         SecureStore.setItemAsync(PUSH_ENABLED_STORAGE_KEY, 'true'),
         SecureStore.setItemAsync(PUSH_TOKEN_STORAGE_KEY, token),
       ]);
@@ -327,7 +335,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     } finally {
       manualPushOperations.current -= 1;
     }
-  }, [reviewPushBlocked, scope, setPushStatus, userId]);
+  }, [pushChoiceStorageKey, reviewPushBlocked, scope, setPushStatus, userId]);
 
   const disablePush = useCallback(async () => {
     if (reviewPushBlocked) return;
@@ -352,7 +360,8 @@ export function NotificationProvider({ children }: PropsWithChildren) {
         if (error) throw error;
       }
       await Promise.all([
-        SecureStore.deleteItemAsync(PUSH_ENABLED_STORAGE_KEY),
+        SecureStore.setItemAsync(pushChoiceStorageKey, 'false'),
+        SecureStore.setItemAsync(PUSH_ENABLED_STORAGE_KEY, 'false'),
         SecureStore.deleteItemAsync(PUSH_TOKEN_STORAGE_KEY),
       ]);
       registeredToken = '';
@@ -361,7 +370,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     } finally {
       manualPushOperations.current -= 1;
     }
-  }, [reviewPushBlocked, scope, setPushStatus, userId]);
+  }, [pushChoiceStorageKey, reviewPushBlocked, scope, setPushStatus, userId]);
 
   const setPreference = useCallback(async (key: PreferenceKey, value: boolean) => {
     if (!userId || !scope.data.isActive()) throw new Error('SIGN_IN_REQUIRED');
@@ -466,3 +475,4 @@ export async function unregisterCurrentPushDevice() {
     registeredToken = '';
   }
 }
+
