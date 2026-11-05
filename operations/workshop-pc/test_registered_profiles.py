@@ -83,6 +83,39 @@ class RegisteredProfileTests(unittest.TestCase):
         self.assertEqual(second[0], first[0])
         self.assertEqual(len([p for p in self.root.iterdir() if p.is_dir()]), 1)
 
+    def test_second_vehicle_added_later_keeps_one_customer_and_two_separate_vehicle_folders(self):
+        first, errors = self.sync()
+        self.assertEqual(errors, [])
+        photo = first[1] / 'Workshop photos' / 'original.jpg'
+        photo.write_bytes(b'original-first-vehicle-content')
+        other = {**self.vehicle, 'id': '00000000-0000-4000-8000-000000000021',
+                 'registration': 'TEST456', 'make': 'Ford', 'model': 'Falcon'}
+        prepared, errors = self.sync(vehicles=[self.vehicle, other])
+        self.assertEqual(errors, [])
+        self.assertEqual(prepared[0], first[0])
+        self.assertEqual(prepared[1], first[1])
+        self.assertEqual(prepared[2].parent, first[0])
+        self.assertNotEqual(prepared[1], prepared[2])
+        self.assertEqual(len([p for p in self.root.iterdir() if p.is_dir()]), 1)
+        for workspace in prepared[1:]:
+            self.assertEqual(set(p.name for p in workspace.iterdir() if p.is_dir()), set(u.CATEGORIES))
+            self.assertFalse((workspace / 'psi-job.json').exists())
+        self.assertEqual(photo.read_bytes(), b'original-first-vehicle-content')
+        self.assertFalse((prepared[2] / 'Workshop photos' / photo.name).exists())
+        before = u.workspace_inventory(self.root)
+        self.assertEqual(self.sync(vehicles=[self.vehicle, other]), (prepared, []))
+        self.assertEqual(u.workspace_inventory(self.root), before)
+        self.assertEqual(u.local_folder_scan(self.root), ([], []))
+
+    def test_completed_profile_sync_reuses_existing_metadata_requests_without_cloud_writes(self):
+        u.sync_job_folders(self.root, self.connection)
+        self.assertEqual(len(self.calls), 5)
+        self.assertTrue(all(method == 'GET' for _, method in self.calls))
+        profile_reads = [path for path, _ in self.calls if path.startswith('/rest/v1/customer_profiles?')]
+        self.assertEqual(len(profile_reads), 1)
+        self.assertIn('mobile,account_state', profile_reads[0])
+        self.assertIn('account_state=eq.active', profile_reads[0])
+
     def test_invite_incomplete_inactive_and_archived_vehicle_are_not_prepared(self):
         for changes in ({'first_name': None}, {'last_name': None}, {'mobile': None}, {'account_state': 'deleted'}):
             with self.subTest(changes=changes):

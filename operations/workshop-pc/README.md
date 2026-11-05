@@ -30,6 +30,8 @@ This preparation uses the existing protected staff session and verified customer
 
 Until a real workshop job exists, these vehicle folders wait locally. Files placed there are preserved and are neither uploaded nor reported as failed uploads. A later confirmed booking, verified manual job or downloaded job manifest reuses the same folder and activates the existing visit attribution and upload checks. Parts sales alone still create no workshop job. The usual 30 second watcher scan picks up completed registrations once the updated desktop uploader is installed and signed in.
 
+This registration preparation reuses the profile and vehicle lists already read by the job scan. Adding a second vehicle creates its own six category folders inside the same verified customer folder, not a second account or customer folder. Workshop releases must retain the gzip JSON transport, verified report batching and lean photo download index alongside this feature. Do not install a lower numbered package to obtain a newer feature or remove these bandwidth safeguards.
+
 ## Each workshop job
 
 1. Confirm the app booking. The protected backend automatically creates its workshop job and exact Xero reference.
