@@ -1195,8 +1195,12 @@ def sync_registered_profile_folders(root, connection, customers, vehicles):
             }
             customer_folder = _customer_folder_for(root, identity)
             prepared.append(customer_folder)
-            for vehicle in vehicles_by_customer.get(customer_id, []):
-                check_pause(connection)
+        except (ValueError, KeyError, OSError) as error:
+            errors.append(f'Registered customer {customer.get("user_id", "unknown")}: {error}')
+            continue
+        for vehicle in vehicles_by_customer.get(customer_id, []):
+            check_pause(connection)
+            try:
                 vehicle_id = str(uuid.UUID(vehicle['id']))
                 if not str(vehicle.get('registration') or '').strip():
                     raise ValueError('Registered vehicle has no registration; PSI review required')
@@ -1219,8 +1223,10 @@ def sync_registered_profile_folders(root, connection, customers, vehicles):
                             raise ValueError('Upload categories must not use symlinks')
                         directory.mkdir(exist_ok=True)
                 prepared.append(workspace)
-        except (ValueError, KeyError, OSError) as error:
-            errors.append(f'Registered customer {customer.get("user_id", "unknown")}: {error}')
+            except (ValueError, KeyError, OSError) as error:
+                # One conflicting car must not prevent another verified car
+                # on this account from getting its own safe workspace.
+                errors.append(f'Registered vehicle {vehicle.get("id", "unknown")}: {error}')
     return prepared, errors
 
 

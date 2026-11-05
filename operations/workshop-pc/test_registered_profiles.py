@@ -116,6 +116,21 @@ class RegisteredProfileTests(unittest.TestCase):
         self.assertIn('mobile,account_state', profile_reads[0])
         self.assertIn('account_state=eq.active', profile_reads[0])
 
+    def test_conflicting_vehicle_does_not_block_a_second_vehicle_or_overwrite_the_first(self):
+        first, _ = self.sync()
+        before = u.workspace_inventory(first[1])
+        changed = {**self.vehicle, 'model': 'Different verified model requiring review'}
+        second = {**self.vehicle, 'id': '00000000-0000-4000-8000-000000000021', 'registration': 'TEST456'}
+        prepared, errors = self.sync(vehicles=[changed, second])
+        self.assertEqual(len(errors), 1)
+        self.assertIn('Registered vehicle ' + self.vehicle['id'], errors[0])
+        self.assertIn('details conflict', errors[0])
+        self.assertEqual(u.workspace_inventory(first[1]), before)
+        self.assertEqual(len(prepared), 2)
+        self.assertEqual(prepared[1].parent, first[0])
+        self.assertIn('TEST456', prepared[1].name)
+        self.assertEqual(u.local_folder_scan(self.root), ([], []))
+
     def test_invite_incomplete_inactive_and_archived_vehicle_are_not_prepared(self):
         for changes in ({'first_name': None}, {'last_name': None}, {'mobile': None}, {'account_state': 'deleted'}):
             with self.subTest(changes=changes):
