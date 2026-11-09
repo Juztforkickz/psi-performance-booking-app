@@ -94,18 +94,6 @@ const PARTNERS: readonly TrustedPartner[] = [
     instagramUrl: 'https://www.instagram.com/eyecandymotorsports/',
   },
   {
-    id: 'luxe-interiors',
-    category: 'Upholstery & Interior Work',
-    businessName: 'Luxe Automotive Interiors',
-    summary: 'Custom automotive upholstery, trims, roof liners, interior blackouts and carpets.',
-    address: '4/20 Colemans Road, Carrum Downs VIC 3201',
-    phoneDisplay: '0428 674 081',
-    phoneUrl: 'tel:+61428674081',
-    email: 'luxeautomotiveinteriors@outlook.com',
-    emailUrl: 'mailto:luxeautomotiveinteriors@outlook.com',
-    instagramUrl: 'https://www.instagram.com/luxeautomotiveinteriors_/',
-  },
-  {
     id: 'trb-visuals',
     category: 'Automotive Photography',
     businessName: 'TRB Visuals Photography',

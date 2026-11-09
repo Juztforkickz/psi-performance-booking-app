@@ -22,7 +22,7 @@ test('Home shortcuts expose every tile and persist only a device-local identifie
   assert.doesNotMatch(preferences, /fetch|EXPO_PUBLIC_API_BASE_URL|booking draft|vehicleId/iu);
 });
 
-test('Trusted Partners is a public referral directory with ten approved shortest-first categories', async () => {
+test('Trusted Partners is a public referral directory with nine approved shortest-first categories', async () => {
   const [partners, screen] = await Promise.all([
     read('../mobile/src/lib/trusted-partners.ts'),
     read('../mobile/src/app/trusted-partners.tsx'),
@@ -37,11 +37,10 @@ test('Trusted Partners is a public referral directory with ten approved shortest
     'Towing & Transport',
     'Vinyl Wrapping & PPF',
     'Automotive Photography',
-    'Upholstery & Interior Work',
     'Performance Fluids & Lubricants',
   ];
   for (const category of categories) assert.match(partners, new RegExp(`category: '${category}'`, 'u'));
-  assert.equal((partners.match(/id: '/gu) ?? []).length, 10);
+  assert.equal((partners.match(/id: '/gu) ?? []).length, 9);
   assert.doesNotMatch(partners, /raceline|Motorsport Apparel/iu);
   assert.doesNotMatch(`${partners}\n${screen}`, /race-wires|Race Wires Auto Electrics|racewires@live\.com/iu);
   assert.doesNotMatch(`${partners}\n${screen}`, /elite-detailing|Elite Car Detailing Studio|elitemcd\.com\.au/iu);
@@ -49,8 +48,8 @@ test('Trusted Partners is a public referral directory with ten approved shortest
   assert.match(partners, /id: 'dark-side-film',[\s\S]*phoneDisplay: '0426 246 001',[\s\S]*email: 'info@darksideofthefilm\.com\.au',[\s\S]*emailUrl: 'mailto:info@darksideofthefilm\.com\.au'/u);
   assert.match(partners, /id: 'eye-candy',[\s\S]*phoneDisplay: '0414 544 317',[\s\S]*email: 'info@eyecandymotorsports\.com\.au',[\s\S]*emailUrl: 'mailto:info@eyecandymotorsports\.com\.au'/u);
   assert.match(partners, /id: 'eye-candy',[\s\S]*instagramUrl: 'https:\/\/www\.instagram\.com\/eyecandymotorsports\/'/u);
-  assert.match(partners, /id: 'luxe-interiors',[\s\S]*email: 'luxeautomotiveinteriors@outlook\.com',[\s\S]*emailUrl: 'mailto:luxeautomotiveinteriors@outlook\.com',[\s\S]*instagramUrl: 'https:\/\/www\.instagram\.com\/luxeautomotiveinteriors_\/'/u);
-  assert.doesNotMatch(partners, /eyecandymotorsportsmelbourne|instagram\.com\/luxeautomotiveinteriors\//u);
+  assert.doesNotMatch(`${partners}\n${screen}`, /luxe-interiors|Luxe Automotive Interiors|luxeautomotiveinteriors/iu);
+  assert.doesNotMatch(partners, /eyecandymotorsportsmelbourne/u);
   assert.match(partners, /id: 'trb-visuals',[\s\S]*phoneDisplay: '0493 530 347',[\s\S]*email: 'trbvisualsphotography@gmail\.com'/u);
   assert.match(partners, /id: 'martini-racing-products',[\s\S]*phoneDisplay: '03 9763 0977',[\s\S]*email: 'sales@martiniracing\.com\.au'/u);
   assert.match(partners, /id: 'fab-car-audio',[\s\S]*phoneDisplay: '0423 522 124',[\s\S]*email: 'sales@fabcaraudio\.com\.au'/u);
@@ -73,7 +72,7 @@ test('Every trusted partner action uses a valid destination', async () => {
   const partners = await read('../mobile/src/lib/trusted-partners.ts');
   const partnerBlocks = partners.split(/\n  \{\n/u).slice(1);
 
-  assert.equal(partnerBlocks.length, 10);
+  assert.equal(partnerBlocks.length, 9);
   for (const block of partnerBlocks) {
     const email = block.match(/email: '([^']+)'/u)?.[1];
     const emailUrl = block.match(/emailUrl: '([^']+)'/u)?.[1];
