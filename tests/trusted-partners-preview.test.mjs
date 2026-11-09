@@ -70,7 +70,7 @@ test('Trusted Partners is a public referral directory with nine approved shortes
 
 test('Every trusted partner action uses a valid destination', async () => {
   const partners = await read('../mobile/src/lib/trusted-partners.ts');
-  const partnerBlocks = partners.split(/\n  \{\n/u).slice(1);
+  const partnerBlocks = partners.split(/\r?\n  \{\r?\n/u).slice(1);
 
   assert.equal(partnerBlocks.length, 9);
   for (const block of partnerBlocks) {
