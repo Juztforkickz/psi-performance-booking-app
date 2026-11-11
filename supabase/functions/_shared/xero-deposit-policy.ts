@@ -1,3 +1,5 @@
+import { uuid } from "./xero-runtime.ts";
+
 export const depositScopes = [
   "accounting.payments",
   "accounting.banktransactions",
@@ -45,6 +47,7 @@ export function verifyStripeDeposit(
     intent.metadata?.payment_attempt_id !== attempt.id ||
     intent.metadata?.booking_request_id !== attempt.booking_request_id ||
     charge?.paid !== true || charge?.disputed ||
+    !Number.isSafeInteger(charge.created) || charge.created <= 0 ||
     charge?.amount_refunded !== 0 ||
     charge?.currency !== "aud" || charge?.amount !== attempt.amount_cents ||
     balance?.currency !== "aud" || balance?.amount !== attempt.amount_cents ||
@@ -59,13 +62,28 @@ export function verifyStripeDeposit(
     fee: balance.fee as number,
     net: balance.net as number,
     paidDate: new Date(charge.created * 1000).toLocaleDateString("en-CA", {
-      timeZone: "Australia/Sydney",
+      timeZone: "Australia/Melbourne",
     }),
   };
 }
 // An expired provider idempotency key is never a reason to repeat an uncertain write.
 export function allowFinancialWrite(intent: unknown) {
   if (intent) throw new Error("uncertain_previous_write_requires_review");
+}
+
+export function verifyBookingPrepaymentBankEntry(
+  bank: Record<string, any>, bankAccountId: string, contactId: string, amount: number, providerPaymentId: string,
+) {
+  const exactReference = bank.Reference === `PSI app deposit ${providerPaymentId}`;
+  const existingDescription = bank.LineItems?.some((item: Record<string, any>) =>
+    typeof item.Description === "string" && item.Description.includes(`Stripe ${providerPaymentId}`));
+  if (!uuid(bank.BankTransactionID) || !uuid(bank.PrepaymentID) || bank.HasValidationErrors ||
+    bank.Type !== "RECEIVE-PREPAYMENT" || bank.Contact?.ContactID !== contactId ||
+    bank.BankAccount?.AccountID !== bankAccountId || bank.CurrencyCode !== "AUD" ||
+    !["AUTHORISED", "PAID"].includes(bank.Status) || cents(bank.Total) !== amount ||
+    !(exactReference || existingDescription)) {
+    throw new Error("prepayment_bank_entry_requires_review");
+  }
 }
 
 export function verifyBookingPrepayment(prepayment: Record<string, any>, id:string, contactId:string, amount:number) {

@@ -17,17 +17,22 @@ the existing verified invoice importer. Duplicate protection may retain a
 previously published workshop PC PDF, which is linked through the durable Xero
 import identity rather than creating a second invoice record.
 
-Payments wait in the queue until the exact booking invoice is published and
-verified. This release does not create Xero prepayments before an invoice exists.
-The app's paid booking status remains the source of deposit acknowledgement while
-waiting. Processing runs every five minutes, one booking per invocation.
+New verified Stripe deposits are posted as Xero prepayments when their final
+invoice is not yet available. The worker uses the existing Xero contact link or
+a unique active Xero contact with the customer's confirmed email. Deposits
+without a verified match wait until a matching contact is available. Advance
+credits use the existing workshop bank account and PSI Income with GST on Income,
+as used for earlier booking prepayments. Processing runs every five minutes, one
+booking per invocation.
 
-An existing advance credit can now be mapped after individual review. The worker
-verifies its bank transaction, Stripe reference, Xero prepayment identity, customer,
+The worker stores the verified prepayment against its exact booking payment. It
+verifies the bank transaction, Stripe reference, prepayment identity, customer,
 currency and full amount. Once the exact booking invoice is verified, it allocates
-that credit instead of recording another cash receipt. Existing full allocations
-to that same invoice are reused. Partial allocations, refunds and allocations to
-another invoice require review. No new advance credits are created by the worker.
+the credit to reduce the balance due. Existing allocations to that same invoice
+are reused. Partial allocations, refunds and allocations to another invoice
+require review. Older deposits retain their existing handling unless individually
+reviewed. If the final invoice is already available when a new deposit is first
+processed, the worker can apply the payment directly.
 
 Existing exact provider references are checked before writes. A persistent write
 intent is saved before calling Xero. An uncertain write cannot be retried without

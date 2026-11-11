@@ -19,6 +19,7 @@ import {
   selectBookingInvoice,
   verifyDepositInvoice,
   verifyBookingPrepayment,
+  verifyBookingPrepaymentBankEntry,
   verifyStripeDeposit,
 } from "../_shared/xero-deposit-policy.ts";
 import { xeroInvoiceDate } from '../_shared/xero-invoice-date.ts';
@@ -28,6 +29,7 @@ type Row = Record<string, any>;
 const PSI = {
   tenant: "e0ed54cc-662b-4e45-9fdd-7de6b2d333cf",
   bank: "7394dff2-8bec-4937-8c53-c8b86a50fbd5",
+  income: "200",
   fees: "514",
   stripe: "7775d1d0-8593-4f87-855b-a35765300c11",
 };
@@ -127,6 +129,7 @@ async function verifyAccounts(api: Xero) {
   const result = await api("Accounts");
   const bank = result.Accounts?.find((a: Row) => a.AccountID === PSI.bank);
   const fee = result.Accounts?.find((a: Row) => a.Code === PSI.fees);
+  const income = result.Accounts?.find((a: Row) => a.Code === PSI.income);
   if (
     bank?.Type !== "BANK" || bank.Status !== "ACTIVE" ||
     bank.CurrencyCode !== "AUD" ||
@@ -139,6 +142,8 @@ async function verifyAccounts(api: Xero) {
     supplier.Contacts[0].ContactStatus !== "ACTIVE" ||
     supplier.Contacts[0].Name !== "Stripe"
   ) throw new Error("stripe_contact_requires_review");
+  return income?.Status === "ACTIVE" && income.Type === "REVENUE" &&
+    income.TaxType === "OUTPUT";
 }
 async function save(admin: SupabaseClient, row: Row, values: Row) {
   const result = await admin.from("booking_xero_deposit_sync").update({
@@ -192,14 +197,10 @@ async function storedPrepayment(admin:SupabaseClient,api:Xero,row:Row,attempt:Ro
   if (!uuid(row.prepayment_bank_transaction_id) || !uuid(row.prepayment_contact_id) || row.payment_id) throw new Error('prepayment_mapping_requires_review');
   const response = await api(`BankTransactions/${row.prepayment_bank_transaction_id}`);
   const bank = response.BankTransactions?.[0];
-  if (response.BankTransactions?.length!==1 || bank.BankTransactionID!==row.prepayment_bank_transaction_id
-    || bank.Type!=='RECEIVE-PREPAYMENT' || bank.BankAccount?.AccountID!==PSI.bank
-    || bank.Contact?.ContactID!==row.prepayment_contact_id || bank.CurrencyCode!=='AUD'
-    || bank.Status!=='AUTHORISED' || cents(bank.Total)!==attempt.amount_cents || !uuid(bank.PrepaymentID)
-    || !(bank.Reference===`PSI app deposit ${attempt.provider_payment_id}`
-      || bank.LineItems?.some((item:Row)=>typeof item.Description==='string' && item.Description.includes(`Stripe ${attempt.provider_payment_id}`)))) {
+  if (response.BankTransactions?.length !== 1 || bank.BankTransactionID !== row.prepayment_bank_transaction_id) {
     throw new Error('prepayment_bank_entry_requires_review');
   }
+  verifyBookingPrepaymentBankEntry(bank, PSI.bank, row.prepayment_contact_id, attempt.amount_cents, attempt.provider_payment_id);
   if (row.prepayment_id && row.prepayment_id!==bank.PrepaymentID) throw new Error('prepayment_mapping_requires_review');
   const detail = await api(`Prepayments/${bank.PrepaymentID}`);
   if (detail.Prepayments?.length!==1) throw new Error('prepayment_identity_requires_review');
@@ -207,7 +208,137 @@ async function storedPrepayment(admin:SupabaseClient,api:Xero,row:Row,attempt:Ro
   await save(admin,row,{prepayment_id:bank.PrepaymentID});
   return detail.Prepayments[0];
 }
-async function processDeposit(admin: SupabaseClient, api: Xero, row: Row) {
+
+async function prepaymentContact(admin: SupabaseClient, api: Xero, customerId: string) {
+  const { data, error } = await admin.rpc("booking_xero_prepayment_customer", {
+    p_tenant_id: PSI.tenant,
+    p_customer_id: customerId,
+  });
+  if (error || !data || !Array.isArray(data.contact_ids)) {
+    throw new Error("prepayment_contact_lookup_failed");
+  }
+  if (data.contact_ids.length > 1) throw new Error("prepayment_contact_requires_review");
+  const linked = data.contact_ids[0];
+  const email = data.verified_email;
+  if (!linked && (typeof email !== "string" || !email.includes("@"))) return null;
+  if (linked && !uuid(linked)) throw new Error("prepayment_contact_requires_review");
+  const result = await api(linked ? `Contacts/${linked}` :
+    `Contacts?searchTerm=${encodeURIComponent(email)}&includeArchived=true&page=1`);
+  if (!Array.isArray(result.Contacts) || result.Contacts.length >= 100) {
+    throw new Error("prepayment_contact_requires_review");
+  }
+  const matches = result.Contacts.filter((contact: Row) => linked
+    ? contact.ContactID === linked
+    : String(contact.EmailAddress ?? "").trim().toLowerCase() === email);
+  if (matches.length === 0 && !linked) return null;
+  if (matches.length !== 1 || !uuid(matches[0].ContactID) || matches[0].ContactStatus !== "ACTIVE") {
+    throw new Error("prepayment_contact_requires_review");
+  }
+  const contactId = matches[0].ContactID;
+  const existing = await admin.rpc("xero_customer_link_context", {
+    p_tenant_id: PSI.tenant,
+    p_contact_id: contactId,
+  });
+  if (existing.error || (existing.data && existing.data.customer_id !== customerId)) {
+    throw new Error("prepayment_contact_requires_review");
+  }
+  return contactId;
+}
+
+async function findPrepaymentBankEntry(api: Xero, reference: string) {
+  const result = await api(`BankTransactions?where=${encodeURIComponent(`Reference=="${reference}"`)}&page=1`);
+  if (!Array.isArray(result.BankTransactions) || result.BankTransactions.length > 1) {
+    throw new Error("prepayment_bank_entry_requires_review");
+  }
+  const match = result.BankTransactions[0];
+  if (!match) return null;
+  return await readPrepaymentBankEntry(api, match.BankTransactionID, reference);
+}
+
+async function readPrepaymentBankEntry(api: Xero, bankTransactionId: unknown, reference: string) {
+  if (!uuid(bankTransactionId)) throw new Error("prepayment_bank_entry_requires_review");
+  const detail = await api(`BankTransactions/${bankTransactionId}`);
+  const bank = detail.BankTransactions?.[0];
+  if (detail.BankTransactions?.length !== 1 || bank.BankTransactionID !== bankTransactionId || bank.Reference !== reference) {
+    throw new Error("prepayment_bank_entry_requires_review");
+  }
+  return bank;
+}
+
+async function linkPrepayment(admin: SupabaseClient, api: Xero, row: Row, attempt: Row, bank: Row, contactId: string) {
+  verifyBookingPrepaymentBankEntry(bank, PSI.bank, contactId, attempt.amount_cents, attempt.provider_payment_id);
+  const detail = await api(`Prepayments/${bank.PrepaymentID}`);
+  if (detail.Prepayments?.length !== 1) throw new Error("prepayment_identity_requires_review");
+  verifyBookingPrepayment(detail.Prepayments[0], bank.PrepaymentID, contactId, attempt.amount_cents);
+  await save(admin, row, {
+    prepayment_bank_transaction_id: bank.BankTransactionID,
+    prepayment_contact_id: contactId,
+    prepayment_id: bank.PrepaymentID,
+  });
+  return detail.Prepayments[0];
+}
+
+async function createPrepayment(
+  admin: SupabaseClient, api: Xero, row: Row, attempt: Row, paidDate: string, incomeVerified: boolean,
+) {
+  if (!incomeVerified) throw new Error("prepayment_income_account_requires_review");
+  const contactId = await prepaymentContact(admin, api, attempt.customer_id);
+  if (!contactId) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(paidDate)) throw new Error("stripe_deposit_requires_review");
+  const reference = `PSI app deposit ${attempt.provider_payment_id}`;
+  // Preserve a previously posted invoice payment or ambiguous manual prepayment.
+  const payments = await api(`Payments?where=${encodeURIComponent(`Reference=="${reference}"`)}&page=1`);
+  const parts = paidDate.split("-").map(Number);
+  const manual = await api(`Prepayments?where=${encodeURIComponent(
+    `Contact.ContactID==Guid("${contactId}")&&Date>=DateTime(${parts.join(",")})`,
+  )}&page=1`);
+  if (!Array.isArray(payments.Payments) || payments.Payments.length ||
+    !Array.isArray(manual.Prepayments) || manual.Prepayments.length >= 100 ||
+    manual.Prepayments.some((credit: Row) => credit.Type === "RECEIVE-PREPAYMENT" &&
+      credit.CurrencyCode === "AUD" && ["AUTHORISED", "PAID"].includes(credit.Status) &&
+      cents(credit.Total) === attempt.amount_cents)) {
+    throw new Error("possible_manual_deposit_requires_review");
+  }
+  await write(admin, row, "prepayment", async () => {
+    const created = await api("BankTransactions", "PUT", { BankTransactions: [{
+      Type: "RECEIVE-PREPAYMENT",
+      BankAccount: { AccountID: PSI.bank },
+      Contact: { ContactID: contactId },
+      Date: paidDate,
+      Reference: reference,
+      LineAmountTypes: "Inclusive",
+      LineItems: [{
+        Description: `PSI booking deposit. Stripe ${attempt.provider_payment_id}. Booking ${attempt.booking_request_id}.`,
+        Quantity: 1,
+        UnitAmount: attempt.amount_cents / 100,
+        AccountCode: PSI.income,
+        TaxType: "OUTPUT",
+      }],
+    }] }, `psi-deposit-prepayment-${attempt.id}`);
+    const receipt = created.BankTransactions?.[0];
+    if (created.BankTransactions?.length !== 1 || receipt.HasValidationErrors) {
+      throw new Error("prepayment_write_unverified");
+    }
+    const bank = await readPrepaymentBankEntry(api, receipt.BankTransactionID, reference);
+    await linkPrepayment(admin, api, row, attempt, bank, contactId);
+    return bank.BankTransactionID;
+  });
+  return true;
+}
+
+async function waitForInvoice(
+  admin: SupabaseClient, api: Xero, row: Row, attempt: Row, paidDate: string, incomeVerified: boolean,
+) {
+  const needsPrepayment = row.create_prepayment === true && !row.prepayment_id && !row.payment_id;
+  const ready = !needsPrepayment || await createPrepayment(admin, api, row, attempt, paidDate, incomeVerified);
+  await save(admin, row, {
+    status: "waiting_invoice",
+    available_at: new Date(Date.now() + (ready ? 300000 : 3600000)).toISOString(),
+    last_error: ready ? null : "prepayment_waiting_for_verified_xero_contact",
+  });
+}
+
+async function processDeposit(admin: SupabaseClient, api: Xero, row: Row, incomeVerified: boolean) {
   const { data: attempt, error } = await admin.from("booking_payment_attempts")
     .select("*").eq("id", row.payment_attempt_id).single();
   if (
@@ -224,16 +355,23 @@ async function processDeposit(admin: SupabaseClient, api: Xero, row: Row) {
     !booking || booking.customer_id !== attempt.customer_id ||
     !["confirmed", "completed"].includes(booking.state)
   ) throw new Error("booking_identity_requires_review");
-  const prepayment = await storedPrepayment(admin,api,row,attempt);
-  const { data: job } = await admin.from("workshop_jobs").select(
+  let prepayment = await storedPrepayment(admin,api,row,attempt);
+  if (!prepayment && row.create_prepayment === true && !row.payment_id) {
+    const bank = await findPrepaymentBankEntry(api, `PSI app deposit ${attempt.provider_payment_id}`);
+    if (bank) {
+      const contactId = await prepaymentContact(admin, api, booking.customer_id);
+      if (!contactId) throw new Error("prepayment_contact_requires_review");
+      prepayment = await linkPrepayment(admin, api, row, attempt, bank, contactId);
+    } else if (row.write_intents?.prepayment) {
+      throw new Error("uncertain_previous_write_requires_review");
+    }
+  }
+  const { data: job, error: jobError } = await admin.from("workshop_jobs").select(
     "id,customer_id,vehicle_id",
   ).eq("booking_request_id", booking.id).maybeSingle();
+  if (jobError) throw new Error("booking_job_lookup_failed");
   if (!job) {
-    await save(admin, row, {
-      status: "waiting_invoice",
-      available_at: new Date(Date.now() + 300000).toISOString(),
-      last_error: null,
-    });
+    await waitForInvoice(admin, api, row, attempt, verified.paidDate, incomeVerified);
     return;
   }
   if (
@@ -245,11 +383,7 @@ async function processDeposit(admin: SupabaseClient, api: Xero, row: Row) {
     .eq('status','imported').eq('job_id',job.id).limit(2);
   if (linkLookupError) throw new Error('invoice_lookup_failed');
   if (!links?.length) {
-    await save(admin, row, {
-      status: "waiting_invoice",
-      available_at: new Date(Date.now() + 300000).toISOString(),
-      last_error: null,
-    });
+    await waitForInvoice(admin, api, row, attempt, verified.paidDate, incomeVerified);
     return;
   }
   if (links.length !== 1 || !uuid(links[0].record_id)) throw new Error('invoice_identity_requires_review');
@@ -518,7 +652,7 @@ Deno.serve(async (request) => {
       return json({ enabled: false, processed: 0 });
     }
     const api = xero(await access(admin));
-    await verifyAccounts(api);
+    const incomeVerified = await verifyAccounts(api);
     if (body.action === "enable") {
       const enabled = await admin.from("booking_xero_deposit_config").update({
         enabled: true,
@@ -546,7 +680,7 @@ Deno.serve(async (request) => {
       if (claim.error || !claim.data) continue;
       const row = claim.data;
       try {
-        await processDeposit(admin, api, row);
+        await processDeposit(admin, api, row, incomeVerified);
       } catch (error) {
         const code = error instanceof Error && /^[a-z_]+$/u.test(error.message)
           ? error.message
