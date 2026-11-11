@@ -45,16 +45,6 @@ const PARTNERS: readonly TrustedPartner[] = [
     instagramUrl: 'https://www.instagram.com/tintby_darkside/',
   },
   {
-    id: 'grace-insurance',
-    category: 'Insurance Advice',
-    businessName: 'Grace Insurance',
-    summary: 'Personal, business and automotive insurance advice. Protection and peace of mind.',
-    phoneDisplay: '0431 444 305',
-    phoneUrl: 'tel:+61431444305',
-    email: 'vanessa@graceinsurance.com.au',
-    emailUrl: 'mailto:vanessa@graceinsurance.com.au',
-  },
-  {
     id: 'elite-autobody',
     category: 'Paint & Bodywork',
     businessName: 'Elite Autobody',
