@@ -22,7 +22,7 @@ test('Home shortcuts expose every tile and persist only a device-local identifie
   assert.doesNotMatch(preferences, /fetch|EXPO_PUBLIC_API_BASE_URL|booking draft|vehicleId/iu);
 });
 
-test('Trusted Partners is a public referral directory with eight approved shortest-first categories', async () => {
+test('Trusted Partners is a public referral directory with nine approved shortest-first categories', async () => {
   const [partners, screen] = await Promise.all([
     read('../mobile/src/lib/trusted-partners.ts'),
     read('../mobile/src/app/trusted-partners.tsx'),
@@ -36,10 +36,11 @@ test('Trusted Partners is a public referral directory with eight approved shorte
     'Towing & Transport',
     'Vinyl Wrapping & PPF',
     'Automotive Photography',
+    'Luxury Interiors & Customisation',
     'Performance Fluids & Lubricants',
   ];
   for (const category of categories) assert.match(partners, new RegExp(`category: '${category}'`, 'u'));
-  assert.equal((partners.match(/id: '/gu) ?? []).length, 8);
+  assert.equal((partners.match(/id: '/gu) ?? []).length, 9);
   assert.doesNotMatch(partners, /raceline|Motorsport Apparel/iu);
   assert.doesNotMatch(`${partners}\n${screen}`, /race-wires|Race Wires Auto Electrics|racewires@live\.com/iu);
   assert.doesNotMatch(`${partners}\n${screen}`, /elite-detailing|Elite Car Detailing Studio|elitemcd\.com\.au/iu);
@@ -56,6 +57,7 @@ test('Trusted Partners is a public referral directory with eight approved shorte
   assert.match(screen, /Contact partners directly/u);
   assert.match(screen, /Referrals are not PSI bookings or quotes/u);
   assert.match(screen, /trb-visuals\.jpg/u);
+  assert.match(screen, /'bnb-autohaus': require\('\.\.\/\.\.\/assets\/images\/partners\/bnb-autohaus\.jpg'\)/u);
   assert.match(screen, /martini-racing-products\.jpg/u);
   assert.match(screen, /fab-car-audio\.jpg/u);
   assert.match(screen, /'martini-racing-products': 1\.2/u);
@@ -70,7 +72,7 @@ test('Every trusted partner action uses a valid destination', async () => {
   const partners = await read('../mobile/src/lib/trusted-partners.ts');
   const partnerBlocks = partners.split(/\r?\n  \{\r?\n/u).slice(1);
 
-  assert.equal(partnerBlocks.length, 8);
+  assert.equal(partnerBlocks.length, 9);
   for (const block of partnerBlocks) {
     const email = block.match(/email: '([^']+)'/u)?.[1];
     const emailUrl = block.match(/emailUrl: '([^']+)'/u)?.[1];
